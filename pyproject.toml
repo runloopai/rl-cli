@@ -7,7 +7,10 @@ name = "rl_cli"
 authors = [{name = "Runloop AI", email = "eng+cli@runloop.ai"}]
 readme = "README.md"
 license = {file = "LICENSE"}
-classifiers = ["License :: OSI Approved :: MIT License"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+]
 dynamic = ["version", "description"]
 dependencies = [
   "requests",
@@ -30,3 +33,9 @@ rl = "rl_cli.main:main"
 Home = "https://www.runloop.ai"
 Documentation = "https://docs.runloop.ai"
 Source = "https://github.com/runloopai/rl-cli"
+
+[tool.flit.module]
+name = "rl_cli"
+
+[tool.flit.sdist]
+exclude = ["tests/", "docs/", "*.pyc"]
