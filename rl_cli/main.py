@@ -62,7 +62,8 @@ async def create_blueprint(args) -> None:
             dockerfile_contents = f.read()
 
     launch_parameters = blueprint_create_params.LaunchParameters(
-        resource_size_request=args.resources
+        resource_size_request=args.resources,
+        available_ports=args.available_ports
     )
 
     blueprint = await runloop_api_client().blueprints.create(
@@ -655,7 +656,13 @@ async def run():
         "--resources",
         type=str,
         help="Devbox resource specification.",
-        choices=["SMALL", "MEDIUM", "   LARGE"],
+        choices=["SMALL", "MEDIUM", "LARGE"],
+    )
+    blueprint_create_parser.add_argument(
+        "--available-ports",
+        type=int,
+        nargs="+",
+        help="List of available ports for the blueprint (e.g., --available-ports 8000 8080 3000)",
     )
 
     blueprint_preview_parser = blueprint_subparsers.add_parser(
