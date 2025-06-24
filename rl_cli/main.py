@@ -70,6 +70,7 @@ async def create_blueprint(args) -> None:
         resource_size_request=args.resources,
         available_ports=args.available_ports,
         architecture=args.architecture,
+        user_parameters=UserParameters(username="root", uid=0) if args.root else None,
     )
 
     blueprint = await runloop_api_client().blueprints.create(
@@ -184,7 +185,7 @@ async def execute_async(args) -> None:
     assert args.id is not None
     assert args.command is not None
     devbox = await runloop_api_client().devboxes.execute_async(
-        id=args.id, command=args.command
+        id=args.id, command=args.command, shell_name=args.shell_name or NOT_GIVEN
     )
     print(f"execution={devbox.model_dump_json(indent=4)}")
 
@@ -193,7 +194,9 @@ async def get_async_exec(args) -> None:
     assert args.id is not None
     assert args.execution_id is not None
     devbox = await runloop_api_client().devboxes.executions.retrieve(
-        execution_id=args.execution_id, devbox_id=args.id
+        execution_id=args.execution_id,
+        devbox_id=args.id,
+        shell_name=args.shell_name or NOT_GIVEN,
     )
     print(f"execution={devbox.model_dump_json(indent=4)}")
 
@@ -266,7 +269,7 @@ async def blueprint_logs(args) -> None:
 async def devbox_exec(args) -> None:
     assert args.id is not None
     result = await runloop_api_client().devboxes.execute_sync(
-        id=args.id, command=args.command
+        id=args.id, command=args.command, shell_name=args.shell_name or NOT_GIVEN
     )
     print("exec_result=", result)
 
@@ -703,6 +706,11 @@ async def run():
     devbox_exec_parser.add_argument(
         "--command", required=True, help="Command to execute"
     )
+    devbox_exec_parser.add_argument(
+        "--shell_name",
+        help="Name of the shell to use. If not specified, the default shell will be used.",
+        type=str,
+    )
     devbox_exec_parser.set_defaults(
         func=lambda args: asyncio.create_task(devbox_exec(args))
     )
@@ -809,6 +817,11 @@ async def run():
     )
     devbox_async_execution_parser.add_argument(
         "--command", required=True, help="Command to execute"
+    )
+    devbox_async_execution_parser.add_argument(
+        "--shell_name",
+        help="Name of the shell to use. If not specified, the default shell will be used.",
+        type=str,
     )
     devbox_async_execution_parser.set_defaults(
         func=lambda args: asyncio.create_task(execute_async(args))
@@ -977,6 +990,11 @@ async def run():
         type=str,
         help="Devbox architecture. If not specified, defaults to arm64.",
         choices=["arm64", "x86_64"],
+    )
+    blueprint_create_parser.add_argument(
+        "--root",
+        action="store_true",
+        help="Create blueprint as root user.",
     )
 
     blueprint_preview_parser = blueprint_subparsers.add_parser(
