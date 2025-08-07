@@ -1076,8 +1076,11 @@ async def run():
 def main():
     try:
         asyncio.run(run())
+    except KeyboardInterrupt:
+        print("Cancelled.", file=sys.stderr)
+        sys.exit(130)
     except Exception as e:
-        print(f"error: {e}")
+        print(f"error: {e}", file=sys.stderr)
         sys.exit(1)
 
 
