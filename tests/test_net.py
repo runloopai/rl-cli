@@ -60,7 +60,8 @@ def test_api_post_failure():
     mock_failed_response.status_code = 400
     mock_failed_response.content = b'Bad Request'
 
-    with patch('requests.post', return_value=mock_failed_response):
+    with patch('os.getenv', return_value='dummy-key-for-testing'), \
+         patch('requests.post', return_value=mock_failed_response):
         with pytest.raises(ValueError) as exc_info:
             api_post('/test', {"key": "value"})
         assert "Failed to retrieve data: 400" in str(exc_info.value)

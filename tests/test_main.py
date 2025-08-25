@@ -7,15 +7,15 @@ from pathlib import Path
 import pytest
 from unittest.mock import patch, mock_open
 
-from rl_cli.main import (
+from rl_cli.utils import (
     base_url,
     ssh_url,
     get_cache_dir,
     should_check_for_updates,
     get_latest_version,
     update_check_cache,
-    check_for_updates,
 )
+from rl_cli.main import check_for_updates
 
 def test_base_url_dev(mock_env):
     """Test base_url returns dev URL when RUNLOOP_ENV is 'dev'."""

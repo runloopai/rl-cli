@@ -3,16 +3,17 @@ import os
 
 import requests
 
-# Get the API key from the environment variable
-api_key = os.getenv("RUNLOOP_API_KEY")
-
 # Define the API endpoint
 base_url = "https://api.runloop.pro"
+
+def get_api_key() -> str:
+    """Get the API key from environment variables."""
+    return os.getenv("RUNLOOP_API_KEY")
 
 
 def api_get(path: str) -> dict:
     # Set up the headers with the Bearer token
-    headers = {"Authorization": f"Bearer {api_key}"}
+    headers = {"Authorization": f"Bearer {get_api_key()}"}
 
     resolved_url = base_url + path
 
@@ -36,7 +37,7 @@ def api_get(path: str) -> dict:
 
 def api_post(path: str, body: dict) -> dict:
     # Set up the headers with the Bearer token
-    headers = {"Authorization": f"Bearer {api_key}"}
+    headers = {"Authorization": f"Bearer {get_api_key()}"}
 
     resolved_url = base_url + path
 
