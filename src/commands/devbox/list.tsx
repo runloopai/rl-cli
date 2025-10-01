@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, Box, Text, useInput, useApp } from 'ink';
+import { render, Box, Text, useInput, useApp, useStdout } from 'ink';
 import TextInput from 'ink-text-input';
 import figures from 'figures';
 import { formatDistanceToNow } from 'date-fns';
@@ -22,6 +22,7 @@ type Operation = 'exec' | 'upload' | 'snapshot' | 'ssh' | 'logs' | 'tunnel' | 's
 
 const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   const { exit } = useApp();
+  const { stdout } = useStdout();
   const [loading, setLoading] = React.useState(true);
   const [devboxes, setDevboxes] = React.useState<any[]>([]);
   const [error, setError] = React.useState<Error | null>(null);
@@ -35,6 +36,33 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   const [operationError, setOperationError] = React.useState<Error | null>(null);
   const [refreshing, setRefreshing] = React.useState(false);
   const [refreshIcon, setRefreshIcon] = React.useState(0);
+
+  // Calculate responsive column widths
+  const terminalWidth = stdout?.columns || 120;
+  const fixedWidth = 6; // pointer + status icon + spaces
+  const idWidth = 25;
+  const timeWidth = 20;
+  const capabilitiesWidth = 18;
+  const tagWidth = 6;
+
+  // Responsive layout based on terminal width
+  const showCapabilities = terminalWidth >= 100;
+  const showTags = terminalWidth >= 90;
+  const showFullId = terminalWidth >= 80;
+
+  let nameWidth = 25;
+  if (terminalWidth >= 120) {
+    const remainingWidth = terminalWidth - fixedWidth - idWidth - timeWidth - capabilitiesWidth - tagWidth - 10;
+    nameWidth = Math.max(20, Math.min(40, remainingWidth));
+  } else if (terminalWidth >= 100) {
+    nameWidth = terminalWidth - fixedWidth - idWidth - timeWidth - capabilitiesWidth - 10;
+  } else if (terminalWidth >= 90) {
+    nameWidth = terminalWidth - fixedWidth - idWidth - timeWidth - 8;
+  } else if (terminalWidth >= 80) {
+    nameWidth = terminalWidth - fixedWidth - idWidth - timeWidth - 8;
+  } else {
+    nameWidth = terminalWidth - fixedWidth - 15 - timeWidth - 8; // Short ID mode
+  }
 
   const allOperations = [
     { key: 'exec', label: 'Execute Command', color: 'green', icon: figures.play },
@@ -571,31 +599,52 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
                   <Text> </Text>
                   <StatusBadge status={devbox.status} showText={false} />
                   <Text> </Text>
-                  <Box width={25}>
-                    <Text color="gray" dimColor>
-                      {devbox.id}
-                    </Text>
-                  </Box>
-                  <Text> </Text>
-                  <Box width={25}>
+                  {showFullId ? (
+                    <>
+                      <Box width={idWidth}>
+                        <Text color="gray" dimColor>
+                          {devbox.id}
+                        </Text>
+                      </Box>
+                      <Text> </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Box width={15}>
+                        <Text color="gray" dimColor>
+                          {devbox.id.slice(0, 13)}
+                        </Text>
+                      </Box>
+                      <Text> </Text>
+                    </>
+                  )}
+                  <Box width={nameWidth}>
                     <Text color={isSelected ? 'cyan' : 'white'} bold={isSelected}>
-                      {displayName.slice(0, 23)}
+                      {displayName.slice(0, nameWidth - 2)}
                     </Text>
                   </Box>
                   <Text> </Text>
-                  <Box width={18}>
-                    <Text color="blue" dimColor>
-                      {hasCapabilities ? `[${devbox.capabilities.filter((c: string) => c !== 'unknown').map((c: string) => c === 'computer_usage' ? 'comp' : c === 'browser_usage' ? 'browser' : c === 'docker_in_docker' ? 'docker' : c).join(',')}]` : ''}
-                    </Text>
-                  </Box>
-                  <Text> </Text>
-                  <Box width={6}>
-                    <Text color="yellow" dimColor>
-                      {devbox.blueprint_id ? '[bp]' : devbox.snapshot_id ? '[snap]' : ''}
-                    </Text>
-                  </Box>
-                  <Text> </Text>
-                  <Box width={20}>
+                  {showCapabilities && (
+                    <>
+                      <Box width={capabilitiesWidth}>
+                        <Text color="blue" dimColor>
+                          {hasCapabilities ? `[${devbox.capabilities.filter((c: string) => c !== 'unknown').map((c: string) => c === 'computer_usage' ? 'comp' : c === 'browser_usage' ? 'browser' : c === 'docker_in_docker' ? 'docker' : c).join(',')}]` : ''}
+                        </Text>
+                      </Box>
+                      <Text> </Text>
+                    </>
+                  )}
+                  {showTags && (
+                    <>
+                      <Box width={tagWidth}>
+                        <Text color="yellow" dimColor>
+                          {devbox.blueprint_id ? '[bp]' : devbox.snapshot_id ? '[snap]' : ''}
+                        </Text>
+                      </Box>
+                      <Text> </Text>
+                    </>
+                  )}
+                  <Box width={timeWidth}>
                     <Text color="gray" dimColor>
                       {timeAgo || ''}
                     </Text>
