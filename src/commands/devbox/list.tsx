@@ -144,15 +144,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     return () => clearInterval(interval);
   }, [showDetails, showDetailedInfo]);
 
-  // Clear console when transitioning to detail view
-  const prevShowDetailsRef = React.useRef(showDetails);
-  React.useEffect(() => {
-    // Only clear when transitioning from list to detail view (false -> true)
-    if (showDetails && !prevShowDetailsRef.current) {
-      console.clear();
-    }
-    prevShowDetailsRef.current = showDetails;
-  }, [showDetails]);
+  // Clear console when transitioning to detail view - removed to prevent black screen flicker
 
   // Auto-execute operations that don't need input (delete, ssh, logs, suspend, resume)
   React.useEffect(() => {
