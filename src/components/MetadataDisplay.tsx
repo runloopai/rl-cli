@@ -8,6 +8,12 @@ interface MetadataDisplayProps {
   showBorder?: boolean;
 }
 
+// Generate color for each key based on hash
+const getColorForKey = (key: string, index: number): string => {
+  const colors = ['cyan', 'magenta', 'yellow', 'blue', 'green', 'red'];
+  return colors[index % colors.length];
+};
+
 export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
   metadata,
   title = 'Metadata',
@@ -20,25 +26,28 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
   }
 
   const content = (
-    <Box flexDirection="column">
+    <Box flexDirection="row" alignItems="center">
       {title && (
-        <Box marginBottom={1}>
+        <>
           <Text color="#0a4d3a" bold>
             {figures.info} {title}
           </Text>
-        </Box>
+          <Text> </Text>
+        </>
       )}
-      <Box flexDirection="column" gap={0}>
-        {entries.map(([key, value]) => (
+      {entries.map(([key, value], index) => {
+        const color = getColorForKey(key, index);
+        return (
           <Box key={key}>
-            <Box width={20}>
-              <Text color="cyan">{key}</Text>
-            </Box>
-            <Text color="gray"> {figures.pointerSmall} </Text>
+            <Text color={color} bold>[</Text>
+            <Text color={color}>{key}</Text>
+            <Text color="gray">:</Text>
             <Text color="white">{value}</Text>
+            <Text color={color} bold>]</Text>
+            <Text> </Text>
           </Box>
-        ))}
-      </Box>
+        );
+      })}
     </Box>
   );
 
