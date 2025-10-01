@@ -13,6 +13,7 @@ import { Breadcrumb } from '../../components/Breadcrumb.js';
 import { MetadataDisplay } from '../../components/MetadataDisplay.js';
 import { Table, createTextColumn, createComponentColumn } from '../../components/Table.js';
 import { OperationsMenu, Operation } from '../../components/OperationsMenu.js';
+import { shouldUseNonInteractiveOutput, outputList } from '../../utils/output.js';
 
 const PAGE_SIZE = 10;
 const MAX_FETCH = 100;
@@ -649,7 +650,31 @@ const ListBlueprintsUI: React.FC = () => {
   );
 };
 
-export async function listBlueprints() {
+interface ListBlueprintsOptions {
+  output?: string;
+}
+
+export async function listBlueprints(options: ListBlueprintsOptions = {}) {
+  // Handle non-interactive output formats
+  if (shouldUseNonInteractiveOutput(options)) {
+    const client = getClient();
+    const allBlueprints: any[] = [];
+
+    let count = 0;
+    for await (const blueprint of client.blueprints.list()) {
+      allBlueprints.push(blueprint);
+      count++;
+      // In non-interactive mode, only return PAGE_SIZE (10) by default
+      if (count >= PAGE_SIZE) {
+        break;
+      }
+    }
+
+    outputList(allBlueprints, options);
+    return;
+  }
+
+  // Interactive mode
   console.clear();
   const { waitUntilExit } = render(<ListBlueprintsUI />);
   await waitUntilExit();
