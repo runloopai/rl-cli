@@ -1,25 +1,61 @@
 import React from 'react';
-import { render, Box, Text, useInput } from 'ink';
-import Gradient from 'ink-gradient';
+import { render, Box, Text, useInput, useStdout } from 'ink';
 import figures from 'figures';
 import { getClient } from '../../utils/client.js';
 import { Header } from '../../components/Header.js';
 import { Banner } from '../../components/Banner.js';
 import { SpinnerComponent } from '../../components/Spinner.js';
 import { ErrorMessage } from '../../components/ErrorMessage.js';
+import { StatusBadge } from '../../components/StatusBadge.js';
+import { Breadcrumb } from '../../components/Breadcrumb.js';
+import { Table, createTextColumn, createComponentColumn } from '../../components/Table.js';
 
 interface ListOptions {
   devbox?: string;
 }
 
 const PAGE_SIZE = 10;
-const MAX_FETCH = 100; // Limit initial fetch to prevent hanging
+const MAX_FETCH = 100;
+
+// Format time ago
+const formatTimeAgo = (timestamp: number): string => {
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+
+  if (seconds < 60) return `${seconds}s ago`;
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+
+  const years = Math.floor(months / 12);
+  return `${years}y ago`;
+};
 
 const ListSnapshotsUI: React.FC<{ devboxId?: string }> = ({ devboxId }) => {
+  const { stdout } = useStdout();
   const [loading, setLoading] = React.useState(true);
   const [snapshots, setSnapshots] = React.useState<any[]>([]);
   const [error, setError] = React.useState<Error | null>(null);
   const [currentPage, setCurrentPage] = React.useState(0);
+  const [selectedIndex, setSelectedIndex] = React.useState(0);
+
+  // Calculate responsive column widths
+  const terminalWidth = stdout?.columns || 120;
+  const showDevboxId = terminalWidth >= 100 && !devboxId; // Hide devbox column if filtering by devbox
+  const showFullId = terminalWidth >= 80;
+
+  const idWidth = 25;
+  const nameWidth = terminalWidth >= 120 ? 30 : 25;
+  const devboxWidth = 15;
+  const timeWidth = 20;
 
   React.useEffect(() => {
     const list = async () => {
@@ -32,7 +68,6 @@ const ListSnapshotsUI: React.FC<{ devboxId?: string }> = ({ devboxId }) => {
         for await (const snapshot of client.devboxes.listDiskSnapshots(params)) {
           allSnapshots.push(snapshot);
           count++;
-          // Limit fetch to prevent hanging on large datasets
           if (count >= MAX_FETCH) {
             break;
           }
@@ -47,13 +82,21 @@ const ListSnapshotsUI: React.FC<{ devboxId?: string }> = ({ devboxId }) => {
     };
 
     list();
-  }, []);
+  }, [devboxId]);
 
   useInput((input, key) => {
-    if (input === 'n' && currentPage < totalPages - 1) {
+    const pageSnapshots = currentSnapshots.length;
+
+    if (key.upArrow && selectedIndex > 0) {
+      setSelectedIndex(selectedIndex - 1);
+    } else if (key.downArrow && selectedIndex < pageSnapshots - 1) {
+      setSelectedIndex(selectedIndex + 1);
+    } else if ((input === 'n' || key.rightArrow) && currentPage < totalPages - 1) {
       setCurrentPage(currentPage + 1);
-    } else if (input === 'p' && currentPage > 0) {
+      setSelectedIndex(0);
+    } else if ((input === 'p' || key.leftArrow) && currentPage > 0) {
       setCurrentPage(currentPage - 1);
+      setSelectedIndex(0);
     } else if (input === 'q') {
       process.exit(0);
     }
@@ -64,170 +107,112 @@ const ListSnapshotsUI: React.FC<{ devboxId?: string }> = ({ devboxId }) => {
   const endIndex = Math.min(startIndex + PAGE_SIZE, snapshots.length);
   const currentSnapshots = snapshots.slice(startIndex, endIndex);
 
+  const ready = snapshots.filter((s) => s.status === 'ready').length;
+  const pending = snapshots.filter((s) => s.status !== 'ready').length;
+
   return (
     <>
       <Banner />
+      <Breadcrumb
+        items={[
+          { label: 'Snapshots', active: !devboxId },
+          ...(devboxId ? [{ label: `Devbox: ${devboxId.slice(0, 12)}`, active: true }] : []),
+        ]}
+      />
       <Header
         title="Snapshots"
-        subtitle={devboxId ? `Filtering by devbox: ${devboxId}` : 'All snapshots'}
+        subtitle={devboxId ? `Filtering by devbox: ${devboxId}` : undefined}
       />
-      {loading && <SpinnerComponent message="Fetching snapshots..." />}
+      {loading && <SpinnerComponent message="Loading snapshots..." />}
       {!loading && !error && snapshots.length === 0 && (
-        <Box
-          borderStyle="round"
-          borderColor="yellow"
-          paddingX={3}
-          paddingY={2}
-          marginY={1}
-          flexDirection="column"
-        >
-          <Box marginBottom={1}>
-            <Text color="yellow" bold>
-              {figures.info} No snapshots found
-            </Text>
-          </Box>
-          <Box marginLeft={2}>
-            <Text color="gray">Create a snapshot with: </Text>
-            <Text color="cyan" bold>
-              rln snapshot create &lt;devbox-id&gt;
-            </Text>
-          </Box>
+        <Box>
+          <Text color="yellow">{figures.info}</Text>
+          <Text> No snapshots found. Try: </Text>
+          <Text color="cyan" bold>
+            rln snapshot create &lt;devbox-id&gt;
+          </Text>
         </Box>
       )}
       {!loading && !error && snapshots.length > 0 && (
         <>
-          {/* Summary */}
-          <Box
-            borderStyle="round"
-            borderColor="magenta"
-            paddingX={3}
-            paddingY={1}
-            marginY={1}
-            flexDirection="column"
-          >
-            <Box justifyContent="space-between">
-              <Box>
-                <Gradient name="passion">
-                  <Text bold>{figures.star} Summary</Text>
-                </Gradient>
-              </Box>
-              <Box>
-                <Text color="cyan">
-                  {totalPages > 1 && `Page ${currentPage + 1}/${totalPages} - `}
-                  {snapshots.length}{snapshots.length >= MAX_FETCH && '+'} total
+          <Box marginBottom={1}>
+            <Text color="green">
+              {figures.tick} {ready}
+            </Text>
+            <Text> </Text>
+            <Text color="yellow">
+              {figures.ellipsis} {pending}
+            </Text>
+            <Text> </Text>
+            <Text color="cyan">
+              {figures.hamburger} {snapshots.length}
+              {snapshots.length >= MAX_FETCH && '+'}
+            </Text>
+            {totalPages > 1 && (
+              <>
+                <Text color="gray"> • </Text>
+                <Text color="gray" dimColor>
+                  Page {currentPage + 1}/{totalPages}
                 </Text>
-              </Box>
-            </Box>
+              </>
+            )}
           </Box>
 
-          {/* Snapshot List */}
-          <Box flexDirection="column" marginTop={1}>
-            {currentSnapshots.map((snapshot, index) => (
-              <Box
-                key={snapshot.id}
-                flexDirection="column"
-                borderStyle="round"
-                borderColor="blue"
-                paddingX={3}
-                paddingY={1}
-                marginBottom={1}
-              >
-                <Box justifyContent="space-between">
-                  <Box>
-                    <Text color="cyan" bold>
-                      {figures.pointer}
-                    </Text>
-                    <Text> </Text>
-                    <Gradient name="cristal">
-                      <Text bold>{snapshot.name || snapshot.id.slice(0, 12)}</Text>
-                    </Gradient>
-                  </Box>
-                  <Box>
-                    <Text color={snapshot.status === 'ready' ? 'green' : 'yellow'}>
-                      {snapshot.status === 'ready' ? figures.tick : figures.ellipsis}{' '}
-                      {snapshot.status.toUpperCase()}
-                    </Text>
-                  </Box>
-                </Box>
-                <Box marginTop={1}>
-                  <Text color="gray">{'─'.repeat(72)}</Text>
-                </Box>
-                <Box flexDirection="column" gap={1} marginTop={1}>
-                  <Box>
-                    <Text color="blueBright" bold>
-                      {figures.info} ID:{' '}
-                    </Text>
-                    <Text color="gray">{snapshot.id.slice(0, 8)}...</Text>
-                  </Box>
-                  <Box>
-                    <Text color="blueBright" bold>
-                      {figures.play} Devbox:{' '}
-                    </Text>
-                    <Text color="gray">{snapshot.devbox_id?.slice(0, 8)}...</Text>
-                  </Box>
-                  {snapshot.created_at && (
-                    <Box>
-                      <Text color="blueBright" bold>
-                        {figures.play} Created:{' '}
-                      </Text>
-                      <Text color="gray">
-                        {new Date(snapshot.created_at).toLocaleString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </Text>
-                    </Box>
-                  )}
-                </Box>
-              </Box>
-            ))}
-          </Box>
+          <Table
+            data={currentSnapshots}
+            keyExtractor={(snapshot: any) => snapshot.id}
+            selectedIndex={selectedIndex}
+            columns={[
+              createComponentColumn(
+                'status',
+                'Status',
+                (snapshot: any) => <StatusBadge status={snapshot.status} showText={false} />,
+                { width: 2 }
+              ),
+              createTextColumn(
+                'id',
+                'ID',
+                (snapshot: any) => showFullId ? snapshot.id : snapshot.id.slice(0, 13),
+                { width: showFullId ? idWidth : 15, color: 'gray', dimColor: true, bold: false }
+              ),
+              createTextColumn(
+                'name',
+                'Name',
+                (snapshot: any) => snapshot.name || '(unnamed)',
+                { width: nameWidth }
+              ),
+              createTextColumn(
+                'devbox',
+                'Devbox',
+                (snapshot: any) => snapshot.devbox_id ? snapshot.devbox_id.slice(0, 13) : '',
+                { width: devboxWidth, color: 'cyan', dimColor: true, bold: false, visible: showDevboxId }
+              ),
+              createTextColumn(
+                'created',
+                'Created',
+                (snapshot: any) => snapshot.created_at ? formatTimeAgo(new Date(snapshot.created_at).getTime()) : '',
+                { width: timeWidth, color: 'gray', dimColor: true, bold: false }
+              ),
+            ]}
+          />
 
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <Box
-              borderStyle="round"
-              borderColor="blue"
-              paddingX={3}
-              paddingY={1}
-              marginTop={1}
-              flexDirection="column"
-            >
-              <Box justifyContent="space-between">
-                <Box gap={3}>
-                  {currentPage > 0 && (
-                    <Box>
-                      <Text color="cyan" bold>
-                        [p]
-                      </Text>
-                      <Text color="gray"> Previous</Text>
-                    </Box>
-                  )}
-                  {currentPage < totalPages - 1 && (
-                    <Box>
-                      <Text color="cyan" bold>
-                        [n]
-                      </Text>
-                      <Text color="gray"> Next</Text>
-                    </Box>
-                  )}
-                  <Box>
-                    <Text color="red" bold>
-                      [q]
-                    </Text>
-                    <Text color="gray"> Quit</Text>
-                  </Box>
-                </Box>
-                <Box>
-                  <Text color="gray" dimColor>
-                    {figures.arrowRight} Press a key to navigate
-                  </Text>
-                </Box>
-              </Box>
-            </Box>
-          )}
+          <Box marginTop={1}>
+            <Text color="gray" dimColor>
+              {figures.arrowUp}
+              {figures.arrowDown} Navigate •
+            </Text>
+            {totalPages > 1 && (
+              <Text color="gray" dimColor>
+                {' '}
+                {figures.arrowLeft}
+                {figures.arrowRight} Page •
+              </Text>
+            )}
+            <Text color="gray" dimColor>
+              {' '}
+              [q] Quit
+            </Text>
+          </Box>
         </>
       )}
       {error && <ErrorMessage message="Failed to list snapshots" error={error} />}

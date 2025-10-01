@@ -11,6 +11,7 @@ import { SuccessMessage } from '../../components/SuccessMessage.js';
 import { StatusBadge, getStatusDisplay } from '../../components/StatusBadge.js';
 import { MetadataDisplay } from '../../components/MetadataDisplay.js';
 import { Breadcrumb } from '../../components/Breadcrumb.js';
+import { Table, createTextColumn, createComponentColumn } from '../../components/Table.js';
 
 // Format time ago in a succinct way
 const formatTimeAgo = (timestamp: number): string => {
@@ -941,77 +942,57 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
             )}
           </Box>
 
-          <Box flexDirection="column">
-            {currentDevboxes.map((devbox, index) => {
-              const isSelected = index === selectedIndex;
-              const displayName = devbox.name || '';
-              const hasCapabilities = devbox.capabilities && devbox.capabilities.filter((c: string) => c !== 'unknown').length > 0;
-              const timeAgo = devbox.create_time_ms
-                ? formatTimeAgo(devbox.create_time_ms)
-                : null;
-
-              return (
-                <Box key={devbox.id}>
-                  <Text color={isSelected ? 'cyan' : 'gray'}>
-                    {isSelected ? figures.pointer : ' '}
-                  </Text>
-                  <Text> </Text>
-                  <StatusBadge status={devbox.status} showText={false} />
-                  <Text> </Text>
-                  {showFullId ? (
-                    <>
-                      <Box width={idWidth}>
-                        <Text color="gray" dimColor>
-                          {devbox.id}
-                        </Text>
-                      </Box>
-                      <Text> </Text>
-                    </>
-                  ) : (
-                    <>
-                      <Box width={15}>
-                        <Text color="gray" dimColor>
-                          {devbox.id.slice(0, 13)}
-                        </Text>
-                      </Box>
-                      <Text> </Text>
-                    </>
-                  )}
-                  <Box width={nameWidth}>
-                    <Text color={isSelected ? 'cyan' : 'white'} bold={isSelected}>
-                      {displayName.slice(0, nameWidth - 2)}
-                    </Text>
-                  </Box>
-                  <Text> </Text>
-                  {showCapabilities && (
-                    <>
-                      <Box width={capabilitiesWidth}>
-                        <Text color="blue" dimColor>
-                          {hasCapabilities ? `[${devbox.capabilities.filter((c: string) => c !== 'unknown').map((c: string) => c === 'computer_usage' ? 'comp' : c === 'browser_usage' ? 'browser' : c === 'docker_in_docker' ? 'docker' : c).join(',')}]` : ''}
-                        </Text>
-                      </Box>
-                      <Text> </Text>
-                    </>
-                  )}
-                  {showTags && (
-                    <>
-                      <Box width={tagWidth}>
-                        <Text color="yellow" dimColor>
-                          {devbox.blueprint_id ? '[bp]' : devbox.snapshot_id ? '[snap]' : ''}
-                        </Text>
-                      </Box>
-                      <Text> </Text>
-                    </>
-                  )}
-                  <Box width={timeWidth}>
-                    <Text color="gray" dimColor>
-                      {timeAgo || ''}
-                    </Text>
-                  </Box>
-                </Box>
-              );
-            })}
-          </Box>
+          <Table
+            data={currentDevboxes}
+            keyExtractor={(devbox: any) => devbox.id}
+            selectedIndex={selectedIndex}
+            columns={[
+              createComponentColumn(
+                'status',
+                'Status',
+                (devbox: any) => <StatusBadge status={devbox.status} showText={false} />,
+                { width: 2 }
+              ),
+              createTextColumn(
+                'id',
+                'ID',
+                (devbox: any) => showFullId ? devbox.id : devbox.id.slice(0, 13),
+                { width: showFullId ? idWidth : 15, color: 'gray', dimColor: true, bold: false }
+              ),
+              createTextColumn(
+                'name',
+                'Name',
+                (devbox: any) => devbox.name || '',
+                { width: nameWidth }
+              ),
+              createTextColumn(
+                'capabilities',
+                'Capabilities',
+                (devbox: any) => {
+                  const hasCapabilities = devbox.capabilities && devbox.capabilities.filter((c: string) => c !== 'unknown').length > 0;
+                  return hasCapabilities
+                    ? `[${devbox.capabilities
+                        .filter((c: string) => c !== 'unknown')
+                        .map((c: string) => c === 'computer_usage' ? 'comp' : c === 'browser_usage' ? 'browser' : c === 'docker_in_docker' ? 'docker' : c)
+                        .join(',')}]`
+                    : '';
+                },
+                { width: capabilitiesWidth, color: 'blue', dimColor: true, bold: false, visible: showCapabilities }
+              ),
+              createTextColumn(
+                'tags',
+                'Tags',
+                (devbox: any) => devbox.blueprint_id ? '[bp]' : devbox.snapshot_id ? '[snap]' : '',
+                { width: tagWidth, color: 'yellow', dimColor: true, bold: false, visible: showTags }
+              ),
+              createTextColumn(
+                'created',
+                'Created',
+                (devbox: any) => devbox.create_time_ms ? formatTimeAgo(devbox.create_time_ms) : '',
+                { width: timeWidth, color: 'gray', dimColor: true, bold: false }
+              ),
+            ]}
+          />
 
           <Box marginTop={1}>
             <Text color="gray" dimColor>
