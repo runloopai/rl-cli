@@ -732,94 +732,195 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     }
 
     // Operations selection mode
+    const lp = selectedDevbox.launch_parameters;
+    const hasResources = lp?.resource_size_request || lp?.custom_cpu_cores || lp?.custom_gb_memory || lp?.custom_disk_size;
+    const hasCapabilities = selectedDevbox.capabilities && selectedDevbox.capabilities.filter((c: string) => c !== 'unknown').length > 0;
+
     return (
       <>
         <Header title="Devbox Details" />
-        <Box flexDirection="column" marginBottom={1}>
+
+        {/* Main info card */}
+        <Box
+          flexDirection="column"
+          borderStyle="round"
+          borderColor="cyan"
+          paddingX={2}
+          paddingY={1}
+          marginBottom={1}
+        >
           <Box marginBottom={1}>
             <Text color="cyan" bold>
               {selectedDevbox.name || selectedDevbox.id.slice(0, 12)}
             </Text>
-            <Text> </Text>
+            <Text>  </Text>
             <StatusBadge status={selectedDevbox.status} />
           </Box>
-          <Box flexDirection="column" gap={1}>
+
+          <Box flexDirection="column">
             <Box>
-              <Text color="gray">ID: </Text>
+              <Text color="gray" dimColor>ID: </Text>
               <Text dimColor>{selectedDevbox.id}</Text>
             </Box>
-            <Box>
-              <Text color="gray">URL: </Text>
-              <Text color="cyan" dimColor>
-                https://platform.runloop.ai/devboxes/{selectedDevbox.id}
-              </Text>
-            </Box>
+
             {selectedDevbox.create_time_ms && (
-              <Box>
-                <Text color="gray">Created: </Text>
+              <Box marginTop={1}>
+                <Text color="gray" dimColor>Created: </Text>
                 <Text dimColor>{new Date(selectedDevbox.create_time_ms).toLocaleString()}</Text>
+                <Text color="gray" dimColor>  ({formatTimeAgo(selectedDevbox.create_time_ms)})</Text>
               </Box>
             )}
+
             {uptime !== null && selectedDevbox.status === 'running' && (
               <Box>
-                <Text color="gray">Uptime: </Text>
-                <Text dimColor>{uptime < 60 ? `${uptime}m` : `${Math.floor(uptime / 60)}h ${uptime % 60}m`}</Text>
-              </Box>
-            )}
-            {selectedDevbox.launch_parameters?.keep_alive_time_seconds && (
-              <Box>
-                <Text color="gray">Keep Alive: </Text>
-                <Text dimColor>{Math.floor(selectedDevbox.launch_parameters.keep_alive_time_seconds / 60)}m</Text>
-              </Box>
-            )}
-            {selectedDevbox.launch_parameters?.resource_size_request && (
-              <Box>
-                <Text color="gray">Resource Size: </Text>
-                <Text dimColor>{selectedDevbox.launch_parameters.resource_size_request}</Text>
-              </Box>
-            )}
-            {selectedDevbox.launch_parameters?.architecture && (
-              <Box>
-                <Text color="gray">Architecture: </Text>
-                <Text dimColor>{selectedDevbox.launch_parameters.architecture}</Text>
-              </Box>
-            )}
-            {selectedDevbox.capabilities && selectedDevbox.capabilities.length > 0 && (
-              <Box>
-                <Text color="gray">Capabilities: </Text>
-                <Text dimColor>{selectedDevbox.capabilities.filter((c: string) => c !== 'unknown').join(', ')}</Text>
-              </Box>
-            )}
-            {selectedDevbox.blueprint_id && (
-              <Box>
-                <Text color="gray">Blueprint: </Text>
-                <Text dimColor>{selectedDevbox.blueprint_id}</Text>
-              </Box>
-            )}
-            {selectedDevbox.snapshot_id && (
-              <Box>
-                <Text color="gray">Snapshot: </Text>
-                <Text dimColor>{selectedDevbox.snapshot_id}</Text>
-              </Box>
-            )}
-            {selectedDevbox.failure_reason && (
-              <Box>
-                <Text color="red">Failure: </Text>
-                <Text color="red" dimColor>{selectedDevbox.failure_reason}</Text>
+                <Text color="gray" dimColor>Uptime: </Text>
+                <Text color="green" dimColor>{uptime < 60 ? `${uptime}m` : `${Math.floor(uptime / 60)}h ${uptime % 60}m`}</Text>
+                {lp?.keep_alive_time_seconds && (
+                  <Text color="gray" dimColor>  (keep-alive: {Math.floor(lp.keep_alive_time_seconds / 60)}m)</Text>
+                )}
               </Box>
             )}
           </Box>
         </Box>
 
-        {selectedDevbox.metadata && Object.keys(selectedDevbox.metadata).length > 0 && (
-          <Box marginTop={1}>
-            <MetadataDisplay metadata={selectedDevbox.metadata} showBorder={true} />
+        {/* Resources & Config */}
+        {hasResources && (
+          <Box
+            flexDirection="column"
+            borderStyle="round"
+            borderColor="yellow"
+            paddingX={2}
+            paddingY={1}
+            marginBottom={1}
+          >
+            <Box marginBottom={1}>
+              <Text color="yellow" bold>{figures.squareSmallFilled} Resources</Text>
+            </Box>
+            <Box flexDirection="column">
+              {lp?.resource_size_request && (
+                <Box>
+                  <Text color="gray" dimColor>Size: </Text>
+                  <Text color="yellow" dimColor>{lp.resource_size_request}</Text>
+                </Box>
+              )}
+              {lp?.architecture && (
+                <Box>
+                  <Text color="gray" dimColor>Arch: </Text>
+                  <Text dimColor>{lp.architecture}</Text>
+                </Box>
+              )}
+              {lp?.custom_cpu_cores && (
+                <Box>
+                  <Text color="gray" dimColor>CPU: </Text>
+                  <Text dimColor>{lp.custom_cpu_cores} cores</Text>
+                </Box>
+              )}
+              {lp?.custom_gb_memory && (
+                <Box>
+                  <Text color="gray" dimColor>Memory: </Text>
+                  <Text dimColor>{lp.custom_gb_memory}GB</Text>
+                </Box>
+              )}
+              {lp?.custom_disk_size && (
+                <Box>
+                  <Text color="gray" dimColor>Disk: </Text>
+                  <Text dimColor>{lp.custom_disk_size}GB</Text>
+                </Box>
+              )}
+            </Box>
           </Box>
         )}
 
+        {/* Capabilities & Source */}
+        <Box flexDirection="row" gap={2} marginBottom={1}>
+          {hasCapabilities && (
+            <Box
+              flexDirection="column"
+              borderStyle="round"
+              borderColor="blue"
+              paddingX={2}
+              paddingY={1}
+              flexGrow={1}
+            >
+              <Box marginBottom={1}>
+                <Text color="blue" bold>{figures.tick} Capabilities</Text>
+              </Box>
+              <Box flexDirection="column">
+                {selectedDevbox.capabilities.filter((c: string) => c !== 'unknown').map((cap: string) => (
+                  <Box key={cap}>
+                    <Text color="gray" dimColor>{figures.pointer} </Text>
+                    <Text dimColor>{cap}</Text>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
+
+          {(selectedDevbox.blueprint_id || selectedDevbox.snapshot_id) && (
+            <Box
+              flexDirection="column"
+              borderStyle="round"
+              borderColor="magenta"
+              paddingX={2}
+              paddingY={1}
+              flexGrow={1}
+            >
+              <Box marginBottom={1}>
+                <Text color="magenta" bold>{figures.circleFilled} Source</Text>
+              </Box>
+              <Box flexDirection="column">
+                {selectedDevbox.blueprint_id && (
+                  <Box>
+                    <Text color="gray" dimColor>Blueprint: </Text>
+                    <Text dimColor>{selectedDevbox.blueprint_id.slice(0, 20)}</Text>
+                  </Box>
+                )}
+                {selectedDevbox.snapshot_id && (
+                  <Box>
+                    <Text color="gray" dimColor>Snapshot: </Text>
+                    <Text dimColor>{selectedDevbox.snapshot_id.slice(0, 20)}</Text>
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          )}
+        </Box>
+
+        {/* Metadata */}
+        {selectedDevbox.metadata && Object.keys(selectedDevbox.metadata).length > 0 && (
+          <Box
+            flexDirection="column"
+            borderStyle="round"
+            borderColor="green"
+            paddingX={2}
+            paddingY={1}
+            marginBottom={1}
+          >
+            <MetadataDisplay metadata={selectedDevbox.metadata} showBorder={false} />
+          </Box>
+        )}
+
+        {/* Failure reason */}
+        {selectedDevbox.failure_reason && (
+          <Box
+            flexDirection="column"
+            borderStyle="round"
+            borderColor="red"
+            paddingX={2}
+            paddingY={1}
+            marginBottom={1}
+          >
+            <Box>
+              <Text color="red" bold>{figures.cross} Failure: </Text>
+              <Text color="red" dimColor>{selectedDevbox.failure_reason}</Text>
+            </Box>
+          </Box>
+        )}
+
+        {/* Operations */}
         <Box flexDirection="column" marginTop={1} marginBottom={1}>
           <Text color="cyan" bold>
-            Select Operation:
+            {figures.play} Operations
           </Text>
           <Box marginTop={1} flexDirection="column">
             {operations.map((op, index) => {
@@ -842,7 +943,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
         <Box marginTop={1}>
           <Text color="gray" dimColor>
             {figures.arrowUp}
-            {figures.arrowDown} Navigate • [Enter] Select • [i] View Details • [o] Open in Browser • [q] Back
+            {figures.arrowDown} Navigate • [Enter] Select • [i] Full Details • [o] Browser • [q] Back
           </Text>
         </Box>
       </>

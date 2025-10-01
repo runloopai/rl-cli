@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Text } from 'ink';
+import { Badge } from '@inkjs/ui';
 import figures from 'figures';
 
 interface MetadataDisplayProps {
@@ -38,14 +39,9 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
       {entries.map(([key, value], index) => {
         const color = getColorForKey(key, index);
         return (
-          <Box key={key}>
-            <Text color={color} bold>[</Text>
-            <Text color={color}>{key}</Text>
-            <Text color="gray">:</Text>
-            <Text color="white">{value}</Text>
-            <Text color={color} bold>]</Text>
-            <Text> </Text>
-          </Box>
+          <Badge key={key} color={color}>
+            {`${key}: ${value}`}
+          </Badge>
         );
       })}
     </Box>
