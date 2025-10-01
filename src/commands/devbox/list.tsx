@@ -10,6 +10,7 @@ import { ErrorMessage } from '../../components/ErrorMessage.js';
 import { SuccessMessage } from '../../components/SuccessMessage.js';
 import { StatusBadge, getStatusDisplay } from '../../components/StatusBadge.js';
 import { MetadataDisplay } from '../../components/MetadataDisplay.js';
+import { Breadcrumb } from '../../components/Breadcrumb.js';
 
 // Format time ago in a succinct way
 const formatTimeAgo = (timestamp: number): string => {
@@ -130,13 +131,25 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
 
     list();
 
-    // Poll every 2 seconds
+    // Poll every 2 seconds, but only when in list view (not detail view)
     const interval = setInterval(() => {
-      list();
+      if (!showDetails && !showDetailedInfo) {
+        list();
+      }
     }, 2000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [showDetails, showDetailedInfo]);
+
+  // Clear console when transitioning to detail view
+  const prevShowDetailsRef = React.useRef(showDetails);
+  React.useEffect(() => {
+    // Only clear when transitioning from list to detail view (false -> true)
+    if (showDetails && !prevShowDetailsRef.current) {
+      console.clear();
+    }
+    prevShowDetailsRef.current = showDetails;
+  }, [showDetails]);
 
   // Auto-execute operations that don't need input (delete, ssh, logs, suspend, resume)
   React.useEffect(() => {
@@ -160,6 +173,10 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     if (executingOperation && !operationResult && !operationError) {
       if (key.return && operationInput.trim()) {
         executeOperation();
+      } else if (input === 'q' || key.escape) {
+        console.clear();
+        setExecutingOperation(null);
+        setOperationInput('');
       }
       return;
     }
@@ -172,7 +189,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
         setOperationError(null);
         setExecutingOperation(null);
         setOperationInput('');
-        setShowDetails(false);
+        // Keep showDetails true to return to detail page instead of list
       }
       return;
     }
@@ -435,8 +452,14 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
 
   // Operation result display
   if (operationResult || operationError) {
+    const operationLabel = operations.find((o) => o.key === executingOperation)?.label || 'Operation';
     return (
       <>
+        <Breadcrumb items={[
+          { label: 'Devboxes' },
+          { label: selectedDevbox?.name || selectedDevbox?.id.slice(0, 12) || 'Devbox' },
+          { label: operationLabel, active: true }
+        ]} />
         <Header title="Operation Result" />
         {operationResult && <SuccessMessage message={operationResult} />}
         {operationError && <ErrorMessage message="Operation failed" error={operationError} />}
@@ -457,9 +480,16 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
       executingOperation === 'snapshot' ||
       executingOperation === 'tunnel';
 
+    const operationLabel = operations.find((o) => o.key === executingOperation)?.label || 'Operation';
+
     if (loading) {
       return (
         <>
+          <Breadcrumb items={[
+            { label: 'Devboxes' },
+            { label: selectedDevbox.name || selectedDevbox.id.slice(0, 12) },
+            { label: operationLabel, active: true }
+          ]} />
           <Header title="Executing Operation" />
           <SpinnerComponent message="Please wait..." />
         </>
@@ -477,6 +507,11 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
       };
       return (
         <>
+          <Breadcrumb items={[
+            { label: 'Devboxes' },
+            { label: selectedDevbox.name || selectedDevbox.id.slice(0, 12) },
+            { label: operationLabel, active: true }
+          ]} />
           <Header title="Executing Operation" />
           <SpinnerComponent message={messages[executingOperation as string] || 'Please wait...'} />
         </>
@@ -492,7 +527,12 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
 
     return (
       <>
-        <Header title={operations.find((o) => o.key === executingOperation)?.label || ''} />
+        <Breadcrumb items={[
+          { label: 'Devboxes' },
+          { label: selectedDevbox.name || selectedDevbox.id.slice(0, 12) },
+          { label: operationLabel, active: true }
+        ]} />
+        <Header title={operationLabel} />
         <Box flexDirection="column" marginBottom={1}>
           <Box marginBottom={1}>
             <Text color="cyan" bold>
@@ -519,7 +559,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
           </Box>
           <Box marginTop={1}>
             <Text color="gray" dimColor>
-              Press [Enter] to execute
+              Press [Enter] to execute • [q or esc] Cancel
             </Text>
           </Box>
         </Box>
@@ -686,6 +726,11 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
 
       return (
         <>
+          <Breadcrumb items={[
+            { label: 'Devboxes' },
+            { label: selectedDevbox.name || selectedDevbox.id.slice(0, 12) },
+            { label: 'Full Details', active: true }
+          ]} />
           <Header
             title={`${selectedDevbox.name || selectedDevbox.id.slice(0, 12)} - Complete Information`}
           />
@@ -733,207 +778,99 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
 
     // Operations selection mode
     const lp = selectedDevbox.launch_parameters;
-    const hasResources = lp?.resource_size_request || lp?.custom_cpu_cores || lp?.custom_gb_memory || lp?.custom_disk_size;
     const hasCapabilities = selectedDevbox.capabilities && selectedDevbox.capabilities.filter((c: string) => c !== 'unknown').length > 0;
 
     return (
       <>
+        <Breadcrumb items={[
+          { label: 'Devboxes' },
+          { label: selectedDevbox.name || selectedDevbox.id.slice(0, 12), active: true }
+        ]} />
         <Header title="Devbox Details" />
 
-        {/* Main info card */}
-        <Box
-          flexDirection="column"
-          borderStyle="round"
-          borderColor="cyan"
-          paddingX={2}
-          paddingY={1}
-          marginBottom={1}
-        >
-          <Box marginBottom={1}>
-            <Text color="cyan" bold>
-              {selectedDevbox.name || selectedDevbox.id.slice(0, 12)}
-            </Text>
-            <Text>  </Text>
+        {/* Compact info section */}
+        <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1} paddingY={0}>
+          <Box>
+            <Text color="cyan" bold>{selectedDevbox.name || selectedDevbox.id.slice(0, 12)}</Text>
+            <Text> </Text>
             <StatusBadge status={selectedDevbox.status} />
+            <Text color="gray" dimColor> • {selectedDevbox.id}</Text>
           </Box>
-
-          <Box flexDirection="column">
+          <Box>
+            <Text color="gray" dimColor>{selectedDevbox.create_time_ms ? new Date(selectedDevbox.create_time_ms).toLocaleString() : ''}</Text>
+            <Text color="gray" dimColor> ({selectedDevbox.create_time_ms ? formatTimeAgo(selectedDevbox.create_time_ms) : ''})</Text>
+          </Box>
+          {uptime !== null && selectedDevbox.status === 'running' && (
             <Box>
-              <Text color="gray" dimColor>ID: </Text>
-              <Text dimColor>{selectedDevbox.id}</Text>
+              <Text color="green" dimColor>Uptime: {uptime < 60 ? `${uptime}m` : `${Math.floor(uptime / 60)}h ${uptime % 60}m`}</Text>
+              {lp?.keep_alive_time_seconds && (
+                <Text color="gray" dimColor> • Keep-alive: {Math.floor(lp.keep_alive_time_seconds / 60)}m</Text>
+              )}
             </Box>
-
-            {selectedDevbox.create_time_ms && (
-              <Box marginTop={1}>
-                <Text color="gray" dimColor>Created: </Text>
-                <Text dimColor>{new Date(selectedDevbox.create_time_ms).toLocaleString()}</Text>
-                <Text color="gray" dimColor>  ({formatTimeAgo(selectedDevbox.create_time_ms)})</Text>
-              </Box>
-            )}
-
-            {uptime !== null && selectedDevbox.status === 'running' && (
-              <Box>
-                <Text color="gray" dimColor>Uptime: </Text>
-                <Text color="green" dimColor>{uptime < 60 ? `${uptime}m` : `${Math.floor(uptime / 60)}h ${uptime % 60}m`}</Text>
-                {lp?.keep_alive_time_seconds && (
-                  <Text color="gray" dimColor>  (keep-alive: {Math.floor(lp.keep_alive_time_seconds / 60)}m)</Text>
-                )}
-              </Box>
-            )}
-          </Box>
+          )}
         </Box>
 
-        {/* Resources & Config */}
-        {hasResources && (
-          <Box
-            flexDirection="column"
-            borderStyle="round"
-            borderColor="yellow"
-            paddingX={2}
-            paddingY={1}
-            marginBottom={1}
-          >
-            <Box marginBottom={1}>
+        {/* Compact resources + capabilities + source in one row */}
+        <Box flexDirection="row" gap={1}>
+          {/* Resources */}
+          {(lp?.resource_size_request || lp?.custom_cpu_cores || lp?.custom_gb_memory || lp?.custom_disk_size || lp?.architecture) && (
+            <Box flexDirection="column" borderStyle="round" borderColor="yellow" paddingX={1} paddingY={0} flexGrow={1}>
               <Text color="yellow" bold>{figures.squareSmallFilled} Resources</Text>
-            </Box>
-            <Box flexDirection="column">
-              {lp?.resource_size_request && (
-                <Box>
-                  <Text color="gray" dimColor>Size: </Text>
-                  <Text color="yellow" dimColor>{lp.resource_size_request}</Text>
-                </Box>
-              )}
-              {lp?.architecture && (
-                <Box>
-                  <Text color="gray" dimColor>Arch: </Text>
-                  <Text dimColor>{lp.architecture}</Text>
-                </Box>
-              )}
-              {lp?.custom_cpu_cores && (
-                <Box>
-                  <Text color="gray" dimColor>CPU: </Text>
-                  <Text dimColor>{lp.custom_cpu_cores} cores</Text>
-                </Box>
-              )}
-              {lp?.custom_gb_memory && (
-                <Box>
-                  <Text color="gray" dimColor>Memory: </Text>
-                  <Text dimColor>{lp.custom_gb_memory}GB</Text>
-                </Box>
-              )}
-              {lp?.custom_disk_size && (
-                <Box>
-                  <Text color="gray" dimColor>Disk: </Text>
-                  <Text dimColor>{lp.custom_disk_size}GB</Text>
-                </Box>
-              )}
-            </Box>
-          </Box>
-        )}
-
-        {/* Capabilities & Source */}
-        <Box flexDirection="row" gap={2} marginBottom={1}>
-          {hasCapabilities && (
-            <Box
-              flexDirection="column"
-              borderStyle="round"
-              borderColor="blue"
-              paddingX={2}
-              paddingY={1}
-              flexGrow={1}
-            >
-              <Box marginBottom={1}>
-                <Text color="blue" bold>{figures.tick} Capabilities</Text>
-              </Box>
-              <Box flexDirection="column">
-                {selectedDevbox.capabilities.filter((c: string) => c !== 'unknown').map((cap: string) => (
-                  <Box key={cap}>
-                    <Text color="gray" dimColor>{figures.pointer} </Text>
-                    <Text dimColor>{cap}</Text>
-                  </Box>
-                ))}
-              </Box>
+              <Text dimColor>
+                {lp?.resource_size_request && `${lp.resource_size_request}`}
+                {lp?.architecture && ` • ${lp.architecture}`}
+                {lp?.custom_cpu_cores && ` • ${lp.custom_cpu_cores}c`}
+                {lp?.custom_gb_memory && ` • ${lp.custom_gb_memory}GB`}
+                {lp?.custom_disk_size && ` • ${lp.custom_disk_size}GB disk`}
+              </Text>
             </Box>
           )}
 
+          {/* Capabilities */}
+          {hasCapabilities && (
+            <Box flexDirection="column" borderStyle="round" borderColor="blue" paddingX={1} paddingY={0} flexGrow={1}>
+              <Text color="blue" bold>{figures.tick} Capabilities</Text>
+              <Text dimColor>{selectedDevbox.capabilities.filter((c: string) => c !== 'unknown').join(', ')}</Text>
+            </Box>
+          )}
+
+          {/* Source */}
           {(selectedDevbox.blueprint_id || selectedDevbox.snapshot_id) && (
-            <Box
-              flexDirection="column"
-              borderStyle="round"
-              borderColor="magenta"
-              paddingX={2}
-              paddingY={1}
-              flexGrow={1}
-            >
-              <Box marginBottom={1}>
-                <Text color="magenta" bold>{figures.circleFilled} Source</Text>
-              </Box>
-              <Box flexDirection="column">
-                {selectedDevbox.blueprint_id && (
-                  <Box>
-                    <Text color="gray" dimColor>Blueprint: </Text>
-                    <Text dimColor>{selectedDevbox.blueprint_id.slice(0, 20)}</Text>
-                  </Box>
-                )}
-                {selectedDevbox.snapshot_id && (
-                  <Box>
-                    <Text color="gray" dimColor>Snapshot: </Text>
-                    <Text dimColor>{selectedDevbox.snapshot_id.slice(0, 20)}</Text>
-                  </Box>
-                )}
-              </Box>
+            <Box flexDirection="column" borderStyle="round" borderColor="magenta" paddingX={1} paddingY={0} flexGrow={1}>
+              <Text color="magenta" bold>{figures.circleFilled} Source</Text>
+              <Text dimColor>
+                {selectedDevbox.blueprint_id && `BP: ${selectedDevbox.blueprint_id.slice(0, 12)}`}
+                {selectedDevbox.snapshot_id && `Snap: ${selectedDevbox.snapshot_id.slice(0, 12)}`}
+              </Text>
             </Box>
           )}
         </Box>
 
-        {/* Metadata */}
+        {/* Metadata - compact */}
         {selectedDevbox.metadata && Object.keys(selectedDevbox.metadata).length > 0 && (
-          <Box
-            flexDirection="column"
-            borderStyle="round"
-            borderColor="green"
-            paddingX={2}
-            paddingY={1}
-            marginBottom={1}
-          >
+          <Box borderStyle="round" borderColor="green" paddingX={1} paddingY={0}>
             <MetadataDisplay metadata={selectedDevbox.metadata} showBorder={false} />
           </Box>
         )}
 
-        {/* Failure reason */}
+        {/* Failure - compact */}
         {selectedDevbox.failure_reason && (
-          <Box
-            flexDirection="column"
-            borderStyle="round"
-            borderColor="red"
-            paddingX={2}
-            paddingY={1}
-            marginBottom={1}
-          >
-            <Box>
-              <Text color="red" bold>{figures.cross} Failure: </Text>
-              <Text color="red" dimColor>{selectedDevbox.failure_reason}</Text>
-            </Box>
+          <Box borderStyle="round" borderColor="red" paddingX={1} paddingY={0}>
+            <Text color="red" bold>{figures.cross} </Text>
+            <Text color="red" dimColor>{selectedDevbox.failure_reason}</Text>
           </Box>
         )}
 
-        {/* Operations */}
-        <Box flexDirection="column" marginTop={1} marginBottom={1}>
-          <Text color="cyan" bold>
-            {figures.play} Operations
-          </Text>
-          <Box marginTop={1} flexDirection="column">
+        {/* Operations - compact */}
+        <Box flexDirection="column">
+          <Text color="cyan" bold>{figures.play} Operations</Text>
+          <Box flexDirection="column">
             {operations.map((op, index) => {
               const isSelected = index === selectedOperation;
               return (
                 <Box key={op.key}>
-                  <Text color={isSelected ? 'cyan' : 'gray'}>
-                    {isSelected ? figures.pointer : ' '}
-                  </Text>
-                  <Text> </Text>
-                  <Text color={isSelected ? op.color : 'gray'} bold={isSelected}>
-                    {op.icon} {op.label}
-                  </Text>
+                  <Text color={isSelected ? 'cyan' : 'gray'}>{isSelected ? figures.pointer : ' '} </Text>
+                  <Text color={isSelected ? op.color : 'gray'} bold={isSelected}>{op.icon} {op.label}</Text>
                 </Box>
               );
             })}
@@ -942,8 +879,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
 
         <Box marginTop={1}>
           <Text color="gray" dimColor>
-            {figures.arrowUp}
-            {figures.arrowDown} Navigate • [Enter] Select • [i] Full Details • [o] Browser • [q] Back
+            {figures.arrowUp}{figures.arrowDown} Navigate • [Enter] Select • [i] Full Details • [o] Browser • [q] Back
           </Text>
         </Box>
       </>
@@ -954,6 +890,9 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   return (
     <>
       <Banner />
+      <Breadcrumb items={[
+        { label: 'Devboxes', active: true }
+      ]} />
       <Header title="Devboxes" />
       {loading && <SpinnerComponent message="Loading..." />}
       {!loading && !error && devboxes.length === 0 && (
