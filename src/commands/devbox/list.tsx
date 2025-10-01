@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, Box, Text, useInput } from 'ink';
+import { render, Box, Text, useInput, useApp } from 'ink';
 import TextInput from 'ink-text-input';
 import figures from 'figures';
 import { getClient } from '../../utils/client.js';
@@ -19,6 +19,7 @@ const MAX_FETCH = 100;
 type Operation = 'exec' | 'upload' | 'snapshot' | 'ssh' | 'logs' | 'delete' | null;
 
 const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
+  const { exit } = useApp();
   const [loading, setLoading] = React.useState(true);
   const [devboxes, setDevboxes] = React.useState<any[]>([]);
   const [error, setError] = React.useState<Error | null>(null);
@@ -192,38 +193,34 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
         case 'ssh':
           const sshKey = await client.devboxes.createSSHKey(devbox.id);
 
-          // Save SSH key to temporary file
+          // Save SSH key to persistent location
           const fsModule = await import('fs');
           const pathModule = await import('path');
           const osModule = await import('os');
 
-          const tmpDir = osModule.tmpdir();
-          const keyPath = pathModule.join(tmpDir, `devbox-${devbox.id.slice(0, 8)}.pem`);
+          const sshDir = pathModule.join(osModule.homedir(), '.runloop', 'ssh_keys');
+          fsModule.mkdirSync(sshDir, { recursive: true });
+          const keyPath = pathModule.join(sshDir, `${devbox.id}.pem`);
 
           fsModule.writeFileSync(keyPath, sshKey.ssh_private_key, { mode: 0o600 });
 
-          // Start SSH session
-          const { spawn } = await import('child_process');
+          // Determine user from launch parameters
+          const sshUser = devbox.launch_parameters?.user_parameters?.username || 'user';
 
-          // Exit the Ink app before starting SSH
-          process.stdin.setRawMode(false);
+          const proxyCommand = 'openssl s_client -quiet -verify_quiet -servername %h -connect ssh.runloop.ai:443 2>/dev/null';
 
-          const sshProcess = spawn('ssh', [
-            '-i', keyPath,
-            '-o', 'StrictHostKeyChecking=no',
-            '-o', 'UserKnownHostsFile=/dev/null',
-            sshKey.url
-          ], {
-            stdio: 'inherit'
-          });
+          // Store SSH command details globally
+          (global as any).__sshCommand = {
+            keyPath,
+            proxyCommand,
+            sshUser,
+            url: sshKey.url,
+            devboxName: devbox.name || devbox.id
+          };
 
-          sshProcess.on('close', () => {
-            // Clean up key file
-            fsModule.unlinkSync(keyPath);
-            process.exit(0);
-          });
-
-          return;
+          // Exit Ink app to release terminal, SSH will be spawned after exit
+          exit();
+          break;
 
         case 'logs':
           const logsResult = await client.devboxes.logs.list(devbox.id);
@@ -617,4 +614,30 @@ export async function listDevboxes(options: ListOptions) {
   console.clear();
   const { waitUntilExit } = render(<ListDevboxesUI status={options.status} />);
   await waitUntilExit();
+
+  // Check if we need to spawn SSH after Ink exit
+  const sshCommand = (global as any).__sshCommand;
+  if (sshCommand) {
+    delete (global as any).__sshCommand;
+
+    // Import spawn
+    const { spawnSync } = await import('child_process');
+
+    // Clear and show connection message
+    console.clear();
+    console.log(`\nConnecting to devbox ${sshCommand.devboxName}...\n`);
+
+    // Spawn SSH in foreground
+    const result = spawnSync('ssh', [
+      '-i', sshCommand.keyPath,
+      '-o', `ProxyCommand=${sshCommand.proxyCommand}`,
+      '-o', 'StrictHostKeyChecking=no',
+      '-o', 'UserKnownHostsFile=/dev/null',
+      `${sshCommand.sshUser}@${sshCommand.url}`
+    ], {
+      stdio: 'inherit'
+    });
+
+    process.exit(result.status || 0);
+  }
 }
