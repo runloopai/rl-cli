@@ -14,6 +14,7 @@ import { Breadcrumb } from '../../components/Breadcrumb.js';
 import { Table, createTextColumn, createComponentColumn } from '../../components/Table.js';
 import { createExecutor } from '../../utils/CommandExecutor.js';
 import { DevboxDetailPage } from '../../components/DevboxDetailPage.js';
+import { DevboxCreatePage } from '../../components/DevboxCreatePage.js';
 
 // Format time ago in a succinct way
 const formatTimeAgo = (timestamp: number): string => {
@@ -54,34 +55,36 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   const [currentPage, setCurrentPage] = React.useState(0);
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showDetails, setShowDetails] = React.useState(false);
+  const [showCreate, setShowCreate] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
   const [refreshIcon, setRefreshIcon] = React.useState(0);
 
   // Calculate responsive column widths
   const terminalWidth = stdout?.columns || 120;
-  const fixedWidth = 6; // pointer + status icon + spaces
-  const idWidth = 25;
+  const fixedWidth = 4; // pointer + spaces
+  const statusWidth = 12;
   const timeWidth = 20;
   const capabilitiesWidth = 18;
   const tagWidth = 6;
 
-  // Responsive layout based on terminal width
-  const showCapabilities = terminalWidth >= 100;
-  const showTags = terminalWidth >= 90;
-  const showFullId = terminalWidth >= 80;
+  // ID is always full width (25 chars for dbx_31CYd5LLFbBxst8mqnUjO format)
+  const idWidth = 26;
 
-  let nameWidth = 25;
+  // Responsive layout based on terminal width
+  const showCapabilities = terminalWidth >= 120;
+  const showTags = terminalWidth >= 110;
+
+  // Name width is flexible and can be shortened
+  let nameWidth = 15;
   if (terminalWidth >= 120) {
-    const remainingWidth = terminalWidth - fixedWidth - idWidth - timeWidth - capabilitiesWidth - tagWidth - 10;
-    nameWidth = Math.max(20, Math.min(40, remainingWidth));
-  } else if (terminalWidth >= 100) {
-    nameWidth = terminalWidth - fixedWidth - idWidth - timeWidth - capabilitiesWidth - 10;
-  } else if (terminalWidth >= 90) {
-    nameWidth = terminalWidth - fixedWidth - idWidth - timeWidth - 8;
-  } else if (terminalWidth >= 80) {
-    nameWidth = terminalWidth - fixedWidth - idWidth - timeWidth - 8;
+    const remainingWidth = terminalWidth - fixedWidth - idWidth - statusWidth - timeWidth - capabilitiesWidth - tagWidth - 10;
+    nameWidth = Math.max(15, remainingWidth);
+  } else if (terminalWidth >= 110) {
+    const remainingWidth = terminalWidth - fixedWidth - idWidth - statusWidth - timeWidth - tagWidth - 8;
+    nameWidth = Math.max(12, remainingWidth);
   } else {
-    nameWidth = terminalWidth - fixedWidth - 15 - timeWidth - 8; // Short ID mode
+    const remainingWidth = terminalWidth - fixedWidth - idWidth - statusWidth - timeWidth - 8;
+    nameWidth = Math.max(8, remainingWidth);
   }
 
   React.useEffect(() => {
@@ -114,29 +117,38 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
 
     list();
 
-    // Poll every 2 seconds, but only when in list view (not detail view)
+    // Poll every 2 seconds, but only when in list view (not detail or create view)
     const interval = setInterval(() => {
-      if (!showDetails) {
+      if (!showDetails && !showCreate) {
         list();
       }
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [showDetails]);
+  }, [showDetails, showCreate]);
 
-  // Animate refresh icon
+  // Animate refresh icon only when in list view
   React.useEffect(() => {
+    if (showDetails || showCreate) {
+      return; // Don't animate when not in list view
+    }
+
     const interval = setInterval(() => {
       setRefreshIcon((prev) => (prev + 1) % 10);
     }, 80);
     return () => clearInterval(interval);
-  }, []);
+  }, [showDetails, showCreate]);
 
   useInput((input, key) => {
     const pageDevboxes = currentDevboxes.length;
 
     // Skip input handling when in details view - let DevboxDetailPage handle it
     if (showDetails) {
+      return;
+    }
+
+    // Skip input handling when in create view - let DevboxCreatePage handle it
+    if (showCreate) {
       return;
     }
 
@@ -154,6 +166,9 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     } else if (key.return) {
       console.clear();
       setShowDetails(true);
+    } else if (input === 'c') {
+      console.clear();
+      setShowCreate(true);
     } else if (input === 'o' && selectedDevbox) {
       // Open in browser
       const url = `https://platform.runloop.ai/devboxes/${selectedDevbox.id}`;
@@ -188,6 +203,22 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   const endIndex = Math.min(startIndex + PAGE_SIZE, devboxes.length);
   const currentDevboxes = devboxes.slice(startIndex, endIndex);
   const selectedDevbox = currentDevboxes[selectedIndex];
+
+  // Create view
+  if (showCreate) {
+    return (
+      <DevboxCreatePage
+        onBack={() => {
+          setShowCreate(false);
+        }}
+        onCreate={(devbox) => {
+          // Refresh the list after creation
+          setShowCreate(false);
+          // The list will auto-refresh via the polling effect
+        }}
+      />
+    );
+  }
 
   // Details view
   if (showDetails && selectedDevbox) {
@@ -254,18 +285,36 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
             keyExtractor={(devbox: any) => devbox.id}
             selectedIndex={selectedIndex}
             columns={[
-              createComponentColumn(
-                'status',
-                'Status',
-                (devbox: any) => <StatusBadge status={devbox.status} showText={false} />,
-                { width: 2 }
-              ),
               createTextColumn(
                 'id',
                 'ID',
-                (devbox: any) => showFullId ? devbox.id : devbox.id.slice(0, 13),
-                { width: showFullId ? idWidth : 15, color: 'gray', dimColor: true, bold: false }
+                (devbox: any) => devbox.id,
+                { width: idWidth, color: 'gray', dimColor: true, bold: false }
               ),
+              {
+                key: 'status',
+                label: 'Status',
+                width: statusWidth,
+                render: (devbox: any, index: number, isSelected: boolean) => {
+                  const statusDisplay = getStatusDisplay(devbox.status);
+                  const statusText = `${statusDisplay.icon} ${statusDisplay.text}`;
+                  const status = devbox.status;
+                  let color: string = 'gray';
+                  if (status === 'running') color = 'green';
+                  else if (status === 'stopped' || status === 'suspended') color = 'gray';
+                  else if (status === 'starting' || status === 'stopping') color = 'yellow';
+                  else if (status === 'failed') color = 'red';
+
+                  const truncated = statusText.slice(0, statusWidth);
+                  const padded = truncated.padEnd(statusWidth, ' ');
+
+                  return (
+                    <Text color={isSelected ? 'white' : color} bold={true} inverse={isSelected}>
+                      {padded}
+                    </Text>
+                  );
+                }
+              },
               createTextColumn(
                 'name',
                 'Name',
@@ -304,7 +353,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
           <Box marginTop={1}>
             <Text color="gray" dimColor>
               {figures.arrowUp}
-              {figures.arrowDown} Navigate • [Enter] Operations • [o] Open in Browser •
+              {figures.arrowDown} Navigate • [Enter] Operations • [c] Create • [o] Browser •
             </Text>
             {totalPages > 1 && (
               <Text color="gray" dimColor>

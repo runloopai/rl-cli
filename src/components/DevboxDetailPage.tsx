@@ -54,6 +54,17 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
 
   const selectedDevbox = initialDevbox;
 
+  // Memoize time-based values to prevent re-rendering on every tick
+  const formattedCreateTime = React.useMemo(
+    () => selectedDevbox.create_time_ms ? new Date(selectedDevbox.create_time_ms).toLocaleString() : '',
+    [selectedDevbox.create_time_ms]
+  );
+
+  const createTimeAgo = React.useMemo(
+    () => selectedDevbox.create_time_ms ? formatTimeAgo(selectedDevbox.create_time_ms) : '',
+    [selectedDevbox.create_time_ms]
+  );
+
   const allOperations = [
     { key: 'logs', label: 'View Logs', color: 'blue', icon: figures.info },
     { key: 'exec', label: 'Execute Command', color: 'green', icon: figures.play },
@@ -70,9 +81,9 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
   const operations = selectedDevbox ? allOperations.filter(op => {
     const status = selectedDevbox.status;
 
-    // When suspended: only resume
+    // When suspended: logs and resume
     if (status === 'suspended') {
-      return op.key === 'resume';
+      return op.key === 'resume' || op.key === 'logs';
     }
 
     // When not running (shutdown, failure, etc): only logs
@@ -251,6 +262,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
           if (logsResult.logs.length === 0) {
             setOperationResult('No logs available for this devbox.');
           } else {
+            // Pre-format timestamps once to avoid re-rendering
             const logsFormatted = logsResult.logs
               .slice(-50) // Show last 50 logs
               .map((log) => {
@@ -649,8 +661,8 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
           <Text color="gray" dimColor> • {selectedDevbox.id}</Text>
         </Box>
         <Box>
-          <Text color="gray" dimColor>{selectedDevbox.create_time_ms ? new Date(selectedDevbox.create_time_ms).toLocaleString() : ''}</Text>
-          <Text color="gray" dimColor> ({selectedDevbox.create_time_ms ? formatTimeAgo(selectedDevbox.create_time_ms) : ''})</Text>
+          <Text color="gray" dimColor>{formattedCreateTime}</Text>
+          <Text color="gray" dimColor> ({createTimeAgo})</Text>
         </Box>
         {uptime !== null && selectedDevbox.status === 'running' && (
           <Box>
