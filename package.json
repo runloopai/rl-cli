@@ -23,7 +23,6 @@
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
     "conf": "^13.0.1",
-    "date-fns": "^4.1.0",
     "figures": "^6.1.0",
     "gradient-string": "^2.0.2",
     "ink": "^5.0.1",
