@@ -2,12 +2,14 @@ import React from 'react';
 import { render, Box, Text, useInput, useApp } from 'ink';
 import TextInput from 'ink-text-input';
 import figures from 'figures';
+import { formatDistanceToNow } from 'date-fns';
 import { getClient } from '../../utils/client.js';
 import { Header } from '../../components/Header.js';
 import { Banner } from '../../components/Banner.js';
 import { SpinnerComponent } from '../../components/Spinner.js';
 import { ErrorMessage } from '../../components/ErrorMessage.js';
 import { SuccessMessage } from '../../components/SuccessMessage.js';
+import { StatusBadge, getStatusDisplay } from '../../components/StatusBadge.js';
 
 interface ListOptions {
   status?: string;
@@ -16,7 +18,7 @@ interface ListOptions {
 const PAGE_SIZE = 10;
 const MAX_FETCH = 100;
 
-type Operation = 'exec' | 'upload' | 'snapshot' | 'ssh' | 'logs' | 'delete' | null;
+type Operation = 'exec' | 'upload' | 'snapshot' | 'ssh' | 'logs' | 'tunnel' | 'suspend' | 'resume' | 'delete' | null;
 
 const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   const { exit } = useApp();
@@ -34,12 +36,15 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   const [refreshing, setRefreshing] = React.useState(false);
   const [refreshIcon, setRefreshIcon] = React.useState(0);
 
-  const operations = [
+  const allOperations = [
     { key: 'exec', label: 'Execute Command', color: 'green', icon: figures.play },
     { key: 'upload', label: 'Upload File', color: 'green', icon: figures.arrowUp },
     { key: 'snapshot', label: 'Create Snapshot', color: 'yellow', icon: figures.circleFilled },
     { key: 'ssh', label: 'SSH onto the box', color: 'cyan', icon: figures.arrowRight },
     { key: 'logs', label: 'View Logs', color: 'blue', icon: figures.info },
+    { key: 'tunnel', label: 'Open Tunnel', color: 'magenta', icon: figures.pointerSmall },
+    { key: 'suspend', label: 'Suspend Devbox', color: 'yellow', icon: figures.squareSmallFilled },
+    { key: 'resume', label: 'Resume Devbox', color: 'green', icon: figures.play },
     { key: 'delete', label: 'Delete Devbox', color: 'red', icon: figures.cross },
   ];
 
@@ -81,9 +86,9 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-execute operations that don't need input (delete, ssh, logs)
+  // Auto-execute operations that don't need input (delete, ssh, logs, suspend, resume)
   React.useEffect(() => {
-    if ((executingOperation === 'delete' || executingOperation === 'ssh' || executingOperation === 'logs') && !loading && selectedDevbox) {
+    if ((executingOperation === 'delete' || executingOperation === 'ssh' || executingOperation === 'logs' || executingOperation === 'suspend' || executingOperation === 'resume') && !loading && selectedDevbox) {
       executeOperation();
     }
   }, [executingOperation]);
@@ -243,6 +248,31 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
           }
           break;
 
+        case 'tunnel':
+          const port = parseInt(operationInput);
+          if (isNaN(port) || port < 1 || port > 65535) {
+            setOperationError(new Error('Invalid port number. Please enter a port between 1 and 65535.'));
+          } else {
+            const tunnel = await client.devboxes.createTunnel(devbox.id, { port });
+            setOperationResult(
+              `Tunnel created!\n\n` +
+              `Local Port: ${port}\n` +
+              `Public URL: ${tunnel.url}\n\n` +
+              `You can now access port ${port} on the devbox via:\n${tunnel.url}`
+            );
+          }
+          break;
+
+        case 'suspend':
+          await client.devboxes.suspend(devbox.id);
+          setOperationResult(`Devbox ${devbox.id} suspended successfully`);
+          break;
+
+        case 'resume':
+          await client.devboxes.resume(devbox.id);
+          setOperationResult(`Devbox ${devbox.id} resumed successfully`);
+          break;
+
         case 'delete':
           await client.devboxes.shutdown(devbox.id);
           setOperationResult(`Devbox ${devbox.id} deleted successfully`);
@@ -266,23 +296,12 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   const currentDevboxes = devboxes.slice(startIndex, endIndex);
   const selectedDevbox = currentDevboxes[selectedIndex];
 
-  const getStatusDisplay = (status: string) => {
-    switch (status) {
-      case 'running':
-        return { icon: figures.tick, color: 'green', text: 'RUNNING' };
-      case 'provisioning':
-        return { icon: figures.ellipsis, color: 'yellow', text: 'PROVISIONING' };
-      case 'initializing':
-        return { icon: figures.ellipsis, color: 'cyan', text: 'INITIALIZING' };
-      case 'stopped':
-      case 'suspended':
-        return { icon: figures.circle, color: 'gray', text: 'STOPPED' };
-      case 'failed':
-        return { icon: figures.cross, color: 'red', text: 'FAILED' };
-      default:
-        return { icon: figures.circle, color: 'gray', text: status.toUpperCase() };
-    }
-  };
+  // Filter operations based on devbox status
+  const operations = selectedDevbox ? allOperations.filter(op => {
+    if (op.key === 'resume') return selectedDevbox.status === 'suspended';
+    if (op.key === 'suspend') return selectedDevbox.status === 'running';
+    return true;
+  }) : allOperations;
 
   // Operation result display
   if (operationResult || operationError) {
@@ -305,7 +324,8 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     const needsInput =
       executingOperation === 'exec' ||
       executingOperation === 'upload' ||
-      executingOperation === 'snapshot';
+      executingOperation === 'snapshot' ||
+      executingOperation === 'tunnel';
 
     if (loading) {
       return (
@@ -317,10 +337,12 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     }
 
     if (!needsInput) {
-      // SSH, Logs, and Delete operations are auto-executed via useEffect
+      // SSH, Logs, Suspend, Resume, and Delete operations are auto-executed via useEffect
       const messages: Record<string, string> = {
         ssh: 'Creating SSH key...',
         logs: 'Fetching logs...',
+        suspend: 'Suspending devbox...',
+        resume: 'Resuming devbox...',
         delete: 'Deleting devbox...',
       };
       return (
@@ -335,6 +357,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
       exec: 'Command to execute:',
       upload: 'File path to upload:',
       snapshot: 'Snapshot name (optional):',
+      tunnel: 'Port number to expose:',
     };
 
     return (
@@ -358,6 +381,8 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
                   ? 'ls -la'
                   : executingOperation === 'upload'
                   ? '/path/to/file'
+                  : executingOperation === 'tunnel'
+                  ? '8080'
                   : 'my-snapshot'
               }
             />
@@ -374,7 +399,6 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
 
   // Details view with operation selection
   if (showDetails && selectedDevbox) {
-    const statusDisplay = getStatusDisplay(selectedDevbox.status);
     const uptime = selectedDevbox.create_time_ms
       ? Math.floor((Date.now() - selectedDevbox.create_time_ms) / 1000 / 60)
       : null;
@@ -388,9 +412,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
               {selectedDevbox.name || selectedDevbox.id.slice(0, 12)}
             </Text>
             <Text> </Text>
-            <Text color={statusDisplay.color}>
-              {statusDisplay.icon} {statusDisplay.text}
-            </Text>
+            <StatusBadge status={selectedDevbox.status} />
           </Box>
           <Box flexDirection="column" gap={1}>
             <Box>
@@ -527,7 +549,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
               </Text>
             ) : (
               <Text color="green">
-                {figures.tick}
+                {figures.circleFilled}
               </Text>
             )}
           </Box>
@@ -535,12 +557,10 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
           <Box flexDirection="column">
             {currentDevboxes.map((devbox, index) => {
               const isSelected = index === selectedIndex;
-              const statusDisplay = getStatusDisplay(devbox.status);
-              const displayName = devbox.name || devbox.id.slice(0, 12);
-              const shortId = devbox.id.slice(0, 8);
+              const displayName = devbox.name || '';
               const hasCapabilities = devbox.capabilities && devbox.capabilities.filter((c: string) => c !== 'unknown').length > 0;
-              const uptime = devbox.create_time_ms && devbox.status === 'running'
-                ? Math.floor((Date.now() - devbox.create_time_ms) / 1000 / 60)
+              const timeAgo = devbox.create_time_ms
+                ? formatDistanceToNow(new Date(devbox.create_time_ms), { addSuffix: true })
                 : null;
 
               return (
@@ -549,40 +569,37 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
                     {isSelected ? figures.pointer : ' '}
                   </Text>
                   <Text> </Text>
-                  <Text color={statusDisplay.color}>{statusDisplay.icon}</Text>
+                  <StatusBadge status={devbox.status} showText={false} />
                   <Text> </Text>
-                  <Box width={20}>
-                    <Text color={isSelected ? 'cyan' : 'white'} bold={isSelected}>
-                      {displayName.slice(0, 18)}
+                  <Box width={25}>
+                    <Text color="gray" dimColor>
+                      {devbox.id}
                     </Text>
                   </Box>
-                  <Text color="gray" dimColor>
-                    {shortId}
-                  </Text>
-                  {hasCapabilities && (
-                    <>
-                      <Text> </Text>
-                      <Text color="blue" dimColor>
-                        [{devbox.capabilities.filter((c: string) => c !== 'unknown').map((c: string) => c === 'computer_usage' ? 'comp' : c === 'browser_usage' ? 'browser' : c === 'docker_in_docker' ? 'docker' : c).join(',')}]
-                      </Text>
-                    </>
-                  )}
-                  {(devbox.blueprint_id || devbox.snapshot_id) && (
-                    <>
-                      <Text> </Text>
-                      <Text color="yellow" dimColor>
-                        {devbox.blueprint_id ? '[bp]' : '[snap]'}
-                      </Text>
-                    </>
-                  )}
-                  {uptime !== null && (
-                    <>
-                      <Text> </Text>
-                      <Text color="gray" dimColor>
-                        {uptime < 60 ? `${uptime}m` : `${Math.floor(uptime / 60)}h`}
-                      </Text>
-                    </>
-                  )}
+                  <Text> </Text>
+                  <Box width={25}>
+                    <Text color={isSelected ? 'cyan' : 'white'} bold={isSelected}>
+                      {displayName.slice(0, 23)}
+                    </Text>
+                  </Box>
+                  <Text> </Text>
+                  <Box width={18}>
+                    <Text color="blue" dimColor>
+                      {hasCapabilities ? `[${devbox.capabilities.filter((c: string) => c !== 'unknown').map((c: string) => c === 'computer_usage' ? 'comp' : c === 'browser_usage' ? 'browser' : c === 'docker_in_docker' ? 'docker' : c).join(',')}]` : ''}
+                    </Text>
+                  </Box>
+                  <Text> </Text>
+                  <Box width={6}>
+                    <Text color="yellow" dimColor>
+                      {devbox.blueprint_id ? '[bp]' : devbox.snapshot_id ? '[snap]' : ''}
+                    </Text>
+                  </Box>
+                  <Text> </Text>
+                  <Box width={20}>
+                    <Text color="gray" dimColor>
+                      {timeAgo || ''}
+                    </Text>
+                  </Box>
                 </Box>
               );
             })}
