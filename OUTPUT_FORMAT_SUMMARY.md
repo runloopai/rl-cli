@@ -133,12 +133,3 @@ export async function commandName(args, options: OutputOptions = {}) {
 3. **Consistent**: All commands use the same output utility
 4. **Backwards Compatible**: Default behavior unchanged (interactive UI)
 5. **Extensible**: Easy to add new output formats (yaml, table, etc)
-
-## Future Enhancements
-
-- ✅ ~~Add `-o yaml` support~~ (DONE)
-- Add `-o table` for formatted text tables without UI
-- Implement for `exec` and `upload` commands
-- Add `--quiet` flag for minimal output
-- Add `--filter` flag for client-side filtering in JSON mode
-- Add `--limit` flag to control number of results returned
