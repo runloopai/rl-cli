@@ -71,7 +71,6 @@ export function Table<T>({
             {visibleColumns.map((column, colIndex) => (
               <React.Fragment key={`${rowKey}-${column.key}`}>
                 {column.render(row, index, isSelected)}
-                {colIndex < visibleColumns.length - 1 && <Text> </Text>}
               </React.Fragment>
             ))}
           </Box>
@@ -103,16 +102,19 @@ export function createTextColumn<T>(
     visible: options?.visible,
     render: (row, index, isSelected) => {
       const value = getValue(row);
-      const color = options?.color || (isSelected ? 'cyan' : 'white');
+      const width = options?.width || 20;
+      const color = options?.color || (isSelected ? 'white' : 'white');
       const bold = options?.bold !== undefined ? options.bold : isSelected;
       const dimColor = options?.dimColor || false;
 
+      // Pad the value to fill the full width
+      const truncated = value.slice(0, width);
+      const padded = truncated.padEnd(width, ' ');
+
       return (
-        <Box width={options?.width || 20}>
-          <Text color={color} bold={bold} dimColor={dimColor}>
-            {value.slice(0, (options?.width || 20) - 2)}
-          </Text>
-        </Box>
+        <Text color={isSelected ? 'white' : color} bold={bold} dimColor={!isSelected && dimColor} inverse={isSelected}>
+          {padded}
+        </Text>
       );
     },
   };

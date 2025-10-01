@@ -7,6 +7,7 @@ interface MetadataDisplayProps {
   metadata: Record<string, string>;
   title?: string;
   showBorder?: boolean;
+  selectedKey?: string;
 }
 
 // Generate color for each key based on hash
@@ -18,7 +19,8 @@ const getColorForKey = (key: string, index: number): string => {
 export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
   metadata,
   title = 'Metadata',
-  showBorder = false
+  showBorder = false,
+  selectedKey
 }) => {
   const entries = Object.entries(metadata);
 
@@ -27,7 +29,7 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
   }
 
   const content = (
-    <Box flexDirection="row" alignItems="center">
+    <Box flexDirection="row" alignItems="center" flexWrap="wrap">
       {title && (
         <>
           <Text color="#0a4d3a" bold>
@@ -38,10 +40,16 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
       )}
       {entries.map(([key, value], index) => {
         const color = getColorForKey(key, index);
+        const isSelected = selectedKey === key;
         return (
-          <Badge key={key} color={color}>
-            {`${key}: ${value}`}
-          </Badge>
+          <Box key={key} flexDirection="row" alignItems="center">
+            {isSelected && (
+              <Text color="cyan" bold>{figures.pointer} </Text>
+            )}
+            <Badge color={isSelected ? 'cyan' : color}>
+              {`${key}: ${value}`}
+            </Badge>
+          </Box>
         );
       })}
     </Box>
