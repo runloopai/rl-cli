@@ -12,7 +12,7 @@ import { StatusBadge, getStatusDisplay } from '../../components/StatusBadge.js';
 import { MetadataDisplay } from '../../components/MetadataDisplay.js';
 import { Breadcrumb } from '../../components/Breadcrumb.js';
 import { Table, createTextColumn, createComponentColumn } from '../../components/Table.js';
-import { shouldUseNonInteractiveOutput, outputList } from '../../utils/output.js';
+import { createExecutor } from '../../utils/CommandExecutor.js';
 
 // Format time ago in a succinct way
 const formatTimeAgo = (timestamp: number): string => {
@@ -1018,31 +1018,19 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
 };
 
 export async function listDevboxes(options: ListOptions) {
-  // Handle non-interactive output formats
-  if (shouldUseNonInteractiveOutput(options)) {
-    const client = getClient();
-    const allDevboxes: any[] = [];
+  const executor = createExecutor(options);
 
-    let count = 0;
-    for await (const devbox of client.devboxes.list()) {
-      if (!options.status || devbox.status === options.status) {
-        allDevboxes.push(devbox);
-      }
-      count++;
-      // In non-interactive mode, only return PAGE_SIZE (10) by default
-      if (count >= PAGE_SIZE) {
-        break;
-      }
-    }
-
-    outputList(allDevboxes, options);
-    return;
-  }
-
-  // Clear terminal for interactive mode
-  console.clear();
-  const { waitUntilExit } = render(<ListDevboxesUI status={options.status} />);
-  await waitUntilExit();
+  await executor.executeList(
+    async () => {
+      const client = executor.getClient();
+      return executor.fetchFromIterator(client.devboxes.list(), {
+        filter: options.status ? (devbox: any) => devbox.status === options.status : undefined,
+        limit: PAGE_SIZE,
+      });
+    },
+    () => <ListDevboxesUI status={options.status} />,
+    PAGE_SIZE
+  );
 
   // Check if we need to spawn SSH after Ink exit
   const sshCommand = (global as any).__sshCommand;

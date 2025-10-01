@@ -13,7 +13,7 @@ import { Breadcrumb } from '../../components/Breadcrumb.js';
 import { MetadataDisplay } from '../../components/MetadataDisplay.js';
 import { Table, createTextColumn, createComponentColumn } from '../../components/Table.js';
 import { OperationsMenu, Operation } from '../../components/OperationsMenu.js';
-import { shouldUseNonInteractiveOutput, outputList } from '../../utils/output.js';
+import { createExecutor } from '../../utils/CommandExecutor.js';
 
 const PAGE_SIZE = 10;
 const MAX_FETCH = 100;
@@ -655,27 +655,16 @@ interface ListBlueprintsOptions {
 }
 
 export async function listBlueprints(options: ListBlueprintsOptions = {}) {
-  // Handle non-interactive output formats
-  if (shouldUseNonInteractiveOutput(options)) {
-    const client = getClient();
-    const allBlueprints: any[] = [];
+  const executor = createExecutor(options);
 
-    let count = 0;
-    for await (const blueprint of client.blueprints.list()) {
-      allBlueprints.push(blueprint);
-      count++;
-      // In non-interactive mode, only return PAGE_SIZE (10) by default
-      if (count >= PAGE_SIZE) {
-        break;
-      }
-    }
-
-    outputList(allBlueprints, options);
-    return;
-  }
-
-  // Interactive mode
-  console.clear();
-  const { waitUntilExit } = render(<ListBlueprintsUI />);
-  await waitUntilExit();
+  await executor.executeList(
+    async () => {
+      const client = executor.getClient();
+      return executor.fetchFromIterator(client.blueprints.list(), {
+        limit: PAGE_SIZE,
+      });
+    },
+    () => <ListBlueprintsUI />,
+    PAGE_SIZE
+  );
 }
