@@ -12,6 +12,7 @@ import { StatusBadge, getStatusDisplay } from '../../components/StatusBadge.js';
 import { MetadataDisplay } from '../../components/MetadataDisplay.js';
 import { Breadcrumb } from '../../components/Breadcrumb.js';
 import { Table, createTextColumn, createComponentColumn } from '../../components/Table.js';
+import { shouldUseNonInteractiveOutput, outputList } from '../../utils/output.js';
 
 // Format time ago in a succinct way
 const formatTimeAgo = (timestamp: number): string => {
@@ -37,6 +38,7 @@ const formatTimeAgo = (timestamp: number): string => {
 
 interface ListOptions {
   status?: string;
+  output?: string;
 }
 
 const PAGE_SIZE = 10;
@@ -1016,7 +1018,28 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
 };
 
 export async function listDevboxes(options: ListOptions) {
-  // Clear terminal
+  // Handle non-interactive output formats
+  if (shouldUseNonInteractiveOutput(options)) {
+    const client = getClient();
+    const allDevboxes: any[] = [];
+
+    let count = 0;
+    for await (const devbox of client.devboxes.list()) {
+      if (!options.status || devbox.status === options.status) {
+        allDevboxes.push(devbox);
+      }
+      count++;
+      // In non-interactive mode, only return PAGE_SIZE (10) by default
+      if (count >= PAGE_SIZE) {
+        break;
+      }
+    }
+
+    outputList(allDevboxes, options);
+    return;
+  }
+
+  // Clear terminal for interactive mode
   console.clear();
   const { waitUntilExit } = render(<ListDevboxesUI status={options.status} />);
   await waitUntilExit();

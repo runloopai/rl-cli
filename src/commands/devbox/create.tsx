@@ -6,10 +6,12 @@ import { Banner } from '../../components/Banner.js';
 import { SpinnerComponent } from '../../components/Spinner.js';
 import { SuccessMessage } from '../../components/SuccessMessage.js';
 import { ErrorMessage } from '../../components/ErrorMessage.js';
+import { shouldUseNonInteractiveOutput, outputResult } from '../../utils/output.js';
 
 interface CreateOptions {
   name?: string;
   template?: string;
+  output?: string;
 }
 
 const CreateDevboxUI: React.FC<{
@@ -62,6 +64,28 @@ const CreateDevboxUI: React.FC<{
 };
 
 export async function createDevbox(options: CreateOptions) {
+  // Handle non-interactive output formats
+  if (shouldUseNonInteractiveOutput(options)) {
+    try {
+      const client = getClient();
+      const devbox = await client.devboxes.create({
+        name: options.name || `devbox-${Date.now()}`,
+        ...(options.template && { template: options.template }),
+      });
+      outputResult(devbox, options);
+    } catch (err) {
+      if (options.output === 'yaml') {
+        const YAML = (await import('yaml')).default;
+        console.error(YAML.stringify({ error: (err as Error).message }));
+      } else {
+        console.error(JSON.stringify({ error: (err as Error).message }, null, 2));
+      }
+      process.exit(1);
+    }
+    return;
+  }
+
+  // Interactive mode
   console.clear();
   const { waitUntilExit } = render(
     <CreateDevboxUI name={options.name} template={options.template} />

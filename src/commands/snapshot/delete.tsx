@@ -5,6 +5,7 @@ import { Header } from '../../components/Header.js';
 import { SpinnerComponent } from '../../components/Spinner.js';
 import { SuccessMessage } from '../../components/SuccessMessage.js';
 import { ErrorMessage } from '../../components/ErrorMessage.js';
+import { shouldUseNonInteractiveOutput, outputResult, OutputOptions } from '../../utils/output.js';
 
 const DeleteSnapshotUI: React.FC<{ id: string }> = ({ id }) => {
   const [loading, setLoading] = React.useState(true);
@@ -42,7 +43,26 @@ const DeleteSnapshotUI: React.FC<{ id: string }> = ({ id }) => {
   );
 };
 
-export async function deleteSnapshot(id: string) {
+export async function deleteSnapshot(id: string, options: OutputOptions = {}) {
+  // Handle non-interactive output formats
+  if (shouldUseNonInteractiveOutput(options)) {
+    try {
+      const client = getClient();
+      await client.devboxes.diskSnapshots.delete(id);
+      outputResult({ id, status: 'deleted' }, options);
+    } catch (err) {
+      if (options.output === 'yaml') {
+        const YAML = (await import('yaml')).default;
+        console.error(YAML.stringify({ error: (err as Error).message }));
+      } else {
+        console.error(JSON.stringify({ error: (err as Error).message }, null, 2));
+      }
+      process.exit(1);
+    }
+    return;
+  }
+
+  // Interactive mode
   const { waitUntilExit } = render(<DeleteSnapshotUI id={id} />);
   await waitUntilExit();
 }

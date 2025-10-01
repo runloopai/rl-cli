@@ -34,29 +34,34 @@ devbox
   .description('Create a new devbox')
   .option('-n, --name <name>', 'Devbox name')
   .option('-t, --template <template>', 'Template to use')
+  .option('-o, --output <format>', 'Output format (text, json, yaml)', 'text')
   .action(createDevbox);
 
 devbox
   .command('list')
   .description('List all devboxes')
   .option('-s, --status <status>', 'Filter by status')
+  .option('-o, --output <format>', 'Output format (text, json, yaml)', 'text')
   .action(listDevboxes);
 
 devbox
   .command('delete <id>')
   .description('Shutdown a devbox')
   .alias('rm')
+  .option('-o, --output <format>', 'Output format (text, json, yaml)', 'text')
   .action(deleteDevbox);
 
 devbox
   .command('exec <id> <command...>')
   .description('Execute a command in a devbox')
+  .option('-o, --output <format>', 'Output format (text, json, yaml)', 'text')
   .action(execCommand);
 
 devbox
   .command('upload <id> <file>')
   .description('Upload a file to a devbox')
   .option('-p, --path <path>', 'Target path in devbox')
+  .option('-o, --output <format>', 'Output format (text, json, yaml)', 'text')
   .action(uploadFile);
 
 // Snapshot commands
@@ -69,6 +74,7 @@ snapshot
   .command('list')
   .description('List all snapshots')
   .option('-d, --devbox <id>', 'Filter by devbox ID')
+  .option('-o, --output <format>', 'Output format (text, json, yaml)', 'text')
   .action(async (options) => {
     const { listSnapshots } = await import('./commands/snapshot/list.js');
     listSnapshots(options);
@@ -78,6 +84,7 @@ snapshot
   .command('create <devbox-id>')
   .description('Create a snapshot of a devbox')
   .option('-n, --name <name>', 'Snapshot name')
+  .option('-o, --output <format>', 'Output format (text, json, yaml)', 'text')
   .action(async (devboxId, options) => {
     const { createSnapshot } = await import('./commands/snapshot/create.js');
     createSnapshot(devboxId, options);
@@ -87,9 +94,10 @@ snapshot
   .command('delete <id>')
   .description('Delete a snapshot')
   .alias('rm')
-  .action(async (id) => {
+  .option('-o, --output <format>', 'Output format (text, json, yaml)', 'text')
+  .action(async (id, options) => {
     const { deleteSnapshot } = await import('./commands/snapshot/delete.js');
-    deleteSnapshot(id);
+    deleteSnapshot(id, options);
   });
 
 // Blueprint commands
@@ -101,9 +109,10 @@ const blueprint = program
 blueprint
   .command('list')
   .description('List all blueprints')
-  .action(async () => {
+  .option('-o, --output <format>', 'Output format (text, json, yaml)', 'text')
+  .action(async (options) => {
     const { listBlueprints } = await import('./commands/blueprint/list.js');
-    listBlueprints();
+    listBlueprints(options);
   });
 
 // Check if API key is configured (except for auth command)
