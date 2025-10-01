@@ -206,6 +206,25 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
         } else if (input === 'i') {
           setShowDetailedInfo(true);
           setDetailScroll(0);
+        } else if (input === 'o') {
+          // Open in browser
+          const url = `https://platform.runloop.ai/devboxes/${selectedDevbox.id}`;
+          const openBrowser = async () => {
+            const { exec } = await import('child_process');
+            const platform = process.platform;
+
+            let openCommand: string;
+            if (platform === 'darwin') {
+              openCommand = `open "${url}"`;
+            } else if (platform === 'win32') {
+              openCommand = `start "${url}"`;
+            } else {
+              openCommand = `xdg-open "${url}"`;
+            }
+
+            exec(openCommand);
+          };
+          openBrowser();
         } else if (key.upArrow && selectedOperation > 0) {
           setSelectedOperation(selectedOperation - 1);
         } else if (key.downArrow && selectedOperation < operations.length - 1) {
@@ -233,6 +252,25 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     } else if (key.return) {
       console.clear();
       setShowDetails(true);
+    } else if (input === 'o' && selectedDevbox) {
+      // Open in browser
+      const url = `https://platform.runloop.ai/devboxes/${selectedDevbox.id}`;
+      const openBrowser = async () => {
+        const { exec } = await import('child_process');
+        const platform = process.platform;
+
+        let openCommand: string;
+        if (platform === 'darwin') {
+          openCommand = `open "${url}"`;
+        } else if (platform === 'win32') {
+          openCommand = `start "${url}"`;
+        } else {
+          openCommand = `xdg-open "${url}"`;
+        }
+
+        exec(openCommand);
+      };
+      openBrowser();
     } else if (input === 'q') {
       process.exit(0);
     }
@@ -499,11 +537,13 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     const buildDetailLines = (): JSX.Element[] => {
       const lines: JSX.Element[] = [];
 
+      const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
+
       // Core Information
-      lines.push(<Text key="core-title" color="yellow" bold>Core</Text>);
+      lines.push(<Text key="core-title" color="yellow" bold>Devbox Details</Text>);
       lines.push(<Text key="core-id" dimColor>  ID: {selectedDevbox.id}</Text>);
       lines.push(<Text key="core-name" dimColor>  Name: {selectedDevbox.name || '(none)'}</Text>);
-      lines.push(<Text key="core-status" dimColor>  Status: {selectedDevbox.status}</Text>);
+      lines.push(<Text key="core-status" dimColor>  Status: {capitalize(selectedDevbox.status)}</Text>);
       lines.push(<Text key="core-created" dimColor>  Created: {new Date(selectedDevbox.create_time_ms).toLocaleString()}</Text>);
       if (selectedDevbox.end_time_ms) {
         lines.push(<Text key="core-ended" dimColor>  Ended: {new Date(selectedDevbox.end_time_ms).toLocaleString()}</Text>);
@@ -522,34 +562,49 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
       // Launch Parameters
       if (selectedDevbox.launch_parameters) {
         lines.push(<Text key="launch-title" color="yellow" bold>Launch Parameters</Text>);
-        if (selectedDevbox.launch_parameters.resource_size_gb) {
-          lines.push(<Text key="launch-size" dimColor>  Resource Size: {selectedDevbox.launch_parameters.resource_size_gb}GB</Text>);
+
+        const lp = selectedDevbox.launch_parameters;
+
+        if (lp.resource_size_request) {
+          lines.push(<Text key="launch-size-req" dimColor>  Resource Size Request: {lp.resource_size_request}</Text>);
         }
-        if (selectedDevbox.launch_parameters.keep_alive_time_seconds) {
-          lines.push(<Text key="launch-keepalive" dimColor>  Keep Alive: {selectedDevbox.launch_parameters.keep_alive_time_seconds}s ({Math.floor(selectedDevbox.launch_parameters.keep_alive_time_seconds / 60)}m)</Text>);
+        if (lp.architecture) {
+          lines.push(<Text key="launch-arch" dimColor>  Architecture: {lp.architecture}</Text>);
         }
-        if (selectedDevbox.launch_parameters.entrypoint) {
-          lines.push(<Text key="launch-entrypoint" dimColor>  Entrypoint: {selectedDevbox.launch_parameters.entrypoint}</Text>);
+        if (lp.custom_cpu_cores) {
+          lines.push(<Text key="launch-cpu" dimColor>  CPU Cores: {lp.custom_cpu_cores}</Text>);
         }
-        if (selectedDevbox.launch_parameters.setup_commands && selectedDevbox.launch_parameters.setup_commands.length > 0) {
-          lines.push(<Text key="launch-setup" dimColor>  Setup Commands:</Text>);
-          selectedDevbox.launch_parameters.setup_commands.forEach((cmd: string, idx: number) => {
-            lines.push(<Text key={`setup-${idx}`} dimColor>    {figures.pointer} {cmd}</Text>);
+        if (lp.custom_gb_memory) {
+          lines.push(<Text key="launch-memory" dimColor>  Memory: {lp.custom_gb_memory}GB</Text>);
+        }
+        if (lp.custom_disk_size) {
+          lines.push(<Text key="launch-disk" dimColor>  Disk Size: {lp.custom_disk_size}GB</Text>);
+        }
+        if (lp.keep_alive_time_seconds) {
+          lines.push(<Text key="launch-keepalive" dimColor>  Keep Alive: {lp.keep_alive_time_seconds}s ({Math.floor(lp.keep_alive_time_seconds / 60)}m)</Text>);
+        }
+        if (lp.after_idle) {
+          lines.push(<Text key="launch-afteridle" dimColor>  After Idle: {lp.after_idle.on_idle} after {lp.after_idle.idle_time_seconds}s</Text>);
+        }
+        if (lp.available_ports && lp.available_ports.length > 0) {
+          lines.push(<Text key="launch-ports" dimColor>  Available Ports: {lp.available_ports.join(', ')}</Text>);
+        }
+        if (lp.launch_commands && lp.launch_commands.length > 0) {
+          lines.push(<Text key="launch-launch-cmds" dimColor>  Launch Commands:</Text>);
+          lp.launch_commands.forEach((cmd: string, idx: number) => {
+            lines.push(<Text key={`launch-cmd-${idx}`} dimColor>    {figures.pointer} {cmd}</Text>);
           });
         }
-        if (selectedDevbox.launch_parameters.environment_variables && Object.keys(selectedDevbox.launch_parameters.environment_variables).length > 0) {
-          lines.push(<Text key="launch-env" dimColor>  Environment Variables:</Text>);
-          Object.entries(selectedDevbox.launch_parameters.environment_variables).forEach(([key, value], idx) => {
-            lines.push(<Text key={`env-${idx}`} dimColor>    {key}: {value as string}</Text>);
-          });
+        if (lp.required_services && lp.required_services.length > 0) {
+          lines.push(<Text key="launch-services" dimColor>  Required Services: {lp.required_services.join(', ')}</Text>);
         }
-        if (selectedDevbox.launch_parameters.user_parameters) {
+        if (lp.user_parameters) {
           lines.push(<Text key="launch-user" dimColor>  User Parameters:</Text>);
-          if (selectedDevbox.launch_parameters.user_parameters.username) {
-            lines.push(<Text key="user-name" dimColor>    Username: {selectedDevbox.launch_parameters.user_parameters.username}</Text>);
+          if (lp.user_parameters.username) {
+            lines.push(<Text key="user-name" dimColor>    Username: {lp.user_parameters.username}</Text>);
           }
-          if (selectedDevbox.launch_parameters.user_parameters.password) {
-            lines.push(<Text key="user-pass" dimColor>    Password: {'*'.repeat(8)}</Text>);
+          if (lp.user_parameters.uid) {
+            lines.push(<Text key="user-uid" dimColor>    UID: {lp.user_parameters.uid}</Text>);
           }
         }
         lines.push(<Text key="launch-space"> </Text>);
@@ -602,7 +657,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
       if (selectedDevbox.state_transitions && selectedDevbox.state_transitions.length > 0) {
         lines.push(<Text key="state-title" color="yellow" bold>State History</Text>);
         selectedDevbox.state_transitions.forEach((transition: any, idx: number) => {
-          const text = `${idx + 1}. ${transition.status}${transition.transition_time_ms ? ` at ${new Date(transition.transition_time_ms).toLocaleString()}` : ''}`;
+          const text = `${idx + 1}. ${capitalize(transition.status)}${transition.transition_time_ms ? ` at ${new Date(transition.transition_time_ms).toLocaleString()}` : ''}`;
           lines.push(<Text key={`state-${idx}`} dimColor>  {text}</Text>);
         });
         lines.push(<Text key="state-space"> </Text>);
@@ -717,6 +772,18 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
                 <Text dimColor>{Math.floor(selectedDevbox.launch_parameters.keep_alive_time_seconds / 60)}m</Text>
               </Box>
             )}
+            {selectedDevbox.launch_parameters?.resource_size_request && (
+              <Box>
+                <Text color="gray">Resource Size: </Text>
+                <Text dimColor>{selectedDevbox.launch_parameters.resource_size_request}</Text>
+              </Box>
+            )}
+            {selectedDevbox.launch_parameters?.architecture && (
+              <Box>
+                <Text color="gray">Architecture: </Text>
+                <Text dimColor>{selectedDevbox.launch_parameters.architecture}</Text>
+              </Box>
+            )}
             {selectedDevbox.capabilities && selectedDevbox.capabilities.length > 0 && (
               <Box>
                 <Text color="gray">Capabilities: </Text>
@@ -746,7 +813,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
 
         {selectedDevbox.metadata && Object.keys(selectedDevbox.metadata).length > 0 && (
           <Box marginTop={1}>
-            <MetadataDisplay metadata={selectedDevbox.metadata} />
+            <MetadataDisplay metadata={selectedDevbox.metadata} showBorder={true} />
           </Box>
         )}
 
@@ -775,7 +842,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
         <Box marginTop={1}>
           <Text color="gray" dimColor>
             {figures.arrowUp}
-            {figures.arrowDown} Navigate • [Enter] Select • [i] View Details • [q] Back
+            {figures.arrowDown} Navigate • [Enter] Select • [i] View Details • [o] Open in Browser • [q] Back
           </Text>
         </Box>
       </>
@@ -909,7 +976,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
           <Box marginTop={1}>
             <Text color="gray" dimColor>
               {figures.arrowUp}
-              {figures.arrowDown} Navigate • [Enter] Operations •
+              {figures.arrowDown} Navigate • [Enter] Operations • [o] Open in Browser •
             </Text>
             {totalPages > 1 && (
               <Text color="gray" dimColor>
