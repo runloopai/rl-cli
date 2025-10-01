@@ -93,15 +93,15 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   }
 
   const allOperations = [
+    { key: 'logs', label: 'View Logs', color: 'blue', icon: figures.info },
     { key: 'exec', label: 'Execute Command', color: 'green', icon: figures.play },
     { key: 'upload', label: 'Upload File', color: 'green', icon: figures.arrowUp },
     { key: 'snapshot', label: 'Create Snapshot', color: 'yellow', icon: figures.circleFilled },
     { key: 'ssh', label: 'SSH onto the box', color: 'cyan', icon: figures.arrowRight },
-    { key: 'logs', label: 'View Logs', color: 'blue', icon: figures.info },
     { key: 'tunnel', label: 'Open Tunnel', color: 'magenta', icon: figures.pointerSmall },
     { key: 'suspend', label: 'Suspend Devbox', color: 'yellow', icon: figures.squareSmallFilled },
     { key: 'resume', label: 'Resume Devbox', color: 'green', icon: figures.play },
-    { key: 'delete', label: 'Delete Devbox', color: 'red', icon: figures.cross },
+    { key: 'delete', label: 'Shutdown Devbox', color: 'red', icon: figures.cross },
   ];
 
   React.useEffect(() => {
@@ -409,7 +409,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
 
         case 'delete':
           await client.devboxes.shutdown(devbox.id);
-          setOperationResult(`Devbox ${devbox.id} deleted successfully`);
+          setOperationResult(`Devbox ${devbox.id} shut down successfully`);
           break;
       }
     } catch (err) {
@@ -460,7 +460,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
       <>
         <Breadcrumb items={[
           { label: 'Devboxes' },
-          { label: selectedDevbox?.name || selectedDevbox?.id.slice(0, 12) || 'Devbox' },
+          { label: selectedDevbox?.name || selectedDevbox?.id || 'Devbox' },
           { label: operationLabel, active: true }
         ]} />
         <Header title="Operation Result" />
@@ -490,7 +490,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
         <>
           <Breadcrumb items={[
             { label: 'Devboxes' },
-            { label: selectedDevbox.name || selectedDevbox.id.slice(0, 12) },
+            { label: selectedDevbox.name || selectedDevbox.id },
             { label: operationLabel, active: true }
           ]} />
           <Header title="Executing Operation" />
@@ -506,13 +506,13 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
         logs: 'Fetching logs...',
         suspend: 'Suspending devbox...',
         resume: 'Resuming devbox...',
-        delete: 'Deleting devbox...',
+        delete: 'Shutting down devbox...',
       };
       return (
         <>
           <Breadcrumb items={[
             { label: 'Devboxes' },
-            { label: selectedDevbox.name || selectedDevbox.id.slice(0, 12) },
+            { label: selectedDevbox.name || selectedDevbox.id },
             { label: operationLabel, active: true }
           ]} />
           <Header title="Executing Operation" />
@@ -532,14 +532,14 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
       <>
         <Breadcrumb items={[
           { label: 'Devboxes' },
-          { label: selectedDevbox.name || selectedDevbox.id.slice(0, 12) },
+          { label: selectedDevbox.name || selectedDevbox.id },
           { label: operationLabel, active: true }
         ]} />
         <Header title={operationLabel} />
         <Box flexDirection="column" marginBottom={1}>
           <Box marginBottom={1}>
             <Text color="cyan" bold>
-              {selectedDevbox.name || selectedDevbox.id.slice(0, 12)}
+              {selectedDevbox.name || selectedDevbox.id}
             </Text>
           </Box>
           <Box>
@@ -731,11 +731,11 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
         <>
           <Breadcrumb items={[
             { label: 'Devboxes' },
-            { label: selectedDevbox.name || selectedDevbox.id.slice(0, 12) },
+            { label: selectedDevbox.name || selectedDevbox.id },
             { label: 'Full Details', active: true }
           ]} />
           <Header
-            title={`${selectedDevbox.name || selectedDevbox.id.slice(0, 12)} - Complete Information`}
+            title={`${selectedDevbox.name || selectedDevbox.id} - Complete Information`}
           />
           <Box flexDirection="column" marginBottom={1}>
             <Box marginBottom={1}>
@@ -787,14 +787,14 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
       <>
         <Breadcrumb items={[
           { label: 'Devboxes' },
-          { label: selectedDevbox.name || selectedDevbox.id.slice(0, 12), active: true }
+          { label: selectedDevbox.name || selectedDevbox.id, active: true }
         ]} />
         <Header title="Devbox Details" />
 
         {/* Compact info section */}
         <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1} paddingY={0}>
           <Box>
-            <Text color="cyan" bold>{selectedDevbox.name || selectedDevbox.id.slice(0, 12)}</Text>
+            <Text color="cyan" bold>{selectedDevbox.name || selectedDevbox.id}</Text>
             <Text> </Text>
             <StatusBadge status={selectedDevbox.status} />
             <Text color="gray" dimColor> • {selectedDevbox.id}</Text>
@@ -822,9 +822,9 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
               <Text dimColor>
                 {lp?.resource_size_request && `${lp.resource_size_request}`}
                 {lp?.architecture && ` • ${lp.architecture}`}
-                {lp?.custom_cpu_cores && ` • ${lp.custom_cpu_cores}c`}
-                {lp?.custom_gb_memory && ` • ${lp.custom_gb_memory}GB`}
-                {lp?.custom_disk_size && ` • ${lp.custom_disk_size}GB disk`}
+                {lp?.custom_cpu_cores && ` • ${lp.custom_cpu_cores}VCPU`}
+                {lp?.custom_gb_memory && ` • ${lp.custom_gb_memory}GB RAM`}
+                {lp?.custom_disk_size && ` • ${lp.custom_disk_size}GB DISC`}
               </Text>
             </Box>
           )}
@@ -842,8 +842,8 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
             <Box flexDirection="column" borderStyle="round" borderColor="magenta" paddingX={1} paddingY={0} flexGrow={1}>
               <Text color="magenta" bold>{figures.circleFilled} Source</Text>
               <Text dimColor>
-                {selectedDevbox.blueprint_id && `BP: ${selectedDevbox.blueprint_id.slice(0, 12)}`}
-                {selectedDevbox.snapshot_id && `Snap: ${selectedDevbox.snapshot_id.slice(0, 12)}`}
+                {selectedDevbox.blueprint_id && `BP: ${selectedDevbox.blueprint_id}`}
+                {selectedDevbox.snapshot_id && `Snap: ${selectedDevbox.snapshot_id}`}
               </Text>
             </Box>
           )}

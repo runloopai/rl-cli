@@ -54,7 +54,7 @@ const CreateDevboxUI: React.FC<{
           />
           <Box marginTop={1}>
             <Text color="gray">Try: </Text>
-            <Text color="cyan">rln devbox exec {result.id.slice(0, 8)} ls</Text>
+            <Text color="cyan">rln devbox exec {result.id} ls</Text>
           </Box>
         </>
       )}
