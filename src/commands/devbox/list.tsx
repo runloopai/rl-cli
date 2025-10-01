@@ -95,20 +95,6 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     return () => clearInterval(interval);
   }, []);
 
-  // Clear screen when operation result is shown
-  React.useEffect(() => {
-    if (operationResult || operationError) {
-      console.clear();
-    }
-  }, [operationResult, operationError]);
-
-  // Clear screen when showing details view
-  React.useEffect(() => {
-    if (showDetails) {
-      console.clear();
-    }
-  }, [showDetails]);
-
   useInput((input, key) => {
     const pageDevboxes = currentDevboxes.length;
 
