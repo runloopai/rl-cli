@@ -301,7 +301,7 @@ const ListBlueprintsUI: React.FC = () => {
           items={[
             { label: 'Blueprints' },
             {
-              label: selectedBlueprint?.name || selectedBlueprint?.id.slice(0, 12) || 'Blueprint',
+              label: selectedBlueprint?.name || selectedBlueprint?.id || 'Blueprint',
             },
             { label: operationLabel, active: true },
           ]}
@@ -330,7 +330,7 @@ const ListBlueprintsUI: React.FC = () => {
           <Breadcrumb
             items={[
               { label: 'Blueprints' },
-              { label: selectedBlueprint.name || selectedBlueprint.id.slice(0, 12) },
+              { label: selectedBlueprint.name || selectedBlueprint.id },
               { label: operationLabel, active: true },
             ]}
           />
@@ -349,7 +349,7 @@ const ListBlueprintsUI: React.FC = () => {
           <Breadcrumb
             items={[
               { label: 'Blueprints' },
-              { label: selectedBlueprint.name || selectedBlueprint.id.slice(0, 12) },
+              { label: selectedBlueprint.name || selectedBlueprint.id },
               { label: operationLabel, active: true },
             ]}
           />
@@ -364,7 +364,7 @@ const ListBlueprintsUI: React.FC = () => {
         <Breadcrumb
           items={[
             { label: 'Blueprints' },
-            { label: selectedBlueprint.name || selectedBlueprint.id.slice(0, 12) },
+            { label: selectedBlueprint.name || selectedBlueprint.id },
             { label: operationLabel, active: true },
           ]}
         />
@@ -372,7 +372,7 @@ const ListBlueprintsUI: React.FC = () => {
         <Box flexDirection="column" marginBottom={1}>
           <Box marginBottom={1}>
             <Text color="cyan" bold>
-              {selectedBlueprint.name || selectedBlueprint.id.slice(0, 12)}
+              {selectedBlueprint.name || selectedBlueprint.id}
             </Text>
           </Box>
           <Box>
@@ -405,7 +405,7 @@ const ListBlueprintsUI: React.FC = () => {
           items={[
             { label: 'Blueprints' },
             {
-              label: selectedBlueprint.name || selectedBlueprint.id.slice(0, 12),
+              label: selectedBlueprint.name || selectedBlueprint.id,
               active: true,
             },
           ]}
@@ -422,7 +422,7 @@ const ListBlueprintsUI: React.FC = () => {
         >
           <Box>
             <Text color="cyan" bold>
-              {selectedBlueprint.name || selectedBlueprint.id.slice(0, 12)}
+              {selectedBlueprint.name || selectedBlueprint.id}
             </Text>
             <Text> </Text>
             <StatusBadge status={selectedBlueprint.status} />

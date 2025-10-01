@@ -118,7 +118,7 @@ const ListSnapshotsUI: React.FC<{ devboxId?: string }> = ({ devboxId }) => {
       <Breadcrumb
         items={[
           { label: 'Snapshots', active: !devboxId },
-          ...(devboxId ? [{ label: `Devbox: ${devboxId.slice(0, 12)}`, active: true }] : []),
+          ...(devboxId ? [{ label: `Devbox: ${devboxId}`, active: true }] : []),
         ]}
       />
       <Header
@@ -186,7 +186,7 @@ const ListSnapshotsUI: React.FC<{ devboxId?: string }> = ({ devboxId }) => {
               createTextColumn(
                 'devbox',
                 'Devbox',
-                (snapshot: any) => snapshot.devbox_id ? snapshot.devbox_id.slice(0, 13) : '',
+                (snapshot: any) => snapshot.devbox_id || '',
                 { width: devboxWidth, color: 'cyan', dimColor: true, bold: false, visible: showDevboxId }
               ),
               createTextColumn(

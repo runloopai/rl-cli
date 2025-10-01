@@ -34,8 +34,7 @@ export const DevboxCard: React.FC<DevboxCardProps> = ({
   };
 
   const statusDisplay = getStatusDisplay(status);
-  const displayName = name || id.slice(0, 12);
-  const shortId = id.slice(0, 8);
+  const displayName = name || id;
 
   return (
     <Box>
@@ -47,7 +46,7 @@ export const DevboxCard: React.FC<DevboxCardProps> = ({
         </Text>
       </Box>
       <Text color="gray" dimColor>
-        {shortId}
+        {id}
       </Text>
       {createdAt && (
         <>

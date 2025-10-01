@@ -14,7 +14,7 @@ export interface OutputOptions {
  * Check if the command should use non-interactive output
  */
 export function shouldUseNonInteractiveOutput(options: OutputOptions): boolean {
-  return !!options.output && options.output !== 'text';
+  return !!options.output;
 }
 
 /**
@@ -31,8 +31,43 @@ export function outputData(data: any, format: OutputFormat = 'json'): void {
     return;
   }
 
+  if (format === 'text') {
+    // Simple text output
+    if (Array.isArray(data)) {
+      // For lists of complex objects, just output IDs
+      data.forEach((item) => {
+        if (typeof item === 'object' && item !== null && 'id' in item) {
+          console.log(item.id);
+        } else {
+          console.log(formatTextOutput(item));
+        }
+      });
+    } else {
+      console.log(formatTextOutput(data));
+    }
+    return;
+  }
+
   console.error(`Unknown output format: ${format}`);
   process.exit(1);
+}
+
+/**
+ * Format a single item as text output
+ */
+function formatTextOutput(item: any): string {
+  if (typeof item === 'string') {
+    return item;
+  }
+
+  // For objects, create a simple key: value format
+  const lines: string[] = [];
+  for (const [key, value] of Object.entries(item)) {
+    if (value !== null && value !== undefined) {
+      lines.push(`${key}: ${value}`);
+    }
+  }
+  return lines.join('\n');
 }
 
 /**

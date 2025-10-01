@@ -63,7 +63,7 @@ const CreateSnapshotUI: React.FC<{
             <Box flexDirection="column" gap={1}>
               <Box>
                 <Text color="gray">{figures.pointer} Devbox ID: </Text>
-                <Text color="white">{devboxId.slice(0, 12)}...</Text>
+                <Text color="white">{devboxId}</Text>
               </Box>
               {name && (
                 <Box>
@@ -102,7 +102,7 @@ const CreateSnapshotUI: React.FC<{
               </Box>
               <Box>
                 <Text color="gray">{figures.tick} Create devbox from snapshot: </Text>
-                <Text color="cyan">rln devbox create -t {result.id.slice(0, 8)}...</Text>
+                <Text color="cyan">rln devbox create -t {result.id}</Text>
               </Box>
             </Box>
           </Box>
