@@ -9,7 +9,7 @@ import { ErrorMessage } from '../../components/ErrorMessage.js';
 import { StatusBadge } from '../../components/StatusBadge.js';
 import { Breadcrumb } from '../../components/Breadcrumb.js';
 import { Table, createTextColumn, createComponentColumn } from '../../components/Table.js';
-import { shouldUseNonInteractiveOutput, outputList } from '../../utils/output.js';
+import { createExecutor } from '../../utils/CommandExecutor.js';
 
 interface ListOptions {
   devbox?: string;
@@ -223,28 +223,17 @@ const ListSnapshotsUI: React.FC<{ devboxId?: string }> = ({ devboxId }) => {
 };
 
 export async function listSnapshots(options: ListOptions) {
-  // Handle non-interactive output formats
-  if (shouldUseNonInteractiveOutput(options)) {
-    const client = getClient();
-    const allSnapshots: any[] = [];
+  const executor = createExecutor(options);
 
-    let count = 0;
-    const params = options.devbox ? { devbox_id: options.devbox } : {};
-    for await (const snapshot of client.devboxes.listDiskSnapshots(params)) {
-      allSnapshots.push(snapshot);
-      count++;
-      // In non-interactive mode, only return PAGE_SIZE (10) by default
-      if (count >= PAGE_SIZE) {
-        break;
-      }
-    }
-
-    outputList(allSnapshots, options);
-    return;
-  }
-
-  // Interactive mode
-  console.clear();
-  const { waitUntilExit } = render(<ListSnapshotsUI devboxId={options.devbox} />);
-  await waitUntilExit();
+  await executor.executeList(
+    async () => {
+      const client = executor.getClient();
+      const params = options.devbox ? { devbox_id: options.devbox } : {};
+      return executor.fetchFromIterator(client.devboxes.listDiskSnapshots(params), {
+        limit: PAGE_SIZE,
+      });
+    },
+    () => <ListSnapshotsUI devboxId={options.devbox} />,
+    PAGE_SIZE
+  );
 }
