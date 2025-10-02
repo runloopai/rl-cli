@@ -50,7 +50,26 @@ export function Table<T>({
   const visibleColumns = columns.filter(col => col.visible !== false);
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" borderStyle="round" borderColor="gray" paddingX={1}>
+      {/* Header row */}
+      <Box>
+        {/* Space for selection pointer */}
+        {showSelection && (
+          <>
+            <Text> </Text>
+            <Text> </Text>
+          </>
+        )}
+
+        {/* Column headers */}
+        {visibleColumns.map((column) => (
+          <Text key={`header-${column.key}`} bold dimColor>
+            {column.label.slice(0, column.width).padEnd(column.width, ' ')}
+          </Text>
+        ))}
+      </Box>
+
+      {/* Data rows */}
       {data.map((row, index) => {
         const isSelected = index === selectedIndex;
         const rowKey = keyExtractor(row);

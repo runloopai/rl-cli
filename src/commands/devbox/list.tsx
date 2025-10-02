@@ -62,7 +62,8 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   // Calculate responsive column widths
   const terminalWidth = stdout?.columns || 120;
   const fixedWidth = 4; // pointer + spaces
-  const statusWidth = 12;
+  const statusIconWidth = 2;
+  const statusTextWidth = 10;
   const timeWidth = 20;
   const capabilitiesWidth = 18;
   const tagWidth = 6;
@@ -77,13 +78,13 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   // Name width is flexible and can be shortened
   let nameWidth = 15;
   if (terminalWidth >= 120) {
-    const remainingWidth = terminalWidth - fixedWidth - idWidth - statusWidth - timeWidth - capabilitiesWidth - tagWidth - 10;
+    const remainingWidth = terminalWidth - fixedWidth - statusIconWidth - idWidth - statusTextWidth - timeWidth - capabilitiesWidth - tagWidth - 10;
     nameWidth = Math.max(15, remainingWidth);
   } else if (terminalWidth >= 110) {
-    const remainingWidth = terminalWidth - fixedWidth - idWidth - statusWidth - timeWidth - tagWidth - 8;
+    const remainingWidth = terminalWidth - fixedWidth - statusIconWidth - idWidth - statusTextWidth - timeWidth - tagWidth - 8;
     nameWidth = Math.max(12, remainingWidth);
   } else {
-    const remainingWidth = terminalWidth - fixedWidth - idWidth - statusWidth - timeWidth - 8;
+    const remainingWidth = terminalWidth - fixedWidth - statusIconWidth - idWidth - statusTextWidth - timeWidth - 8;
     nameWidth = Math.max(8, remainingWidth);
   }
 
@@ -285,19 +286,12 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
             keyExtractor={(devbox: any) => devbox.id}
             selectedIndex={selectedIndex}
             columns={[
-              createTextColumn(
-                'id',
-                'ID',
-                (devbox: any) => devbox.id,
-                { width: idWidth, color: 'gray', dimColor: true, bold: false }
-              ),
               {
-                key: 'status',
-                label: 'Status',
-                width: statusWidth,
+                key: 'statusIcon',
+                label: '',
+                width: statusIconWidth,
                 render: (devbox: any, index: number, isSelected: boolean) => {
                   const statusDisplay = getStatusDisplay(devbox.status);
-                  const statusText = `${statusDisplay.icon} ${statusDisplay.text}`;
                   const status = devbox.status;
                   let color: string = 'gray';
                   if (status === 'running') color = 'green';
@@ -305,8 +299,36 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
                   else if (status === 'starting' || status === 'stopping') color = 'yellow';
                   else if (status === 'failed') color = 'red';
 
-                  const truncated = statusText.slice(0, statusWidth);
-                  const padded = truncated.padEnd(statusWidth, ' ');
+                  const padded = statusDisplay.icon.padEnd(statusIconWidth, ' ');
+
+                  return (
+                    <Text color={isSelected ? 'white' : color} bold={true} inverse={isSelected}>
+                      {padded}
+                    </Text>
+                  );
+                }
+              },
+              createTextColumn(
+                'id',
+                'ID',
+                (devbox: any) => devbox.id,
+                { width: idWidth, color: 'gray', dimColor: true, bold: false }
+              ),
+              {
+                key: 'statusText',
+                label: 'Status',
+                width: statusTextWidth,
+                render: (devbox: any, index: number, isSelected: boolean) => {
+                  const statusDisplay = getStatusDisplay(devbox.status);
+                  const status = devbox.status;
+                  let color: string = 'gray';
+                  if (status === 'running') color = 'green';
+                  else if (status === 'stopped' || status === 'suspended') color = 'gray';
+                  else if (status === 'starting' || status === 'stopping') color = 'yellow';
+                  else if (status === 'failed') color = 'red';
+
+                  const truncated = statusDisplay.text.slice(0, statusTextWidth);
+                  const padded = truncated.padEnd(statusTextWidth, ' ');
 
                   return (
                     <Text color={isSelected ? 'white' : color} bold={true} inverse={isSelected}>
