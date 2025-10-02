@@ -45,7 +45,6 @@ interface ListOptions {
   output?: string;
 }
 
-const MAX_FETCH = 100;
 const DEFAULT_PAGE_SIZE = 10;
 
 const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
@@ -65,6 +64,10 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   const [refreshIcon, setRefreshIcon] = React.useState(0);
   const [searchMode, setSearchMode] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [totalCount, setTotalCount] = React.useState(0);
+  const [hasMore, setHasMore] = React.useState(false);
+  const pageCache = React.useRef<Map<number, any[]>>(new Map());
+  const lastIdCache = React.useRef<Map<number, string>>(new Map());
 
   // Calculate responsive dimensions
   const terminalWidth = stdout?.columns || 120;
@@ -121,24 +124,63 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
         if (isInitialLoad) {
           setRefreshing(true);
         }
-        const client = getClient();
-        const allDevboxes: any[] = [];
 
+        // Check if we have cached data for this page
+        if (!isInitialLoad && pageCache.current.has(currentPage)) {
+          setDevboxes(pageCache.current.get(currentPage) || []);
+          setLoading(false);
+          return;
+        }
+
+        const client = getClient();
+        const pageDevboxes: any[] = [];
+
+        // Get starting_after cursor from previous page's last ID
+        const startingAfter = currentPage > 0 ? lastIdCache.current.get(currentPage - 1) : undefined;
+
+        // Build query params
+        const queryParams: any = {
+          limit: PAGE_SIZE,
+        };
+        if (startingAfter) {
+          queryParams.starting_after = startingAfter;
+        }
+        if (status) {
+          queryParams.status = status as 'provisioning' | 'initializing' | 'running' | 'suspending' | 'suspended' | 'resuming' | 'failure' | 'shutdown';
+        }
+
+        // Fetch only the current page
+        const page = await client.devboxes.list(queryParams);
+
+        // Collect items from the page - only get PAGE_SIZE items, don't auto-paginate
         let count = 0;
-        for await (const devbox of client.devboxes.list()) {
-          if (!status || devbox.status === status) {
-            allDevboxes.push(devbox);
-          }
+        for await (const devbox of page) {
+          pageDevboxes.push(devbox);
           count++;
-          if (count >= MAX_FETCH) {
+          // Break after getting PAGE_SIZE items to prevent auto-pagination
+          if (count >= PAGE_SIZE) {
             break;
           }
         }
 
-        // Only update if data actually changed
+        // Update pagination metadata from the page object
+        // These properties are on the page object itself
+        const total = (page as any).total_count || pageDevboxes.length;
+        const more = (page as any).has_more || false;
+
+        setTotalCount(total);
+        setHasMore(more);
+
+        // Cache the page data and last ID
+        if (pageDevboxes.length > 0) {
+          pageCache.current.set(currentPage, pageDevboxes);
+          lastIdCache.current.set(currentPage, pageDevboxes[pageDevboxes.length - 1].id);
+        }
+
+        // Update devboxes for current page
         setDevboxes((prev) => {
-          const hasChanged = JSON.stringify(prev) !== JSON.stringify(allDevboxes);
-          return hasChanged ? allDevboxes : prev;
+          const hasChanged = JSON.stringify(prev) !== JSON.stringify(pageDevboxes);
+          return hasChanged ? pageDevboxes : prev;
         });
       } catch (err) {
         setError(err as Error);
@@ -156,12 +198,15 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     // Poll every 3 seconds (increased from 2), but only when in list view
     const interval = setInterval(() => {
       if (!showDetails && !showCreate && !showActions) {
+        // Clear cache on refresh to get latest data
+        pageCache.current.clear();
+        lastIdCache.current.clear();
         list(false);
       }
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [showDetails, showCreate, showActions]);
+  }, [showDetails, showCreate, showActions, currentPage]);
 
   // Animate refresh icon only when in list view
   React.useEffect(() => {
@@ -282,7 +327,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     }
   });
 
-  // Filter devboxes based on search query
+  // Filter devboxes based on search query (client-side only for current page)
   const filteredDevboxes = React.useMemo(() => {
     if (!searchQuery.trim()) return devboxes;
 
@@ -301,11 +346,14 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     ['stopped', 'suspended'].includes(d.status)
   ).length;
 
-  const totalPages = Math.ceil(filteredDevboxes.length / PAGE_SIZE);
-  const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = Math.min(startIndex + PAGE_SIZE, filteredDevboxes.length);
-  const currentDevboxes = filteredDevboxes.slice(startIndex, endIndex);
+  // Current page is already fetched, no need to slice
+  const currentDevboxes = filteredDevboxes;
   const selectedDevbox = currentDevboxes[selectedIndex];
+
+  // Calculate pagination info
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const startIndex = currentPage * PAGE_SIZE;
+  const endIndex = startIndex + currentDevboxes.length;
 
   // Filter operations based on devbox status
   const operations = selectedDevbox ? allOperations.filter(op => {
@@ -384,7 +432,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
               data={currentDevboxes}
               keyExtractor={(devbox: any) => devbox.id}
               selectedIndex={selectedIndex}
-              title={`devboxes[${devboxes.length}]`}
+              title={`devboxes[${totalCount}]`}
               columns={[
                 {
                   key: 'statusIcon',
@@ -524,7 +572,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
             data={currentDevboxes}
             keyExtractor={(devbox: any) => devbox.id}
             selectedIndex={selectedIndex}
-            title={`devboxes[${devboxes.length}]`}
+            title={`devboxes[${totalCount}]`}
             columns={[
               {
                 key: 'statusIcon',
@@ -605,8 +653,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
           {/* Statistics Bar */}
           <Box marginTop={1} paddingX={1}>
             <Text color="cyan" bold>
-              {figures.hamburger} {devboxes.length}
-              {devboxes.length >= MAX_FETCH && '+'}
+              {figures.hamburger} {totalCount}
             </Text>
             <Text color="gray" dimColor> total</Text>
             {totalPages > 1 && (
@@ -619,8 +666,11 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
             )}
             <Text color="gray" dimColor> • </Text>
             <Text color="gray" dimColor>
-              Showing {startIndex + 1}-{endIndex} of {devboxes.length}
+              Showing {startIndex + 1}-{endIndex} of {totalCount}
             </Text>
+            {hasMore && (
+              <Text color="gray" dimColor> (more available)</Text>
+            )}
             <Text> </Text>
             {refreshing ? (
               <Text color="cyan">
