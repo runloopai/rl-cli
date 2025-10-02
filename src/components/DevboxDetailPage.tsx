@@ -39,8 +39,44 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
   const [showDetailedInfo, setShowDetailedInfo] = React.useState(false);
   const [detailScroll, setDetailScroll] = React.useState(0);
   const [showActions, setShowActions] = React.useState(false);
+  const [selectedOperation, setSelectedOperation] = React.useState(0);
 
   const selectedDevbox = initialDevbox;
+
+  const allOperations = [
+    { key: 'logs', label: 'View Logs', color: 'blue', icon: figures.info, shortcut: 'l' },
+    { key: 'exec', label: 'Execute Command', color: 'green', icon: figures.play, shortcut: 'e' },
+    { key: 'upload', label: 'Upload File', color: 'green', icon: figures.arrowUp, shortcut: 'u' },
+    { key: 'snapshot', label: 'Create Snapshot', color: 'yellow', icon: figures.circleFilled, shortcut: 'n' },
+    { key: 'ssh', label: 'SSH onto the box', color: 'cyan', icon: figures.arrowRight, shortcut: 's' },
+    { key: 'tunnel', label: 'Open Tunnel', color: 'magenta', icon: figures.pointerSmall, shortcut: 't' },
+    { key: 'suspend', label: 'Suspend Devbox', color: 'yellow', icon: figures.squareSmallFilled, shortcut: 'p' },
+    { key: 'resume', label: 'Resume Devbox', color: 'green', icon: figures.play, shortcut: 'r' },
+    { key: 'delete', label: 'Shutdown Devbox', color: 'red', icon: figures.cross, shortcut: 'd' },
+  ];
+
+  // Filter operations based on devbox status
+  const operations = selectedDevbox ? allOperations.filter(op => {
+    const status = selectedDevbox.status;
+
+    // When suspended: logs and resume
+    if (status === 'suspended') {
+      return op.key === 'resume' || op.key === 'logs';
+    }
+
+    // When not running (shutdown, failure, etc): only logs
+    if (status !== 'running' && status !== 'provisioning' && status !== 'initializing') {
+      return op.key === 'logs';
+    }
+
+    // When running: everything except resume
+    if (status === 'running') {
+      return op.key !== 'resume';
+    }
+
+    // Default for transitional states (provisioning, initializing)
+    return op.key === 'logs' || op.key === 'delete';
+  }) : allOperations;
 
   // Memoize time-based values to prevent re-rendering on every tick
   const formattedCreateTime = React.useMemo(
@@ -80,17 +116,31 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
       return;
     }
 
-    // Operations selection mode
+    // Main view input handling
     if (input === 'q' || key.escape) {
       console.clear();
       onBack();
     } else if (input === 'i') {
       setShowDetailedInfo(true);
       setDetailScroll(0);
-    } else if (input === 'a') {
+    } else if (key.upArrow && selectedOperation > 0) {
+      setSelectedOperation(selectedOperation - 1);
+    } else if (key.downArrow && selectedOperation < operations.length - 1) {
+      setSelectedOperation(selectedOperation + 1);
+    } else if (key.return || input === 'a') {
       console.clear();
       setShowActions(true);
-    } else if (input === 'o') {
+    } else if (input) {
+      // Check if input matches any operation shortcut
+      const matchedOpIndex = operations.findIndex(op => op.shortcut === input);
+      if (matchedOpIndex !== -1) {
+        setSelectedOperation(matchedOpIndex);
+        console.clear();
+        setShowActions(true);
+      }
+    }
+
+    if (input === 'o') {
       // Open in browser
       const url = `https://platform.runloop.ai/devboxes/${selectedDevbox.id}`;
       const openBrowser = async () => {
@@ -256,12 +306,15 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
     return lines;
   };
 
-  // Actions view
+  // Actions view - show the DevboxActionsMenu when an action is triggered
   if (showActions) {
     return (
       <DevboxActionsMenu
         devbox={selectedDevbox}
-        onBack={() => setShowActions(false)}
+        onBack={() => {
+          setShowActions(false);
+          setSelectedOperation(0);
+        }}
         breadcrumbItems={[
           { label: 'Devboxes' },
           { label: selectedDevbox.name || selectedDevbox.id },
@@ -419,9 +472,26 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
         </Box>
       )}
 
+      {/* Operations - inline display */}
+      <Box flexDirection="column" marginTop={1}>
+        <Text color="cyan" bold>{figures.play} Actions</Text>
+        <Box flexDirection="column">
+          {operations.map((op, index) => {
+            const isSelected = index === selectedOperation;
+            return (
+              <Box key={op.key}>
+                <Text color={isSelected ? 'cyan' : 'gray'}>{isSelected ? figures.pointer : ' '} </Text>
+                <Text color={isSelected ? op.color : 'gray'} bold={isSelected}>{op.icon} {op.label}</Text>
+                <Text color="gray" dimColor> [{op.shortcut}]</Text>
+              </Box>
+            );
+          })}
+        </Box>
+      </Box>
+
       <Box marginTop={1}>
         <Text color="gray" dimColor>
-          [a] Actions • [i] Full Details • [o] Browser • [q] Back
+          {figures.arrowUp}{figures.arrowDown} Navigate • [Enter] or [shortcut] Execute • [i] Full Details • [o] Browser • [q] Back
         </Text>
       </Box>
     </>
