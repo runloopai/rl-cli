@@ -5,6 +5,8 @@ import { Header } from '../../components/Header.js';
 import { SpinnerComponent } from '../../components/Spinner.js';
 import { SuccessMessage } from '../../components/SuccessMessage.js';
 import { ErrorMessage } from '../../components/ErrorMessage.js';
+import { createExecutor } from '../../utils/CommandExecutor.js';
+import { OutputOptions } from '../../utils/output.js';
 
 const DeleteSnapshotUI: React.FC<{ id: string }> = ({ id }) => {
   const [loading, setLoading] = React.useState(true);
@@ -42,7 +44,15 @@ const DeleteSnapshotUI: React.FC<{ id: string }> = ({ id }) => {
   );
 };
 
-export async function deleteSnapshot(id: string) {
-  const { waitUntilExit } = render(<DeleteSnapshotUI id={id} />);
-  await waitUntilExit();
+export async function deleteSnapshot(id: string, options: OutputOptions = {}) {
+  const executor = createExecutor(options);
+
+  await executor.executeDelete(
+    async () => {
+      const client = executor.getClient();
+      await client.devboxes.diskSnapshots.delete(id);
+    },
+    id,
+    () => <DeleteSnapshotUI id={id} />
+  );
 }
