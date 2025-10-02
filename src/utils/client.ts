@@ -10,5 +10,7 @@ export function getClient(): Runloop {
 
   return new Runloop({
     bearerToken: config.apiKey,
+    timeout: 10000, // 10 seconds instead of default 30 seconds
+    maxRetries: 2,  // 2 retries instead of default 5 (only for retryable errors)
   });
 }
