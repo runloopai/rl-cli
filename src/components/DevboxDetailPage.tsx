@@ -491,7 +491,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
 
       <Box marginTop={1}>
         <Text color="gray" dimColor>
-          {figures.arrowUp}{figures.arrowDown} Navigate • [Enter] or [shortcut] Execute • [i] Full Details • [o] Browser • [q] Back
+          {figures.arrowUp}{figures.arrowDown} Navigate • [Enter] Execute • [i] Full Details • [o] Browser • [q] Back
         </Text>
       </Box>
     </>

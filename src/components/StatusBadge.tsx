@@ -20,32 +20,35 @@ export const getStatusDisplay = (status: string): StatusDisplay => {
 
   switch (status) {
     case 'running':
-      return { icon: figures.circleFilled, color: 'green', text: 'RUNNING' };
+      return { icon: figures.circleFilled, color: 'green', text: 'RUNNING   ' };
     case 'provisioning':
-      return { icon: figures.hamburger, color: 'yellow', text: 'PROVISIONING' };
+      return { icon: figures.ellipsis, color: 'yellow', text: 'PROVISION ' };
     case 'initializing':
-      return { icon: figures.ellipsis, color: 'cyan', text: 'INITIALIZING' };
+      return { icon: figures.ellipsis, color: 'cyan', text: 'INITIALIZE' };
     case 'suspended':
-      return { icon: figures.circleDotted, color: 'yellow', text: 'SUSPENDED' };
+      return { icon: figures.circleDotted, color: 'yellow', text: 'SUSPENDED ' };
     case 'failure':
-      return { icon: figures.cross, color: 'red', text: 'FAILED' };
+      return { icon: figures.cross, color: 'red', text: 'FAILED    ' };
     case 'shutdown':
-      return { icon: figures.circle, color: 'gray', text: 'SHUTDOWN' };
+      return { icon: figures.circle, color: 'gray', text: 'SHUTDOWN  ' };
     case 'resuming':
-      return { icon: figures.ellipsis, color: 'cyan', text: 'RESUMING' };
+      return { icon: figures.ellipsis, color: 'cyan', text: 'RESUMING  ' };
     case 'suspending':
       return { icon: figures.ellipsis, color: 'yellow', text: 'SUSPENDING' };
     case 'ready':
-      return { icon: figures.tick, color: 'green', text: 'READY' };
+      return { icon: figures.tick, color: 'green', text: 'READY     ' };
     case 'build_complete':
     case 'building_complete':
-      return { icon: figures.tick, color: 'green', text: 'COMPLETE' };
+      return { icon: figures.tick, color: 'green', text: 'COMPLETE  ' };
     case 'building':
-      return { icon: figures.ellipsis, color: 'yellow', text: 'BUILDING' };
+      return { icon: figures.ellipsis, color: 'yellow', text: 'BUILDING  ' };
     case 'build_failed':
-      return { icon: figures.cross, color: 'red', text: 'FAILED' };
+      return { icon: figures.cross, color: 'red', text: 'FAILED    ' };
     default:
-      return { icon: figures.questionMarkPrefix, color: 'gray', text: status.toUpperCase() };
+      // Truncate and pad any unknown status to 10 chars to match column width
+      const truncated = status.toUpperCase().slice(0, 10);
+      const padded = truncated.padEnd(10, ' ');
+      return { icon: figures.questionMarkPrefix, color: 'gray', text: padded };
   }
 };
 
