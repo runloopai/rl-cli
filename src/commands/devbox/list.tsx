@@ -43,8 +43,8 @@ interface ListOptions {
   output?: string;
 }
 
-const PAGE_SIZE = 10;
 const MAX_FETCH = 100;
+const DEFAULT_PAGE_SIZE = 10;
 
 const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   const { exit } = useApp();
@@ -59,8 +59,14 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   const [refreshing, setRefreshing] = React.useState(false);
   const [refreshIcon, setRefreshIcon] = React.useState(0);
 
-  // Calculate responsive column widths
+  // Calculate responsive dimensions
   const terminalWidth = stdout?.columns || 120;
+  const terminalHeight = stdout?.rows || 30;
+
+  // Calculate dynamic page size based on terminal height
+  // Account for: Banner (3-4 lines) + Breadcrumb (1) + Header (1) + Stats (2) + Help text (2) + Margins (2) + Header row (1) = ~12 lines
+  const PAGE_SIZE = Math.max(5, terminalHeight - 12);
+
   const fixedWidth = 4; // pointer + spaces
   const statusIconWidth = 2;
   const statusTextWidth = 10;
@@ -75,16 +81,16 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   const showCapabilities = terminalWidth >= 120;
   const showTags = terminalWidth >= 110;
 
-  // Name width is flexible and can be shortened
+  // Name width is flexible and uses remaining space
   let nameWidth = 15;
   if (terminalWidth >= 120) {
-    const remainingWidth = terminalWidth - fixedWidth - statusIconWidth - idWidth - statusTextWidth - timeWidth - capabilitiesWidth - tagWidth - 10;
+    const remainingWidth = terminalWidth - fixedWidth - statusIconWidth - idWidth - statusTextWidth - timeWidth - capabilitiesWidth - tagWidth - 12;
     nameWidth = Math.max(15, remainingWidth);
   } else if (terminalWidth >= 110) {
-    const remainingWidth = terminalWidth - fixedWidth - statusIconWidth - idWidth - statusTextWidth - timeWidth - tagWidth - 8;
+    const remainingWidth = terminalWidth - fixedWidth - statusIconWidth - idWidth - statusTextWidth - timeWidth - tagWidth - 10;
     nameWidth = Math.max(12, remainingWidth);
   } else {
-    const remainingWidth = terminalWidth - fixedWidth - statusIconWidth - idWidth - statusTextWidth - timeWidth - 8;
+    const remainingWidth = terminalWidth - fixedWidth - statusIconWidth - idWidth - statusTextWidth - timeWidth - 10;
     nameWidth = Math.max(8, remainingWidth);
   }
 
@@ -401,11 +407,11 @@ export async function listDevboxes(options: ListOptions) {
       const client = executor.getClient();
       return executor.fetchFromIterator(client.devboxes.list(), {
         filter: options.status ? (devbox: any) => devbox.status === options.status : undefined,
-        limit: PAGE_SIZE,
+        limit: DEFAULT_PAGE_SIZE,
       });
     },
     () => <ListDevboxesUI status={options.status} />,
-    PAGE_SIZE
+    DEFAULT_PAGE_SIZE
   );
 
   // Check if we need to spawn SSH after Ink exit
