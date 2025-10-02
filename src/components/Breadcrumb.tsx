@@ -12,9 +12,14 @@ interface BreadcrumbProps {
 }
 
 export const Breadcrumb: React.FC<BreadcrumbProps> = React.memo(({ items }) => {
+  const baseUrl = process.env.RUNLOOP_BASE_URL;
+  const isDevEnvironment = baseUrl && baseUrl !== 'https://api.runloop.ai';
+
   return (
     <Box marginBottom={1} paddingX={1} paddingY={0}>
-      <Text color="green" dimColor bold>RL </Text>
+      <Text color="green" dimColor bold>RL</Text>
+      {isDevEnvironment && <Text color="redBright" bold> (dev)</Text>}
+      <Text> </Text>
       <Text color="gray" dimColor>{figures.arrowRight} </Text>
       {items.map((item, index) => (
         <React.Fragment key={index}>
