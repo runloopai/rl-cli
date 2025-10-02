@@ -534,9 +534,9 @@ const ListBlueprintsUI: React.FC = () => {
   // List view
   return (
     <>
-      <Banner />
+      {/* //<Banner /> */}
       <Breadcrumb items={[{ label: 'Blueprints', active: true }]} />
-      <Header title="Blueprints" />
+      {/* <Header title="Blueprints" /> */}
       {loading && <SpinnerComponent message="Loading blueprints..." />}
       {!loading && !error && blueprints.length === 0 && (
         <Box>

@@ -28,6 +28,8 @@ export interface TableProps<T> {
   emptyState?: React.ReactNode;
   /** Row key extractor */
   keyExtractor: (row: T) => string;
+  /** Optional title to display in border header */
+  title?: string;
 }
 
 /**
@@ -41,6 +43,7 @@ export function Table<T>({
   showSelection = true,
   emptyState,
   keyExtractor,
+  title,
 }: TableProps<T>) {
   if (data.length === 0 && emptyState) {
     return <>{emptyState}</>;
@@ -50,24 +53,32 @@ export function Table<T>({
   const visibleColumns = columns.filter(col => col.visible !== false);
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="gray" paddingX={1}>
-      {/* Header row */}
-      <Box>
-        {/* Space for selection pointer */}
-        {showSelection && (
-          <>
-            <Text> </Text>
-            <Text> </Text>
-          </>
-        )}
+    <Box flexDirection="column">
+      {/* Title bar (if provided) */}
+      {title && (
+        <Box paddingX={1} marginBottom={0}>
+          <Text color="cyan" bold>╭─ {title} {'─'.repeat(Math.max(0, 10))}╮</Text>
+        </Box>
+      )}
 
-        {/* Column headers */}
-        {visibleColumns.map((column) => (
-          <Text key={`header-${column.key}`} bold dimColor>
-            {column.label.slice(0, column.width).padEnd(column.width, ' ')}
-          </Text>
-        ))}
-      </Box>
+      <Box flexDirection="column" borderStyle={title ? 'single' : 'round'} borderColor="gray" paddingX={1}>
+        {/* Header row */}
+        <Box>
+          {/* Space for selection pointer */}
+          {showSelection && (
+            <>
+              <Text> </Text>
+              <Text> </Text>
+            </>
+          )}
+
+          {/* Column headers */}
+          {visibleColumns.map((column) => (
+            <Text key={`header-${column.key}`} bold dimColor>
+              {column.label.slice(0, column.width).padEnd(column.width, ' ')}
+            </Text>
+          ))}
+        </Box>
 
       {/* Data rows */}
       {data.map((row, index) => {
@@ -95,6 +106,7 @@ export function Table<T>({
           </Box>
         );
       })}
+      </Box>
     </Box>
   );
 }

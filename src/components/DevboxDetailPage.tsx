@@ -51,6 +51,9 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
   const [operationError, setOperationError] = React.useState<Error | null>(null);
   const [showDetailedInfo, setShowDetailedInfo] = React.useState(false);
   const [detailScroll, setDetailScroll] = React.useState(0);
+  const [logsWrapMode, setLogsWrapMode] = React.useState(true);
+  const [logsScroll, setLogsScroll] = React.useState(0);
+  const [copyStatus, setCopyStatus] = React.useState<string | null>(null);
 
   const selectedDevbox = initialDevbox;
 
@@ -128,7 +131,78 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
         setOperationError(null);
         setExecutingOperation(null);
         setOperationInput('');
+        setLogsWrapMode(true); // Reset wrap mode
+        setLogsScroll(0); // Reset scroll
+        setCopyStatus(null); // Reset copy status
         // Keep detail view open
+      } else if ((key.upArrow || input === 'k') && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+        // Scroll up in logs
+        setLogsScroll(Math.max(0, logsScroll - 1));
+      } else if ((key.downArrow || input === 'j') && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+        // Scroll down in logs
+        setLogsScroll(logsScroll + 1);
+      } else if (key.pageUp && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+        // Page up
+        setLogsScroll(Math.max(0, logsScroll - 10));
+      } else if (key.pageDown && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+        // Page down
+        setLogsScroll(logsScroll + 10);
+      } else if (input === 'w' && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+        // Toggle wrap mode for logs
+        setLogsWrapMode(!logsWrapMode);
+      } else if (input === 'c' && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+        // Copy logs to clipboard
+        const logs = (operationResult as any).__logs || [];
+        const logsText = logs.map((log: any) => {
+          const time = new Date(log.timestamp_ms).toLocaleString();
+          const level = log.level || 'INFO';
+          const source = log.source || 'exec';
+          const message = log.message || '';
+          const cmd = log.cmd ? `[${log.cmd}] ` : '';
+          const exitCode = log.exit_code !== null && log.exit_code !== undefined ? `(${log.exit_code}) ` : '';
+          return `${time} ${level}/${source} ${exitCode}${cmd}${message}`;
+        }).join('\n');
+
+        // Copy to clipboard using pbcopy (macOS), xclip (Linux), or clip (Windows)
+        const copyToClipboard = async (text: string) => {
+          const { spawn } = await import('child_process');
+          const platform = process.platform;
+
+          let command: string;
+          let args: string[];
+
+          if (platform === 'darwin') {
+            command = 'pbcopy';
+            args = [];
+          } else if (platform === 'win32') {
+            command = 'clip';
+            args = [];
+          } else {
+            command = 'xclip';
+            args = ['-selection', 'clipboard'];
+          }
+
+          const proc = spawn(command, args);
+          proc.stdin.write(text);
+          proc.stdin.end();
+
+          proc.on('exit', (code) => {
+            if (code === 0) {
+              setCopyStatus('Copied to clipboard!');
+              setTimeout(() => setCopyStatus(null), 2000);
+            } else {
+              setCopyStatus('Failed to copy');
+              setTimeout(() => setCopyStatus(null), 2000);
+            }
+          });
+
+          proc.on('error', () => {
+            setCopyStatus('Copy not supported');
+            setTimeout(() => setCopyStatus(null), 2000);
+          });
+        };
+
+        copyToClipboard(logsText);
       }
       return;
     }
@@ -262,20 +336,11 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
           if (logsResult.logs.length === 0) {
             setOperationResult('No logs available for this devbox.');
           } else {
-            // Pre-format timestamps once to avoid re-rendering
-            const logsFormatted = logsResult.logs
-              .slice(-50) // Show last 50 logs
-              .map((log) => {
-                const time = new Date(log.timestamp_ms).toLocaleTimeString();
-                const level = log.level ? log.level[0].toUpperCase() : 'I';
-                const source = log.source ? log.source.substring(0, 4) : 'exec';
-                const message = (log.message || '').substring(0, 100);
-                const cmd = log.cmd ? ` [${log.cmd.substring(0, 30)}${log.cmd.length > 30 ? '...' : ''}]` : '';
-                const exitCode = log.exit_code !== null && log.exit_code !== undefined ? ` (${log.exit_code})` : '';
-                return `${time} ${level}/${source}${exitCode}${cmd} ${message}`;
-              })
-              .join('\n');
-            setOperationResult(`Logs (last ${Math.min(50, logsResult.logs.length)} of ${logsResult.logs.length}):\n\n${logsFormatted}`);
+            // Store logs data for custom rendering - show all logs
+            (logsResult as any).__customRender = 'logs';
+            (logsResult as any).__logs = logsResult.logs; // Show all logs, not just last 50
+            (logsResult as any).__totalCount = logsResult.logs.length;
+            setOperationResult(logsResult as any);
           }
           break;
 
@@ -463,6 +528,127 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
   // Operation result display
   if (operationResult || operationError) {
     const operationLabel = operations.find((o) => o.key === executingOperation)?.label || 'Operation';
+
+    // Check for custom logs rendering
+    if (operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+      const logs = (operationResult as any).__logs || [];
+      const totalCount = (operationResult as any).__totalCount || 0;
+
+      // Calculate viewport for scrolling
+      const terminalHeight = stdout?.rows || 30;
+      const terminalWidth = stdout?.columns || 120;
+      const viewportHeight = Math.max(10, terminalHeight - 10); // Reserve space for header/footer
+      const maxScroll = Math.max(0, logs.length - viewportHeight);
+      const actualScroll = Math.min(logsScroll, maxScroll);
+      const visibleLogs = logs.slice(actualScroll, actualScroll + viewportHeight);
+      const hasMore = actualScroll + viewportHeight < logs.length;
+      const hasLess = actualScroll > 0;
+
+      return (
+        <>
+          <Breadcrumb items={[
+            { label: 'Devboxes' },
+            { label: selectedDevbox?.name || selectedDevbox?.id || 'Devbox' },
+            { label: 'Logs', active: true }
+          ]} />
+
+          {/* Logs display with border */}
+          <Box flexDirection="column" borderStyle="round" borderColor="gray" paddingX={1}>
+            {visibleLogs.map((log: any, index: number) => {
+              const time = new Date(log.timestamp_ms).toLocaleTimeString();
+              const level = log.level ? log.level[0].toUpperCase() : 'I';
+              const source = log.source ? log.source.substring(0, 8) : 'exec';
+              const fullMessage = log.message || '';
+              const cmd = log.cmd ? `[${log.cmd.substring(0, 40)}${log.cmd.length > 40 ? '...' : ''}] ` : '';
+              const exitCode = log.exit_code !== null && log.exit_code !== undefined ? `(${log.exit_code}) ` : '';
+
+              let levelColor = 'gray';
+              if (level === 'E') levelColor = 'red';
+              else if (level === 'W') levelColor = 'yellow';
+              else if (level === 'I') levelColor = 'cyan';
+
+              if (logsWrapMode) {
+                // Wrap mode: show full message on same line, let terminal handle wrapping
+                return (
+                  <Box key={index}>
+                    <Text color="gray" dimColor>{time}</Text>
+                    <Text> </Text>
+                    <Text color={levelColor} bold>{level}</Text>
+                    <Text color="gray" dimColor>/{source}</Text>
+                    <Text> </Text>
+                    {exitCode && <Text color="yellow">{exitCode}</Text>}
+                    {cmd && <Text color="blue" dimColor>{cmd}</Text>}
+                    <Text>{fullMessage}</Text>
+                  </Box>
+                );
+              } else {
+                // No-wrap mode: calculate actual metadata width and truncate accordingly
+                // Time (11) + space (1) + Level (1) + /source (1+8) + space (1) + exitCode.length + cmd.length + border/padding (6)
+                const metadataWidth = 11 + 1 + 1 + 1 + 8 + 1 + exitCode.length + cmd.length + 6;
+                const availableMessageWidth = Math.max(20, terminalWidth - metadataWidth);
+                const truncatedMessage = fullMessage.length > availableMessageWidth
+                  ? fullMessage.substring(0, availableMessageWidth - 3) + '...'
+                  : fullMessage;
+                return (
+                  <Box key={index}>
+                    <Text color="gray" dimColor>{time}</Text>
+                    <Text> </Text>
+                    <Text color={levelColor} bold>{level}</Text>
+                    <Text color="gray" dimColor>/{source}</Text>
+                    <Text> </Text>
+                    {exitCode && <Text color="yellow">{exitCode}</Text>}
+                    {cmd && <Text color="blue" dimColor>{cmd}</Text>}
+                    <Text>{truncatedMessage}</Text>
+                  </Box>
+                );
+              }
+            })}
+
+            {/* Scroll indicators */}
+            {hasLess && (
+              <Box>
+                <Text color="cyan">{figures.arrowUp} More above</Text>
+              </Box>
+            )}
+            {hasMore && (
+              <Box>
+                <Text color="cyan">{figures.arrowDown} More below</Text>
+              </Box>
+            )}
+          </Box>
+
+          {/* Statistics bar */}
+          <Box marginTop={1} paddingX={1}>
+            <Text color="cyan" bold>
+              {figures.hamburger} {totalCount}
+            </Text>
+            <Text color="gray" dimColor> total logs</Text>
+            <Text color="gray" dimColor> • </Text>
+            <Text color="gray" dimColor>
+              Viewing {actualScroll + 1}-{Math.min(actualScroll + viewportHeight, logs.length)} of {logs.length}
+            </Text>
+            <Text color="gray" dimColor> • </Text>
+            <Text color={logsWrapMode ? 'green' : 'gray'} bold={logsWrapMode}>
+              {logsWrapMode ? 'Wrap: ON' : 'Wrap: OFF'}
+            </Text>
+            {copyStatus && (
+              <>
+                <Text color="gray" dimColor> • </Text>
+                <Text color="green" bold>{copyStatus}</Text>
+              </>
+            )}
+          </Box>
+
+          {/* Help bar */}
+          <Box marginTop={1} paddingX={1}>
+            <Text color="gray" dimColor>
+              {figures.arrowUp}{figures.arrowDown} Navigate • [w] Toggle Wrap • [c] Copy • [Enter], [q], or [esc] Back
+            </Text>
+          </Box>
+        </>
+      );
+    }
+
     return (
       <>
         <Breadcrumb items={[
