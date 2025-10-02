@@ -14,6 +14,10 @@ export interface StatusDisplay {
 }
 
 export const getStatusDisplay = (status: string): StatusDisplay => {
+  if (!status) {
+    return { icon: figures.questionMarkPrefix, color: 'gray', text: 'UNKNOWN' };
+  }
+
   switch (status) {
     case 'running':
       return { icon: figures.circleFilled, color: 'green', text: 'RUNNING' };
@@ -31,6 +35,15 @@ export const getStatusDisplay = (status: string): StatusDisplay => {
       return { icon: figures.ellipsis, color: 'cyan', text: 'RESUMING' };
     case 'suspending':
       return { icon: figures.ellipsis, color: 'yellow', text: 'SUSPENDING' };
+    case 'ready':
+      return { icon: figures.tick, color: 'green', text: 'READY' };
+    case 'build_complete':
+    case 'building_complete':
+      return { icon: figures.tick, color: 'green', text: 'COMPLETE' };
+    case 'building':
+      return { icon: figures.ellipsis, color: 'yellow', text: 'BUILDING' };
+    case 'build_failed':
+      return { icon: figures.cross, color: 'red', text: 'FAILED' };
     default:
       return { icon: figures.questionMarkPrefix, color: 'gray', text: status.toUpperCase() };
   }

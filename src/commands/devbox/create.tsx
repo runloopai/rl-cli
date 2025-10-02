@@ -6,10 +6,12 @@ import { Banner } from '../../components/Banner.js';
 import { SpinnerComponent } from '../../components/Spinner.js';
 import { SuccessMessage } from '../../components/SuccessMessage.js';
 import { ErrorMessage } from '../../components/ErrorMessage.js';
+import { createExecutor } from '../../utils/CommandExecutor.js';
 
 interface CreateOptions {
   name?: string;
   template?: string;
+  output?: string;
 }
 
 const CreateDevboxUI: React.FC<{
@@ -52,7 +54,7 @@ const CreateDevboxUI: React.FC<{
           />
           <Box marginTop={1}>
             <Text color="gray">Try: </Text>
-            <Text color="cyan">rln devbox exec {result.id.slice(0, 8)} ls</Text>
+            <Text color="cyan">rln devbox exec {result.id} ls</Text>
           </Box>
         </>
       )}
@@ -62,9 +64,16 @@ const CreateDevboxUI: React.FC<{
 };
 
 export async function createDevbox(options: CreateOptions) {
-  console.clear();
-  const { waitUntilExit } = render(
-    <CreateDevboxUI name={options.name} template={options.template} />
+  const executor = createExecutor(options);
+
+  await executor.executeAction(
+    async () => {
+      const client = executor.getClient();
+      return client.devboxes.create({
+        name: options.name || `devbox-${Date.now()}`,
+        ...(options.template && { template: options.template }),
+      });
+    },
+    () => <CreateDevboxUI name={options.name} template={options.template} />
   );
-  await waitUntilExit();
 }

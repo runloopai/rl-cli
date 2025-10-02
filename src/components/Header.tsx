@@ -7,7 +7,7 @@ interface HeaderProps {
   subtitle?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
+export const Header: React.FC<HeaderProps> = React.memo(({ title, subtitle }) => {
   return (
     <Box flexDirection="column" marginBottom={1}>
       <Box>
@@ -28,4 +28,4 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
       </Box>
     </Box>
   );
-};
+});
