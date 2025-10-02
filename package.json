@@ -1,6 +1,6 @@
 {
   "name": "@runloop/rl-cli",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Beautiful CLI for Runloop devbox management",
   "type": "module",
   "bin": {
@@ -10,7 +10,11 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/cli.js",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "version:patch": "npm version patch",
+    "version:minor": "npm version minor",
+    "version:major": "npm version major",
+    "release": "npm run build && npm publish"
   },
   "keywords": [
     "runloop",
