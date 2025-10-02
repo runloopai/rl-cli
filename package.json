@@ -47,6 +47,7 @@
   "dependencies": {
     "@inkjs/ui": "^2.0.0",
     "@runloop/api-client": "^0.55.0",
+    "@runloop/rl-cli": "^0.0.1",
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
     "conf": "^13.0.1",

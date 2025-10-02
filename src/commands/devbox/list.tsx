@@ -15,6 +15,7 @@ import { Table, createTextColumn, createComponentColumn } from '../../components
 import { createExecutor } from '../../utils/CommandExecutor.js';
 import { DevboxDetailPage } from '../../components/DevboxDetailPage.js';
 import { DevboxCreatePage } from '../../components/DevboxCreatePage.js';
+import { DevboxActionsMenu } from '../../components/DevboxActionsMenu.js';
 
 // Format time ago in a succinct way
 const formatTimeAgo = (timestamp: number): string => {
@@ -56,6 +57,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showDetails, setShowDetails] = React.useState(false);
   const [showCreate, setShowCreate] = React.useState(false);
+  const [showActions, setShowActions] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
   const [refreshIcon, setRefreshIcon] = React.useState(0);
 
@@ -135,17 +137,17 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
 
     // Poll every 3 seconds (increased from 2), but only when in list view
     const interval = setInterval(() => {
-      if (!showDetails && !showCreate) {
+      if (!showDetails && !showCreate && !showActions) {
         list(false);
       }
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [showDetails, showCreate]);
+  }, [showDetails, showCreate, showActions]);
 
   // Animate refresh icon only when in list view
   React.useEffect(() => {
-    if (showDetails || showCreate) {
+    if (showDetails || showCreate || showActions) {
       return; // Don't animate when not in list view
     }
 
@@ -153,7 +155,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
       setRefreshIcon((prev) => (prev + 1) % 10);
     }, 80);
     return () => clearInterval(interval);
-  }, [showDetails, showCreate]);
+  }, [showDetails, showCreate, showActions]);
 
   useInput((input, key) => {
     const pageDevboxes = currentDevboxes.length;
@@ -165,6 +167,11 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
 
     // Skip input handling when in create view - let DevboxCreatePage handle it
     if (showCreate) {
+      return;
+    }
+
+    // Skip input handling when in actions view - let DevboxActionsMenu handle it
+    if (showActions) {
       return;
     }
 
@@ -182,6 +189,9 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     } else if (key.return) {
       console.clear();
       setShowDetails(true);
+    } else if (input === 'a') {
+      console.clear();
+      setShowActions(true);
     } else if (input === 'c') {
       console.clear();
       setShowCreate(true);
@@ -232,6 +242,20 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
           setShowCreate(false);
           // The list will auto-refresh via the polling effect
         }}
+      />
+    );
+  }
+
+  // Actions view
+  if (showActions && selectedDevbox) {
+    return (
+      <DevboxActionsMenu
+        devbox={selectedDevbox}
+        onBack={() => setShowActions(false)}
+        breadcrumbItems={[
+          { label: 'Devboxes' },
+          { label: selectedDevbox.name || selectedDevbox.id, active: true }
+        ]}
       />
     );
   }
@@ -396,7 +420,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
               </Text>
             )}
             <Text color="gray" dimColor>
-              {' '}• [Enter] Operations • [c] Create • [o] Browser • [q] Quit
+              {' '}• [Enter] Details • [a] Actions • [c] Create • [o] Browser • [q] Quit
             </Text>
           </Box>
         </>
