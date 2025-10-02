@@ -15,6 +15,8 @@ interface DevboxActionsMenuProps {
   devbox: any;
   onBack: () => void;
   breadcrumbItems?: Array<{ label: string; active?: boolean }>;
+  initialOperation?: string; // Operation to execute immediately
+  initialOperationIndex?: number; // Index of the operation to select
 }
 
 export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
@@ -23,13 +25,15 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
   breadcrumbItems = [
     { label: 'Devboxes' },
     { label: devbox.name || devbox.id, active: true }
-  ]
+  ],
+  initialOperation,
+  initialOperationIndex = 0,
 }) => {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const [loading, setLoading] = React.useState(false);
-  const [selectedOperation, setSelectedOperation] = React.useState(0);
-  const [executingOperation, setExecutingOperation] = React.useState<Operation>(null);
+  const [selectedOperation, setSelectedOperation] = React.useState(initialOperationIndex);
+  const [executingOperation, setExecutingOperation] = React.useState<Operation>(initialOperation as Operation || null);
   const [operationInput, setOperationInput] = React.useState('');
   const [operationResult, setOperationResult] = React.useState<string | null>(null);
   const [operationError, setOperationError] = React.useState<Error | null>(null);
@@ -716,7 +720,7 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
 
       <Box marginTop={1}>
         <Text color="gray" dimColor>
-          {figures.arrowUp}{figures.arrowDown} Navigate • [Enter] or [shortcut] Select • [q] Back
+          {figures.arrowUp}{figures.arrowDown} Navigate • [Enter] Select • [q] Back
         </Text>
       </Box>
     </>

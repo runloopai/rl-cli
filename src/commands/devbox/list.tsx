@@ -16,6 +16,7 @@ import { createExecutor } from '../../utils/CommandExecutor.js';
 import { DevboxDetailPage } from '../../components/DevboxDetailPage.js';
 import { DevboxCreatePage } from '../../components/DevboxCreatePage.js';
 import { DevboxActionsMenu } from '../../components/DevboxActionsMenu.js';
+import { ActionsPopup } from '../../components/ActionsPopup.js';
 
 // Format time ago in a succinct way
 const formatTimeAgo = (timestamp: number): string => {
@@ -58,8 +59,12 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   const [showDetails, setShowDetails] = React.useState(false);
   const [showCreate, setShowCreate] = React.useState(false);
   const [showActions, setShowActions] = React.useState(false);
+  const [showPopup, setShowPopup] = React.useState(false);
+  const [selectedOperation, setSelectedOperation] = React.useState(0);
   const [refreshing, setRefreshing] = React.useState(false);
   const [refreshIcon, setRefreshIcon] = React.useState(0);
+  const [searchMode, setSearchMode] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
 
   // Calculate responsive dimensions
   const terminalWidth = stdout?.columns || 120;
@@ -95,6 +100,19 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     const remainingWidth = terminalWidth - fixedWidth - statusIconWidth - idWidth - statusTextWidth - timeWidth - 10;
     nameWidth = Math.max(8, remainingWidth);
   }
+
+  // Define allOperations
+  const allOperations = [
+    { key: 'logs', label: 'View Logs', color: 'blue', icon: figures.info, shortcut: 'l' },
+    { key: 'exec', label: 'Execute Command', color: 'green', icon: figures.play, shortcut: 'e' },
+    { key: 'upload', label: 'Upload File', color: 'green', icon: figures.arrowUp, shortcut: 'u' },
+    { key: 'snapshot', label: 'Create Snapshot', color: 'yellow', icon: figures.circleFilled, shortcut: 'n' },
+    { key: 'ssh', label: 'SSH onto the box', color: 'cyan', icon: figures.arrowRight, shortcut: 's' },
+    { key: 'tunnel', label: 'Open Tunnel', color: 'magenta', icon: figures.pointerSmall, shortcut: 't' },
+    { key: 'suspend', label: 'Suspend Devbox', color: 'yellow', icon: figures.squareSmallFilled, shortcut: 'p' },
+    { key: 'resume', label: 'Resume Devbox', color: 'green', icon: figures.play, shortcut: 'r' },
+    { key: 'delete', label: 'Shutdown Devbox', color: 'red', icon: figures.cross, shortcut: 'd' },
+  ];
 
   React.useEffect(() => {
     const list = async (isInitialLoad: boolean = false) => {
@@ -160,6 +178,15 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   useInput((input, key) => {
     const pageDevboxes = currentDevboxes.length;
 
+    // Skip input handling when in search mode - let TextInput handle it
+    if (searchMode) {
+      if (key.escape) {
+        setSearchMode(false);
+        setSearchQuery('');
+      }
+      return;
+    }
+
     // Skip input handling when in details view - let DevboxDetailPage handle it
     if (showDetails) {
       return;
@@ -172,6 +199,34 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
 
     // Skip input handling when in actions view - let DevboxActionsMenu handle it
     if (showActions) {
+      return;
+    }
+
+    // Handle popup navigation
+    if (showPopup) {
+      if (key.escape || input === 'q') {
+        console.clear();
+        setShowPopup(false);
+        setSelectedOperation(0);
+      } else if (key.upArrow && selectedOperation > 0) {
+        setSelectedOperation(selectedOperation - 1);
+      } else if (key.downArrow && selectedOperation < operations.length - 1) {
+        setSelectedOperation(selectedOperation + 1);
+      } else if (key.return) {
+        // Execute the selected operation
+        console.clear();
+        setShowPopup(false);
+        setShowActions(true);
+      } else if (input) {
+        // Check for shortcut match
+        const matchedOpIndex = operations.findIndex(op => op.shortcut === input);
+        if (matchedOpIndex !== -1) {
+          setSelectedOperation(matchedOpIndex);
+          console.clear();
+          setShowPopup(false);
+          setShowActions(true);
+        }
+      }
       return;
     }
 
@@ -191,7 +246,8 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
       setShowDetails(true);
     } else if (input === 'a') {
       console.clear();
-      setShowActions(true);
+      setShowPopup(true);
+      setSelectedOperation(0);
     } else if (input === 'c') {
       console.clear();
       setShowCreate(true);
@@ -214,21 +270,65 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
         exec(openCommand);
       };
       openBrowser();
+    } else if (input === '/') {
+      setSearchMode(true);
+    } else if (key.escape && searchQuery) {
+      // Clear search when Esc is pressed and there's an active search
+      setSearchQuery('');
+      setCurrentPage(0);
+      setSelectedIndex(0);
     } else if (input === 'q') {
       process.exit(0);
     }
   });
 
-  const running = devboxes.filter((d) => d.status === 'running').length;
-  const stopped = devboxes.filter((d) =>
+  // Filter devboxes based on search query
+  const filteredDevboxes = React.useMemo(() => {
+    if (!searchQuery.trim()) return devboxes;
+
+    const query = searchQuery.toLowerCase();
+    return devboxes.filter(devbox => {
+      return (
+        devbox.id?.toLowerCase().includes(query) ||
+        devbox.name?.toLowerCase().includes(query) ||
+        devbox.status?.toLowerCase().includes(query)
+      );
+    });
+  }, [devboxes, searchQuery]);
+
+  const running = filteredDevboxes.filter((d) => d.status === 'running').length;
+  const stopped = filteredDevboxes.filter((d) =>
     ['stopped', 'suspended'].includes(d.status)
   ).length;
 
-  const totalPages = Math.ceil(devboxes.length / PAGE_SIZE);
+  const totalPages = Math.ceil(filteredDevboxes.length / PAGE_SIZE);
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = Math.min(startIndex + PAGE_SIZE, devboxes.length);
-  const currentDevboxes = devboxes.slice(startIndex, endIndex);
+  const endIndex = Math.min(startIndex + PAGE_SIZE, filteredDevboxes.length);
+  const currentDevboxes = filteredDevboxes.slice(startIndex, endIndex);
   const selectedDevbox = currentDevboxes[selectedIndex];
+
+  // Filter operations based on devbox status
+  const operations = selectedDevbox ? allOperations.filter(op => {
+    const status = selectedDevbox.status;
+
+    // When suspended: logs and resume
+    if (status === 'suspended') {
+      return op.key === 'resume' || op.key === 'logs';
+    }
+
+    // When not running (shutdown, failure, etc): only logs
+    if (status !== 'running' && status !== 'provisioning' && status !== 'initializing') {
+      return op.key === 'logs';
+    }
+
+    // When running: everything except resume
+    if (status === 'running') {
+      return op.key !== 'resume';
+    }
+
+    // Default for transitional states (provisioning, initializing)
+    return op.key === 'logs' || op.key === 'delete';
+  }) : allOperations;
 
   // Create view
   if (showCreate) {
@@ -248,14 +348,20 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
 
   // Actions view
   if (showActions && selectedDevbox) {
+    const selectedOp = operations[selectedOperation];
     return (
       <DevboxActionsMenu
         devbox={selectedDevbox}
-        onBack={() => setShowActions(false)}
+        onBack={() => {
+          setShowActions(false);
+          setSelectedOperation(0);
+        }}
         breadcrumbItems={[
           { label: 'Devboxes' },
           { label: selectedDevbox.name || selectedDevbox.id, active: true }
         ]}
+        initialOperation={selectedOp?.key}
+        initialOperationIndex={selectedOperation}
       />
     );
   }
@@ -263,6 +369,112 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   // Details view
   if (showDetails && selectedDevbox) {
     return <DevboxDetailPage devbox={selectedDevbox} onBack={() => setShowDetails(false)} />;
+  }
+
+  // Show popup with table in background
+  if (showPopup && selectedDevbox) {
+    return (
+      <>
+        <Breadcrumb items={[
+          { label: 'Devboxes', active: true }
+        ]} />
+        {!loading && !error && devboxes.length > 0 && (
+          <>
+            <Table
+              data={currentDevboxes}
+              keyExtractor={(devbox: any) => devbox.id}
+              selectedIndex={selectedIndex}
+              title={`devboxes[${devboxes.length}]`}
+              columns={[
+                {
+                  key: 'statusIcon',
+                  label: '',
+                  width: statusIconWidth,
+                  render: (devbox: any, index: number, isSelected: boolean) => {
+                    const statusDisplay = getStatusDisplay(devbox.status);
+
+                    // Truncate icon to fit width and pad
+                    const icon = statusDisplay.icon.slice(0, statusIconWidth);
+                    const padded = icon.padEnd(statusIconWidth, ' ');
+
+                    return (
+                      <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected}>
+                        {padded}
+                      </Text>
+                    );
+                  }
+                },
+                createTextColumn(
+                  'id',
+                  'ID',
+                  (devbox: any) => devbox.id,
+                  { width: idWidth, color: 'gray', dimColor: true, bold: false }
+                ),
+                {
+                  key: 'statusText',
+                  label: 'Status',
+                  width: statusTextWidth,
+                  render: (devbox: any, index: number, isSelected: boolean) => {
+                    const statusDisplay = getStatusDisplay(devbox.status);
+
+                    const truncated = statusDisplay.text.slice(0, statusTextWidth);
+                    const padded = truncated.padEnd(statusTextWidth, ' ');
+
+                    return (
+                      <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected}>
+                        {padded}
+                      </Text>
+                    );
+                  }
+                },
+                createTextColumn(
+                  'name',
+                  'Name',
+                  (devbox: any) => devbox.name || '',
+                  { width: nameWidth, dimColor: true }
+                ),
+                createTextColumn(
+                  'capabilities',
+                  'Capabilities',
+                  (devbox: any) => {
+                    const hasCapabilities = devbox.capabilities && devbox.capabilities.filter((c: string) => c !== 'unknown').length > 0;
+                    return hasCapabilities
+                      ? `[${devbox.capabilities
+                          .filter((c: string) => c !== 'unknown')
+                          .map((c: string) => c === 'computer_usage' ? 'comp' : c === 'browser_usage' ? 'browser' : c === 'docker_in_docker' ? 'docker' : c)
+                          .join(',')}]`
+                      : '';
+                  },
+                  { width: capabilitiesWidth, color: 'blue', dimColor: true, bold: false, visible: showCapabilities }
+                ),
+                createTextColumn(
+                  'tags',
+                  'Tags',
+                  (devbox: any) => devbox.blueprint_id ? '[bp]' : devbox.snapshot_id ? '[snap]' : '',
+                  { width: tagWidth, color: 'yellow', dimColor: true, bold: false, visible: showTags }
+                ),
+                createTextColumn(
+                  'created',
+                  'Created',
+                  (devbox: any) => devbox.create_time_ms ? formatTimeAgo(devbox.create_time_ms) : '',
+                  { width: timeWidth, color: 'gray', dimColor: true, bold: false }
+                ),
+              ]}
+            />
+          </>
+        )}
+
+        {/* Popup overlaying - use negative margin to pull it up over the table */}
+        <Box marginTop={-Math.min(operations.length + 10, PAGE_SIZE + 5)} justifyContent="center">
+          <ActionsPopup
+            devbox={selectedDevbox}
+            operations={operations}
+            selectedOperation={selectedOperation}
+            onClose={() => setShowPopup(false)}
+          />
+        </Box>
+      </>
+    );
   }
 
   // List view
@@ -285,6 +497,29 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
       )}
       {!loading && !error && devboxes.length > 0 && (
         <>
+          {searchMode && (
+            <Box marginBottom={1}>
+              <Text color="cyan">{figures.pointerSmall} Search: </Text>
+              <TextInput
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Type to search (name, id, status)..."
+                onSubmit={() => {
+                  setSearchMode(false);
+                  setCurrentPage(0);
+                  setSelectedIndex(0);
+                }}
+              />
+              <Text color="gray" dimColor> [Esc to cancel]</Text>
+            </Box>
+          )}
+          {searchQuery && !searchMode && (
+            <Box marginBottom={1}>
+              <Text color="cyan">{figures.info} Searching for: </Text>
+              <Text color="yellow" bold>{searchQuery}</Text>
+              <Text color="gray" dimColor> ({filteredDevboxes.length} results) [/ to edit, Esc to clear]</Text>
+            </Box>
+          )}
           <Table
             data={currentDevboxes}
             keyExtractor={(devbox: any) => devbox.id}
@@ -297,17 +532,13 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
                 width: statusIconWidth,
                 render: (devbox: any, index: number, isSelected: boolean) => {
                   const statusDisplay = getStatusDisplay(devbox.status);
-                  const status = devbox.status;
-                  let color: string = 'gray';
-                  if (status === 'running') color = 'green';
-                  else if (status === 'stopped' || status === 'suspended') color = 'gray';
-                  else if (status === 'starting' || status === 'stopping') color = 'yellow';
-                  else if (status === 'failed') color = 'red';
 
-                  const padded = statusDisplay.icon.padEnd(statusIconWidth, ' ');
+                  // Truncate icon to fit width and pad
+                  const icon = statusDisplay.icon.slice(0, statusIconWidth);
+                  const padded = icon.padEnd(statusIconWidth, ' ');
 
                   return (
-                    <Text color={isSelected ? 'white' : color} bold={true} inverse={isSelected}>
+                    <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected}>
                       {padded}
                     </Text>
                   );
@@ -325,18 +556,12 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
                 width: statusTextWidth,
                 render: (devbox: any, index: number, isSelected: boolean) => {
                   const statusDisplay = getStatusDisplay(devbox.status);
-                  const status = devbox.status;
-                  let color: string = 'gray';
-                  if (status === 'running') color = 'green';
-                  else if (status === 'stopped' || status === 'suspended') color = 'gray';
-                  else if (status === 'starting' || status === 'stopping') color = 'yellow';
-                  else if (status === 'failed') color = 'red';
 
                   const truncated = statusDisplay.text.slice(0, statusTextWidth);
                   const padded = truncated.padEnd(statusTextWidth, ' ');
 
                   return (
-                    <Text color={isSelected ? 'white' : color} bold={true} inverse={isSelected}>
+                    <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected}>
                       {padded}
                     </Text>
                   );
@@ -420,9 +645,10 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
               </Text>
             )}
             <Text color="gray" dimColor>
-              {' '}• [Enter] Details • [a] Actions • [c] Create • [o] Browser • [q] Quit
+              {' '}• [Enter] Details • [a] Actions • [c] Create • [/] Search • [o] Browser • [q] Quit
             </Text>
           </Box>
+
         </>
       )}
       {error && <ErrorMessage message="Failed to list devboxes" error={error} />}
