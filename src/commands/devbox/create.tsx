@@ -44,7 +44,6 @@ const CreateDevboxUI: React.FC<{
   return (
     <>
       <Banner />
-      <Header title="Create Devbox" />
       {loading && <SpinnerComponent message="Creating..." />}
       {result && (
         <>

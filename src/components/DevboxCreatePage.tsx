@@ -16,6 +16,7 @@ interface DevboxCreatePageProps {
 }
 
 type FormField =
+  | 'create'
   | 'name'
   | 'architecture'
   | 'resource_size'
@@ -41,7 +42,7 @@ interface FormData {
 }
 
 export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCreate }) => {
-  const [currentField, setCurrentField] = React.useState<FormField>('name');
+  const [currentField, setCurrentField] = React.useState<FormField>('create');
   const [formData, setFormData] = React.useState<FormData>({
     name: '',
     architecture: 'arm64',
@@ -63,14 +64,15 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);
 
-  const baseFields: Array<{ key: FormField; label: string; type: 'text' | 'select' | 'metadata' }> = [
+  const baseFields: Array<{ key: FormField; label: string; type: 'text' | 'select' | 'metadata' | 'action' }> = [
+    { key: 'create', label: 'Devbox Create', type: 'action' },
     { key: 'name', label: 'Name', type: 'text' },
     { key: 'architecture', label: 'Architecture', type: 'select' },
     { key: 'resource_size', label: 'Resource Size', type: 'select' },
   ];
 
   // Add custom resource fields if CUSTOM_SIZE is selected
-  const customFields: Array<{ key: FormField; label: string; type: 'text' | 'select' | 'metadata' }> =
+  const customFields: Array<{ key: FormField; label: string; type: 'text' | 'select' | 'metadata' | 'action' }> =
     formData.resource_size === 'CUSTOM_SIZE'
       ? [
           { key: 'custom_cpu', label: 'CPU Cores (2-16, even)', type: 'text' },
@@ -79,7 +81,7 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
         ]
       : [];
 
-  const remainingFields: Array<{ key: FormField; label: string; type: 'text' | 'select' | 'metadata' }> = [
+  const remainingFields: Array<{ key: FormField; label: string; type: 'text' | 'select' | 'metadata' | 'action' }> = [
     { key: 'keep_alive', label: 'Keep Alive (seconds)', type: 'text' },
     { key: 'blueprint_id', label: 'Blueprint ID (optional)', type: 'text' },
     { key: 'snapshot_id', label: 'Snapshot ID (optional)', type: 'text' },
@@ -131,6 +133,12 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
 
     // Submit form
     if (input === 's' && key.ctrl) {
+      handleCreate();
+      return;
+    }
+
+    // Handle Enter on create field
+    if (currentField === 'create' && key.return) {
       handleCreate();
       return;
     }
@@ -375,7 +383,6 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
           { label: 'Devboxes' },
           { label: 'Create', active: true }
         ]} />
-        <Header title="Create Devbox" />
         <SuccessMessage
           message="Devbox created successfully!"
           details={`ID: ${result.id}\nName: ${result.name || '(none)'}\nStatus: ${result.status}`}
@@ -397,7 +404,6 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
           { label: 'Devboxes' },
           { label: 'Create', active: true }
         ]} />
-        <Header title="Create Devbox" />
         <ErrorMessage message="Failed to create devbox" error={error} />
         <Box marginTop={1}>
           <Text color="gray" dimColor>
@@ -416,7 +422,6 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
           { label: 'Devboxes' },
           { label: 'Create', active: true }
         ]} />
-        <Header title="Create Devbox" />
         <SpinnerComponent message="Creating devbox..." />
       </>
     );
@@ -429,12 +434,26 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
         { label: 'Devboxes' },
         { label: 'Create', active: true }
       ]} />
-      <Header title="Create Devbox" />
 
       <Box flexDirection="column" marginBottom={1}>
         {fields.map((field, index) => {
           const isActive = currentField === field.key;
           const fieldData = formData[field.key as keyof FormData];
+
+          if (field.type === 'action') {
+            return (
+              <Box key={field.key} marginBottom={0}>
+                <Text color={isActive ? 'green' : 'gray'} bold={isActive}>
+                  {isActive ? figures.pointer : ' '} {field.label}
+                </Text>
+                {isActive && (
+                  <Text color="gray" dimColor>
+                    {' '}[Enter to create]
+                  </Text>
+                )}
+              </Box>
+            );
+          }
 
           if (field.type === 'text') {
             return (
@@ -614,37 +633,12 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
         </Box>
       )}
 
-      <Box flexDirection="column" borderStyle="round" borderColor="green" paddingX={1} paddingY={0} marginTop={1}>
-        <Text color="green" bold>{figures.info} Summary</Text>
-        <Text dimColor>Name: {formData.name || '(auto-generated)'}</Text>
-        <Text dimColor>Architecture: {formData.architecture}</Text>
-        {formData.resource_size && <Text dimColor>Resources: {formData.resource_size}</Text>}
-        {formData.resource_size === 'CUSTOM_SIZE' && formData.custom_cpu && (
-          <Text dimColor>  CPU: {formData.custom_cpu} cores</Text>
-        )}
-        {formData.resource_size === 'CUSTOM_SIZE' && formData.custom_memory && (
-          <Text dimColor>  Memory: {formData.custom_memory} GB</Text>
-        )}
-        {formData.resource_size === 'CUSTOM_SIZE' && formData.custom_disk && (
-          <Text dimColor>  Disk: {formData.custom_disk} GB</Text>
-        )}
-        <Text dimColor>Keep Alive: {formData.keep_alive}s ({Math.floor(parseInt(formData.keep_alive || '0') / 60)}m)</Text>
-        {formData.blueprint_id && <Text dimColor>Blueprint: {formData.blueprint_id}</Text>}
-        {formData.snapshot_id && <Text dimColor>Snapshot: {formData.snapshot_id}</Text>}
-        <Text dimColor>Metadata: {Object.keys(formData.metadata).length} item(s)</Text>
-      </Box>
-
       {!inMetadataSection && (
-        <>
-          <Box borderStyle="single" borderColor="green" paddingX={1} paddingY={0} marginTop={1}>
-            <Text color="green" bold>{figures.play} Press [Ctrl+S] to create this devbox</Text>
-          </Box>
-          <Box marginTop={1}>
-            <Text color="gray" dimColor>
-              {figures.arrowUp}{figures.arrowDown} Navigate • [Ctrl+S] Create • [q] Cancel
-            </Text>
-          </Box>
-        </>
+        <Box marginTop={1}>
+          <Text color="gray" dimColor>
+            {figures.arrowUp}{figures.arrowDown} Navigate • [Enter] Create • [q] Cancel
+          </Text>
+        </Box>
       )}
     </>
   );
