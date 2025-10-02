@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# List of namespaces to skip (already processed)
+SKIP_NS=""
+
+for ns in $(kubectl get namespaces -o name | grep 'namespace/lambda-' | cut -d'/' -f2); do
+  # Skip if namespace is in the skip list
+  if echo "$SKIP_NS" | grep -qw "$ns"; then
+    echo "=== Skipping namespace: $ns (already processed) ==="
+    continue
+  fi
+  
+  echo "=== Processing namespace: $ns ==="
+  for pod in $(kubectl get pods -n $ns -o name | grep looper | cut -d'/' -f2); do
+    echo "--- Checking pod: $pod ---"
+    
+    # Health check: verify pod is Running and Ready
+    POD_STATUS=$(kubectl get pod -n $ns $pod -o jsonpath='{.status.phase}' 2>/dev/null)
+    POD_READY=$(kubectl get pod -n $ns $pod -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)
+    
+    if [ "$POD_STATUS" != "Running" ]; then
+      echo "!!! Pod $pod is not Running (status: $POD_STATUS), skipping..."
+      echo ""
+      continue
+    fi
+    
+    if [ "$POD_READY" != "True" ]; then
+      echo "!!! Pod $pod is not Ready, skipping..."
+      echo ""
+      continue
+    fi
+    
+    # Check if port 8080 is listening
+    kubectl exec -n $ns $pod -- sh -c "command -v nc >/dev/null 2>&1 && nc -zv localhost 8080" 2>/dev/null
+    if [ $? -ne 0 ]; then
+      echo "⚠ Port 8080 might not be listening, but continuing anyway..."
+    fi
+    
+    echo "✓ Pod is healthy, executing commands..."
+    
+    # Run with error handling
+    kubectl exec -n $ns $pod -- bash -c "
+      apt update && \
+      apt install curl -y && \
+      curl -sSL 'https://github.com/fullstorydev/grpcurl/releases/download/v1.8.7/grpcurl_1.8.7_linux_arm64.tar.gz' | tar -xz -C /usr/local/bin && \
+      grpcurl -plaintext -d '{\"wet_run\": true}' localhost:8080 proto.ai.runloop.server.api.looper.scanner.ScannerService/triggerDiscoDeletionVerificationScan
+    " || echo "!!! Failed for pod: $pod in namespace: $ns"
+    
+    echo ""
+  done
+done
+
+echo "=== All namespaces processed ==="
