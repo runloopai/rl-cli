@@ -9,8 +9,11 @@ const config = new Conf<Config>({
 });
 
 export function getConfig(): Config {
+  // Check environment variable first, then fall back to stored config
+  const apiKey = process.env.RUNLOOP_API_KEY || config.get('apiKey');
+
   return {
-    apiKey: config.get('apiKey'),
+    apiKey,
   };
 }
 
