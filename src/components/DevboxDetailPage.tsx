@@ -147,6 +147,16 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
       } else if (key.pageDown && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
         // Page down
         setLogsScroll(logsScroll + 10);
+      } else if (input === 'g' && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+        // Jump to top
+        setLogsScroll(0);
+      } else if (input === 'G' && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+        // Jump to bottom (last line)
+        const logs = (operationResult as any).__logs || [];
+        const terminalHeight = stdout?.rows || 30;
+        const viewportHeight = Math.max(10, terminalHeight - 10);
+        const maxScroll = Math.max(0, logs.length - viewportHeight);
+        setLogsScroll(maxScroll);
       } else if (input === 'w' && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
         // Toggle wrap mode for logs
         setLogsWrapMode(!logsWrapMode);
@@ -642,7 +652,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
           {/* Help bar */}
           <Box marginTop={1} paddingX={1}>
             <Text color="gray" dimColor>
-              {figures.arrowUp}{figures.arrowDown} Navigate • [w] Toggle Wrap • [c] Copy • [Enter], [q], or [esc] Back
+              {figures.arrowUp}{figures.arrowDown} Navigate • [g] Top • [G] Bottom • [w] Toggle Wrap • [c] Copy • [Enter], [q], or [esc] Back
             </Text>
           </Box>
         </>
