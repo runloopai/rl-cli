@@ -95,9 +95,12 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   }
 
   React.useEffect(() => {
-    const list = async () => {
+    const list = async (isInitialLoad: boolean = false) => {
       try {
-        setRefreshing(true);
+        // Only show refreshing indicator on initial load
+        if (isInitialLoad) {
+          setRefreshing(true);
+        }
         const client = getClient();
         const allDevboxes: any[] = [];
 
@@ -112,24 +115,30 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
           }
         }
 
-        setDevboxes(allDevboxes);
+        // Only update if data actually changed
+        setDevboxes((prev) => {
+          const hasChanged = JSON.stringify(prev) !== JSON.stringify(allDevboxes);
+          return hasChanged ? allDevboxes : prev;
+        });
       } catch (err) {
         setError(err as Error);
       } finally {
         setLoading(false);
         // Show refresh indicator briefly
-        setTimeout(() => setRefreshing(false), 300);
+        if (isInitialLoad) {
+          setTimeout(() => setRefreshing(false), 300);
+        }
       }
     };
 
-    list();
+    list(true);
 
-    // Poll every 2 seconds, but only when in list view (not detail or create view)
+    // Poll every 3 seconds (increased from 2), but only when in list view
     const interval = setInterval(() => {
       if (!showDetails && !showCreate) {
-        list();
+        list(false);
       }
-    }, 2000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [showDetails, showCreate]);
@@ -235,11 +244,11 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   // List view
   return (
     <>
-      <Banner />
+      {/* //<Banner /> */}
       <Breadcrumb items={[
         { label: 'Devboxes', active: true }
       ]} />
-      <Header title="Devboxes" />
+      {/* <Header title="Devboxes" /> */}
       {loading && <SpinnerComponent message="Loading..." />}
       {!loading && !error && devboxes.length === 0 && (
         <Box>
@@ -252,45 +261,11 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
       )}
       {!loading && !error && devboxes.length > 0 && (
         <>
-          <Box marginBottom={1}>
-            <Text color="green">
-              {figures.tick} {running}
-            </Text>
-            <Text> </Text>
-            <Text color="gray">
-              {figures.circle} {stopped}
-            </Text>
-            <Text> </Text>
-            <Text color="cyan">
-              {figures.hamburger} {devboxes.length}
-              {devboxes.length >= MAX_FETCH && '+'}
-            </Text>
-            {totalPages > 1 && (
-              <>
-                <Text color="gray"> • </Text>
-                <Text color="gray" dimColor>
-                  Page {currentPage + 1}/{totalPages}
-                </Text>
-              </>
-            )}
-            <Text> </Text>
-            <Text color="gray">•</Text>
-            <Text> </Text>
-            {refreshing ? (
-              <Text color="cyan">
-                {['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'][refreshIcon % 10]}
-              </Text>
-            ) : (
-              <Text color="green">
-                {figures.circleFilled}
-              </Text>
-            )}
-          </Box>
-
           <Table
             data={currentDevboxes}
             keyExtractor={(devbox: any) => devbox.id}
             selectedIndex={selectedIndex}
+            title={`devboxes[${devboxes.length}]`}
             columns={[
               {
                 key: 'statusIcon',
@@ -378,18 +353,50 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
             ]}
           />
 
-          <Box marginTop={1}>
+          {/* Statistics Bar */}
+          <Box marginTop={1} paddingX={1}>
+            <Text color="cyan" bold>
+              {figures.hamburger} {devboxes.length}
+              {devboxes.length >= MAX_FETCH && '+'}
+            </Text>
+            <Text color="gray" dimColor> total</Text>
+            {totalPages > 1 && (
+              <>
+                <Text color="gray" dimColor> • </Text>
+                <Text color="gray" dimColor>
+                  Page {currentPage + 1} of {totalPages}
+                </Text>
+              </>
+            )}
+            <Text color="gray" dimColor> • </Text>
+            <Text color="gray" dimColor>
+              Showing {startIndex + 1}-{endIndex} of {devboxes.length}
+            </Text>
+            <Text> </Text>
+            {refreshing ? (
+              <Text color="cyan">
+                {['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'][refreshIcon % 10]}
+              </Text>
+            ) : (
+              <Text color="green">
+                {figures.circleFilled}
+              </Text>
+            )}
+          </Box>
+
+          {/* Help Bar */}
+          <Box marginTop={1} paddingX={1}>
             <Text color="gray" dimColor>
               {figures.arrowUp}
-              {figures.arrowDown} Navigate • [Enter] Operations • [c] Create • [o] Browser •
+              {figures.arrowDown} Navigate
             </Text>
             {totalPages > 1 && (
               <Text color="gray" dimColor>
-                {' '}{figures.arrowLeft}{figures.arrowRight} Page •
+                {' '}• {figures.arrowLeft}{figures.arrowRight} Page
               </Text>
             )}
             <Text color="gray" dimColor>
-              {' '}[q] Quit
+              {' '}• [Enter] Operations • [c] Create • [o] Browser • [q] Quit
             </Text>
           </Box>
         </>
