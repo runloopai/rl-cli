@@ -14,7 +14,17 @@ A beautiful, interactive CLI for managing Runloop devboxes built with Ink and Ty
 
 ## Installation
 
+Install globally via npm:
+
 ```bash
+npm install -g @runloop/rl-cli
+```
+
+Or install from source:
+
+```bash
+git clone https://github.com/runloop/rl-cli-node.git
+cd rl-cli-node
 npm install
 npm run build
 npm link
@@ -149,6 +159,17 @@ npm start -- <command>
 - [@runloop/api-client](https://github.com/runloopai/api-client-ts) - Runloop API client
 - TypeScript - Type safety
 - [Figures](https://github.com/sindresorhus/figures) - Unicode symbols
+
+## Publishing
+
+To publish a new version to npm:
+
+```bash
+npm run build
+npm publish
+```
+
+**Note:** Make sure you're logged in to npm with access to the `@runloop` organization.
 
 ## License
 
