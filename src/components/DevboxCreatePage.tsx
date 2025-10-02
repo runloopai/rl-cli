@@ -45,7 +45,7 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
   const [formData, setFormData] = React.useState<FormData>({
     name: '',
     architecture: 'arm64',
-    resource_size: '',
+    resource_size: 'SMALL',
     custom_cpu: '',
     custom_memory: '',
     custom_disk: '',
@@ -89,7 +89,7 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
   const fields = [...baseFields, ...customFields, ...remainingFields];
 
   const architectures = ['arm64', 'x86_64'];
-  const resourceSizes = ['', 'X_SMALL', 'SMALL', 'MEDIUM', 'LARGE', 'X_LARGE', 'XX_LARGE', 'CUSTOM_SIZE'];
+  const resourceSizes = ['X_SMALL', 'SMALL', 'MEDIUM', 'LARGE', 'X_LARGE', 'XX_LARGE', 'CUSTOM_SIZE'];
 
   const currentFieldIndex = fields.findIndex((f) => f.key === currentField);
 
