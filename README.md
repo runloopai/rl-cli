@@ -32,7 +32,15 @@ npm link
 
 ## Setup
 
-First, configure your API key:
+Configure your API key using either method:
+
+### Option 1: Environment Variable (Recommended for CI/CD)
+
+```bash
+export RUNLOOP_API_KEY=your_api_key_here
+```
+
+### Option 2: Interactive Setup
 
 ```bash
 rln auth
@@ -45,8 +53,14 @@ Get your API key from [https://runloop.ai/settings](https://runloop.ai/settings)
 ### Authentication
 
 ```bash
-rln auth                    # Configure API key
+# Interactive setup (stores API key locally)
+rln auth
+
+# Or use environment variable
+export RUNLOOP_API_KEY=your_api_key_here
 ```
+
+The CLI will automatically use `RUNLOOP_API_KEY` if set, otherwise it will use the stored configuration.
 
 ### Devbox Commands
 
