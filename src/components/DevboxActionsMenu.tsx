@@ -8,6 +8,7 @@ import { SpinnerComponent } from './Spinner.js';
 import { ErrorMessage } from './ErrorMessage.js';
 import { SuccessMessage } from './SuccessMessage.js';
 import { Breadcrumb } from './Breadcrumb.js';
+import type { SSHSessionConfig } from '../utils/sshSession.js';
 
 type Operation = 'exec' | 'upload' | 'snapshot' | 'ssh' | 'logs' | 'tunnel' | 'suspend' | 'resume' | 'delete' | null;
 
@@ -18,6 +19,7 @@ interface DevboxActionsMenuProps {
   initialOperation?: string; // Operation to execute immediately
   initialOperationIndex?: number; // Index of the operation to select
   skipOperationsMenu?: boolean; // Skip showing operations menu and execute immediately
+  onSSHRequest?: (config: SSHSessionConfig) => void; // Callback when SSH is requested
 }
 
 export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
@@ -30,6 +32,7 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
   initialOperation,
   initialOperationIndex = 0,
   skipOperationsMenu = false,
+  onSSHRequest,
 }) => {
   const { exit } = useApp();
   const { stdout } = useStdout();
@@ -323,15 +326,22 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
           const sshUser = devbox.launch_parameters?.user_parameters?.username || 'user';
           const proxyCommand = 'openssl s_client -quiet -verify_quiet -servername %h -connect ssh.runloop.ai:443 2>/dev/null';
 
-          (global as any).__sshCommand = {
+          const sshConfig: SSHSessionConfig = {
             keyPath,
             proxyCommand,
             sshUser,
             url: sshKey.url,
+            devboxId: devbox.id,
             devboxName: devbox.name || devbox.id
           };
 
-          exit();
+          // Notify parent that SSH is requested
+          if (onSSHRequest) {
+            onSSHRequest(sshConfig);
+            exit();
+          } else {
+            setOperationError(new Error('SSH session handler not configured'));
+          }
           break;
 
         case 'logs':

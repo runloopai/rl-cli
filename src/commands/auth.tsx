@@ -6,6 +6,7 @@ import { setApiKey } from '../utils/config.js';
 import { Header } from '../components/Header.js';
 import { Banner } from '../components/Banner.js';
 import { SuccessMessage } from '../components/SuccessMessage.js';
+import { getSettingsUrl } from '../utils/url.js';
 
 const AuthUI: React.FC = () => {
   const [apiKey, setApiKeyInput] = React.useState('');
@@ -35,11 +36,11 @@ const AuthUI: React.FC = () => {
       <Header title="Authentication" />
       <Box marginBottom={1}>
         <Text color="gray">Get your key: </Text>
-        <Text color="cyan">https://runloop.ai/settings</Text>
+        <Text color="cyan">{getSettingsUrl()}</Text>
       </Box>
       <Box>
         <Text color="cyan">API Key: </Text>
-        <TextInput value={apiKey} onChange={setApiKeyInput} placeholder="rl_..." mask="*" />
+        <TextInput value={apiKey} onChange={setApiKeyInput} placeholder="ak_..." mask="*" />
       </Box>
       <Box marginTop={1}>
         <Text color="gray" dimColor>
