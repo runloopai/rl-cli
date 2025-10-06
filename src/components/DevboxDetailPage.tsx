@@ -308,6 +308,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
 
   // Actions view - show the DevboxActionsMenu when an action is triggered
   if (showActions) {
+    const selectedOp = operations[selectedOperation];
     return (
       <DevboxActionsMenu
         devbox={selectedDevbox}
@@ -317,9 +318,10 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
         }}
         breadcrumbItems={[
           { label: 'Devboxes' },
-          { label: selectedDevbox.name || selectedDevbox.id },
-          { label: 'Actions', active: true }
+          { label: selectedDevbox.name || selectedDevbox.id }
         ]}
+        initialOperation={selectedOp?.key}
+        skipOperationsMenu={true}
       />
     );
   }

@@ -415,7 +415,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
           { label: selectedDevbox.name || selectedDevbox.id, active: true }
         ]}
         initialOperation={selectedOp?.key}
-        initialOperationIndex={selectedOperation}
+        skipOperationsMenu={true}
       />
     );
   }
