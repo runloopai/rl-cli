@@ -13,6 +13,7 @@ import { MetadataDisplay } from '../../components/MetadataDisplay.js';
 import { Table, createTextColumn, createComponentColumn } from '../../components/Table.js';
 import { OperationsMenu, Operation } from '../../components/OperationsMenu.js';
 import { createExecutor } from '../../utils/CommandExecutor.js';
+import { getBlueprintUrl } from '../../utils/url.js';
 
 const PAGE_SIZE = 10;
 const MAX_FETCH = 100;
@@ -197,7 +198,7 @@ const ListBlueprintsUI: React.FC = () => {
         setSelectedOperation(0);
       } else if (input === 'o' && selectedBlueprint) {
         // Open in browser
-        const url = `https://platform.runloop.ai/blueprints/${selectedBlueprint.id}`;
+        const url = getBlueprintUrl(selectedBlueprint.id);
         const openBrowser = async () => {
           const { exec } = await import('child_process');
           const platform = process.platform;
@@ -242,7 +243,7 @@ const ListBlueprintsUI: React.FC = () => {
       setShowDetails(true);
     } else if (input === 'o' && selectedBlueprint) {
       // Open in browser
-      const url = `https://platform.runloop.ai/blueprints/${selectedBlueprint.id}`;
+      const url = getBlueprintUrl(selectedBlueprint.id);
       const openBrowser = async () => {
         const { exec } = await import('child_process');
         const platform = process.platform;

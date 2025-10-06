@@ -17,6 +17,8 @@ import { DevboxDetailPage } from '../../components/DevboxDetailPage.js';
 import { DevboxCreatePage } from '../../components/DevboxCreatePage.js';
 import { DevboxActionsMenu } from '../../components/DevboxActionsMenu.js';
 import { ActionsPopup } from '../../components/ActionsPopup.js';
+import { getDevboxUrl } from '../../utils/url.js';
+import { runSSHSession, type SSHSessionConfig } from '../../utils/sshSession.js';
 
 // Format time ago in a succinct way
 const formatTimeAgo = (timestamp: number): string => {
@@ -47,7 +49,11 @@ interface ListOptions {
 
 const DEFAULT_PAGE_SIZE = 10;
 
-const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
+const ListDevboxesUI: React.FC<{
+  status?: string;
+  onSSHRequest?: (config: SSHSessionConfig) => void;
+  focusDevboxId?: string;
+}> = ({ status, onSSHRequest, focusDevboxId }) => {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const [loading, setLoading] = React.useState(true);
@@ -116,6 +122,18 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     { key: 'resume', label: 'Resume Devbox', color: 'green', icon: figures.play, shortcut: 'r' },
     { key: 'delete', label: 'Shutdown Devbox', color: 'red', icon: figures.cross, shortcut: 'd' },
   ];
+
+  // Check if we need to focus on a specific devbox after returning from SSH
+  React.useEffect(() => {
+    if (focusDevboxId && devboxes.length > 0 && !loading) {
+      // Find the devbox in the current page
+      const devboxIndex = devboxes.findIndex(d => d.id === focusDevboxId);
+      if (devboxIndex !== -1) {
+        setSelectedIndex(devboxIndex);
+        setShowDetails(true);
+      }
+    }
+  }, [devboxes, loading, focusDevboxId]);
 
   React.useEffect(() => {
     const list = async (isInitialLoad: boolean = false) => {
@@ -298,7 +316,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
       setShowCreate(true);
     } else if (input === 'o' && selectedDevbox) {
       // Open in browser
-      const url = `https://platform.runloop.ai/devboxes/${selectedDevbox.id}`;
+      const url = getDevboxUrl(selectedDevbox.id);
       const openBrowser = async () => {
         const { exec } = await import('child_process');
         const platform = process.platform;
@@ -416,13 +434,20 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
         ]}
         initialOperation={selectedOp?.key}
         skipOperationsMenu={true}
+        onSSHRequest={onSSHRequest}
       />
     );
   }
 
   // Details view
   if (showDetails && selectedDevbox) {
-    return <DevboxDetailPage devbox={selectedDevbox} onBack={() => setShowDetails(false)} />;
+    return (
+      <DevboxDetailPage
+        devbox={selectedDevbox}
+        onBack={() => setShowDetails(false)}
+        onSSHRequest={onSSHRequest}
+      />
+    );
   }
 
   // Show popup with table in background
@@ -740,8 +765,10 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
   );
 };
 
-export async function listDevboxes(options: ListOptions) {
+export async function listDevboxes(options: ListOptions, focusDevboxId?: string) {
   const executor = createExecutor(options);
+
+  let sshSessionConfig: SSHSessionConfig | null = null;
 
   await executor.executeList(
     async () => {
@@ -751,33 +778,31 @@ export async function listDevboxes(options: ListOptions) {
         limit: DEFAULT_PAGE_SIZE,
       });
     },
-    () => <ListDevboxesUI status={options.status} />,
+    () => (
+      <ListDevboxesUI
+        status={options.status}
+        focusDevboxId={focusDevboxId}
+        onSSHRequest={(config) => {
+          sshSessionConfig = config;
+        }}
+      />
+    ),
     DEFAULT_PAGE_SIZE
   );
 
-  // Check if we need to spawn SSH after Ink exit
-  const sshCommand = (global as any).__sshCommand;
-  if (sshCommand) {
-    delete (global as any).__sshCommand;
+  // If SSH was requested, handle it now after Ink has exited
+  if (sshSessionConfig) {
+    const result = await runSSHSession(sshSessionConfig);
 
-    // Import spawn
-    const { spawnSync } = await import('child_process');
+    if (result.shouldRestart) {
+      console.clear();
+      console.log(`\nSSH session ended. Returning to CLI...\n`);
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Clear and show connection message
-    console.clear();
-    console.log(`\nConnecting to devbox ${sshCommand.devboxName}...\n`);
-
-    // Spawn SSH in foreground
-    const result = spawnSync('ssh', [
-      '-i', sshCommand.keyPath,
-      '-o', `ProxyCommand=${sshCommand.proxyCommand}`,
-      '-o', 'StrictHostKeyChecking=no',
-      '-o', 'UserKnownHostsFile=/dev/null',
-      `${sshCommand.sshUser}@${sshCommand.url}`
-    ], {
-      stdio: 'inherit'
-    });
-
-    process.exit(result.status || 0);
+      // Restart the list view with the devbox ID to focus on
+      await listDevboxes(options, result.returnToDevboxId);
+    } else {
+      process.exit(result.exitCode);
+    }
   }
 }

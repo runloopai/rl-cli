@@ -6,10 +6,13 @@ import { StatusBadge } from './StatusBadge.js';
 import { MetadataDisplay } from './MetadataDisplay.js';
 import { Breadcrumb } from './Breadcrumb.js';
 import { DevboxActionsMenu } from './DevboxActionsMenu.js';
+import { getDevboxUrl } from '../utils/url.js';
+import type { SSHSessionConfig } from '../utils/sshSession.js';
 
 interface DevboxDetailPageProps {
   devbox: any;
   onBack: () => void;
+  onSSHRequest?: (config: SSHSessionConfig) => void;
 }
 
 // Format time ago in a succinct way
@@ -34,7 +37,7 @@ const formatTimeAgo = (timestamp: number): string => {
   return `${years}y ago`;
 };
 
-export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: initialDevbox, onBack }) => {
+export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: initialDevbox, onBack, onSSHRequest }) => {
   const { stdout } = useStdout();
   const [showDetailedInfo, setShowDetailedInfo] = React.useState(false);
   const [detailScroll, setDetailScroll] = React.useState(0);
@@ -142,7 +145,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
 
     if (input === 'o') {
       // Open in browser
-      const url = `https://platform.runloop.ai/devboxes/${selectedDevbox.id}`;
+      const url = getDevboxUrl(selectedDevbox.id);
       const openBrowser = async () => {
         const { exec } = await import('child_process');
         const platform = process.platform;
@@ -322,6 +325,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
         ]}
         initialOperation={selectedOp?.key}
         skipOperationsMenu={true}
+        onSSHRequest={onSSHRequest}
       />
     );
   }
