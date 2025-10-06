@@ -317,13 +317,16 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
       openBrowser();
     } else if (input === '/') {
       setSearchMode(true);
-    } else if (key.escape && searchQuery) {
-      // Clear search when Esc is pressed and there's an active search
-      setSearchQuery('');
-      setCurrentPage(0);
-      setSelectedIndex(0);
-    } else if (input === 'q') {
-      process.exit(0);
+    } else if (key.escape) {
+      if (searchQuery) {
+        // Clear search when Esc is pressed and there's an active search
+        setSearchQuery('');
+        setCurrentPage(0);
+        setSelectedIndex(0);
+      } else {
+        // Go back to home
+        exit();
+      }
     }
   });
 
@@ -727,7 +730,7 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
               </Text>
             )}
             <Text color="gray" dimColor>
-              {' '}• [Enter] Details • [a] Actions • [c] Create • [/] Search • [o] Browser • [q] Quit
+              {' '}• [Enter] Details • [a] Actions • [c] Create • [/] Search • [o] Browser • [Esc] Back
             </Text>
           </Box>
 

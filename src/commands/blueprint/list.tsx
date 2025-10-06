@@ -4,7 +4,6 @@ import TextInput from 'ink-text-input';
 import figures from 'figures';
 import { getClient } from '../../utils/client.js';
 import { Header } from '../../components/Header.js';
-import { Banner } from '../../components/Banner.js';
 import { SpinnerComponent } from '../../components/Spinner.js';
 import { ErrorMessage } from '../../components/ErrorMessage.js';
 import { SuccessMessage } from '../../components/SuccessMessage.js';
@@ -260,8 +259,8 @@ const ListBlueprintsUI: React.FC = () => {
         exec(openCommand);
       };
       openBrowser();
-    } else if (input === 'q') {
-      process.exit(0);
+    } else if (key.escape) {
+      exit();
     }
   });
 
@@ -534,9 +533,7 @@ const ListBlueprintsUI: React.FC = () => {
   // List view
   return (
     <>
-      {/* //<Banner /> */}
       <Breadcrumb items={[{ label: 'Blueprints', active: true }]} />
-      {/* <Header title="Blueprints" /> */}
       {loading && <SpinnerComponent message="Loading blueprints..." />}
       {!loading && !error && blueprints.length === 0 && (
         <Box>
@@ -640,7 +637,7 @@ const ListBlueprintsUI: React.FC = () => {
             )}
             <Text color="gray" dimColor>
               {' '}
-              [q] Quit
+              [Esc] Back
             </Text>
           </Box>
         </>
