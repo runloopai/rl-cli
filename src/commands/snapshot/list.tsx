@@ -1,9 +1,7 @@
 import React from 'react';
-import { render, Box, Text, useInput, useStdout } from 'ink';
+import { render, Box, Text, useInput, useStdout, useApp } from 'ink';
 import figures from 'figures';
 import { getClient } from '../../utils/client.js';
-import { Header } from '../../components/Header.js';
-import { Banner } from '../../components/Banner.js';
 import { SpinnerComponent } from '../../components/Spinner.js';
 import { ErrorMessage } from '../../components/ErrorMessage.js';
 import { StatusBadge } from '../../components/StatusBadge.js';
@@ -43,6 +41,7 @@ const formatTimeAgo = (timestamp: number): string => {
 
 const ListSnapshotsUI: React.FC<{ devboxId?: string }> = ({ devboxId }) => {
   const { stdout } = useStdout();
+  const { exit } = useApp();
   const [loading, setLoading] = React.useState(true);
   const [snapshots, setSnapshots] = React.useState<any[]>([]);
   const [error, setError] = React.useState<Error | null>(null);
@@ -99,8 +98,8 @@ const ListSnapshotsUI: React.FC<{ devboxId?: string }> = ({ devboxId }) => {
     } else if ((input === 'p' || key.leftArrow) && currentPage > 0) {
       setCurrentPage(currentPage - 1);
       setSelectedIndex(0);
-    } else if (input === 'q') {
-      process.exit(0);
+    } else if (key.escape) {
+      exit();
     }
   });
 
@@ -114,16 +113,11 @@ const ListSnapshotsUI: React.FC<{ devboxId?: string }> = ({ devboxId }) => {
 
   return (
     <>
-      <Banner />
       <Breadcrumb
         items={[
           { label: 'Snapshots', active: !devboxId },
           ...(devboxId ? [{ label: `Devbox: ${devboxId}`, active: true }] : []),
         ]}
-      />
-      <Header
-        title="Snapshots"
-        subtitle={devboxId ? `Filtering by devbox: ${devboxId}` : undefined}
       />
       {loading && <SpinnerComponent message="Loading snapshots..." />}
       {!loading && !error && snapshots.length === 0 && (
@@ -212,7 +206,7 @@ const ListSnapshotsUI: React.FC<{ devboxId?: string }> = ({ devboxId }) => {
             )}
             <Text color="gray" dimColor>
               {' '}
-              [q] Quit
+              [Esc] Back
             </Text>
           </Box>
         </>

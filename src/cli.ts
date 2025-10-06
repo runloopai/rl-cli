@@ -125,4 +125,10 @@ if (args[0] !== 'auth' && args[0] !== '--help' && args[0] !== '-h' && args.lengt
   }
 }
 
-program.parse();
+// If no command provided, show main menu
+if (args.length === 0) {
+  const { runMainMenu } = await import('./commands/menu.js');
+  runMainMenu();
+} else {
+  program.parse();
+}
