@@ -341,13 +341,16 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     });
   }, [devboxes, searchQuery]);
 
-  const running = filteredDevboxes.filter((d) => d.status === 'running').length;
-  const stopped = filteredDevboxes.filter((d) =>
-    ['stopped', 'suspended'].includes(d.status)
-  ).length;
-
   // Current page is already fetched, no need to slice
   const currentDevboxes = filteredDevboxes;
+
+  // Ensure selected index is within bounds after filtering
+  React.useEffect(() => {
+    if (currentDevboxes.length > 0 && selectedIndex >= currentDevboxes.length) {
+      setSelectedIndex(Math.max(0, currentDevboxes.length - 1));
+    }
+  }, [currentDevboxes.length, selectedIndex]);
+
   const selectedDevbox = currentDevboxes[selectedIndex];
 
   // Calculate pagination info
@@ -525,16 +528,35 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
     );
   }
 
-  // List view
-  return (
-    <>
-      {/* //<Banner /> */}
-      <Breadcrumb items={[
-        { label: 'Devboxes', active: true }
-      ]} />
-      {/* <Header title="Devboxes" /> */}
-      {loading && <SpinnerComponent message="Loading..." />}
-      {!loading && !error && devboxes.length === 0 && (
+  // If loading or error, show that first
+  if (loading) {
+    return (
+      <>
+        <Breadcrumb items={[
+          { label: 'Devboxes', active: true }
+        ]} />
+        <SpinnerComponent message="Loading..." />
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <Breadcrumb items={[
+          { label: 'Devboxes', active: true }
+        ]} />
+        <ErrorMessage message="Failed to list devboxes" error={error} />
+      </>
+    );
+  }
+
+  if (!loading && !error && devboxes.length === 0) {
+    return (
+      <>
+        <Breadcrumb items={[
+          { label: 'Devboxes', active: true }
+        ]} />
         <Box>
           <Text color="yellow">{figures.info}</Text>
           <Text> No devboxes found. Try: </Text>
@@ -542,8 +564,17 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
             rln devbox create
           </Text>
         </Box>
-      )}
-      {!loading && !error && devboxes.length > 0 && (
+      </>
+    );
+  }
+
+  // List view with data
+  return (
+    <>
+      <Breadcrumb items={[
+        { label: 'Devboxes', active: true }
+      ]} />
+      {currentDevboxes && currentDevboxes.length >= 0 && (
         <>
           {searchMode && (
             <Box marginBottom={1}>
@@ -561,18 +592,19 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
               <Text color="gray" dimColor> [Esc to cancel]</Text>
             </Box>
           )}
-          {searchQuery && !searchMode && (
+          {!searchMode && searchQuery && (
             <Box marginBottom={1}>
               <Text color="cyan">{figures.info} Searching for: </Text>
               <Text color="yellow" bold>{searchQuery}</Text>
-              <Text color="gray" dimColor> ({filteredDevboxes.length} results) [/ to edit, Esc to clear]</Text>
+              <Text color="gray" dimColor> ({currentDevboxes.length} results) [/ to edit, Esc to clear]</Text>
             </Box>
           )}
           <Table
+            key={`table-${searchQuery}-${currentPage}`}
             data={currentDevboxes}
             keyExtractor={(devbox: any) => devbox.id}
             selectedIndex={selectedIndex}
-            title={`devboxes[${totalCount}]`}
+            title={`devboxes[${searchQuery ? currentDevboxes.length : totalCount}]`}
             columns={[
               {
                 key: 'statusIcon',
@@ -701,7 +733,6 @@ const ListDevboxesUI: React.FC<{ status?: string }> = ({ status }) => {
 
         </>
       )}
-      {error && <ErrorMessage message="Failed to list devboxes" error={error} />}
     </>
   );
 };
