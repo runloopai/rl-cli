@@ -17,6 +17,7 @@ interface DevboxActionsMenuProps {
   breadcrumbItems?: Array<{ label: string; active?: boolean }>;
   initialOperation?: string; // Operation to execute immediately
   initialOperationIndex?: number; // Index of the operation to select
+  skipOperationsMenu?: boolean; // Skip showing operations menu and execute immediately
 }
 
 export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
@@ -28,6 +29,7 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
   ],
   initialOperation,
   initialOperationIndex = 0,
+  skipOperationsMenu = false,
 }) => {
   const { exit } = useApp();
   const { stdout } = useStdout();
@@ -79,7 +81,8 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
 
   // Auto-execute operations that don't need input
   React.useEffect(() => {
-    if ((executingOperation === 'delete' || executingOperation === 'ssh' || executingOperation === 'logs' || executingOperation === 'suspend' || executingOperation === 'resume') && !loading && devbox) {
+    const autoExecuteOps = ['delete', 'ssh', 'logs', 'suspend', 'resume'];
+    if (executingOperation && autoExecuteOps.includes(executingOperation) && !loading && devbox) {
       executeOperation();
     }
   }, [executingOperation]);
@@ -698,31 +701,41 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
     );
   }
 
-  // Operations selection mode
+  // Operations selection mode - only show if not skipping
+  if (!skipOperationsMenu || !executingOperation) {
+    return (
+      <>
+        <Breadcrumb items={breadcrumbItems} />
+        <Box flexDirection="column">
+          <Text color="cyan" bold>{figures.play} Operations</Text>
+          <Box flexDirection="column">
+            {operations.map((op, index) => {
+              const isSelected = index === selectedOperation;
+              return (
+                <Box key={op.key}>
+                  <Text color={isSelected ? 'cyan' : 'gray'}>{isSelected ? figures.pointer : ' '} </Text>
+                  <Text color={isSelected ? op.color : 'gray'} bold={isSelected}>{op.icon} {op.label}</Text>
+                  <Text color="gray" dimColor> [{op.shortcut}]</Text>
+                </Box>
+              );
+            })}
+          </Box>
+        </Box>
+
+        <Box marginTop={1}>
+          <Text color="gray" dimColor>
+            {figures.arrowUp}{figures.arrowDown} Navigate • [Enter] Select • [q] Back
+          </Text>
+        </Box>
+      </>
+    );
+  }
+
+  // If skipOperationsMenu is true and executingOperation is set, show loading while it executes
   return (
     <>
       <Breadcrumb items={breadcrumbItems} />
-      <Box flexDirection="column">
-        <Text color="cyan" bold>{figures.play} Operations</Text>
-        <Box flexDirection="column">
-          {operations.map((op, index) => {
-            const isSelected = index === selectedOperation;
-            return (
-              <Box key={op.key}>
-                <Text color={isSelected ? 'cyan' : 'gray'}>{isSelected ? figures.pointer : ' '} </Text>
-                <Text color={isSelected ? op.color : 'gray'} bold={isSelected}>{op.icon} {op.label}</Text>
-                <Text color="gray" dimColor> [{op.shortcut}]</Text>
-              </Box>
-            );
-          })}
-        </Box>
-      </Box>
-
-      <Box marginTop={1}>
-        <Text color="gray" dimColor>
-          {figures.arrowUp}{figures.arrowDown} Navigate • [Enter] Select • [q] Back
-        </Text>
-      </Box>
+      <SpinnerComponent message="Loading..." />
     </>
   );
 };
