@@ -32,9 +32,13 @@ export class CommandExecutor<T = any> {
     }
 
     // Interactive mode
+    // Enter alternate screen buffer
+    process.stdout.write('\x1b[?1049h');
     console.clear();
     const { waitUntilExit } = render(renderUI());
     await waitUntilExit();
+    // Exit alternate screen buffer
+    process.stdout.write('\x1b[?1049l');
   }
 
   /**
@@ -55,9 +59,13 @@ export class CommandExecutor<T = any> {
     }
 
     // Interactive mode
+    // Enter alternate screen buffer
+    process.stdout.write('\x1b[?1049h');
     console.clear();
     const { waitUntilExit } = render(renderUI());
     await waitUntilExit();
+    // Exit alternate screen buffer
+    process.stdout.write('\x1b[?1049l');
   }
 
   /**
@@ -79,8 +87,12 @@ export class CommandExecutor<T = any> {
     }
 
     // Interactive mode
+    // Enter alternate screen buffer
+    process.stdout.write('\x1b[?1049h');
     const { waitUntilExit } = render(renderUI());
     await waitUntilExit();
+    // Exit alternate screen buffer
+    process.stdout.write('\x1b[?1049l');
   }
 
   /**
