@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import { colors } from '../utils/theme.js';
 
-interface BreadcrumbItem {
+export interface BreadcrumbItem {
   label: string;
   active?: boolean;
 }
@@ -16,7 +16,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = React.memo(({ items }) => {
   const isDevEnvironment = env === 'dev';
 
   return (
-    <Box marginBottom={1} paddingX={2} paddingY={0}>
+    <Box marginBottom={1} paddingX={1} paddingY={0}>
       <Box borderStyle="round" borderColor={colors.primary} paddingX={2} paddingY={0}>
         <Text color={colors.primary} bold>rl</Text>
         {isDevEnvironment && <Text color="redBright" bold> (dev)</Text>}
