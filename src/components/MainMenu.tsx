@@ -4,6 +4,7 @@ import figures from 'figures';
 import { Banner } from './Banner.js';
 import { Breadcrumb } from './Breadcrumb.js';
 import { VERSION } from '../cli.js';
+import { colors } from '../utils/theme.js';
 
 interface MenuItem {
   key: string;
@@ -30,21 +31,21 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
       label: 'Devboxes',
       description: 'Manage cloud development environments',
       icon: '◉',
-      color: 'cyan',
+      color: colors.accent1,
     },
     {
       key: 'blueprints',
       label: 'Blueprints',
       description: 'Create and manage devbox templates',
       icon: '▣',
-      color: 'magenta',
+      color: colors.accent2,
     },
     {
       key: 'snapshots',
       label: 'Snapshots',
       description: 'Save and restore devbox states',
       icon: '◈',
-      color: 'green',
+      color: colors.accent3,
     },
   ], []);
 
@@ -73,10 +74,10 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
     return (
       <Box flexDirection="column" height="100%">
         <Box paddingX={2} marginBottom={1}>
-          <Text color="cyan" bold>
+          <Text color={colors.primary} bold>
             RUNLOOP.ai
           </Text>
-          <Text color="gray" dimColor>
+          <Text color={colors.textDim} dimColor>
             {' '}
             • Cloud development environments • v{VERSION}
           </Text>
@@ -87,7 +88,7 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
             const isSelected = index === selectedIndex;
             return (
               <Box key={item.key} marginBottom={0}>
-                <Text color={isSelected ? item.color : 'gray'}>
+                <Text color={isSelected ? item.color : colors.textDim}>
                   {isSelected ? figures.pointer : ' '}
                 </Text>
                 <Text> </Text>
@@ -95,14 +96,14 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
                   {item.icon}
                 </Text>
                 <Text> </Text>
-                <Text color={isSelected ? item.color : 'white'} bold={isSelected}>
+                <Text color={isSelected ? item.color : colors.text} bold={isSelected}>
                   {item.label}
                 </Text>
-                <Text color="gray" dimColor>
+                <Text color={colors.textDim} dimColor>
                   {' '}
                   - {item.description}
                 </Text>
-                <Text color="gray" dimColor>
+                <Text color={colors.textDim} dimColor>
                   {' '}
                   [{index + 1}]
                 </Text>
@@ -112,7 +113,7 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
         </Box>
 
         <Box paddingX={2} marginTop={1}>
-          <Text color="gray" dimColor>
+          <Text color={colors.textDim} dimColor>
             {figures.arrowUp}{figures.arrowDown} Navigate • [1-3] Quick select • [Enter] Select • [Esc] Quit
           </Text>
         </Box>
@@ -124,21 +125,21 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
     <Box flexDirection="column" height="100%">
       <Breadcrumb items={[{ label: 'Home', active: true }]} />
 
-      <Box marginBottom={1}>
+      <Box flexShrink={0}>
         <Banner />
       </Box>
 
-      <Box flexDirection="column" paddingX={2} marginBottom={1}>
+      <Box flexDirection="column" paddingX={2} flexShrink={0}>
         <Box paddingX={1}>
-          <Text color="gray" dimColor>
+          <Text color={colors.textDim} dimColor>
             Cloud development environments for your team • v{VERSION}
           </Text>
         </Box>
       </Box>
 
-      <Box flexDirection="column" paddingX={2} marginBottom={1} marginTop={1}>
-        <Box marginBottom={1} paddingX={1}>
-          <Text color="white" bold>
+      <Box flexDirection="column" paddingX={2} marginTop={1} flexGrow={1}>
+        <Box paddingX={1} flexShrink={0}>
+          <Text color={colors.text} bold>
             Select a resource:
           </Text>
         </Box>
@@ -151,22 +152,23 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
               paddingX={2}
               paddingY={0}
               borderStyle={isSelected ? 'round' : 'single'}
-              borderColor={isSelected ? item.color : 'gray'}
-              marginBottom={0}
+              borderColor={isSelected ? item.color : colors.border}
+              marginTop={index === 0 ? 1 : 0}
+              flexShrink={0}
             >
               <Text color={item.color} bold>
                 {item.icon}
               </Text>
               <Text> </Text>
-              <Text color={isSelected ? item.color : 'white'} bold={isSelected}>
+              <Text color={isSelected ? item.color : colors.text} bold={isSelected}>
                 {item.label}
               </Text>
-              <Text color="gray"> </Text>
-              <Text color="gray" dimColor>
+              <Text color={colors.textDim}> </Text>
+              <Text color={colors.textDim} dimColor>
                 {item.description}
               </Text>
               <Text> </Text>
-              <Text color="gray" dimColor>
+              <Text color={colors.textDim} dimColor>
                 [{index + 1}]
               </Text>
             </Box>
@@ -174,9 +176,9 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
         })}
       </Box>
 
-      <Box paddingX={2}>
+      <Box paddingX={2} flexShrink={0}>
         <Box paddingX={1}>
-          <Text color="gray" dimColor>
+          <Text color={colors.textDim} dimColor>
             {figures.arrowUp}{figures.arrowDown} Navigate • [1-3] Quick select • [Enter] Select • [Esc] Quit
           </Text>
         </Box>

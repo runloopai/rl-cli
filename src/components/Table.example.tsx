@@ -9,6 +9,7 @@ import { Box, Text } from 'ink';
 import { Table, createTextColumn, createComponentColumn } from './Table.js';
 import { StatusBadge } from './StatusBadge.js';
 import figures from 'figures';
+import { colors } from '../utils/theme.js';
 
 // ============================================================================
 // EXAMPLE 1: Blueprints Table
@@ -53,7 +54,7 @@ function BlueprintsTable({
           'id',
           'ID',
           (bp) => showFullId ? bp.id : bp.id.slice(0, 13),
-          { width: showFullId ? 25 : 15, color: 'gray', dimColor: true, bold: false }
+          { width: showFullId ? 25 : 15, color: colors.textDim, dimColor: true, bold: false }
         ),
         // Name column
         createTextColumn<Blueprint>(
@@ -67,19 +68,19 @@ function BlueprintsTable({
           'description',
           'Description',
           (bp) => bp.description || '',
-          { width: 40, color: 'gray', dimColor: true, bold: false, visible: showDescription }
+          { width: 40, color: colors.textDim, dimColor: true, bold: false, visible: showDescription }
         ),
         // Created time column
         createTextColumn<Blueprint>(
           'created',
           'Created',
           (bp) => new Date(bp.created_at).toLocaleDateString(),
-          { width: 15, color: 'gray', dimColor: true, bold: false }
+          { width: 15, color: colors.textDim, dimColor: true, bold: false }
         ),
       ]}
       emptyState={
         <Box>
-          <Text color="yellow">{figures.info} No blueprints found</Text>
+          <Text color={colors.warning}>{figures.info} No blueprints found</Text>
         </Box>
       }
     />
@@ -130,7 +131,7 @@ function SnapshotsTable({
           'id',
           'ID',
           (snap) => showFullId ? snap.id : snap.id.slice(0, 13),
-          { width: showFullId ? 25 : 15, color: 'gray', dimColor: true, bold: false }
+          { width: showFullId ? 25 : 15, color: colors.textDim, dimColor: true, bold: false }
         ),
         // Name column
         createTextColumn<Snapshot>(
@@ -144,26 +145,26 @@ function SnapshotsTable({
           'devbox',
           'Devbox',
           (snap) => snap.devbox_id.slice(0, 13),
-          { width: 15, color: 'cyan', dimColor: true, bold: false }
+          { width: 15, color: colors.primary, dimColor: true, bold: false }
         ),
         // Size column (optional)
         createTextColumn<Snapshot>(
           'size',
           'Size',
           (snap) => snap.size_gb ? `${snap.size_gb.toFixed(1)}GB` : '',
-          { width: 10, color: 'yellow', dimColor: true, bold: false, visible: showSize }
+          { width: 10, color: colors.warning, dimColor: true, bold: false, visible: showSize }
         ),
         // Created time column
         createTextColumn<Snapshot>(
           'created',
           'Created',
           (snap) => new Date(snap.created_at).toLocaleDateString(),
-          { width: 15, color: 'gray', dimColor: true, bold: false }
+          { width: 15, color: colors.textDim, dimColor: true, bold: false }
         ),
       ]}
       emptyState={
         <Box>
-          <Text color="yellow">{figures.info} No snapshots found</Text>
+          <Text color={colors.warning}>{figures.info} No snapshots found</Text>
         </Box>
       }
     />
@@ -204,7 +205,7 @@ function CustomComplexColumn() {
           'Tags',
           (item, index, isSelected) => (
             <Box width={30}>
-              <Text color={isSelected ? 'cyan' : 'blue'} dimColor>
+              <Text color={isSelected ? colors.primary : colors.info} dimColor>
                 {item.tags.map(tag => `[${tag}]`).join(' ')}
               </Text>
             </Box>

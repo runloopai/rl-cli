@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import figures from 'figures';
+import { colors } from '../utils/theme.js';
 
 export interface Column<T> {
   /** Column key for identification */
@@ -57,11 +58,11 @@ export function Table<T>({
       {/* Title bar (if provided) */}
       {title && (
         <Box paddingX={1} marginBottom={0}>
-          <Text color="cyan" bold>╭─ {title} {'─'.repeat(Math.max(0, 10))}╮</Text>
+          <Text color={colors.primary} bold>╭─ {title} {'─'.repeat(Math.max(0, 10))}╮</Text>
         </Box>
       )}
 
-      <Box flexDirection="column" borderStyle={title ? 'single' : 'round'} borderColor="gray" paddingX={1}>
+      <Box flexDirection="column" borderStyle={title ? 'single' : 'round'} borderColor={colors.border} paddingX={1}>
         {/* Header row */}
         <Box>
           {/* Space for selection pointer */}
@@ -90,7 +91,7 @@ export function Table<T>({
             {/* Selection pointer */}
             {showSelection && (
               <>
-                <Text color={isSelected ? 'cyan' : 'gray'}>
+                <Text color={isSelected ? colors.primary : colors.textDim}>
                   {isSelected ? figures.pointer : ' '}
                 </Text>
                 <Text> </Text>
@@ -134,7 +135,7 @@ export function createTextColumn<T>(
     render: (row, index, isSelected) => {
       const value = getValue(row);
       const width = options?.width || 20;
-      const color = options?.color || (isSelected ? 'white' : 'white');
+      const color = options?.color || (isSelected ? colors.text : colors.text);
       const bold = options?.bold !== undefined ? options.bold : isSelected;
       const dimColor = options?.dimColor || false;
 
@@ -143,7 +144,7 @@ export function createTextColumn<T>(
       const padded = truncated.padEnd(width, ' ');
 
       return (
-        <Text color={isSelected ? 'white' : color} bold={bold} dimColor={!isSelected && dimColor} inverse={isSelected}>
+        <Text color={isSelected ? colors.text : color} bold={bold} dimColor={!isSelected && dimColor} inverse={isSelected}>
           {padded}
         </Text>
       );

@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import figures from 'figures';
 import chalk from 'chalk';
+import { colors } from '../utils/theme.js';
 
 interface ActionsPopupProps {
   devbox: any;
@@ -37,7 +38,7 @@ export const ActionsPopup: React.FC<ActionsPopupProps> = ({
 
   // Render all lines with background
   const lines = [
-    bgLine(chalk.cyan.bold(` ${figures.play} Quick Actions`)),
+    bgLine(chalk.hex(colors.primary).bold(` ${figures.play} Quick Actions`)),
     chalk.bgBlack(' '.repeat(contentWidth)),
     ...operations.map((op, index) => {
       const isSelected = index === selectedOperation;
@@ -47,28 +48,28 @@ export const ActionsPopup: React.FC<ActionsPopupProps> = ({
       let styled: string;
       if (isSelected) {
         const colorFn = chalk[op.color as 'red' | 'green' | 'blue' | 'yellow' | 'magenta' | 'cyan'];
-        styled = typeof colorFn === 'function' ? colorFn.bold(content) : chalk.white.bold(content);
+        styled = typeof colorFn === 'function' ? colorFn.bold(content) : chalk.hex(colors.text).bold(content);
       } else {
-        styled = chalk.gray(content);
+        styled = chalk.hex(colors.textDim)(content);
       }
 
       return bgLine(styled);
     }),
     chalk.bgBlack(' '.repeat(contentWidth)),
-    bgLine(chalk.gray.dim(` ${figures.arrowUp}${figures.arrowDown} Nav • [Enter]`)),
-    bgLine(chalk.gray.dim(` [Esc] Close`)),
+    bgLine(chalk.hex(colors.textDim).dim(` ${figures.arrowUp}${figures.arrowDown} Nav • [Enter]`)),
+    bgLine(chalk.hex(colors.textDim).dim(` [Esc] Close`)),
   ];
 
   // Draw custom border with background to fill gaps
-  const borderTop = chalk.cyan('╭' + '─'.repeat(contentWidth) + '╮');
-  const borderBottom = chalk.cyan('╰' + '─'.repeat(contentWidth) + '╯');
+  const borderTop = chalk.hex(colors.primary)('╭' + '─'.repeat(contentWidth) + '╮');
+  const borderBottom = chalk.hex(colors.primary)('╰' + '─'.repeat(contentWidth) + '╯');
 
   return (
     <Box flexDirection="column" alignItems="center">
       <Box flexDirection="column">
         <Text>{borderTop}</Text>
         {lines.map((line, i) => (
-          <Text key={i}>{chalk.cyan('│')}{line}{chalk.cyan('│')}</Text>
+          <Text key={i}>{chalk.hex(colors.primary)('│')}{line}{chalk.hex(colors.primary)('│')}</Text>
         ))}
         <Text>{borderBottom}</Text>
       </Box>

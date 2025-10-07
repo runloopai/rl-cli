@@ -9,6 +9,7 @@ import { ErrorMessage } from './ErrorMessage.js';
 import { SuccessMessage } from './SuccessMessage.js';
 import { Breadcrumb } from './Breadcrumb.js';
 import type { SSHSessionConfig } from '../utils/sshSession.js';
+import { colors } from '../utils/theme.js';
 
 type Operation = 'exec' | 'upload' | 'snapshot' | 'ssh' | 'logs' | 'tunnel' | 'suspend' | 'resume' | 'delete' | null;
 
@@ -48,15 +49,15 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
   const [copyStatus, setCopyStatus] = React.useState<string | null>(null);
 
   const allOperations = [
-    { key: 'logs', label: 'View Logs', color: 'blue', icon: figures.info, shortcut: 'l' },
-    { key: 'exec', label: 'Execute Command', color: 'green', icon: figures.play, shortcut: 'e' },
-    { key: 'upload', label: 'Upload File', color: 'green', icon: figures.arrowUp, shortcut: 'u' },
-    { key: 'snapshot', label: 'Create Snapshot', color: 'yellow', icon: figures.circleFilled, shortcut: 'n' },
-    { key: 'ssh', label: 'SSH onto the box', color: 'cyan', icon: figures.arrowRight, shortcut: 's' },
-    { key: 'tunnel', label: 'Open Tunnel', color: 'magenta', icon: figures.pointerSmall, shortcut: 't' },
-    { key: 'suspend', label: 'Suspend Devbox', color: 'yellow', icon: figures.squareSmallFilled, shortcut: 'p' },
-    { key: 'resume', label: 'Resume Devbox', color: 'green', icon: figures.play, shortcut: 'r' },
-    { key: 'delete', label: 'Shutdown Devbox', color: 'red', icon: figures.cross, shortcut: 'd' },
+    { key: 'logs', label: 'View Logs', color: colors.info, icon: figures.info, shortcut: 'l' },
+    { key: 'exec', label: 'Execute Command', color: colors.success, icon: figures.play, shortcut: 'e' },
+    { key: 'upload', label: 'Upload File', color: colors.success, icon: figures.arrowUp, shortcut: 'u' },
+    { key: 'snapshot', label: 'Create Snapshot', color: colors.warning, icon: figures.circleFilled, shortcut: 'n' },
+    { key: 'ssh', label: 'SSH onto the box', color: colors.primary, icon: figures.arrowRight, shortcut: 's' },
+    { key: 'tunnel', label: 'Open Tunnel', color: colors.secondary, icon: figures.pointerSmall, shortcut: 't' },
+    { key: 'suspend', label: 'Suspend Devbox', color: colors.warning, icon: figures.squareSmallFilled, shortcut: 'p' },
+    { key: 'resume', label: 'Resume Devbox', color: colors.success, icon: figures.play, shortcut: 'r' },
+    { key: 'delete', label: 'Shutdown Devbox', color: colors.error, icon: figures.cross, shortcut: 'd' },
   ];
 
   // Filter operations based on devbox status
@@ -423,34 +424,34 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
       const hasMore = actualScroll + viewportHeight < allLines.length;
       const hasLess = actualScroll > 0;
 
-      const exitCodeColor = exitCode === 0 ? 'green' : 'red';
+      const exitCodeColor = exitCode === 0 ? colors.success : colors.error;
 
       return (
         <>
           <Breadcrumb items={[...breadcrumbItems, { label: 'Execute Command', active: true }]} />
 
           {/* Command header */}
-          <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1} marginBottom={1}>
+          <Box flexDirection="column" borderStyle="round" borderColor={colors.primary} paddingX={1} marginBottom={1}>
             <Box>
-              <Text color="cyan" bold>{figures.play} Command:</Text>
+              <Text color={colors.primary} bold>{figures.play} Command:</Text>
               <Text> </Text>
-              <Text color="white">{command}</Text>
+              <Text color={colors.text}>{command}</Text>
             </Box>
             <Box>
-              <Text color="gray" dimColor>Exit Code: </Text>
+              <Text color={colors.textDim} dimColor>Exit Code: </Text>
               <Text color={exitCodeColor} bold>{exitCode}</Text>
             </Box>
           </Box>
 
           {/* Output display */}
-          <Box flexDirection="column" borderStyle="round" borderColor="gray" paddingX={1}>
+          <Box flexDirection="column" borderStyle="round" borderColor={colors.border} paddingX={1}>
             {allLines.length === 0 && (
-              <Text color="gray" dimColor>No output</Text>
+              <Text color={colors.textDim} dimColor>No output</Text>
             )}
             {visibleLines.map((line: string, index: number) => {
               const actualIndex = actualScroll + index;
               const isStderr = actualIndex >= stdoutLines.length;
-              const lineColor = isStderr ? 'red' : 'white';
+              const lineColor = isStderr ? colors.error : colors.text;
 
               return (
                 <Box key={index}>
@@ -461,53 +462,53 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
 
             {hasLess && (
               <Box marginTop={1}>
-                <Text color="cyan">{figures.arrowUp} More above</Text>
+                <Text color={colors.primary}>{figures.arrowUp} More above</Text>
               </Box>
             )}
             {hasMore && (
               <Box marginTop={hasLess ? 0 : 1}>
-                <Text color="cyan">{figures.arrowDown} More below</Text>
+                <Text color={colors.primary}>{figures.arrowDown} More below</Text>
               </Box>
             )}
           </Box>
 
           {/* Statistics bar */}
           <Box marginTop={1} paddingX={1}>
-            <Text color="cyan" bold>
+            <Text color={colors.primary} bold>
               {figures.hamburger} {allLines.length}
             </Text>
-            <Text color="gray" dimColor> lines</Text>
+            <Text color={colors.textDim} dimColor> lines</Text>
             {allLines.length > 0 && (
               <>
-                <Text color="gray" dimColor> • </Text>
-                <Text color="gray" dimColor>
+                <Text color={colors.textDim} dimColor> • </Text>
+                <Text color={colors.textDim} dimColor>
                   Viewing {actualScroll + 1}-{Math.min(actualScroll + viewportHeight, allLines.length)} of {allLines.length}
                 </Text>
               </>
             )}
             {stdout && (
               <>
-                <Text color="gray" dimColor> • </Text>
-                <Text color="green" dimColor>stdout: {stdoutLines.length} lines</Text>
+                <Text color={colors.textDim} dimColor> • </Text>
+                <Text color={colors.success} dimColor>stdout: {stdoutLines.length} lines</Text>
               </>
             )}
             {stderr && (
               <>
-                <Text color="gray" dimColor> • </Text>
-                <Text color="red" dimColor>stderr: {stderrLines.length} lines</Text>
+                <Text color={colors.textDim} dimColor> • </Text>
+                <Text color={colors.error} dimColor>stderr: {stderrLines.length} lines</Text>
               </>
             )}
             {copyStatus && (
               <>
-                <Text color="gray" dimColor> • </Text>
-                <Text color="green" bold>{copyStatus}</Text>
+                <Text color={colors.textDim} dimColor> • </Text>
+                <Text color={colors.success} bold>{copyStatus}</Text>
               </>
             )}
           </Box>
 
           {/* Help bar */}
           <Box marginTop={1} paddingX={1}>
-            <Text color="gray" dimColor>
+            <Text color={colors.textDim} dimColor>
               {figures.arrowUp}{figures.arrowDown} Navigate • [g] Top • [G] Bottom • [c] Copy • [Enter], [q], or [esc] Back
             </Text>
           </Box>
@@ -533,7 +534,7 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
         <>
           <Breadcrumb items={[...breadcrumbItems, { label: 'Logs', active: true }]} />
 
-          <Box flexDirection="column" borderStyle="round" borderColor="gray" paddingX={1}>
+          <Box flexDirection="column" borderStyle="round" borderColor={colors.border} paddingX={1}>
             {visibleLogs.map((log: any, index: number) => {
               const time = new Date(log.timestamp_ms).toLocaleTimeString();
               const level = log.level ? log.level[0].toUpperCase() : 'I';
@@ -542,21 +543,21 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
               const cmd = log.cmd ? `[${log.cmd.substring(0, 40)}${log.cmd.length > 40 ? '...' : ''}] ` : '';
               const exitCode = log.exit_code !== null && log.exit_code !== undefined ? `(${log.exit_code}) ` : '';
 
-              let levelColor = 'gray';
-              if (level === 'E') levelColor = 'red';
-              else if (level === 'W') levelColor = 'yellow';
-              else if (level === 'I') levelColor = 'cyan';
+              let levelColor: string = colors.textDim;
+              if (level === 'E') levelColor = colors.error;
+              else if (level === 'W') levelColor = colors.warning;
+              else if (level === 'I') levelColor = colors.primary;
 
               if (logsWrapMode) {
                 return (
                   <Box key={index}>
-                    <Text color="gray" dimColor>{time}</Text>
+                    <Text color={colors.textDim} dimColor>{time}</Text>
                     <Text> </Text>
                     <Text color={levelColor} bold>{level}</Text>
-                    <Text color="gray" dimColor>/{source}</Text>
+                    <Text color={colors.textDim} dimColor>/{source}</Text>
                     <Text> </Text>
-                    {exitCode && <Text color="yellow">{exitCode}</Text>}
-                    {cmd && <Text color="blue" dimColor>{cmd}</Text>}
+                    {exitCode && <Text color={colors.warning}>{exitCode}</Text>}
+                    {cmd && <Text color={colors.info} dimColor>{cmd}</Text>}
                     <Text>{fullMessage}</Text>
                   </Box>
                 );
@@ -568,13 +569,13 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
                   : fullMessage;
                 return (
                   <Box key={index}>
-                    <Text color="gray" dimColor>{time}</Text>
+                    <Text color={colors.textDim} dimColor>{time}</Text>
                     <Text> </Text>
                     <Text color={levelColor} bold>{level}</Text>
-                    <Text color="gray" dimColor>/{source}</Text>
+                    <Text color={colors.textDim} dimColor>/{source}</Text>
                     <Text> </Text>
-                    {exitCode && <Text color="yellow">{exitCode}</Text>}
-                    {cmd && <Text color="blue" dimColor>{cmd}</Text>}
+                    {exitCode && <Text color={colors.warning}>{exitCode}</Text>}
+                    {cmd && <Text color={colors.info} dimColor>{cmd}</Text>}
                     <Text>{truncatedMessage}</Text>
                   </Box>
                 );
@@ -583,39 +584,39 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
 
             {hasLess && (
               <Box>
-                <Text color="cyan">{figures.arrowUp} More above</Text>
+                <Text color={colors.primary}>{figures.arrowUp} More above</Text>
               </Box>
             )}
             {hasMore && (
               <Box>
-                <Text color="cyan">{figures.arrowDown} More below</Text>
+                <Text color={colors.primary}>{figures.arrowDown} More below</Text>
               </Box>
             )}
           </Box>
 
           <Box marginTop={1} paddingX={1}>
-            <Text color="cyan" bold>
+            <Text color={colors.primary} bold>
               {figures.hamburger} {totalCount}
             </Text>
-            <Text color="gray" dimColor> total logs</Text>
-            <Text color="gray" dimColor> • </Text>
-            <Text color="gray" dimColor>
+            <Text color={colors.textDim} dimColor> total logs</Text>
+            <Text color={colors.textDim} dimColor> • </Text>
+            <Text color={colors.textDim} dimColor>
               Viewing {actualScroll + 1}-{Math.min(actualScroll + viewportHeight, logs.length)} of {logs.length}
             </Text>
-            <Text color="gray" dimColor> • </Text>
-            <Text color={logsWrapMode ? 'green' : 'gray'} bold={logsWrapMode}>
+            <Text color={colors.textDim} dimColor> • </Text>
+            <Text color={logsWrapMode ? colors.success : colors.textDim} bold={logsWrapMode}>
               {logsWrapMode ? 'Wrap: ON' : 'Wrap: OFF'}
             </Text>
             {copyStatus && (
               <>
-                <Text color="gray" dimColor> • </Text>
-                <Text color="green" bold>{copyStatus}</Text>
+                <Text color={colors.textDim} dimColor> • </Text>
+                <Text color={colors.success} bold>{copyStatus}</Text>
               </>
             )}
           </Box>
 
           <Box marginTop={1} paddingX={1}>
-            <Text color="gray" dimColor>
+            <Text color={colors.textDim} dimColor>
               {figures.arrowUp}{figures.arrowDown} Navigate • [g] Top • [G] Bottom • [w] Toggle Wrap • [c] Copy • [Enter], [q], or [esc] Back
             </Text>
           </Box>
@@ -630,7 +631,7 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
         {operationResult && <SuccessMessage message={operationResult} />}
         {operationError && <ErrorMessage message="Operation failed" error={operationError} />}
         <Box marginTop={1}>
-          <Text color="gray" dimColor>
+          <Text color={colors.textDim} dimColor>
             Press [Enter], [q], or [esc] to continue
           </Text>
         </Box>
@@ -686,12 +687,12 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
         <Header title={operationLabel} />
         <Box flexDirection="column" marginBottom={1}>
           <Box marginBottom={1}>
-            <Text color="cyan" bold>
+            <Text color={colors.primary} bold>
               {devbox.name || devbox.id}
             </Text>
           </Box>
           <Box>
-            <Text color="gray">{prompts[executingOperation]} </Text>
+            <Text color={colors.textDim}>{prompts[executingOperation]} </Text>
           </Box>
           <Box marginTop={1}>
             <TextInput
@@ -709,7 +710,7 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
             />
           </Box>
           <Box marginTop={1}>
-            <Text color="gray" dimColor>
+            <Text color={colors.textDim} dimColor>
               Press [Enter] to execute • [q or esc] Cancel
             </Text>
           </Box>
@@ -724,15 +725,15 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
       <>
         <Breadcrumb items={breadcrumbItems} />
         <Box flexDirection="column">
-          <Text color="cyan" bold>{figures.play} Operations</Text>
+          <Text color={colors.primary} bold>{figures.play} Operations</Text>
           <Box flexDirection="column">
             {operations.map((op, index) => {
               const isSelected = index === selectedOperation;
               return (
                 <Box key={op.key}>
-                  <Text color={isSelected ? 'cyan' : 'gray'}>{isSelected ? figures.pointer : ' '} </Text>
-                  <Text color={isSelected ? op.color : 'gray'} bold={isSelected}>{op.icon} {op.label}</Text>
-                  <Text color="gray" dimColor> [{op.shortcut}]</Text>
+                  <Text color={isSelected ? colors.primary : colors.textDim}>{isSelected ? figures.pointer : ' '} </Text>
+                  <Text color={isSelected ? op.color : colors.textDim} bold={isSelected}>{op.icon} {op.label}</Text>
+                  <Text color={colors.textDim} dimColor> [{op.shortcut}]</Text>
                 </Box>
               );
             })}
@@ -740,7 +741,7 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
         </Box>
 
         <Box marginTop={1}>
-          <Text color="gray" dimColor>
+          <Text color={colors.textDim} dimColor>
             {figures.arrowUp}{figures.arrowDown} Navigate • [Enter] Select • [q] Back
           </Text>
         </Box>

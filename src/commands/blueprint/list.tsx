@@ -14,6 +14,7 @@ import { Table, createTextColumn, createComponentColumn } from '../../components
 import { OperationsMenu, Operation } from '../../components/OperationsMenu.js';
 import { createExecutor } from '../../utils/CommandExecutor.js';
 import { getBlueprintUrl } from '../../utils/url.js';
+import { colors } from '../../utils/theme.js';
 
 const PAGE_SIZE = 10;
 const MAX_FETCH = 100;
@@ -74,7 +75,7 @@ const ListBlueprintsUI: React.FC<{
     {
       key: 'create_devbox',
       label: 'Create Devbox from Blueprint',
-      color: 'green',
+      color: colors.success,
       icon: figures.play,
       needsInput: true,
       inputPrompt: 'Devbox name (optional):',
@@ -83,7 +84,7 @@ const ListBlueprintsUI: React.FC<{
     {
       key: 'delete',
       label: 'Delete Blueprint',
-      color: 'red',
+      color: colors.error,
       icon: figures.cross,
     },
   ];
@@ -319,7 +320,7 @@ const ListBlueprintsUI: React.FC<{
         {operationResult && <SuccessMessage message={operationResult} />}
         {operationError && <ErrorMessage message="Operation failed" error={operationError} />}
         <Box marginTop={1}>
-          <Text color="gray" dimColor>
+          <Text color={colors.textDim} dimColor>
             Press [Enter], [q], or [esc] to continue
           </Text>
         </Box>
@@ -380,12 +381,12 @@ const ListBlueprintsUI: React.FC<{
         <Header title={operationLabel} />
         <Box flexDirection="column" marginBottom={1}>
           <Box marginBottom={1}>
-            <Text color="cyan" bold>
+            <Text color={colors.primary} bold>
               {selectedBlueprint.name || selectedBlueprint.id}
             </Text>
           </Box>
           <Box>
-            <Text color="gray">{currentOp.inputPrompt} </Text>
+            <Text color={colors.textDim}>{currentOp.inputPrompt} </Text>
           </Box>
           <Box marginTop={1}>
             <TextInput
@@ -395,7 +396,7 @@ const ListBlueprintsUI: React.FC<{
             />
           </Box>
           <Box marginTop={1}>
-            <Text color="gray" dimColor>
+            <Text color={colors.textDim} dimColor>
               Press [Enter] to execute • [q or esc] Cancel
             </Text>
           </Box>
@@ -425,28 +426,28 @@ const ListBlueprintsUI: React.FC<{
         <Box
           flexDirection="column"
           borderStyle="round"
-          borderColor="cyan"
+          borderColor={colors.primary}
           paddingX={1}
           paddingY={0}
         >
           <Box>
-            <Text color="cyan" bold>
+            <Text color={colors.primary} bold>
               {selectedBlueprint.name || selectedBlueprint.id}
             </Text>
             <Text> </Text>
             <StatusBadge status={selectedBlueprint.status} />
-            <Text color="gray" dimColor>
+            <Text color={colors.textDim} dimColor>
               {' '}
               • {selectedBlueprint.id}
             </Text>
           </Box>
           <Box>
-            <Text color="gray" dimColor>
+            <Text color={colors.textDim} dimColor>
               {selectedBlueprint.create_time_ms
                 ? new Date(selectedBlueprint.create_time_ms).toLocaleString()
                 : ''}
             </Text>
-            <Text color="gray" dimColor>
+            <Text color={colors.textDim} dimColor>
               {' '}
               (
               {selectedBlueprint.create_time_ms
@@ -457,7 +458,7 @@ const ListBlueprintsUI: React.FC<{
           </Box>
           {ds?.description && (
             <Box>
-              <Text color="gray" dimColor>
+              <Text color={colors.textDim} dimColor>
                 {ds.description}
               </Text>
             </Box>
@@ -469,11 +470,11 @@ const ListBlueprintsUI: React.FC<{
           <Box
             flexDirection="column"
             borderStyle="round"
-            borderColor="yellow"
+            borderColor={colors.warning}
             paddingX={1}
             paddingY={0}
           >
-            <Text color="yellow" bold>
+            <Text color={colors.warning} bold>
               {figures.squareSmallFilled} Dockerfile Setup
             </Text>
             {ds.base_image && (
@@ -497,18 +498,18 @@ const ListBlueprintsUI: React.FC<{
 
         {/* Metadata */}
         {selectedBlueprint.metadata && Object.keys(selectedBlueprint.metadata).length > 0 && (
-          <Box borderStyle="round" borderColor="green" paddingX={1} paddingY={0}>
+          <Box borderStyle="round" borderColor={colors.success} paddingX={1} paddingY={0}>
             <MetadataDisplay metadata={selectedBlueprint.metadata} showBorder={false} />
           </Box>
         )}
 
         {/* Failure reason */}
         {selectedBlueprint.build_error && (
-          <Box borderStyle="round" borderColor="red" paddingX={1} paddingY={0}>
-            <Text color="red" bold>
+          <Box borderStyle="round" borderColor={colors.error} paddingX={1} paddingY={0}>
+            <Text color={colors.error} bold>
               {figures.cross}{' '}
             </Text>
-            <Text color="red" dimColor>
+            <Text color={colors.error} dimColor>
               {selectedBlueprint.build_error}
             </Text>
           </Box>
@@ -547,9 +548,9 @@ const ListBlueprintsUI: React.FC<{
       {loading && <SpinnerComponent message="Loading blueprints..." />}
       {!loading && !error && blueprints.length === 0 && (
         <Box>
-          <Text color="yellow">{figures.info}</Text>
+          <Text color={colors.warning}>{figures.info}</Text>
           <Text> No blueprints found. Try: </Text>
-          <Text color="cyan" bold>
+          <Text color={colors.primary} bold>
             rln blueprint create
           </Text>
         </Box>
@@ -557,26 +558,26 @@ const ListBlueprintsUI: React.FC<{
       {!loading && !error && blueprints.length > 0 && (
         <>
           <Box marginBottom={1}>
-            <Text color="green">
+            <Text color={colors.success}>
               {figures.tick} {buildComplete}
             </Text>
             <Text> </Text>
-            <Text color="yellow">
+            <Text color={colors.warning}>
               {figures.ellipsis} {building}
             </Text>
             <Text> </Text>
-            <Text color="red">
+            <Text color={colors.error}>
               {figures.cross} {failed}
             </Text>
             <Text> </Text>
-            <Text color="cyan">
+            <Text color={colors.primary}>
               {figures.hamburger} {blueprints.length}
               {blueprints.length >= MAX_FETCH && '+'}
             </Text>
             {totalPages > 1 && (
               <>
-                <Text color="gray"> • </Text>
-                <Text color="gray" dimColor>
+                <Text color={colors.textDim}> • </Text>
+                <Text color={colors.textDim} dimColor>
                   Page {currentPage + 1}/{totalPages}
                 </Text>
               </>
@@ -600,7 +601,7 @@ const ListBlueprintsUI: React.FC<{
                 (blueprint: any) => (showFullId ? blueprint.id : blueprint.id.slice(0, 13)),
                 {
                   width: showFullId ? idWidth : 15,
-                  color: 'gray',
+                  color: colors.textDim,
                   dimColor: true,
                   bold: false,
                 }
@@ -617,7 +618,7 @@ const ListBlueprintsUI: React.FC<{
                 (blueprint: any) => blueprint.dockerfile_setup?.description || '',
                 {
                   width: descriptionWidth,
-                  color: 'gray',
+                  color: colors.textDim,
                   dimColor: true,
                   bold: false,
                   visible: showDescription,
@@ -628,24 +629,24 @@ const ListBlueprintsUI: React.FC<{
                 'Created',
                 (blueprint: any) =>
                   blueprint.create_time_ms ? formatTimeAgo(blueprint.create_time_ms) : '',
-                { width: timeWidth, color: 'gray', dimColor: true, bold: false }
+                { width: timeWidth, color: colors.textDim, dimColor: true, bold: false }
               ),
             ]}
           />
 
           <Box marginTop={1}>
-            <Text color="gray" dimColor>
+            <Text color={colors.textDim} dimColor>
               {figures.arrowUp}
               {figures.arrowDown} Navigate • [Enter] Operations • [o] Open in Browser •
             </Text>
             {totalPages > 1 && (
-              <Text color="gray" dimColor>
+              <Text color={colors.textDim} dimColor>
                 {' '}
                 {figures.arrowLeft}
                 {figures.arrowRight} Page •
               </Text>
             )}
-            <Text color="gray" dimColor>
+            <Text color={colors.textDim} dimColor>
               {' '}
               [Esc] Back
             </Text>

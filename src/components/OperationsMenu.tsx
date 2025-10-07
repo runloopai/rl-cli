@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import figures from 'figures';
+import { colors } from '../utils/theme.js';
 
 export interface Operation {
   key: string;
@@ -41,7 +42,7 @@ export const OperationsMenu: React.FC<OperationsMenuProps> = ({
     <>
       {/* Operations List */}
       <Box flexDirection="column">
-        <Text color="cyan" bold>
+        <Text color={colors.primary} bold>
           {figures.play} Operations
         </Text>
         <Box flexDirection="column">
@@ -49,10 +50,10 @@ export const OperationsMenu: React.FC<OperationsMenuProps> = ({
             const isSelected = index === selectedIndex;
             return (
               <Box key={op.key}>
-                <Text color={isSelected ? 'cyan' : 'gray'}>
+                <Text color={isSelected ? colors.primary : colors.textDim}>
                   {isSelected ? figures.pointer : ' '}{' '}
                 </Text>
-                <Text color={isSelected ? op.color : 'gray'} bold={isSelected}>
+                <Text color={isSelected ? op.color : colors.textDim} bold={isSelected}>
                   {op.icon} {op.label}
                 </Text>
               </Box>
@@ -63,7 +64,7 @@ export const OperationsMenu: React.FC<OperationsMenuProps> = ({
 
       {/* Help text */}
       <Box marginTop={1}>
-        <Text color="gray" dimColor>
+        <Text color={colors.textDim} dimColor>
           {figures.arrowUp}
           {figures.arrowDown} Navigate • [Enter] Select •
           {additionalActions.map((action) => ` [${action.key}] ${action.label} •`)}

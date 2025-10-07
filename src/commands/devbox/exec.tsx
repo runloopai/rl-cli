@@ -4,6 +4,7 @@ import { getClient } from '../../utils/client.js';
 import { Header } from '../../components/Header.js';
 import { SpinnerComponent } from '../../components/Spinner.js';
 import { ErrorMessage } from '../../components/ErrorMessage.js';
+import { colors } from '../../utils/theme.js';
 
 const ExecCommandUI: React.FC<{ id: string; command: string[] }> = ({
   id,
@@ -40,7 +41,7 @@ const ExecCommandUI: React.FC<{ id: string; command: string[] }> = ({
       {loading && <SpinnerComponent message="Executing command..." />}
       {!loading && !error && (
         <Box flexDirection="column" marginTop={1}>
-          <Box borderStyle="round" borderColor="green" padding={1}>
+          <Box borderStyle="round" borderColor={colors.success} padding={1}>
             <Text>{output}</Text>
           </Box>
         </Box>

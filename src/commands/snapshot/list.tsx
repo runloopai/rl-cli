@@ -8,6 +8,7 @@ import { StatusBadge } from '../../components/StatusBadge.js';
 import { Breadcrumb } from '../../components/Breadcrumb.js';
 import { Table, createTextColumn, createComponentColumn } from '../../components/Table.js';
 import { createExecutor } from '../../utils/CommandExecutor.js';
+import { colors } from '../../utils/theme.js';
 
 interface ListOptions {
   devbox?: string;
@@ -132,9 +133,9 @@ const ListSnapshotsUI: React.FC<{
       {loading && <SpinnerComponent message="Loading snapshots..." />}
       {!loading && !error && snapshots.length === 0 && (
         <Box>
-          <Text color="yellow">{figures.info}</Text>
+          <Text color={colors.warning}>{figures.info}</Text>
           <Text> No snapshots found. Try: </Text>
-          <Text color="cyan" bold>
+          <Text color={colors.primary} bold>
             rln snapshot create &lt;devbox-id&gt;
           </Text>
         </Box>
@@ -142,22 +143,22 @@ const ListSnapshotsUI: React.FC<{
       {!loading && !error && snapshots.length > 0 && (
         <>
           <Box marginBottom={1}>
-            <Text color="green">
+            <Text color={colors.success}>
               {figures.tick} {ready}
             </Text>
             <Text> </Text>
-            <Text color="yellow">
+            <Text color={colors.warning}>
               {figures.ellipsis} {pending}
             </Text>
             <Text> </Text>
-            <Text color="cyan">
+            <Text color={colors.primary}>
               {figures.hamburger} {snapshots.length}
               {snapshots.length >= MAX_FETCH && '+'}
             </Text>
             {totalPages > 1 && (
               <>
-                <Text color="gray"> • </Text>
-                <Text color="gray" dimColor>
+                <Text color={colors.textDim}> • </Text>
+                <Text color={colors.textDim} dimColor>
                   Page {currentPage + 1}/{totalPages}
                 </Text>
               </>
@@ -179,7 +180,7 @@ const ListSnapshotsUI: React.FC<{
                 'id',
                 'ID',
                 (snapshot: any) => showFullId ? snapshot.id : snapshot.id.slice(0, 13),
-                { width: showFullId ? idWidth : 15, color: 'gray', dimColor: true, bold: false }
+                { width: showFullId ? idWidth : 15, color: colors.textDim, dimColor: true, bold: false }
               ),
               createTextColumn(
                 'name',
@@ -191,30 +192,30 @@ const ListSnapshotsUI: React.FC<{
                 'devbox',
                 'Devbox',
                 (snapshot: any) => snapshot.devbox_id || '',
-                { width: devboxWidth, color: 'cyan', dimColor: true, bold: false, visible: showDevboxId }
+                { width: devboxWidth, color: colors.primary, dimColor: true, bold: false, visible: showDevboxId }
               ),
               createTextColumn(
                 'created',
                 'Created',
                 (snapshot: any) => snapshot.created_at ? formatTimeAgo(new Date(snapshot.created_at).getTime()) : '',
-                { width: timeWidth, color: 'gray', dimColor: true, bold: false }
+                { width: timeWidth, color: colors.textDim, dimColor: true, bold: false }
               ),
             ]}
           />
 
           <Box marginTop={1}>
-            <Text color="gray" dimColor>
+            <Text color={colors.textDim} dimColor>
               {figures.arrowUp}
               {figures.arrowDown} Navigate •
             </Text>
             {totalPages > 1 && (
-              <Text color="gray" dimColor>
+              <Text color={colors.textDim} dimColor>
                 {' '}
                 {figures.arrowLeft}
                 {figures.arrowRight} Page •
               </Text>
             )}
-            <Text color="gray" dimColor>
+            <Text color={colors.textDim} dimColor>
               {' '}
               [Esc] Back
             </Text>
