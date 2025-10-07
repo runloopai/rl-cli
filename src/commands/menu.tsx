@@ -1,58 +1,61 @@
 import React from 'react';
-import { render } from 'ink';
+import { render, useApp } from 'ink';
 import { MainMenu } from '../components/MainMenu.js';
-import { listDevboxes } from './devbox/list.js';
-import { listBlueprints } from './blueprint/list.js';
-import { listSnapshots } from './snapshot/list.js';
 
-export async function showMainMenu() {
-  return new Promise<string>((resolve) => {
-    const { waitUntilExit } = render(
-      <MainMenu
-        onSelect={(key) => {
-          resolve(key);
-        }}
-      />
-    );
+// Import list components dynamically to avoid circular deps
+type Screen = 'menu' | 'devboxes' | 'blueprints' | 'snapshots';
 
-    waitUntilExit().then(() => {
-      // If the user quits without selecting, resolve with empty string
-      resolve('');
-    });
-  });
-}
+// Import the UI components directly
+import { ListDevboxesUI } from './devbox/list.js';
+import { ListBlueprintsUI } from './blueprint/list.js';
+import { ListSnapshotsUI } from './snapshot/list.js';
+
+const App: React.FC = () => {
+  const { exit } = useApp();
+  const [currentScreen, setCurrentScreen] = React.useState<Screen>('menu');
+
+  const handleMenuSelect = (key: string) => {
+    setCurrentScreen(key as Screen);
+  };
+
+  const handleBack = () => {
+    setCurrentScreen('menu');
+  };
+
+  const handleExit = () => {
+    exit();
+  };
+
+  if (currentScreen === 'menu') {
+    return <MainMenu onSelect={handleMenuSelect} />;
+  }
+
+  if (currentScreen === 'devboxes') {
+    return <ListDevboxesUI onBack={handleBack} onExit={handleExit} />;
+  }
+
+  if (currentScreen === 'blueprints') {
+    return <ListBlueprintsUI onBack={handleBack} onExit={handleExit} />;
+  }
+
+  if (currentScreen === 'snapshots') {
+    return <ListSnapshotsUI onBack={handleBack} onExit={handleExit} />;
+  }
+
+  return null;
+};
 
 export async function runMainMenu() {
-  // Enter alternate screen buffer
+  // Enter alternate screen buffer once at the start
   process.stdout.write('\x1b[?1049h');
 
-  while (true) {
-    console.clear();
-    const selection = await showMainMenu();
-
-    if (!selection) {
-      // User quit
-      // Exit alternate screen buffer
-      process.stdout.write('\x1b[?1049l');
-      process.exit(0);
-    }
-
-    console.clear();
-
-    // Navigate to the selected list view
-    switch (selection) {
-      case 'devboxes':
-        await listDevboxes({ output: undefined });
-        break;
-      case 'blueprints':
-        await listBlueprints({ output: undefined });
-        break;
-      case 'snapshots':
-        await listSnapshots({ output: undefined });
-        break;
-      default:
-        // Unknown selection, return to menu
-        continue;
-    }
+  try {
+    const { waitUntilExit } = render(<App />);
+    await waitUntilExit();
+  } finally {
+    // Exit alternate screen buffer once at the end
+    process.stdout.write('\x1b[?1049l');
   }
+
+  process.exit(0);
 }

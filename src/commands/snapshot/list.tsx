@@ -39,9 +39,13 @@ const formatTimeAgo = (timestamp: number): string => {
   return `${years}y ago`;
 };
 
-const ListSnapshotsUI: React.FC<{ devboxId?: string }> = ({ devboxId }) => {
+const ListSnapshotsUI: React.FC<{
+  devboxId?: string;
+  onBack?: () => void;
+  onExit?: () => void;
+}> = ({ devboxId, onBack, onExit }) => {
   const { stdout } = useStdout();
-  const { exit } = useApp();
+  const { exit: inkExit } = useApp();
   const [loading, setLoading] = React.useState(true);
   const [snapshots, setSnapshots] = React.useState<any[]>([]);
   const [error, setError] = React.useState<Error | null>(null);
@@ -99,7 +103,13 @@ const ListSnapshotsUI: React.FC<{ devboxId?: string }> = ({ devboxId }) => {
       setCurrentPage(currentPage - 1);
       setSelectedIndex(0);
     } else if (key.escape) {
-      exit();
+      if (onBack) {
+        onBack();
+      } else if (onExit) {
+        onExit();
+      } else {
+        inkExit();
+      }
     }
   });
 
@@ -215,6 +225,9 @@ const ListSnapshotsUI: React.FC<{ devboxId?: string }> = ({ devboxId }) => {
     </>
   );
 };
+
+// Export the UI component for use in the main menu
+export { ListSnapshotsUI };
 
 export async function listSnapshots(options: ListOptions) {
   const executor = createExecutor(options);

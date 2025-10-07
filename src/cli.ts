@@ -50,7 +50,15 @@ devbox
   .description('List all devboxes')
   .option('-s, --status <status>', 'Filter by status')
   .option('-o, --output [format]', 'Output format: text|json|yaml (default: interactive)')
-  .action(listDevboxes);
+  .action(async (options) => {
+    // Only use alternate screen for interactive mode
+    if (!options.output) {
+      const { runInteractiveCommand } = await import('./utils/interactiveCommand.js');
+      await runInteractiveCommand(() => listDevboxes(options));
+    } else {
+      await listDevboxes(options);
+    }
+  });
 
 devbox
   .command('delete <id>')
@@ -85,7 +93,12 @@ snapshot
   .option('-o, --output [format]', 'Output format: text|json|yaml (default: interactive)')
   .action(async (options) => {
     const { listSnapshots } = await import('./commands/snapshot/list.js');
-    listSnapshots(options);
+    if (!options.output) {
+      const { runInteractiveCommand } = await import('./utils/interactiveCommand.js');
+      await runInteractiveCommand(() => listSnapshots(options));
+    } else {
+      await listSnapshots(options);
+    }
   });
 
 snapshot
@@ -120,7 +133,12 @@ blueprint
   .option('-o, --output [format]', 'Output format: text|json|yaml (default: interactive)')
   .action(async (options) => {
     const { listBlueprints } = await import('./commands/blueprint/list.js');
-    listBlueprints(options);
+    if (!options.output) {
+      const { runInteractiveCommand } = await import('./utils/interactiveCommand.js');
+      await runInteractiveCommand(() => listBlueprints(options));
+    } else {
+      await listBlueprints(options);
+    }
   });
 
 // Check if API key is configured (except for auth command)
