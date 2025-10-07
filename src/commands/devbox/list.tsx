@@ -53,8 +53,10 @@ const ListDevboxesUI: React.FC<{
   status?: string;
   onSSHRequest?: (config: SSHSessionConfig) => void;
   focusDevboxId?: string;
-}> = ({ status, onSSHRequest, focusDevboxId }) => {
-  const { exit } = useApp();
+  onBack?: () => void;
+  onExit?: () => void;
+}> = ({ status, onSSHRequest, focusDevboxId, onBack, onExit }) => {
+  const { exit: inkExit } = useApp();
   const { stdout } = useStdout();
   const [loading, setLoading] = React.useState(true);
   const [devboxes, setDevboxes] = React.useState<any[]>([]);
@@ -349,7 +351,13 @@ const ListDevboxesUI: React.FC<{
         setSelectedIndex(0);
       } else {
         // Go back to home
-        exit();
+        if (onBack) {
+          onBack();
+        } else if (onExit) {
+          onExit();
+        } else {
+          inkExit();
+        }
       }
     }
   });
@@ -770,6 +778,9 @@ const ListDevboxesUI: React.FC<{
     </>
   );
 };
+
+// Export the UI component for use in the main menu
+export { ListDevboxesUI };
 
 export async function listDevboxes(options: ListOptions, focusDevboxId?: string) {
   const executor = createExecutor(options);

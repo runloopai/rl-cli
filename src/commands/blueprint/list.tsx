@@ -42,9 +42,12 @@ const formatTimeAgo = (timestamp: number): string => {
   return `${years}y ago`;
 };
 
-const ListBlueprintsUI: React.FC = () => {
+const ListBlueprintsUI: React.FC<{
+  onBack?: () => void;
+  onExit?: () => void;
+}> = ({ onBack, onExit }) => {
   const { stdout } = useStdout();
-  const { exit } = useApp();
+  const { exit: inkExit } = useApp();
   const [loading, setLoading] = React.useState(true);
   const [blueprints, setBlueprints] = React.useState<any[]>([]);
   const [error, setError] = React.useState<Error | null>(null);
@@ -261,7 +264,13 @@ const ListBlueprintsUI: React.FC = () => {
       };
       openBrowser();
     } else if (key.escape) {
-      exit();
+      if (onBack) {
+        onBack();
+      } else if (onExit) {
+        onExit();
+      } else {
+        inkExit();
+      }
     }
   });
 
@@ -651,6 +660,9 @@ const ListBlueprintsUI: React.FC = () => {
 interface ListBlueprintsOptions {
   output?: string;
 }
+
+// Export the UI component for use in the main menu
+export { ListBlueprintsUI };
 
 export async function listBlueprints(options: ListBlueprintsOptions = {}) {
   const executor = createExecutor(options);

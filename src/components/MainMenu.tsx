@@ -20,6 +20,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onSelect }) => {
   const { exit } = useApp();
   const [selectedIndex, setSelectedIndex] = React.useState(0);
 
+  // Calculate terminal height once at mount
+  const terminalHeight = process.stdout.rows || 24;
+
   const menuItems: MenuItem[] = [
     {
       key: 'devboxes',
@@ -62,8 +65,62 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onSelect }) => {
     }
   });
 
+  // Use compact layout if terminal height is less than 20 lines
+  const useCompactLayout = terminalHeight < 20;
+
+  if (useCompactLayout) {
+    return (
+      <Box flexDirection="column" height="100%">
+        <Box paddingX={2} marginBottom={1}>
+          <Text color="cyan" bold>
+            RUNLOOP.ai
+          </Text>
+          <Text color="gray" dimColor>
+            {' '}
+            • Cloud development environments
+          </Text>
+        </Box>
+
+        <Box flexDirection="column" paddingX={2}>
+          {menuItems.map((item, index) => {
+            const isSelected = index === selectedIndex;
+            return (
+              <Box key={item.key} marginBottom={0}>
+                <Text color={isSelected ? item.color : 'gray'}>
+                  {isSelected ? figures.pointer : ' '}
+                </Text>
+                <Text> </Text>
+                <Text color={item.color} bold>
+                  {item.icon}
+                </Text>
+                <Text> </Text>
+                <Text color={isSelected ? item.color : 'white'} bold={isSelected}>
+                  {item.label}
+                </Text>
+                <Text color="gray" dimColor>
+                  {' '}
+                  - {item.description}
+                </Text>
+                <Text color="gray" dimColor>
+                  {' '}
+                  [{index + 1}]
+                </Text>
+              </Box>
+            );
+          })}
+        </Box>
+
+        <Box paddingX={2} marginTop={1}>
+          <Text color="gray" dimColor>
+            {figures.arrowUp}{figures.arrowDown} Navigate • [1-3] Quick select • [Enter] Select • [Esc] Quit
+          </Text>
+        </Box>
+      </Box>
+    );
+  }
+
   return (
-    <>
+    <Box flexDirection="column" height="100%">
       <Breadcrumb items={[{ label: 'Home', active: true }]} />
 
       <Box marginBottom={1}>
@@ -123,6 +180,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onSelect }) => {
           </Text>
         </Box>
       </Box>
-    </>
+    </Box>
   );
 };
