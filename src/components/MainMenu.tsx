@@ -16,14 +16,14 @@ interface MainMenuProps {
   onSelect: (key: string) => void;
 }
 
-export const MainMenu: React.FC<MainMenuProps> = ({ onSelect }) => {
+export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
   const { exit } = useApp();
   const [selectedIndex, setSelectedIndex] = React.useState(0);
 
-  // Calculate terminal height once at mount
-  const terminalHeight = process.stdout.rows || 24;
+  // Calculate terminal height once at mount and memoize
+  const terminalHeight = React.useMemo(() => process.stdout.rows || 24, []);
 
-  const menuItems: MenuItem[] = [
+  const menuItems: MenuItem[] = React.useMemo(() => [
     {
       key: 'devboxes',
       label: 'Devboxes',
@@ -45,7 +45,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onSelect }) => {
       icon: '◈',
       color: 'green',
     },
-  ];
+  ], []);
 
   useInput((input, key) => {
     if (key.upArrow && selectedIndex > 0) {
@@ -65,8 +65,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onSelect }) => {
     }
   });
 
-  // Use compact layout if terminal height is less than 20 lines
-  const useCompactLayout = terminalHeight < 20;
+  // Use compact layout if terminal height is less than 20 lines (memoized)
+  const useCompactLayout = React.useMemo(() => terminalHeight < 20, [terminalHeight]);
 
   if (useCompactLayout) {
     return (
@@ -182,4 +182,4 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onSelect }) => {
       </Box>
     </Box>
   );
-};
+});
