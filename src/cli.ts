@@ -7,6 +7,15 @@ import { deleteDevbox } from './commands/devbox/delete.js';
 import { execCommand } from './commands/devbox/exec.js';
 import { uploadFile } from './commands/devbox/upload.js';
 import { getConfig } from './utils/config.js';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+// Get version from package.json
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf8'));
+export const VERSION = packageJson.version;
 
 // Global Ctrl+C handler to ensure it always exits
 process.on('SIGINT', () => {
@@ -21,7 +30,7 @@ const program = new Command();
 program
   .name('rln')
   .description('Beautiful CLI for Runloop devbox management')
-  .version('1.0.0');
+  .version(VERSION);
 
 program
   .command('auth')
@@ -141,20 +150,23 @@ blueprint
     }
   });
 
-// Check if API key is configured (except for auth command)
-const args = process.argv.slice(2);
-if (args[0] !== 'auth' && args[0] !== '--help' && args[0] !== '-h' && args.length > 0) {
-  const config = getConfig();
-  if (!config.apiKey) {
-    console.error('\n❌ API key not configured. Run: rln auth\n');
-    process.exit(1);
+// Main CLI entry point
+(async () => {
+  // Check if API key is configured (except for auth command)
+  const args = process.argv.slice(2);
+  if (args[0] !== 'auth' && args[0] !== '--help' && args[0] !== '-h' && args.length > 0) {
+    const config = getConfig();
+    if (!config.apiKey) {
+      console.error('\n❌ API key not configured. Run: rln auth\n');
+      process.exit(1);
+    }
   }
-}
 
-// If no command provided, show main menu
-if (args.length === 0) {
-  const { runMainMenu } = await import('./commands/menu.js');
-  runMainMenu();
-} else {
-  program.parse();
-}
+  // If no command provided, show main menu
+  if (args.length === 0) {
+    const { runMainMenu } = await import('./commands/menu.js');
+    runMainMenu();
+  } else {
+    program.parse();
+  }
+})();

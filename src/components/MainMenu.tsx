@@ -3,6 +3,7 @@ import { Box, Text, useInput, useApp } from 'ink';
 import figures from 'figures';
 import { Banner } from './Banner.js';
 import { Breadcrumb } from './Breadcrumb.js';
+import { VERSION } from '../cli.js';
 
 interface MenuItem {
   key: string;
@@ -77,7 +78,7 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
           </Text>
           <Text color="gray" dimColor>
             {' '}
-            • Cloud development environments
+            • Cloud development environments • v{VERSION}
           </Text>
         </Box>
 
@@ -130,7 +131,7 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
       <Box flexDirection="column" paddingX={2} marginBottom={1}>
         <Box paddingX={1}>
           <Text color="gray" dimColor>
-            Cloud development environments for your team
+            Cloud development environments for your team • v{VERSION}
           </Text>
         </Box>
       </Box>
