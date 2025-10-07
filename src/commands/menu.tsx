@@ -23,12 +23,17 @@ export async function showMainMenu() {
 }
 
 export async function runMainMenu() {
+  // Enter alternate screen buffer
+  process.stdout.write('\x1b[?1049h');
+
   while (true) {
     console.clear();
     const selection = await showMainMenu();
 
     if (!selection) {
       // User quit
+      // Exit alternate screen buffer
+      process.stdout.write('\x1b[?1049l');
       process.exit(0);
     }
 
