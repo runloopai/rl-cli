@@ -10,39 +10,38 @@ import { ListDevboxesUI } from './devbox/list.js';
 import { ListBlueprintsUI } from './blueprint/list.js';
 import { ListSnapshotsUI } from './snapshot/list.js';
 
+import { Box } from 'ink';
+
 const App: React.FC = () => {
   const { exit } = useApp();
   const [currentScreen, setCurrentScreen] = React.useState<Screen>('menu');
+  const [, forceUpdate] = React.useReducer(x => x + 1, 0);
 
   const handleMenuSelect = (key: string) => {
     setCurrentScreen(key as Screen);
+    // Force a full re-render to clear any stale content
+    setTimeout(() => forceUpdate(), 0);
   };
 
   const handleBack = () => {
     setCurrentScreen('menu');
+    // Force a full re-render to clear any stale content
+    setTimeout(() => forceUpdate(), 0);
   };
 
   const handleExit = () => {
     exit();
   };
 
-  if (currentScreen === 'menu') {
-    return <MainMenu onSelect={handleMenuSelect} />;
-  }
-
-  if (currentScreen === 'devboxes') {
-    return <ListDevboxesUI onBack={handleBack} onExit={handleExit} />;
-  }
-
-  if (currentScreen === 'blueprints') {
-    return <ListBlueprintsUI onBack={handleBack} onExit={handleExit} />;
-  }
-
-  if (currentScreen === 'snapshots') {
-    return <ListSnapshotsUI onBack={handleBack} onExit={handleExit} />;
-  }
-
-  return null;
+  // Wrap everything in a full-height container
+  return (
+    <Box flexDirection="column" minHeight={process.stdout.rows || 24}>
+      {currentScreen === 'menu' && <MainMenu onSelect={handleMenuSelect} />}
+      {currentScreen === 'devboxes' && <ListDevboxesUI onBack={handleBack} onExit={handleExit} />}
+      {currentScreen === 'blueprints' && <ListBlueprintsUI onBack={handleBack} onExit={handleExit} />}
+      {currentScreen === 'snapshots' && <ListSnapshotsUI onBack={handleBack} onExit={handleExit} />}
+    </Box>
+  );
 };
 
 export async function runMainMenu() {
