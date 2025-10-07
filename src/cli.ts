@@ -150,11 +150,54 @@ blueprint
     }
   });
 
+// MCP server commands
+const mcp = program
+  .command('mcp')
+  .description('Model Context Protocol (MCP) server commands');
+
+mcp
+  .command('start')
+  .description('Start the MCP server')
+  .option('--http', 'Use HTTP/SSE transport instead of stdio')
+  .option('-p, --port <port>', 'Port to listen on for HTTP mode (default: 3000)', parseInt)
+  .action(async (options) => {
+    if (options.http) {
+      const { startMcpHttpServer } = await import('./commands/mcp-http.js');
+      await startMcpHttpServer(options.port);
+    } else {
+      const { startMcpServer } = await import('./commands/mcp.js');
+      await startMcpServer();
+    }
+  });
+
+mcp
+  .command('install')
+  .description('Install Runloop MCP server configuration in Claude Desktop')
+  .action(async () => {
+    const { installMcpConfig } = await import('./commands/mcp-install.js');
+    await installMcpConfig();
+  });
+
+// Hidden command: 'rln mcp' without subcommand starts the server (for Claude Desktop config compatibility)
+program
+  .command('mcp-server', { hidden: true })
+  .option('--http', 'Use HTTP/SSE transport instead of stdio')
+  .option('-p, --port <port>', 'Port to listen on for HTTP mode (default: 3000)', parseInt)
+  .action(async (options) => {
+    if (options.http) {
+      const { startMcpHttpServer } = await import('./commands/mcp-http.js');
+      await startMcpHttpServer(options.port);
+    } else {
+      const { startMcpServer } = await import('./commands/mcp.js');
+      await startMcpServer();
+    }
+  });
+
 // Main CLI entry point
 (async () => {
-  // Check if API key is configured (except for auth command)
+  // Check if API key is configured (except for auth and mcp commands)
   const args = process.argv.slice(2);
-  if (args[0] !== 'auth' && args[0] !== '--help' && args[0] !== '-h' && args.length > 0) {
+  if (args[0] !== 'auth' && args[0] !== 'mcp' && args[0] !== 'mcp-server' && args[0] !== '--help' && args[0] !== '-h' && args.length > 0) {
     const config = getConfig();
     if (!config.apiKey) {
       console.error('\n❌ API key not configured. Run: rln auth\n');

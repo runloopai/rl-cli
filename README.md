@@ -11,6 +11,7 @@ A beautiful, interactive CLI for managing Runloop devboxes built with Ink and Ty
 - 🚀 Execute commands in devboxes
 - 📤 Upload files to devboxes
 - 🎯 Organized command structure with aliases
+- 🤖 **Model Context Protocol (MCP) server for AI integration**
 
 ## Installation
 
@@ -137,6 +138,40 @@ The CLI is organized into command buckets:
 
 - **`blueprint` (alias: `bp`)** - Manage blueprints
   - `list` - List blueprints (coming soon)
+
+- **`mcp`** - Model Context Protocol server for AI integration
+  - `install` - Install MCP configuration in Claude Desktop
+  - `start` - Start the MCP server (stdio or HTTP mode)
+
+## MCP Server (AI Integration)
+
+Runloop includes a Model Context Protocol (MCP) server that allows AI assistants like Claude to interact with your devboxes.
+
+### Quick Setup for Claude Desktop
+
+```bash
+# Install MCP configuration
+rln mcp install
+
+# Restart Claude Desktop, then ask Claude:
+# "List my devboxes" or "Create a new devbox"
+```
+
+### Starting the Server
+
+```bash
+# Stdio mode (for Claude Desktop)
+rln mcp start
+
+# HTTP mode (for web/remote access)
+rln mcp start --http
+rln mcp start --http --port 8080
+```
+
+**Documentation:**
+- [CLAUDE_SETUP.md](./CLAUDE_SETUP.md) - Complete setup guide for Claude Desktop
+- [MCP_README.md](./MCP_README.md) - Full MCP documentation
+- [MCP_COMMANDS.md](./MCP_COMMANDS.md) - Quick command reference
 
 ## Interactive Features
 
