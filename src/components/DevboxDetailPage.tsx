@@ -404,10 +404,9 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
         { label: 'Devboxes' },
         { label: selectedDevbox.name || selectedDevbox.id, active: true }
       ]} />
-      <Header title="Devbox Details" />
 
-      {/* Compact info section */}
-      <Box flexDirection="column" borderStyle="round" borderColor={colors.primary} paddingX={1} paddingY={0}>
+      {/* Main info section */}
+      <Box flexDirection="column" marginTop={1} marginBottom={1} paddingX={1}>
         <Box>
           <Text color={colors.primary} bold>{selectedDevbox.name || selectedDevbox.id}</Text>
           <Text> </Text>
@@ -428,11 +427,11 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
         )}
       </Box>
 
-      {/* Compact resources + capabilities + source in one row */}
-      <Box flexDirection="row" gap={1}>
+      {/* Resources + capabilities + source in one row */}
+      <Box flexDirection="row" gap={1} marginBottom={1}>
         {/* Resources */}
         {(lp?.resource_size_request || lp?.custom_cpu_cores || lp?.custom_gb_memory || lp?.custom_disk_size || lp?.architecture) && (
-          <Box flexDirection="column" borderStyle="round" borderColor={colors.warning} paddingX={1} paddingY={0} flexGrow={1}>
+          <Box flexDirection="column" paddingX={1} flexGrow={1}>
             <Text color={colors.warning} bold>{figures.squareSmallFilled} Resources</Text>
             <Text dimColor>
               {lp?.resource_size_request && `${lp.resource_size_request}`}
@@ -446,7 +445,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
 
         {/* Capabilities */}
         {hasCapabilities && (
-          <Box flexDirection="column" borderStyle="round" borderColor={colors.info} paddingX={1} paddingY={0} flexGrow={1}>
+          <Box flexDirection="column" paddingX={1} flexGrow={1}>
             <Text color={colors.info} bold>{figures.tick} Capabilities</Text>
             <Text dimColor>{selectedDevbox.capabilities.filter((c: string) => c !== 'unknown').join(', ')}</Text>
           </Box>
@@ -454,7 +453,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
 
         {/* Source */}
         {(selectedDevbox.blueprint_id || selectedDevbox.snapshot_id) && (
-          <Box flexDirection="column" borderStyle="round" borderColor={colors.secondary} paddingX={1} paddingY={0} flexGrow={1}>
+          <Box flexDirection="column" paddingX={1} flexGrow={1}>
             <Text color={colors.secondary} bold>{figures.circleFilled} Source</Text>
             <Text dimColor>
               {selectedDevbox.blueprint_id && `BP: ${selectedDevbox.blueprint_id}`}
@@ -464,16 +463,16 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
         )}
       </Box>
 
-      {/* Metadata - compact */}
+      {/* Metadata */}
       {selectedDevbox.metadata && Object.keys(selectedDevbox.metadata).length > 0 && (
-        <Box borderStyle="round" borderColor={colors.success} paddingX={1} paddingY={0}>
+        <Box marginBottom={1} paddingX={1}>
           <MetadataDisplay metadata={selectedDevbox.metadata} showBorder={false} />
         </Box>
       )}
 
-      {/* Failure - compact */}
+      {/* Failure */}
       {selectedDevbox.failure_reason && (
-        <Box borderStyle="round" borderColor={colors.error} paddingX={1} paddingY={0}>
+        <Box marginBottom={1} paddingX={1}>
           <Text color={colors.error} bold>{figures.cross} </Text>
           <Text color={colors.error} dimColor>{selectedDevbox.failure_reason}</Text>
         </Box>
