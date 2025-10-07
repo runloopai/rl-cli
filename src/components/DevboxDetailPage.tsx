@@ -8,6 +8,7 @@ import { Breadcrumb } from './Breadcrumb.js';
 import { DevboxActionsMenu } from './DevboxActionsMenu.js';
 import { getDevboxUrl } from '../utils/url.js';
 import type { SSHSessionConfig } from '../utils/sshSession.js';
+import { colors } from '../utils/theme.js';
 
 interface DevboxDetailPageProps {
   devbox: any;
@@ -47,15 +48,15 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
   const selectedDevbox = initialDevbox;
 
   const allOperations = [
-    { key: 'logs', label: 'View Logs', color: 'blue', icon: figures.info, shortcut: 'l' },
-    { key: 'exec', label: 'Execute Command', color: 'green', icon: figures.play, shortcut: 'e' },
-    { key: 'upload', label: 'Upload File', color: 'green', icon: figures.arrowUp, shortcut: 'u' },
-    { key: 'snapshot', label: 'Create Snapshot', color: 'yellow', icon: figures.circleFilled, shortcut: 'n' },
-    { key: 'ssh', label: 'SSH onto the box', color: 'cyan', icon: figures.arrowRight, shortcut: 's' },
-    { key: 'tunnel', label: 'Open Tunnel', color: 'magenta', icon: figures.pointerSmall, shortcut: 't' },
-    { key: 'suspend', label: 'Suspend Devbox', color: 'yellow', icon: figures.squareSmallFilled, shortcut: 'p' },
-    { key: 'resume', label: 'Resume Devbox', color: 'green', icon: figures.play, shortcut: 'r' },
-    { key: 'delete', label: 'Shutdown Devbox', color: 'red', icon: figures.cross, shortcut: 'd' },
+    { key: 'logs', label: 'View Logs', color: colors.info, icon: figures.info, shortcut: 'l' },
+    { key: 'exec', label: 'Execute Command', color: colors.success, icon: figures.play, shortcut: 'e' },
+    { key: 'upload', label: 'Upload File', color: colors.success, icon: figures.arrowUp, shortcut: 'u' },
+    { key: 'snapshot', label: 'Create Snapshot', color: colors.warning, icon: figures.circleFilled, shortcut: 'n' },
+    { key: 'ssh', label: 'SSH onto the box', color: colors.primary, icon: figures.arrowRight, shortcut: 's' },
+    { key: 'tunnel', label: 'Open Tunnel', color: colors.secondary, icon: figures.pointerSmall, shortcut: 't' },
+    { key: 'suspend', label: 'Suspend Devbox', color: colors.warning, icon: figures.squareSmallFilled, shortcut: 'p' },
+    { key: 'resume', label: 'Resume Devbox', color: colors.success, icon: figures.play, shortcut: 'r' },
+    { key: 'delete', label: 'Shutdown Devbox', color: colors.error, icon: figures.cross, shortcut: 'd' },
   ];
 
   // Filter operations based on devbox status
@@ -176,7 +177,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
     const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
     // Core Information
-    lines.push(<Text key="core-title" color="yellow" bold>Devbox Details</Text>);
+    lines.push(<Text key="core-title" color={colors.warning} bold>Devbox Details</Text>);
     lines.push(<Text key="core-id" dimColor>  ID: {selectedDevbox.id}</Text>);
     lines.push(<Text key="core-name" dimColor>  Name: {selectedDevbox.name || '(none)'}</Text>);
     lines.push(<Text key="core-status" dimColor>  Status: {capitalize(selectedDevbox.status)}</Text>);
@@ -188,7 +189,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
 
     // Capabilities
     if (selectedDevbox.capabilities && selectedDevbox.capabilities.length > 0) {
-      lines.push(<Text key="cap-title" color="yellow" bold>Capabilities</Text>);
+      lines.push(<Text key="cap-title" color={colors.warning} bold>Capabilities</Text>);
       selectedDevbox.capabilities.forEach((cap: string, idx: number) => {
         lines.push(<Text key={`cap-${idx}`} dimColor>  {figures.pointer} {cap}</Text>);
       });
@@ -197,7 +198,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
 
     // Launch Parameters
     if (selectedDevbox.launch_parameters) {
-      lines.push(<Text key="launch-title" color="yellow" bold>Launch Parameters</Text>);
+      lines.push(<Text key="launch-title" color={colors.warning} bold>Launch Parameters</Text>);
 
       const lp = selectedDevbox.launch_parameters;
 
@@ -248,7 +249,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
 
     // Source
     if (selectedDevbox.blueprint_id || selectedDevbox.snapshot_id) {
-      lines.push(<Text key="source-title" color="yellow" bold>Source</Text>);
+      lines.push(<Text key="source-title" color={colors.warning} bold>Source</Text>);
       if (selectedDevbox.blueprint_id) {
         lines.push(<Text key="source-bp" dimColor>  Blueprint: {selectedDevbox.blueprint_id}</Text>);
       }
@@ -260,7 +261,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
 
     // Initiator
     if (selectedDevbox.initiator_type) {
-      lines.push(<Text key="init-title" color="yellow" bold>Initiator</Text>);
+      lines.push(<Text key="init-title" color={colors.warning} bold>Initiator</Text>);
       lines.push(<Text key="init-type" dimColor>  Type: {selectedDevbox.initiator_type}</Text>);
       if (selectedDevbox.initiator_id) {
         lines.push(<Text key="init-id" dimColor>  ID: {selectedDevbox.initiator_id}</Text>);
@@ -270,9 +271,9 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
 
     // Status Details
     if (selectedDevbox.failure_reason || selectedDevbox.shutdown_reason) {
-      lines.push(<Text key="status-title" color="yellow" bold>Status Details</Text>);
+      lines.push(<Text key="status-title" color={colors.warning} bold>Status Details</Text>);
       if (selectedDevbox.failure_reason) {
-        lines.push(<Text key="status-fail" color="red" dimColor>  Failure Reason: {selectedDevbox.failure_reason}</Text>);
+        lines.push(<Text key="status-fail" color={colors.error} dimColor>  Failure Reason: {selectedDevbox.failure_reason}</Text>);
       }
       if (selectedDevbox.shutdown_reason) {
         lines.push(<Text key="status-shut" dimColor>  Shutdown Reason: {selectedDevbox.shutdown_reason}</Text>);
@@ -282,7 +283,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
 
     // Metadata
     if (selectedDevbox.metadata && Object.keys(selectedDevbox.metadata).length > 0) {
-      lines.push(<Text key="meta-title" color="yellow" bold>Metadata</Text>);
+      lines.push(<Text key="meta-title" color={colors.warning} bold>Metadata</Text>);
       Object.entries(selectedDevbox.metadata).forEach(([key, value], idx) => {
         lines.push(<Text key={`meta-${idx}`} dimColor>  {key}: {value as string}</Text>);
       });
@@ -291,7 +292,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
 
     // State Transitions
     if (selectedDevbox.state_transitions && selectedDevbox.state_transitions.length > 0) {
-      lines.push(<Text key="state-title" color="yellow" bold>State History</Text>);
+      lines.push(<Text key="state-title" color={colors.warning} bold>State History</Text>);
       selectedDevbox.state_transitions.forEach((transition: any, idx: number) => {
         const text = `${idx + 1}. ${capitalize(transition.status)}${transition.transition_time_ms ? ` at ${new Date(transition.transition_time_ms).toLocaleString()}` : ''}`;
         lines.push(<Text key={`state-${idx}`} dimColor>  {text}</Text>);
@@ -300,7 +301,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
     }
 
     // Raw JSON (full)
-    lines.push(<Text key="json-title" color="yellow" bold>Raw JSON</Text>);
+    lines.push(<Text key="json-title" color={colors.warning} bold>Raw JSON</Text>);
     const jsonLines = JSON.stringify(selectedDevbox, null, 2).split('\n');
     jsonLines.forEach((line, idx) => {
       lines.push(<Text key={`json-${idx}`} dimColor>  {line}</Text>);
@@ -355,7 +356,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
           <Box marginBottom={1}>
             <StatusBadge status={selectedDevbox.status} />
             <Text> </Text>
-            <Text color="gray" dimColor>{selectedDevbox.id}</Text>
+            <Text color={colors.textDim} dimColor>{selectedDevbox.id}</Text>
           </Box>
         </Box>
 
@@ -364,7 +365,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
           marginTop={1}
           marginBottom={1}
           borderStyle="round"
-          borderColor="gray"
+          borderColor={colors.border}
           paddingX={2}
           paddingY={1}
         >
@@ -373,18 +374,18 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
           </Box>
           {hasLess && (
             <Box marginTop={1}>
-              <Text color="cyan">{figures.arrowUp} More above</Text>
+              <Text color={colors.primary}>{figures.arrowUp} More above</Text>
             </Box>
           )}
           {hasMore && (
             <Box marginTop={hasLess ? 0 : 1}>
-              <Text color="cyan">{figures.arrowDown} More below</Text>
+              <Text color={colors.primary}>{figures.arrowDown} More below</Text>
             </Box>
           )}
         </Box>
 
         <Box marginTop={1}>
-          <Text color="gray" dimColor>
+          <Text color={colors.textDim} dimColor>
             {figures.arrowUp}
             {figures.arrowDown} Scroll • [q or esc] Back to Details • Line {actualScroll + 1}-{Math.min(actualScroll + viewportHeight, detailLines.length)} of {detailLines.length}
           </Text>
@@ -406,22 +407,22 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
       <Header title="Devbox Details" />
 
       {/* Compact info section */}
-      <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1} paddingY={0}>
+      <Box flexDirection="column" borderStyle="round" borderColor={colors.primary} paddingX={1} paddingY={0}>
         <Box>
-          <Text color="cyan" bold>{selectedDevbox.name || selectedDevbox.id}</Text>
+          <Text color={colors.primary} bold>{selectedDevbox.name || selectedDevbox.id}</Text>
           <Text> </Text>
           <StatusBadge status={selectedDevbox.status} />
-          <Text color="gray" dimColor> • {selectedDevbox.id}</Text>
+          <Text color={colors.textDim} dimColor> • {selectedDevbox.id}</Text>
         </Box>
         <Box>
-          <Text color="gray" dimColor>{formattedCreateTime}</Text>
-          <Text color="gray" dimColor> ({createTimeAgo})</Text>
+          <Text color={colors.textDim} dimColor>{formattedCreateTime}</Text>
+          <Text color={colors.textDim} dimColor> ({createTimeAgo})</Text>
         </Box>
         {uptime !== null && selectedDevbox.status === 'running' && (
           <Box>
-            <Text color="green" dimColor>Uptime: {uptime < 60 ? `${uptime}m` : `${Math.floor(uptime / 60)}h ${uptime % 60}m`}</Text>
+            <Text color={colors.success} dimColor>Uptime: {uptime < 60 ? `${uptime}m` : `${Math.floor(uptime / 60)}h ${uptime % 60}m`}</Text>
             {lp?.keep_alive_time_seconds && (
-              <Text color="gray" dimColor> • Keep-alive: {Math.floor(lp.keep_alive_time_seconds / 60)}m</Text>
+              <Text color={colors.textDim} dimColor> • Keep-alive: {Math.floor(lp.keep_alive_time_seconds / 60)}m</Text>
             )}
           </Box>
         )}
@@ -431,8 +432,8 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
       <Box flexDirection="row" gap={1}>
         {/* Resources */}
         {(lp?.resource_size_request || lp?.custom_cpu_cores || lp?.custom_gb_memory || lp?.custom_disk_size || lp?.architecture) && (
-          <Box flexDirection="column" borderStyle="round" borderColor="yellow" paddingX={1} paddingY={0} flexGrow={1}>
-            <Text color="yellow" bold>{figures.squareSmallFilled} Resources</Text>
+          <Box flexDirection="column" borderStyle="round" borderColor={colors.warning} paddingX={1} paddingY={0} flexGrow={1}>
+            <Text color={colors.warning} bold>{figures.squareSmallFilled} Resources</Text>
             <Text dimColor>
               {lp?.resource_size_request && `${lp.resource_size_request}`}
               {lp?.architecture && ` • ${lp.architecture}`}
@@ -445,16 +446,16 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
 
         {/* Capabilities */}
         {hasCapabilities && (
-          <Box flexDirection="column" borderStyle="round" borderColor="blue" paddingX={1} paddingY={0} flexGrow={1}>
-            <Text color="blue" bold>{figures.tick} Capabilities</Text>
+          <Box flexDirection="column" borderStyle="round" borderColor={colors.info} paddingX={1} paddingY={0} flexGrow={1}>
+            <Text color={colors.info} bold>{figures.tick} Capabilities</Text>
             <Text dimColor>{selectedDevbox.capabilities.filter((c: string) => c !== 'unknown').join(', ')}</Text>
           </Box>
         )}
 
         {/* Source */}
         {(selectedDevbox.blueprint_id || selectedDevbox.snapshot_id) && (
-          <Box flexDirection="column" borderStyle="round" borderColor="magenta" paddingX={1} paddingY={0} flexGrow={1}>
-            <Text color="magenta" bold>{figures.circleFilled} Source</Text>
+          <Box flexDirection="column" borderStyle="round" borderColor={colors.secondary} paddingX={1} paddingY={0} flexGrow={1}>
+            <Text color={colors.secondary} bold>{figures.circleFilled} Source</Text>
             <Text dimColor>
               {selectedDevbox.blueprint_id && `BP: ${selectedDevbox.blueprint_id}`}
               {selectedDevbox.snapshot_id && `Snap: ${selectedDevbox.snapshot_id}`}
@@ -465,30 +466,30 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
 
       {/* Metadata - compact */}
       {selectedDevbox.metadata && Object.keys(selectedDevbox.metadata).length > 0 && (
-        <Box borderStyle="round" borderColor="green" paddingX={1} paddingY={0}>
+        <Box borderStyle="round" borderColor={colors.success} paddingX={1} paddingY={0}>
           <MetadataDisplay metadata={selectedDevbox.metadata} showBorder={false} />
         </Box>
       )}
 
       {/* Failure - compact */}
       {selectedDevbox.failure_reason && (
-        <Box borderStyle="round" borderColor="red" paddingX={1} paddingY={0}>
-          <Text color="red" bold>{figures.cross} </Text>
-          <Text color="red" dimColor>{selectedDevbox.failure_reason}</Text>
+        <Box borderStyle="round" borderColor={colors.error} paddingX={1} paddingY={0}>
+          <Text color={colors.error} bold>{figures.cross} </Text>
+          <Text color={colors.error} dimColor>{selectedDevbox.failure_reason}</Text>
         </Box>
       )}
 
       {/* Operations - inline display */}
       <Box flexDirection="column" marginTop={1}>
-        <Text color="cyan" bold>{figures.play} Actions</Text>
+        <Text color={colors.primary} bold>{figures.play} Actions</Text>
         <Box flexDirection="column">
           {operations.map((op, index) => {
             const isSelected = index === selectedOperation;
             return (
               <Box key={op.key}>
-                <Text color={isSelected ? 'cyan' : 'gray'}>{isSelected ? figures.pointer : ' '} </Text>
-                <Text color={isSelected ? op.color : 'gray'} bold={isSelected}>{op.icon} {op.label}</Text>
-                <Text color="gray" dimColor> [{op.shortcut}]</Text>
+                <Text color={isSelected ? colors.primary : colors.textDim}>{isSelected ? figures.pointer : ' '} </Text>
+                <Text color={isSelected ? op.color : colors.textDim} bold={isSelected}>{op.icon} {op.label}</Text>
+                <Text color={colors.textDim} dimColor> [{op.shortcut}]</Text>
               </Box>
             );
           })}
@@ -496,7 +497,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({ devbox: init
       </Box>
 
       <Box marginTop={1}>
-        <Text color="gray" dimColor>
+        <Text color={colors.textDim} dimColor>
           {figures.arrowUp}{figures.arrowDown} Navigate • [Enter] Execute • [i] Full Details • [o] Browser • [q] Back
         </Text>
       </Box>

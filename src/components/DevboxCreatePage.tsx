@@ -9,6 +9,7 @@ import { ErrorMessage } from './ErrorMessage.js';
 import { SuccessMessage } from './SuccessMessage.js';
 import { Breadcrumb } from './Breadcrumb.js';
 import { MetadataDisplay } from './MetadataDisplay.js';
+import { colors } from '../utils/theme.js';
 
 interface DevboxCreatePageProps {
   onBack: () => void;
@@ -388,7 +389,7 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
           details={`ID: ${result.id}\nName: ${result.name || '(none)'}\nStatus: ${result.status}`}
         />
         <Box marginTop={1}>
-          <Text color="gray" dimColor>
+          <Text color={colors.textDim} dimColor>
             Press [Enter], [q], or [esc] to return to list
           </Text>
         </Box>
@@ -406,7 +407,7 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
         ]} />
         <ErrorMessage message="Failed to create devbox" error={error} />
         <Box marginTop={1}>
-          <Text color="gray" dimColor>
+          <Text color={colors.textDim} dimColor>
             Press [Enter] or [r] to retry • [q] or [esc] to cancel
           </Text>
         </Box>
@@ -443,11 +444,11 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
           if (field.type === 'action') {
             return (
               <Box key={field.key} marginBottom={0}>
-                <Text color={isActive ? 'green' : 'gray'} bold={isActive}>
+                <Text color={isActive ? colors.success : colors.textDim} bold={isActive}>
                   {isActive ? figures.pointer : ' '} {field.label}
                 </Text>
                 {isActive && (
-                  <Text color="gray" dimColor>
+                  <Text color={colors.textDim} dimColor>
                     {' '}[Enter to create]
                   </Text>
                 )}
@@ -458,7 +459,7 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
           if (field.type === 'text') {
             return (
               <Box key={field.key} marginBottom={0}>
-                <Text color={isActive ? 'cyan' : 'gray'}>
+                <Text color={isActive ? colors.primary : colors.textDim}>
                   {isActive ? figures.pointer : ' '} {field.label}:{' '}
                 </Text>
                 {isActive ? (
@@ -476,7 +477,7 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
                     }
                   />
                 ) : (
-                  <Text color="white">{String(fieldData || '(empty)')}</Text>
+                  <Text color={colors.text}>{String(fieldData || '(empty)')}</Text>
                 )}
               </Box>
             );
@@ -486,14 +487,14 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
             const value = fieldData as string;
             return (
               <Box key={field.key} marginBottom={0}>
-                <Text color={isActive ? 'cyan' : 'gray'}>
+                <Text color={isActive ? colors.primary : colors.textDim}>
                   {isActive ? figures.pointer : ' '} {field.label}:
                 </Text>
-                <Text color={isActive ? 'cyan' : 'white'} bold={isActive}>
+                <Text color={isActive ? colors.primary : colors.text} bold={isActive}>
                   {' '}{value || '(none)'}
                 </Text>
                 {isActive && (
-                  <Text color="gray" dimColor>
+                  <Text color={colors.textDim} dimColor>
                     {' '}[{figures.arrowLeft}{figures.arrowRight} to change]
                   </Text>
                 )}
@@ -507,12 +508,12 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
               return (
                 <Box key={field.key} flexDirection="column" marginBottom={0}>
                   <Box>
-                    <Text color={isActive ? 'cyan' : 'gray'}>
+                    <Text color={isActive ? colors.primary : colors.textDim}>
                       {isActive ? figures.pointer : ' '} {field.label}:{' '}
                     </Text>
-                    <Text color="white">{Object.keys(formData.metadata).length} item(s)</Text>
+                    <Text color={colors.text}>{Object.keys(formData.metadata).length} item(s)</Text>
                     {isActive && (
-                      <Text color="gray" dimColor> [Enter to manage]</Text>
+                      <Text color={colors.textDim} dimColor> [Enter to manage]</Text>
                     )}
                   </Box>
                   {Object.keys(formData.metadata).length > 0 && (
@@ -530,19 +531,19 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
             const maxIndex = metadataKeys.length + 1;
 
             return (
-              <Box key={field.key} flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1} paddingY={1} marginBottom={1}>
-                <Text color="cyan" bold>{figures.hamburger} Manage Metadata</Text>
+              <Box key={field.key} flexDirection="column" borderStyle="round" borderColor={colors.primary} paddingX={1} paddingY={1} marginBottom={1}>
+                <Text color={colors.primary} bold>{figures.hamburger} Manage Metadata</Text>
 
                 {/* Input form - shown when adding or editing */}
                 {metadataInputMode && (
-                  <Box flexDirection="column" marginTop={1} borderStyle="single" borderColor={selectedMetadataIndex === 0 ? 'green' : 'yellow'} paddingX={1}>
-                    <Text color={selectedMetadataIndex === 0 ? 'green' : 'yellow'} bold>
+                  <Box flexDirection="column" marginTop={1} borderStyle="single" borderColor={selectedMetadataIndex === 0 ? colors.success : colors.warning} paddingX={1}>
+                    <Text color={selectedMetadataIndex === 0 ? colors.success : colors.warning} bold>
                       {selectedMetadataIndex === 0 ? 'Adding New' : 'Editing'}
                     </Text>
                     <Box>
                       {metadataInputMode === 'key' ? (
                         <>
-                          <Text color="cyan">Key: </Text>
+                          <Text color={colors.primary}>Key: </Text>
                           <TextInput value={metadataKey || ''} onChange={setMetadataKey} placeholder="env" />
                         </>
                       ) : (
@@ -552,7 +553,7 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
                     <Box>
                       {metadataInputMode === 'value' ? (
                         <>
-                          <Text color="cyan">Value: </Text>
+                          <Text color={colors.primary}>Value: </Text>
                           <TextInput value={metadataValue || ''} onChange={setMetadataValue} placeholder="production" />
                         </>
                       ) : (
@@ -567,10 +568,10 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
                   <>
                     {/* Add new option */}
                     <Box marginTop={1}>
-                      <Text color={selectedMetadataIndex === 0 ? 'cyan' : 'gray'}>
+                      <Text color={selectedMetadataIndex === 0 ? colors.primary : colors.textDim}>
                         {selectedMetadataIndex === 0 ? figures.pointer : ' '}{' '}
                       </Text>
-                      <Text color={selectedMetadataIndex === 0 ? 'green' : 'gray'} bold={selectedMetadataIndex === 0}>
+                      <Text color={selectedMetadataIndex === 0 ? colors.success : colors.textDim} bold={selectedMetadataIndex === 0}>
                         + Add new metadata
                       </Text>
                     </Box>
@@ -583,10 +584,10 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
                           const isSelected = selectedMetadataIndex === itemIndex;
                           return (
                             <Box key={key}>
-                              <Text color={isSelected ? 'cyan' : 'gray'}>
+                              <Text color={isSelected ? colors.primary : colors.textDim}>
                                 {isSelected ? figures.pointer : ' '}{' '}
                               </Text>
-                              <Text color={isSelected ? 'cyan' : 'gray'} bold={isSelected}>
+                              <Text color={isSelected ? colors.primary : colors.textDim} bold={isSelected}>
                                 {key}: {formData.metadata[key]}
                               </Text>
                             </Box>
@@ -597,10 +598,10 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
 
                     {/* Done option */}
                     <Box marginTop={1}>
-                      <Text color={selectedMetadataIndex === maxIndex ? 'cyan' : 'gray'}>
+                      <Text color={selectedMetadataIndex === maxIndex ? colors.primary : colors.textDim}>
                         {selectedMetadataIndex === maxIndex ? figures.pointer : ' '}{' '}
                       </Text>
-                      <Text color={selectedMetadataIndex === maxIndex ? 'green' : 'gray'} bold={selectedMetadataIndex === maxIndex}>
+                      <Text color={selectedMetadataIndex === maxIndex ? colors.success : colors.textDim} bold={selectedMetadataIndex === maxIndex}>
                         {figures.tick} Done
                       </Text>
                     </Box>
@@ -608,8 +609,8 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
                 )}
 
                 {/* Help text */}
-                <Box marginTop={1} borderStyle="single" borderColor="gray" paddingX={1}>
-                  <Text color="gray" dimColor>
+                <Box marginTop={1} borderStyle="single" borderColor={colors.border} paddingX={1}>
+                  <Text color={colors.textDim} dimColor>
                     {metadataInputMode
                       ? `[Tab] Switch field • [Enter] ${metadataInputMode === 'key' ? 'Next' : 'Save'} • [esc] Cancel`
                       : `${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedMetadataIndex === 0 ? 'Add' : selectedMetadataIndex === maxIndex ? 'Done' : 'Edit'} • [d] Delete • [esc] Back`
@@ -627,15 +628,15 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
 
       {/* Validation warning */}
       {formData.resource_size === 'CUSTOM_SIZE' && validateCustomResources() && (
-        <Box borderStyle="round" borderColor="red" paddingX={1} paddingY={0} marginTop={1}>
-          <Text color="red" bold>{figures.cross} Validation Error</Text>
-          <Text color="red" dimColor>{validateCustomResources()}</Text>
+        <Box borderStyle="round" borderColor={colors.error} paddingX={1} paddingY={0} marginTop={1}>
+          <Text color={colors.error} bold>{figures.cross} Validation Error</Text>
+          <Text color={colors.error} dimColor>{validateCustomResources()}</Text>
         </Box>
       )}
 
       {!inMetadataSection && (
         <Box marginTop={1}>
-          <Text color="gray" dimColor>
+          <Text color={colors.textDim} dimColor>
             {figures.arrowUp}{figures.arrowDown} Navigate • [Enter] Create • [q] Cancel
           </Text>
         </Box>

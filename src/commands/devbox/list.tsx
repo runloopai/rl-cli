@@ -19,6 +19,7 @@ import { DevboxActionsMenu } from '../../components/DevboxActionsMenu.js';
 import { ActionsPopup } from '../../components/ActionsPopup.js';
 import { getDevboxUrl } from '../../utils/url.js';
 import { runSSHSession, type SSHSessionConfig } from '../../utils/sshSession.js';
+import { colors } from '../../utils/theme.js';
 
 // Format time ago in a succinct way
 const formatTimeAgo = (timestamp: number): string => {
@@ -114,15 +115,15 @@ const ListDevboxesUI: React.FC<{
 
   // Define allOperations
   const allOperations = [
-    { key: 'logs', label: 'View Logs', color: 'blue', icon: figures.info, shortcut: 'l' },
-    { key: 'exec', label: 'Execute Command', color: 'green', icon: figures.play, shortcut: 'e' },
-    { key: 'upload', label: 'Upload File', color: 'green', icon: figures.arrowUp, shortcut: 'u' },
-    { key: 'snapshot', label: 'Create Snapshot', color: 'yellow', icon: figures.circleFilled, shortcut: 'n' },
-    { key: 'ssh', label: 'SSH onto the box', color: 'cyan', icon: figures.arrowRight, shortcut: 's' },
-    { key: 'tunnel', label: 'Open Tunnel', color: 'magenta', icon: figures.pointerSmall, shortcut: 't' },
-    { key: 'suspend', label: 'Suspend Devbox', color: 'yellow', icon: figures.squareSmallFilled, shortcut: 'p' },
-    { key: 'resume', label: 'Resume Devbox', color: 'green', icon: figures.play, shortcut: 'r' },
-    { key: 'delete', label: 'Shutdown Devbox', color: 'red', icon: figures.cross, shortcut: 'd' },
+    { key: 'logs', label: 'View Logs', color: colors.info, icon: figures.info, shortcut: 'l' },
+    { key: 'exec', label: 'Execute Command', color: colors.success, icon: figures.play, shortcut: 'e' },
+    { key: 'upload', label: 'Upload File', color: colors.success, icon: figures.arrowUp, shortcut: 'u' },
+    { key: 'snapshot', label: 'Create Snapshot', color: colors.warning, icon: figures.circleFilled, shortcut: 'n' },
+    { key: 'ssh', label: 'SSH onto the box', color: colors.primary, icon: figures.arrowRight, shortcut: 's' },
+    { key: 'tunnel', label: 'Open Tunnel', color: colors.secondary, icon: figures.pointerSmall, shortcut: 't' },
+    { key: 'suspend', label: 'Suspend Devbox', color: colors.warning, icon: figures.squareSmallFilled, shortcut: 'p' },
+    { key: 'resume', label: 'Resume Devbox', color: colors.success, icon: figures.play, shortcut: 'r' },
+    { key: 'delete', label: 'Shutdown Devbox', color: colors.error, icon: figures.cross, shortcut: 'd' },
   ];
 
   // Check if we need to focus on a specific devbox after returning from SSH
@@ -501,7 +502,7 @@ const ListDevboxesUI: React.FC<{
                   'id',
                   'ID',
                   (devbox: any) => devbox.id,
-                  { width: idWidth, color: 'gray', dimColor: true, bold: false }
+                  { width: idWidth, color: colors.textDim, dimColor: true, bold: false }
                 ),
                 {
                   key: 'statusText',
@@ -538,19 +539,19 @@ const ListDevboxesUI: React.FC<{
                           .join(',')}]`
                       : '';
                   },
-                  { width: capabilitiesWidth, color: 'blue', dimColor: true, bold: false, visible: showCapabilities }
+                  { width: capabilitiesWidth, color: colors.info, dimColor: true, bold: false, visible: showCapabilities }
                 ),
                 createTextColumn(
                   'tags',
                   'Tags',
                   (devbox: any) => devbox.blueprint_id ? '[bp]' : devbox.snapshot_id ? '[snap]' : '',
-                  { width: tagWidth, color: 'yellow', dimColor: true, bold: false, visible: showTags }
+                  { width: tagWidth, color: colors.warning, dimColor: true, bold: false, visible: showTags }
                 ),
                 createTextColumn(
                   'created',
                   'Created',
                   (devbox: any) => devbox.create_time_ms ? formatTimeAgo(devbox.create_time_ms) : '',
-                  { width: timeWidth, color: 'gray', dimColor: true, bold: false }
+                  { width: timeWidth, color: colors.textDim, dimColor: true, bold: false }
                 ),
               ]}
             />
@@ -600,9 +601,9 @@ const ListDevboxesUI: React.FC<{
           { label: 'Devboxes', active: true }
         ]} />
         <Box>
-          <Text color="yellow">{figures.info}</Text>
+          <Text color={colors.warning}>{figures.info}</Text>
           <Text> No devboxes found. Try: </Text>
-          <Text color="cyan" bold>
+          <Text color={colors.primary} bold>
             rln devbox create
           </Text>
         </Box>
@@ -620,7 +621,7 @@ const ListDevboxesUI: React.FC<{
         <>
           {searchMode && (
             <Box marginBottom={1}>
-              <Text color="cyan">{figures.pointerSmall} Search: </Text>
+              <Text color={colors.primary}>{figures.pointerSmall} Search: </Text>
               <TextInput
                 value={searchQuery}
                 onChange={setSearchQuery}
@@ -631,14 +632,14 @@ const ListDevboxesUI: React.FC<{
                   setSelectedIndex(0);
                 }}
               />
-              <Text color="gray" dimColor> [Esc to cancel]</Text>
+              <Text color={colors.textDim} dimColor> [Esc to cancel]</Text>
             </Box>
           )}
           {!searchMode && searchQuery && (
             <Box marginBottom={1}>
-              <Text color="cyan">{figures.info} Searching for: </Text>
-              <Text color="yellow" bold>{searchQuery}</Text>
-              <Text color="gray" dimColor> ({currentDevboxes.length} results) [/ to edit, Esc to clear]</Text>
+              <Text color={colors.primary}>{figures.info} Searching for: </Text>
+              <Text color={colors.warning} bold>{searchQuery}</Text>
+              <Text color={colors.textDim} dimColor> ({currentDevboxes.length} results) [/ to edit, Esc to clear]</Text>
             </Box>
           )}
           <Table
@@ -670,7 +671,7 @@ const ListDevboxesUI: React.FC<{
                 'id',
                 'ID',
                 (devbox: any) => devbox.id,
-                { width: idWidth, color: 'gray', dimColor: true, bold: false }
+                { width: idWidth, color: colors.textDim, dimColor: true, bold: false }
               ),
               {
                 key: 'statusText',
@@ -707,51 +708,51 @@ const ListDevboxesUI: React.FC<{
                         .join(',')}]`
                     : '';
                 },
-                { width: capabilitiesWidth, color: 'blue', dimColor: true, bold: false, visible: showCapabilities }
+                { width: capabilitiesWidth, color: colors.info, dimColor: true, bold: false, visible: showCapabilities }
               ),
               createTextColumn(
                 'tags',
                 'Tags',
                 (devbox: any) => devbox.blueprint_id ? '[bp]' : devbox.snapshot_id ? '[snap]' : '',
-                { width: tagWidth, color: 'yellow', dimColor: true, bold: false, visible: showTags }
+                { width: tagWidth, color: colors.warning, dimColor: true, bold: false, visible: showTags }
               ),
               createTextColumn(
                 'created',
                 'Created',
                 (devbox: any) => devbox.create_time_ms ? formatTimeAgo(devbox.create_time_ms) : '',
-                { width: timeWidth, color: 'gray', dimColor: true, bold: false }
+                { width: timeWidth, color: colors.textDim, dimColor: true, bold: false }
               ),
             ]}
           />
 
           {/* Statistics Bar */}
           <Box marginTop={1} paddingX={1}>
-            <Text color="cyan" bold>
+            <Text color={colors.primary} bold>
               {figures.hamburger} {totalCount}
             </Text>
-            <Text color="gray" dimColor> total</Text>
+            <Text color={colors.textDim} dimColor> total</Text>
             {totalPages > 1 && (
               <>
-                <Text color="gray" dimColor> • </Text>
-                <Text color="gray" dimColor>
+                <Text color={colors.textDim} dimColor> • </Text>
+                <Text color={colors.textDim} dimColor>
                   Page {currentPage + 1} of {totalPages}
                 </Text>
               </>
             )}
-            <Text color="gray" dimColor> • </Text>
-            <Text color="gray" dimColor>
+            <Text color={colors.textDim} dimColor> • </Text>
+            <Text color={colors.textDim} dimColor>
               Showing {startIndex + 1}-{endIndex} of {totalCount}
             </Text>
             {hasMore && (
-              <Text color="gray" dimColor> (more available)</Text>
+              <Text color={colors.textDim} dimColor> (more available)</Text>
             )}
             <Text> </Text>
             {refreshing ? (
-              <Text color="cyan">
+              <Text color={colors.primary}>
                 {['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'][refreshIcon % 10]}
               </Text>
             ) : (
-              <Text color="green">
+              <Text color={colors.success}>
                 {figures.circleFilled}
               </Text>
             )}
@@ -759,16 +760,16 @@ const ListDevboxesUI: React.FC<{
 
           {/* Help Bar */}
           <Box marginTop={1} paddingX={1}>
-            <Text color="gray" dimColor>
+            <Text color={colors.textDim} dimColor>
               {figures.arrowUp}
               {figures.arrowDown} Navigate
             </Text>
             {totalPages > 1 && (
-              <Text color="gray" dimColor>
+              <Text color={colors.textDim} dimColor>
                 {' '}• {figures.arrowLeft}{figures.arrowRight} Page
               </Text>
             )}
-            <Text color="gray" dimColor>
+            <Text color={colors.textDim} dimColor>
               {' '}• [Enter] Details • [a] Actions • [c] Create • [/] Search • [o] Browser • [Esc] Back
             </Text>
           </Box>

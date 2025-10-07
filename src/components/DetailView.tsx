@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import figures from 'figures';
+import { colors } from '../utils/theme.js';
 
 interface DetailSection {
   title: string;
@@ -24,12 +25,12 @@ export const DetailView: React.FC<DetailViewProps> = ({ sections }) => {
     <Box flexDirection="column" gap={1}>
       {sections.map((section, sectionIndex) => (
         <Box key={sectionIndex} flexDirection="column">
-          <Text color="yellow" bold>
+          <Text color={colors.warning} bold>
             {section.title}
           </Text>
           {section.items.map((item, itemIndex) => (
             <Box key={itemIndex}>
-              <Text color={item.color || 'gray'} dimColor>
+              <Text color={item.color || colors.textDim} dimColor>
                   {item.label}: {item.value}
               </Text>
             </Box>
