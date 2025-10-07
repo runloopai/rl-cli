@@ -239,6 +239,12 @@ const ListDevboxesUI: React.FC<{
   }, [showDetails, showCreate, showActions]);
 
   useInput((input, key) => {
+    // Handle Ctrl+C to force exit
+    if (key.ctrl && input === 'c') {
+      process.stdout.write('\x1b[?1049l'); // Exit alternate screen
+      process.exit(130);
+    }
+
     const pageDevboxes = currentDevboxes.length;
 
     // Skip input handling when in search mode - let TextInput handle it

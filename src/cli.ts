@@ -8,6 +8,14 @@ import { execCommand } from './commands/devbox/exec.js';
 import { uploadFile } from './commands/devbox/upload.js';
 import { getConfig } from './utils/config.js';
 
+// Global Ctrl+C handler to ensure it always exits
+process.on('SIGINT', () => {
+  // Force exit immediately, clearing alternate screen buffer
+  process.stdout.write('\x1b[?1049l');
+  process.stdout.write('\n');
+  process.exit(130); // Standard exit code for SIGINT
+});
+
 const program = new Command();
 
 program

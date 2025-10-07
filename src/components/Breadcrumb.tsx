@@ -11,8 +11,8 @@ interface BreadcrumbProps {
 }
 
 export const Breadcrumb: React.FC<BreadcrumbProps> = React.memo(({ items }) => {
-  const baseUrl = process.env.RUNLOOP_BASE_URL;
-  const isDevEnvironment = baseUrl && baseUrl !== 'https://api.runloop.ai';
+  const env = process.env.RUNLOOP_ENV?.toLowerCase();
+  const isDevEnvironment = env === 'dev';
 
   return (
     <Box marginBottom={1} paddingX={2} paddingY={0}>

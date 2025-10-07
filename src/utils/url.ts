@@ -4,17 +4,19 @@
 
 /**
  * Get the base URL for the Runloop platform based on environment
+ * - dev: https://platform.runloop.pro
+ * - prod or unset: https://platform.runloop.ai (default)
  */
 export function getBaseUrl(): string {
-  const baseUrl = process.env.RUNLOOP_BASE_URL;
-  
-  // If RUNLOOP_BASE_URL is explicitly set, use it
-  if (baseUrl) {
-    return baseUrl;
+  const env = process.env.RUNLOOP_ENV?.toLowerCase();
+
+  switch (env) {
+    case 'dev':
+      return 'https://platform.runloop.pro';
+    case 'prod':
+    default:
+      return 'https://platform.runloop.ai';
   }
-  
-  // Default to production
-  return 'https://platform.runloop.ai';
 }
 
 /**
@@ -22,13 +24,7 @@ export function getBaseUrl(): string {
  */
 export function getDevboxUrl(devboxId: string): string {
   const baseUrl = getBaseUrl();
-  
-  // If it's not production, use runloop.pro
-  if (baseUrl !== 'https://platform.runloop.ai') {
-    return `https://platform.runloop.pro/devboxes/${devboxId}`;
-  }
-  
-  return `https://platform.runloop.ai/devboxes/${devboxId}`;
+  return `${baseUrl}/devboxes/${devboxId}`;
 }
 
 /**
@@ -36,13 +32,7 @@ export function getDevboxUrl(devboxId: string): string {
  */
 export function getBlueprintUrl(blueprintId: string): string {
   const baseUrl = getBaseUrl();
-  
-  // If it's not production, use runloop.pro
-  if (baseUrl !== 'https://platform.runloop.ai') {
-    return `https://platform.runloop.pro/blueprints/${blueprintId}`;
-  }
-  
-  return `https://platform.runloop.ai/blueprints/${blueprintId}`;
+  return `${baseUrl}/blueprints/${blueprintId}`;
 }
 
 /**
@@ -50,11 +40,5 @@ export function getBlueprintUrl(blueprintId: string): string {
  */
 export function getSettingsUrl(): string {
   const baseUrl = getBaseUrl();
-  
-  // If it's not production, use runloop.pro
-  if (baseUrl !== 'https://platform.runloop.ai') {
-    return 'https://platform.runloop.pro/settings';
-  }
-  
-  return 'https://platform.runloop.ai/settings';
+  return `${baseUrl}/settings`;
 }

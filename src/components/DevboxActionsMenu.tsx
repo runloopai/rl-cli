@@ -42,7 +42,7 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
   const [operationInput, setOperationInput] = React.useState('');
   const [operationResult, setOperationResult] = React.useState<string | null>(null);
   const [operationError, setOperationError] = React.useState<Error | null>(null);
-  const [logsWrapMode, setLogsWrapMode] = React.useState(true);
+  const [logsWrapMode, setLogsWrapMode] = React.useState(false);
   const [logsScroll, setLogsScroll] = React.useState(0);
   const [execScroll, setExecScroll] = React.useState(0);
   const [copyStatus, setCopyStatus] = React.useState<string | null>(null);
@@ -324,7 +324,9 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
           fsModule.writeFileSync(keyPath, sshKey.ssh_private_key, { mode: 0o600 });
 
           const sshUser = devbox.launch_parameters?.user_parameters?.username || 'user';
-          const proxyCommand = 'openssl s_client -quiet -verify_quiet -servername %h -connect ssh.runloop.ai:443 2>/dev/null';
+          const env = process.env.RUNLOOP_ENV?.toLowerCase();
+          const sshHost = env === 'dev' ? 'ssh.runloop.pro' : 'ssh.runloop.ai';
+          const proxyCommand = `openssl s_client -quiet -verify_quiet -servername %h -connect ${sshHost}:443 2>/dev/null`;
 
           const sshConfig: SSHSessionConfig = {
             keyPath,
