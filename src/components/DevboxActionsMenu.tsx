@@ -107,14 +107,19 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
     if (operationResult || operationError) {
       if (input === 'q' || key.escape || key.return) {
         console.clear();
-        setOperationResult(null);
-        setOperationError(null);
-        setExecutingOperation(null);
-        setOperationInput('');
-        setLogsWrapMode(true);
-        setLogsScroll(0);
-        setExecScroll(0);
-        setCopyStatus(null);
+        // If skipOperationsMenu is true, go back to parent instead of operations menu
+        if (skipOperationsMenu) {
+          onBack();
+        } else {
+          setOperationResult(null);
+          setOperationError(null);
+          setExecutingOperation(null);
+          setOperationInput('');
+          setLogsWrapMode(true);
+          setLogsScroll(0);
+          setExecScroll(0);
+          setCopyStatus(null);
+        }
       } else if ((key.upArrow || input === 'k') && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'exec') {
         setExecScroll(Math.max(0, execScroll - 1));
       } else if ((key.downArrow || input === 'j') && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'exec') {
