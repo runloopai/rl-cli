@@ -38,7 +38,7 @@ export const ActionsPopup: React.FC<ActionsPopupProps> = ({
 
   // Render all lines with background
   const lines = [
-    bgLine(chalk.hex(colors.primary).bold(` ${figures.play} Quick Actions`)),
+    bgLine(chalk.cyan.bold(` ${figures.play} Quick Actions`)),
     chalk.bgBlack(' '.repeat(contentWidth)),
     ...operations.map((op, index) => {
       const isSelected = index === selectedOperation;
@@ -48,28 +48,28 @@ export const ActionsPopup: React.FC<ActionsPopupProps> = ({
       let styled: string;
       if (isSelected) {
         const colorFn = chalk[op.color as 'red' | 'green' | 'blue' | 'yellow' | 'magenta' | 'cyan'];
-        styled = typeof colorFn === 'function' ? colorFn.bold(content) : chalk.hex(colors.text).bold(content);
+        styled = typeof colorFn === 'function' ? colorFn.bold(content) : chalk.white.bold(content);
       } else {
-        styled = chalk.hex(colors.textDim)(content);
+        styled = chalk.gray(content);
       }
 
       return bgLine(styled);
     }),
     chalk.bgBlack(' '.repeat(contentWidth)),
-    bgLine(chalk.hex(colors.textDim).dim(` ${figures.arrowUp}${figures.arrowDown} Nav • [Enter]`)),
-    bgLine(chalk.hex(colors.textDim).dim(` [Esc] Close`)),
+    bgLine(chalk.gray.dim(` ${figures.arrowUp}${figures.arrowDown} Nav • [Enter]`)),
+    bgLine(chalk.gray.dim(` [Esc] Close`)),
   ];
 
   // Draw custom border with background to fill gaps
-  const borderTop = chalk.hex(colors.primary)('╭' + '─'.repeat(contentWidth) + '╮');
-  const borderBottom = chalk.hex(colors.primary)('╰' + '─'.repeat(contentWidth) + '╯');
+  const borderTop = chalk.cyan('╭' + '─'.repeat(contentWidth) + '╮');
+  const borderBottom = chalk.cyan('╰' + '─'.repeat(contentWidth) + '╯');
 
   return (
     <Box flexDirection="column" alignItems="center">
       <Box flexDirection="column">
         <Text>{borderTop}</Text>
         {lines.map((line, i) => (
-          <Text key={i}>{chalk.hex(colors.primary)('│')}{line}{chalk.hex(colors.primary)('│')}</Text>
+          <Text key={i}>{chalk.cyan('│')}{line}{chalk.cyan('│')}</Text>
         ))}
         <Text>{borderBottom}</Text>
       </Box>
