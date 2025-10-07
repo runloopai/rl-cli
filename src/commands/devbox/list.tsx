@@ -12,6 +12,7 @@ import { StatusBadge, getStatusDisplay } from '../../components/StatusBadge.js';
 import { MetadataDisplay } from '../../components/MetadataDisplay.js';
 import { Breadcrumb } from '../../components/Breadcrumb.js';
 import { Table, createTextColumn, createComponentColumn } from '../../components/Table.js';
+import { formatTimeAgo } from '../../components/ResourceListView.js';
 import { createExecutor } from '../../utils/CommandExecutor.js';
 import { DevboxDetailPage } from '../../components/DevboxDetailPage.js';
 import { DevboxCreatePage } from '../../components/DevboxCreatePage.js';
@@ -20,28 +21,6 @@ import { ActionsPopup } from '../../components/ActionsPopup.js';
 import { getDevboxUrl } from '../../utils/url.js';
 import { runSSHSession, type SSHSessionConfig } from '../../utils/sshSession.js';
 import { colors } from '../../utils/theme.js';
-
-// Format time ago in a succinct way
-const formatTimeAgo = (timestamp: number): string => {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
-
-  if (seconds < 60) return `${seconds}s ago`;
-
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
-
-  const years = Math.floor(months / 12);
-  return `${years}y ago`;
-};
 
 interface ListOptions {
   status?: string;

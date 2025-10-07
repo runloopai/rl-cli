@@ -12,6 +12,7 @@ import { Breadcrumb } from '../../components/Breadcrumb.js';
 import { MetadataDisplay } from '../../components/MetadataDisplay.js';
 import { Table, createTextColumn, createComponentColumn } from '../../components/Table.js';
 import { OperationsMenu, Operation } from '../../components/OperationsMenu.js';
+import { ResourceListView, formatTimeAgo } from '../../components/ResourceListView.js';
 import { createExecutor } from '../../utils/CommandExecutor.js';
 import { getBlueprintUrl } from '../../utils/url.js';
 import { colors } from '../../utils/theme.js';
@@ -21,45 +22,20 @@ const MAX_FETCH = 100;
 
 type OperationType = 'create_devbox' | 'delete' | null;
 
-// Format time ago
-const formatTimeAgo = (timestamp: number): string => {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
-
-  if (seconds < 60) return `${seconds}s ago`;
-
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
-
-  const years = Math.floor(months / 12);
-  return `${years}y ago`;
-};
-
 const ListBlueprintsUI: React.FC<{
   onBack?: () => void;
   onExit?: () => void;
 }> = ({ onBack, onExit }) => {
   const { stdout } = useStdout();
   const { exit: inkExit } = useApp();
-  const [loading, setLoading] = React.useState(true);
-  const [blueprints, setBlueprints] = React.useState<any[]>([]);
-  const [error, setError] = React.useState<Error | null>(null);
-  const [currentPage, setCurrentPage] = React.useState(0);
-  const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showDetails, setShowDetails] = React.useState(false);
+  const [selectedBlueprint, setSelectedBlueprint] = React.useState<any | null>(null);
   const [selectedOperation, setSelectedOperation] = React.useState(0);
   const [executingOperation, setExecutingOperation] = React.useState<OperationType>(null);
   const [operationInput, setOperationInput] = React.useState('');
   const [operationResult, setOperationResult] = React.useState<string | null>(null);
   const [operationError, setOperationError] = React.useState<Error | null>(null);
+  const [loading, setLoading] = React.useState(false);
 
   // Calculate responsive column widths
   const terminalWidth = stdout?.columns || 120;
@@ -89,31 +65,6 @@ const ListBlueprintsUI: React.FC<{
     },
   ];
 
-  React.useEffect(() => {
-    const list = async () => {
-      try {
-        const client = getClient();
-        const allBlueprints: any[] = [];
-
-        let count = 0;
-        for await (const blueprint of client.blueprints.list()) {
-          allBlueprints.push(blueprint);
-          count++;
-          if (count >= MAX_FETCH) {
-            break;
-          }
-        }
-
-        setBlueprints(allBlueprints);
-      } catch (err) {
-        setError(err as Error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    list();
-  }, []);
 
   // Clear console when transitioning to detail view
   const prevShowDetailsRef = React.useRef(showDetails);
@@ -129,11 +80,13 @@ const ListBlueprintsUI: React.FC<{
     if (executingOperation === 'delete' && !loading && selectedBlueprint) {
       executeOperation();
     }
-  }, [executingOperation]);
+  }, [executingOperation, loading, selectedBlueprint]);
 
   const executeOperation = async () => {
     const client = getClient();
     const blueprint = selectedBlueprint;
+
+    if (!blueprint) return;
 
     try {
       setLoading(true);
@@ -165,8 +118,6 @@ const ListBlueprintsUI: React.FC<{
   };
 
   useInput((input, key) => {
-    const pageBlueprints = currentBlueprints.length;
-
     // Handle operation input mode
     if (executingOperation && !operationResult && !operationError) {
       const currentOp = allOperations.find((op) => op.key === executingOperation);
@@ -230,76 +181,22 @@ const ListBlueprintsUI: React.FC<{
       }
       return;
     }
-
-    // Handle list view
-    if (key.upArrow && selectedIndex > 0) {
-      setSelectedIndex(selectedIndex - 1);
-    } else if (key.downArrow && selectedIndex < pageBlueprints - 1) {
-      setSelectedIndex(selectedIndex + 1);
-    } else if ((input === 'n' || key.rightArrow) && currentPage < totalPages - 1) {
-      setCurrentPage(currentPage + 1);
-      setSelectedIndex(0);
-    } else if ((input === 'p' || key.leftArrow) && currentPage > 0) {
-      setCurrentPage(currentPage - 1);
-      setSelectedIndex(0);
-    } else if (key.return) {
-      console.clear();
-      setShowDetails(true);
-    } else if (input === 'o' && selectedBlueprint) {
-      // Open in browser
-      const url = getBlueprintUrl(selectedBlueprint.id);
-      const openBrowser = async () => {
-        const { exec } = await import('child_process');
-        const platform = process.platform;
-
-        let openCommand: string;
-        if (platform === 'darwin') {
-          openCommand = `open "${url}"`;
-        } else if (platform === 'win32') {
-          openCommand = `start "${url}"`;
-        } else {
-          openCommand = `xdg-open "${url}"`;
-        }
-
-        exec(openCommand);
-      };
-      openBrowser();
-    } else if (key.escape) {
-      if (onBack) {
-        onBack();
-      } else if (onExit) {
-        onExit();
-      } else {
-        inkExit();
-      }
-    }
   });
 
-  const totalPages = Math.ceil(blueprints.length / PAGE_SIZE);
-  const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = Math.min(startIndex + PAGE_SIZE, blueprints.length);
-  const currentBlueprints = blueprints.slice(startIndex, endIndex);
-  const selectedBlueprint = currentBlueprints[selectedIndex];
-
-  const buildComplete = blueprints.filter((b) => b.status === 'build_complete').length;
-  const building = blueprints.filter((b) => ['provisioning', 'building'].includes(b.status)).length;
-  const failed = blueprints.filter((b) => b.status === 'build_failed').length;
-
   // Filter operations based on blueprint status
-  const operations =
-    selectedBlueprint
-      ? allOperations.filter((op) => {
-          const status = selectedBlueprint.status;
+  const operations = selectedBlueprint
+    ? allOperations.filter((op) => {
+        const status = selectedBlueprint.status;
 
-          // Only allow creating devbox if build is complete
-          if (op.key === 'create_devbox') {
-            return status === 'build_complete';
-          }
+        // Only allow creating devbox if build is complete
+        if (op.key === 'create_devbox') {
+          return status === 'build_complete';
+        }
 
-          // Allow delete for any status
-          return true;
-        })
-      : allOperations;
+        // Allow delete for any status
+        return true;
+      })
+    : allOperations;
 
   // Operation result display
   if (operationResult || operationError) {
@@ -541,120 +438,112 @@ const ListBlueprintsUI: React.FC<{
     );
   }
 
-  // List view
+  // List view using ResourceListView
   return (
-    <>
-      <Breadcrumb items={[{ label: 'Blueprints', active: true }]} />
-      {loading && <SpinnerComponent message="Loading blueprints..." />}
-      {!loading && !error && blueprints.length === 0 && (
-        <Box>
-          <Text color={colors.warning}>{figures.info}</Text>
-          <Text> No blueprints found. Try: </Text>
-          <Text color={colors.primary} bold>
-            rln blueprint create
-          </Text>
-        </Box>
-      )}
-      {!loading && !error && blueprints.length > 0 && (
-        <>
-          <Box marginBottom={1}>
-            <Text color={colors.success}>
-              {figures.tick} {buildComplete}
-            </Text>
-            <Text> </Text>
-            <Text color={colors.warning}>
-              {figures.ellipsis} {building}
-            </Text>
-            <Text> </Text>
-            <Text color={colors.error}>
-              {figures.cross} {failed}
-            </Text>
-            <Text> </Text>
-            <Text color={colors.primary}>
-              {figures.hamburger} {blueprints.length}
-              {blueprints.length >= MAX_FETCH && '+'}
-            </Text>
-            {totalPages > 1 && (
-              <>
-                <Text color={colors.textDim}> • </Text>
-                <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1}/{totalPages}
-                </Text>
-              </>
-            )}
-          </Box>
-
-          <Table
-            data={currentBlueprints}
-            keyExtractor={(blueprint: any) => blueprint.id}
-            selectedIndex={selectedIndex}
-            columns={[
-              createComponentColumn(
-                'status',
-                'Status',
-                (blueprint: any) => <StatusBadge status={blueprint.status} showText={false} />,
-                { width: 2 }
-              ),
-              createTextColumn(
-                'id',
-                'ID',
-                (blueprint: any) => (showFullId ? blueprint.id : blueprint.id.slice(0, 13)),
-                {
-                  width: showFullId ? idWidth : 15,
-                  color: colors.textDim,
-                  dimColor: true,
-                  bold: false,
+    <ResourceListView
+      config={{
+        resourceName: 'Blueprint',
+        resourceNamePlural: 'Blueprints',
+        fetchResources: async () => {
+          const client = getClient();
+          const allBlueprints: any[] = [];
+          let count = 0;
+          for await (const blueprint of client.blueprints.list()) {
+            allBlueprints.push(blueprint);
+            count++;
+            if (count >= MAX_FETCH) break;
+          }
+          return allBlueprints;
+        },
+        columns: [
+          createComponentColumn(
+            'status',
+            'Status',
+            (blueprint: any) => <StatusBadge status={blueprint.status} showText={false} />,
+            { width: 2 }
+          ),
+          createTextColumn(
+            'id',
+            'ID',
+            (blueprint: any) => (showFullId ? blueprint.id : blueprint.id.slice(0, 13)),
+            {
+              width: showFullId ? idWidth : 15,
+              color: colors.textDim,
+              dimColor: true,
+              bold: false,
+            }
+          ),
+          createTextColumn(
+            'name',
+            'Name',
+            (blueprint: any) => blueprint.name || '(unnamed)',
+            { width: nameWidth }
+          ),
+          createTextColumn(
+            'description',
+            'Description',
+            (blueprint: any) => blueprint.dockerfile_setup?.description || '',
+            {
+              width: descriptionWidth,
+              color: colors.textDim,
+              dimColor: true,
+              bold: false,
+              visible: showDescription,
+            }
+          ),
+          createTextColumn(
+            'created',
+            'Created',
+            (blueprint: any) =>
+              blueprint.create_time_ms ? formatTimeAgo(blueprint.create_time_ms) : '',
+            { width: timeWidth, color: colors.textDim, dimColor: true, bold: false }
+          ),
+        ],
+        keyExtractor: (blueprint: any) => blueprint.id,
+        getStatus: (blueprint: any) => blueprint.status,
+        statusConfig: {
+          success: ['build_complete'],
+          warning: ['provisioning', 'building'],
+          error: ['build_failed'],
+        },
+        emptyState: {
+          message: 'No blueprints found. Try:',
+          command: 'rln blueprint create',
+        },
+        pageSize: PAGE_SIZE,
+        maxFetch: MAX_FETCH,
+        onSelect: (blueprint: any) => {
+          setSelectedBlueprint(blueprint);
+          setShowDetails(true);
+        },
+        onBack: onBack,
+        onExit: onExit,
+        additionalShortcuts: [
+          {
+            key: 'o',
+            label: 'Browser',
+            handler: (blueprint: any) => {
+              const url = getBlueprintUrl(blueprint.id);
+              const openBrowser = async () => {
+                const { exec } = await import('child_process');
+                const platform = process.platform;
+                let openCommand: string;
+                if (platform === 'darwin') {
+                  openCommand = `open "${url}"`;
+                } else if (platform === 'win32') {
+                  openCommand = `start "${url}"`;
+                } else {
+                  openCommand = `xdg-open "${url}"`;
                 }
-              ),
-              createTextColumn(
-                'name',
-                'Name',
-                (blueprint: any) => blueprint.name || '(unnamed)',
-                { width: nameWidth }
-              ),
-              createTextColumn(
-                'description',
-                'Description',
-                (blueprint: any) => blueprint.dockerfile_setup?.description || '',
-                {
-                  width: descriptionWidth,
-                  color: colors.textDim,
-                  dimColor: true,
-                  bold: false,
-                  visible: showDescription,
-                }
-              ),
-              createTextColumn(
-                'created',
-                'Created',
-                (blueprint: any) =>
-                  blueprint.create_time_ms ? formatTimeAgo(blueprint.create_time_ms) : '',
-                { width: timeWidth, color: colors.textDim, dimColor: true, bold: false }
-              ),
-            ]}
-          />
-
-          <Box marginTop={1}>
-            <Text color={colors.textDim} dimColor>
-              {figures.arrowUp}
-              {figures.arrowDown} Navigate • [Enter] Operations • [o] Open in Browser •
-            </Text>
-            {totalPages > 1 && (
-              <Text color={colors.textDim} dimColor>
-                {' '}
-                {figures.arrowLeft}
-                {figures.arrowRight} Page •
-              </Text>
-            )}
-            <Text color={colors.textDim} dimColor>
-              {' '}
-              [Esc] Back
-            </Text>
-          </Box>
-        </>
-      )}
-      {error && <ErrorMessage message="Failed to list blueprints" error={error} />}
-    </>
+                exec(openCommand);
+              };
+              openBrowser();
+            },
+          },
+        ],
+        breadcrumbItems: [{ label: 'Blueprints', active: true }],
+      }}
+    />
   );
 };
 
