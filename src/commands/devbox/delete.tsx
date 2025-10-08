@@ -1,12 +1,12 @@
-import React from 'react';
-import { render } from 'ink';
-import { getClient } from '../../utils/client.js';
-import { Header } from '../../components/Header.js';
-import { SpinnerComponent } from '../../components/Spinner.js';
-import { SuccessMessage } from '../../components/SuccessMessage.js';
-import { ErrorMessage } from '../../components/ErrorMessage.js';
-import { createExecutor } from '../../utils/CommandExecutor.js';
-import { OutputOptions } from '../../utils/output.js';
+import React from "react";
+import { render } from "ink";
+import { getClient } from "../../utils/client.js";
+import { Header } from "../../components/Header.js";
+import { SpinnerComponent } from "../../components/Spinner.js";
+import { SuccessMessage } from "../../components/SuccessMessage.js";
+import { ErrorMessage } from "../../components/ErrorMessage.js";
+import { createExecutor } from "../../utils/CommandExecutor.js";
+import { OutputOptions } from "../../utils/output.js";
 
 const DeleteDevboxUI: React.FC<{ id: string }> = ({ id }) => {
   const [loading, setLoading] = React.useState(true);
@@ -31,7 +31,10 @@ const DeleteDevboxUI: React.FC<{ id: string }> = ({ id }) => {
 
   return (
     <>
-      <Header title="Shutdown Devbox" subtitle={`Shutting down devbox: ${id}`} />
+      <Header
+        title="Shutdown Devbox"
+        subtitle={`Shutting down devbox: ${id}`}
+      />
       {loading && <SpinnerComponent message="Shutting down devbox..." />}
       {success && (
         <SuccessMessage
@@ -39,7 +42,9 @@ const DeleteDevboxUI: React.FC<{ id: string }> = ({ id }) => {
           details={`ID: ${id}`}
         />
       )}
-      {error && <ErrorMessage message="Failed to shutdown devbox" error={error} />}
+      {error && (
+        <ErrorMessage message="Failed to shutdown devbox" error={error} />
+      )}
     </>
   );
 };
@@ -53,6 +58,6 @@ export async function deleteDevbox(id: string, options: OutputOptions = {}) {
       await client.devboxes.shutdown(id);
     },
     id,
-    () => <DeleteDevboxUI id={id} />
+    () => <DeleteDevboxUI id={id} />,
   );
 }

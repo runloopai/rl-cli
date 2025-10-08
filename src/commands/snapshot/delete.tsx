@@ -1,12 +1,12 @@
-import React from 'react';
-import { render } from 'ink';
-import { getClient } from '../../utils/client.js';
-import { Header } from '../../components/Header.js';
-import { SpinnerComponent } from '../../components/Spinner.js';
-import { SuccessMessage } from '../../components/SuccessMessage.js';
-import { ErrorMessage } from '../../components/ErrorMessage.js';
-import { createExecutor } from '../../utils/CommandExecutor.js';
-import { OutputOptions } from '../../utils/output.js';
+import React from "react";
+import { render } from "ink";
+import { getClient } from "../../utils/client.js";
+import { Header } from "../../components/Header.js";
+import { SpinnerComponent } from "../../components/Spinner.js";
+import { SuccessMessage } from "../../components/SuccessMessage.js";
+import { ErrorMessage } from "../../components/ErrorMessage.js";
+import { createExecutor } from "../../utils/CommandExecutor.js";
+import { OutputOptions } from "../../utils/output.js";
 
 const DeleteSnapshotUI: React.FC<{ id: string }> = ({ id }) => {
   const [loading, setLoading] = React.useState(true);
@@ -39,7 +39,9 @@ const DeleteSnapshotUI: React.FC<{ id: string }> = ({ id }) => {
           details={`ID: ${id}`}
         />
       )}
-      {error && <ErrorMessage message="Failed to delete snapshot" error={error} />}
+      {error && (
+        <ErrorMessage message="Failed to delete snapshot" error={error} />
+      )}
     </>
   );
 };
@@ -53,6 +55,6 @@ export async function deleteSnapshot(id: string, options: OutputOptions = {}) {
       await client.devboxes.diskSnapshots.delete(id);
     },
     id,
-    () => <DeleteSnapshotUI id={id} />
+    () => <DeleteSnapshotUI id={id} />,
   );
 }
