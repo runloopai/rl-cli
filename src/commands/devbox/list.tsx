@@ -1,21 +1,13 @@
 import React from "react";
-import { render, Box, Text, useInput, useApp, useStdout } from "ink";
+import { Box, Text, useInput, useApp, useStdout } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
 import { getClient } from "../../utils/client.js";
-import { Header } from "../../components/Header.js";
-import { Banner } from "../../components/Banner.js";
 import { SpinnerComponent } from "../../components/Spinner.js";
 import { ErrorMessage } from "../../components/ErrorMessage.js";
-import { SuccessMessage } from "../../components/SuccessMessage.js";
-import { StatusBadge, getStatusDisplay } from "../../components/StatusBadge.js";
-import { MetadataDisplay } from "../../components/MetadataDisplay.js";
+import { getStatusDisplay } from "../../components/StatusBadge.js";
 import { Breadcrumb } from "../../components/Breadcrumb.js";
-import {
-  Table,
-  createTextColumn,
-  createComponentColumn,
-} from "../../components/Table.js";
+import { Table, createTextColumn } from "../../components/Table.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
 import { createExecutor } from "../../utils/CommandExecutor.js";
 import { DevboxDetailPage } from "../../components/DevboxDetailPage.js";
