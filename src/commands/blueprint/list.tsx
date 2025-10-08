@@ -1,5 +1,5 @@
 import React from "react";
-import { render, Box, Text, useInput, useStdout, useApp } from "ink";
+import { Box, Text, useInput, useStdout } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
 import { getClient } from "../../utils/client.js";
@@ -10,11 +10,7 @@ import { SuccessMessage } from "../../components/SuccessMessage.js";
 import { StatusBadge } from "../../components/StatusBadge.js";
 import { Breadcrumb } from "../../components/Breadcrumb.js";
 import { MetadataDisplay } from "../../components/MetadataDisplay.js";
-import {
-  Table,
-  createTextColumn,
-  createComponentColumn,
-} from "../../components/Table.js";
+import { createTextColumn } from "../../components/Table.js";
 import { OperationsMenu, Operation } from "../../components/OperationsMenu.js";
 import {
   ResourceListView,
@@ -35,11 +31,11 @@ const ListBlueprintsUI: React.FC<{
   onExit?: () => void;
 }> = ({ onBack, onExit }) => {
   const { stdout } = useStdout();
-  const { exit: inkExit } = useApp();
   const [showDetails, setShowDetails] = React.useState(false);
-  const [selectedBlueprint, setSelectedBlueprint] = React.useState<any | null>(
-    null,
-  );
+  const [selectedBlueprint, setSelectedBlueprint] = React.useState<
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    any | null
+  >(null);
   const [selectedOperation, setSelectedOperation] = React.useState(0);
   const [executingOperation, setExecutingOperation] =
     React.useState<OperationType>(null);
@@ -55,7 +51,6 @@ const ListBlueprintsUI: React.FC<{
   // Calculate responsive column widths
   const terminalWidth = stdout?.columns || 120;
   const showDescription = terminalWidth >= 120;
-  const showFullId = terminalWidth >= 80;
 
   const statusIconWidth = 2;
   const statusTextWidth = 10;

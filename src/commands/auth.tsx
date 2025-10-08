@@ -1,7 +1,6 @@
 import React from "react";
 import { render, Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
-import figures from "figures";
 import { setApiKey } from "../utils/config.js";
 import { Header } from "../components/Header.js";
 import { Banner } from "../components/Banner.js";
