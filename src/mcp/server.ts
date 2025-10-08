@@ -1,191 +1,199 @@
 #!/usr/bin/env node
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
   Tool,
-} from '@modelcontextprotocol/sdk/types.js';
-import { getClient } from '../utils/client.js';
+} from "@modelcontextprotocol/sdk/types.js";
+import { getClient } from "../utils/client.js";
 
 // Define available tools for the MCP server
 const TOOLS: Tool[] = [
   {
-    name: 'list_devboxes',
-    description: 'List all devboxes with optional filtering by status',
+    name: "list_devboxes",
+    description: "List all devboxes with optional filtering by status",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         status: {
-          type: 'string',
-          description: 'Filter by status (running, provisioning, suspended, etc.)',
-          enum: ['running', 'provisioning', 'initializing', 'suspended', 'shutdown', 'failure'],
+          type: "string",
+          description:
+            "Filter by status (running, provisioning, suspended, etc.)",
+          enum: [
+            "running",
+            "provisioning",
+            "initializing",
+            "suspended",
+            "shutdown",
+            "failure",
+          ],
         },
         limit: {
-          type: 'number',
-          description: 'Maximum number of devboxes to return',
+          type: "number",
+          description: "Maximum number of devboxes to return",
         },
       },
     },
   },
   {
-    name: 'get_devbox',
-    description: 'Get detailed information about a specific devbox by ID',
+    name: "get_devbox",
+    description: "Get detailed information about a specific devbox by ID",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         id: {
-          type: 'string',
-          description: 'The devbox ID',
+          type: "string",
+          description: "The devbox ID",
         },
       },
-      required: ['id'],
+      required: ["id"],
     },
   },
   {
-    name: 'create_devbox',
-    description: 'Create a new devbox with specified configuration',
+    name: "create_devbox",
+    description: "Create a new devbox with specified configuration",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         name: {
-          type: 'string',
-          description: 'Name for the devbox',
+          type: "string",
+          description: "Name for the devbox",
         },
         blueprint_id: {
-          type: 'string',
-          description: 'Blueprint ID to use as template',
+          type: "string",
+          description: "Blueprint ID to use as template",
         },
         snapshot_id: {
-          type: 'string',
-          description: 'Snapshot ID to restore from',
+          type: "string",
+          description: "Snapshot ID to restore from",
         },
         entrypoint: {
-          type: 'string',
-          description: 'Entrypoint script to run on startup',
+          type: "string",
+          description: "Entrypoint script to run on startup",
         },
         environment_variables: {
-          type: 'object',
-          description: 'Environment variables as key-value pairs',
+          type: "object",
+          description: "Environment variables as key-value pairs",
         },
         resource_size: {
-          type: 'string',
-          description: 'Resource size (SMALL, MEDIUM, LARGE, XLARGE)',
-          enum: ['SMALL', 'MEDIUM', 'LARGE', 'XLARGE'],
+          type: "string",
+          description: "Resource size (SMALL, MEDIUM, LARGE, XLARGE)",
+          enum: ["SMALL", "MEDIUM", "LARGE", "XLARGE"],
         },
         keep_alive_seconds: {
-          type: 'number',
-          description: 'Keep alive time in seconds',
+          type: "number",
+          description: "Keep alive time in seconds",
         },
       },
     },
   },
   {
-    name: 'execute_command',
-    description: 'Execute a command on a devbox and get the result',
+    name: "execute_command",
+    description: "Execute a command on a devbox and get the result",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         devbox_id: {
-          type: 'string',
-          description: 'The devbox ID to execute the command on',
+          type: "string",
+          description: "The devbox ID to execute the command on",
         },
         command: {
-          type: 'string',
-          description: 'The command to execute',
+          type: "string",
+          description: "The command to execute",
         },
       },
-      required: ['devbox_id', 'command'],
+      required: ["devbox_id", "command"],
     },
   },
   {
-    name: 'shutdown_devbox',
-    description: 'Shutdown a devbox by ID',
+    name: "shutdown_devbox",
+    description: "Shutdown a devbox by ID",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         id: {
-          type: 'string',
-          description: 'The devbox ID to shutdown',
+          type: "string",
+          description: "The devbox ID to shutdown",
         },
       },
-      required: ['id'],
+      required: ["id"],
     },
   },
   {
-    name: 'suspend_devbox',
-    description: 'Suspend a devbox by ID',
+    name: "suspend_devbox",
+    description: "Suspend a devbox by ID",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         id: {
-          type: 'string',
-          description: 'The devbox ID to suspend',
+          type: "string",
+          description: "The devbox ID to suspend",
         },
       },
-      required: ['id'],
+      required: ["id"],
     },
   },
   {
-    name: 'resume_devbox',
-    description: 'Resume a suspended devbox by ID',
+    name: "resume_devbox",
+    description: "Resume a suspended devbox by ID",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         id: {
-          type: 'string',
-          description: 'The devbox ID to resume',
+          type: "string",
+          description: "The devbox ID to resume",
         },
       },
-      required: ['id'],
+      required: ["id"],
     },
   },
   {
-    name: 'list_blueprints',
-    description: 'List all available blueprints',
+    name: "list_blueprints",
+    description: "List all available blueprints",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         limit: {
-          type: 'number',
-          description: 'Maximum number of blueprints to return',
+          type: "number",
+          description: "Maximum number of blueprints to return",
         },
       },
     },
   },
   {
-    name: 'list_snapshots',
-    description: 'List all snapshots',
+    name: "list_snapshots",
+    description: "List all snapshots",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         devbox_id: {
-          type: 'string',
-          description: 'Filter snapshots by devbox ID',
+          type: "string",
+          description: "Filter snapshots by devbox ID",
         },
         limit: {
-          type: 'number',
-          description: 'Maximum number of snapshots to return',
+          type: "number",
+          description: "Maximum number of snapshots to return",
         },
       },
     },
   },
   {
-    name: 'create_snapshot',
-    description: 'Create a snapshot of a devbox',
+    name: "create_snapshot",
+    description: "Create a snapshot of a devbox",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         devbox_id: {
-          type: 'string',
-          description: 'The devbox ID to snapshot',
+          type: "string",
+          description: "The devbox ID to snapshot",
         },
         name: {
-          type: 'string',
-          description: 'Name for the snapshot',
+          type: "string",
+          description: "Name for the snapshot",
         },
       },
-      required: ['devbox_id'],
+      required: ["devbox_id"],
     },
   },
 ];
@@ -193,14 +201,14 @@ const TOOLS: Tool[] = [
 // Create the MCP server
 const server = new Server(
   {
-    name: 'runloop-mcp-server',
-    version: '1.0.0',
+    name: "runloop-mcp-server",
+    version: "1.0.0",
   },
   {
     capabilities: {
       tools: {},
     },
-  }
+  },
 );
 
 // Handle tool listing
@@ -211,18 +219,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 });
 
 // Handle tool execution
-server.setRequestHandler(CallToolRequestSchema, async request => {
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
     const client = getClient();
 
     if (!args) {
-      throw new Error('Missing arguments');
+      throw new Error("Missing arguments");
     }
 
     switch (name) {
-      case 'list_devboxes': {
+      case "list_devboxes": {
         const result = await client.devboxes.list({
           status: args.status as any,
           limit: args.limit as number,
@@ -230,26 +238,26 @@ server.setRequestHandler(CallToolRequestSchema, async request => {
         return {
           content: [
             {
-              type: 'text',
+              type: "text",
               text: JSON.stringify(result, null, 2),
             },
           ],
         };
       }
 
-      case 'get_devbox': {
+      case "get_devbox": {
         const result = await client.devboxes.retrieve(args.id as string);
         return {
           content: [
             {
-              type: 'text',
+              type: "text",
               text: JSON.stringify(result, null, 2),
             },
           ],
         };
       }
 
-      case 'create_devbox': {
+      case "create_devbox": {
         const createParams: any = {};
         if (args.name) createParams.name = args.name;
         if (args.blueprint_id) createParams.blueprint_id = args.blueprint_id;
@@ -263,86 +271,91 @@ server.setRequestHandler(CallToolRequestSchema, async request => {
           };
         }
         if (args.keep_alive_seconds) {
-          if (!createParams.launch_parameters) createParams.launch_parameters = {};
-          createParams.launch_parameters.keep_alive_time_seconds = args.keep_alive_seconds;
+          if (!createParams.launch_parameters)
+            createParams.launch_parameters = {};
+          createParams.launch_parameters.keep_alive_time_seconds =
+            args.keep_alive_seconds;
         }
 
         const result = await client.devboxes.create(createParams);
         return {
           content: [
             {
-              type: 'text',
+              type: "text",
               text: JSON.stringify(result, null, 2),
             },
           ],
         };
       }
 
-      case 'execute_command': {
-        const result = await client.devboxes.executeSync(args.devbox_id as string, {
-          command: args.command as string,
-        });
+      case "execute_command": {
+        const result = await client.devboxes.executeSync(
+          args.devbox_id as string,
+          {
+            command: args.command as string,
+          },
+        );
         return {
           content: [
             {
-              type: 'text',
+              type: "text",
               text: JSON.stringify(result, null, 2),
             },
           ],
         };
       }
 
-      case 'shutdown_devbox': {
+      case "shutdown_devbox": {
         const result = await client.devboxes.shutdown(args.id as string);
         return {
           content: [
             {
-              type: 'text',
+              type: "text",
               text: JSON.stringify(result, null, 2),
             },
           ],
         };
       }
 
-      case 'suspend_devbox': {
+      case "suspend_devbox": {
         const result = await client.devboxes.suspend(args.id as string);
         return {
           content: [
             {
-              type: 'text',
+              type: "text",
               text: JSON.stringify(result, null, 2),
             },
           ],
         };
       }
 
-      case 'resume_devbox': {
+      case "resume_devbox": {
         const result = await client.devboxes.resume(args.id as string);
         return {
           content: [
             {
-              type: 'text',
+              type: "text",
               text: JSON.stringify(result, null, 2),
             },
           ],
         };
       }
 
-      case 'list_blueprints': {
+      case "list_blueprints": {
         const result = await client.blueprints.list({
           limit: args.limit as number,
         });
         return {
           content: [
             {
-              type: 'text',
+              type: "text",
               text: JSON.stringify(result, null, 2),
             },
           ],
         };
       }
 
-      case 'list_snapshots': {
+      case "list_snapshots": {
         const params: any = {};
         if (args.devbox_id) params.devbox_id = args.devbox_id;
 
@@ -350,7 +363,9 @@ server.setRequestHandler(CallToolRequestSchema, async request => {
         let count = 0;
         const limit = (args.limit as number) || 100;
 
-        for await (const snapshot of client.devboxes.listDiskSnapshots(params)) {
+        for await (const snapshot of client.devboxes.listDiskSnapshots(
+          params,
+        )) {
           allSnapshots.push(snapshot);
           count++;
           if (count >= limit) break;
@@ -359,22 +374,25 @@ server.setRequestHandler(CallToolRequestSchema, async request => {
         return {
           content: [
             {
-              type: 'text',
+              type: "text",
               text: JSON.stringify(allSnapshots, null, 2),
             },
           ],
         };
       }
 
-      case 'create_snapshot': {
+      case "create_snapshot": {
         const params: any = {};
         if (args.name) params.name = args.name;
 
-        const result = await client.devboxes.snapshotDisk(args.devbox_id as string, params);
+        const result = await client.devboxes.snapshotDisk(
+          args.devbox_id as string,
+          params,
+        );
         return {
           content: [
             {
-              type: 'text',
+              type: "text",
               text: JSON.stringify(result, null, 2),
             },
           ],
@@ -388,7 +406,7 @@ server.setRequestHandler(CallToolRequestSchema, async request => {
     return {
       content: [
         {
-          type: 'text',
+          type: "text",
           text: `Error: ${error.message}`,
         },
       ],
@@ -403,10 +421,10 @@ async function main() {
   await server.connect(transport);
 
   // Log to stderr so it doesn't interfere with MCP protocol on stdout
-  console.error('Runloop MCP server running on stdio');
+  console.error("Runloop MCP server running on stdio");
 }
 
-main().catch(error => {
-  console.error('Fatal error in main():', error);
+main().catch((error) => {
+  console.error("Fatal error in main():", error);
   process.exit(1);
 });

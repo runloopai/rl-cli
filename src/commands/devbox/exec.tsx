@@ -1,14 +1,17 @@
-import React from 'react';
-import { render, Box, Text } from 'ink';
-import { getClient } from '../../utils/client.js';
-import { Header } from '../../components/Header.js';
-import { SpinnerComponent } from '../../components/Spinner.js';
-import { ErrorMessage } from '../../components/ErrorMessage.js';
-import { colors } from '../../utils/theme.js';
+import React from "react";
+import { render, Box, Text } from "ink";
+import { getClient } from "../../utils/client.js";
+import { Header } from "../../components/Header.js";
+import { SpinnerComponent } from "../../components/Spinner.js";
+import { ErrorMessage } from "../../components/ErrorMessage.js";
+import { colors } from "../../utils/theme.js";
 
-const ExecCommandUI: React.FC<{ id: string; command: string[] }> = ({ id, command }) => {
+const ExecCommandUI: React.FC<{ id: string; command: string[] }> = ({
+  id,
+  command,
+}) => {
   const [loading, setLoading] = React.useState(true);
-  const [output, setOutput] = React.useState<string>('');
+  const [output, setOutput] = React.useState<string>("");
   const [error, setError] = React.useState<Error | null>(null);
 
   React.useEffect(() => {
@@ -16,9 +19,11 @@ const ExecCommandUI: React.FC<{ id: string; command: string[] }> = ({ id, comman
       try {
         const client = getClient();
         const result = await client.devboxes.executeSync(id, {
-          command: command.join(' '),
+          command: command.join(" "),
         });
-        setOutput(result.stdout || result.stderr || 'Command executed successfully');
+        setOutput(
+          result.stdout || result.stderr || "Command executed successfully",
+        );
       } catch (err) {
         setError(err as Error);
       } finally {
@@ -40,7 +45,9 @@ const ExecCommandUI: React.FC<{ id: string; command: string[] }> = ({ id, comman
           </Box>
         </Box>
       )}
-      {error && <ErrorMessage message="Failed to execute command" error={error} />}
+      {error && (
+        <ErrorMessage message="Failed to execute command" error={error} />
+      )}
     </>
   );
 };

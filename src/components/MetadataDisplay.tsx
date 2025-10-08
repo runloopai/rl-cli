@@ -1,8 +1,8 @@
-import React from 'react';
-import { Box, Text } from 'ink';
-import { Badge } from '@inkjs/ui';
-import figures from 'figures';
-import { colors } from '../utils/theme.js';
+import React from "react";
+import { Box, Text } from "ink";
+import { Badge } from "@inkjs/ui";
+import figures from "figures";
+import { colors } from "../utils/theme.js";
 
 interface MetadataDisplayProps {
   metadata: Record<string, string>;
@@ -26,7 +26,7 @@ const getColorForKey = (key: string, index: number): string => {
 
 export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
   metadata,
-  title = 'Metadata',
+  title = "Metadata",
   showBorder = false,
   selectedKey,
 }) => {
@@ -53,10 +53,12 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
           <Box key={key} flexDirection="row" alignItems="center">
             {isSelected && (
               <Text color={colors.primary} bold>
-                {figures.pointer}{' '}
+                {figures.pointer}{" "}
               </Text>
             )}
-            <Badge color={isSelected ? colors.primary : color}>{`${key}: ${value}`}</Badge>
+            <Badge
+              color={isSelected ? colors.primary : color}
+            >{`${key}: ${value}`}</Badge>
           </Box>
         );
       })}

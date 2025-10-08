@@ -1,12 +1,12 @@
-import React from 'react';
-import { Box, Text, useInput, useStdout, useApp } from 'ink';
-import TextInput from 'ink-text-input';
-import figures from 'figures';
-import { Breadcrumb, BreadcrumbItem } from './Breadcrumb.js';
-import { SpinnerComponent } from './Spinner.js';
-import { ErrorMessage } from './ErrorMessage.js';
-import { Table, Column } from './Table.js';
-import { colors } from '../utils/theme.js';
+import React from "react";
+import { Box, Text, useInput, useStdout, useApp } from "ink";
+import TextInput from "ink-text-input";
+import figures from "figures";
+import { Breadcrumb, BreadcrumbItem } from "./Breadcrumb.js";
+import { SpinnerComponent } from "./Spinner.js";
+import { ErrorMessage } from "./ErrorMessage.js";
+import { Table, Column } from "./Table.js";
+import { colors } from "../utils/theme.js";
 
 // Format time ago in a succinct way
 export const formatTimeAgo = (timestamp: number): string => {
@@ -108,7 +108,7 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   const [currentPage, setCurrentPage] = React.useState(0);
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [searchMode, setSearchMode] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState('');
+  const [searchQuery, setSearchQuery] = React.useState("");
   const [refreshing, setRefreshing] = React.useState(false);
   const [refreshIcon, setRefreshIcon] = React.useState(0);
 
@@ -138,7 +138,7 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
         }
       }
     },
-    [config.fetchResources]
+    [config.fetchResources],
   );
 
   // Initial load
@@ -159,7 +159,7 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   // Animate refresh icon
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setRefreshIcon(prev => (prev + 1) % 10);
+      setRefreshIcon((prev) => (prev + 1) % 10);
     }, 80);
     return () => clearInterval(interval);
   }, []);
@@ -171,9 +171,9 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
     }
 
     const query = searchQuery.toLowerCase();
-    return resources.filter(resource => {
+    return resources.filter((resource) => {
       const fields = config.searchConfig!.fields(resource);
-      return fields.some(field => field.toLowerCase().includes(query));
+      return fields.some((field) => field.toLowerCase().includes(query));
     });
   }, [resources, searchQuery, config.searchConfig]);
 
@@ -185,7 +185,10 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
 
   // Ensure selected index is within bounds
   React.useEffect(() => {
-    if (currentResources.length > 0 && selectedIndex >= currentResources.length) {
+    if (
+      currentResources.length > 0 &&
+      selectedIndex >= currentResources.length
+    ) {
       setSelectedIndex(Math.max(0, currentResources.length - 1));
     }
   }, [currentResources.length, selectedIndex]);
@@ -195,8 +198,8 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   // Input handling
   useInput((input, key) => {
     // Handle Ctrl+C to force exit
-    if (key.ctrl && input === 'c') {
-      process.stdout.write('\x1b[?1049l'); // Exit alternate screen
+    if (key.ctrl && input === "c") {
+      process.stdout.write("\x1b[?1049l"); // Exit alternate screen
       process.exit(130);
     }
 
@@ -206,7 +209,7 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
     if (searchMode) {
       if (key.escape) {
         setSearchMode(false);
-        setSearchQuery('');
+        setSearchQuery("");
       }
       return;
     }
@@ -216,20 +219,23 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
       setSelectedIndex(selectedIndex - 1);
     } else if (key.downArrow && selectedIndex < pageResourcesCount - 1) {
       setSelectedIndex(selectedIndex + 1);
-    } else if ((input === 'n' || key.rightArrow) && currentPage < totalPages - 1) {
+    } else if (
+      (input === "n" || key.rightArrow) &&
+      currentPage < totalPages - 1
+    ) {
       setCurrentPage(currentPage + 1);
       setSelectedIndex(0);
-    } else if ((input === 'p' || key.leftArrow) && currentPage > 0) {
+    } else if ((input === "p" || key.leftArrow) && currentPage > 0) {
       setCurrentPage(currentPage - 1);
       setSelectedIndex(0);
     } else if (key.return && selectedResource && config.onSelect) {
       console.clear();
       config.onSelect(selectedResource);
-    } else if (input === '/' && config.searchConfig?.enabled) {
+    } else if (input === "/" && config.searchConfig?.enabled) {
       setSearchMode(true);
     } else if (key.escape) {
       if (searchQuery) {
-        setSearchQuery('');
+        setSearchQuery("");
         setCurrentPage(0);
         setSelectedIndex(0);
       } else {
@@ -243,7 +249,7 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
       }
     } else if (config.additionalShortcuts) {
       // Handle additional shortcuts
-      const shortcut = config.additionalShortcuts.find(s => s.key === input);
+      const shortcut = config.additionalShortcuts.find((s) => s.key === input);
       if (shortcut && selectedResource) {
         shortcut.handler(selectedResource);
       }
@@ -256,16 +262,16 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
       return null;
     }
 
-    const successCount = resources.filter(r =>
-      config.statusConfig!.success.includes(config.getStatus!(r))
+    const successCount = resources.filter((r) =>
+      config.statusConfig!.success.includes(config.getStatus!(r)),
     ).length;
 
-    const warningCount = resources.filter(r =>
-      config.statusConfig!.warning.includes(config.getStatus!(r))
+    const warningCount = resources.filter((r) =>
+      config.statusConfig!.warning.includes(config.getStatus!(r)),
     ).length;
 
-    const errorCount = resources.filter(r =>
-      config.statusConfig!.error.includes(config.getStatus!(r))
+    const errorCount = resources.filter((r) =>
+      config.statusConfig!.error.includes(config.getStatus!(r)),
     ).length;
 
     return { successCount, warningCount, errorCount };
@@ -276,9 +282,15 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
     return (
       <>
         <Breadcrumb
-          items={config.breadcrumbItems || [{ label: config.resourceNamePlural, active: true }]}
+          items={
+            config.breadcrumbItems || [
+              { label: config.resourceNamePlural, active: true },
+            ]
+          }
         />
-        <SpinnerComponent message={`Loading ${config.resourceNamePlural.toLowerCase()}...`} />
+        <SpinnerComponent
+          message={`Loading ${config.resourceNamePlural.toLowerCase()}...`}
+        />
       </>
     );
   }
@@ -288,7 +300,11 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
     return (
       <>
         <Breadcrumb
-          items={config.breadcrumbItems || [{ label: config.resourceNamePlural, active: true }]}
+          items={
+            config.breadcrumbItems || [
+              { label: config.resourceNamePlural, active: true },
+            ]
+          }
         />
         <ErrorMessage
           message={`Failed to list ${config.resourceNamePlural.toLowerCase()}`}
@@ -303,7 +319,11 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
     return (
       <>
         <Breadcrumb
-          items={config.breadcrumbItems || [{ label: config.resourceNamePlural, active: true }]}
+          items={
+            config.breadcrumbItems || [
+              { label: config.resourceNamePlural, active: true },
+            ]
+          }
         />
         {config.emptyState && (
           <Box>
@@ -324,7 +344,11 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   return (
     <>
       <Breadcrumb
-        items={config.breadcrumbItems || [{ label: config.resourceNamePlural, active: true }]}
+        items={
+          config.breadcrumbItems || [
+            { label: config.resourceNamePlural, active: true },
+          ]
+        }
       />
 
       {/* Search bar */}
@@ -332,11 +356,15 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
         <>
           {searchMode && (
             <Box marginBottom={1}>
-              <Text color={colors.primary}>{figures.pointerSmall} Search: </Text>
+              <Text color={colors.primary}>
+                {figures.pointerSmall} Search:{" "}
+              </Text>
               <TextInput
                 value={searchQuery}
                 onChange={setSearchQuery}
-                placeholder={config.searchConfig.placeholder || 'Type to search...'}
+                placeholder={
+                  config.searchConfig.placeholder || "Type to search..."
+                }
                 onSubmit={() => {
                   setSearchMode(false);
                   setCurrentPage(0);
@@ -344,7 +372,7 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
                 }}
               />
               <Text color={colors.textDim} dimColor>
-                {' '}
+                {" "}
                 [Esc to cancel]
               </Text>
             </Box>
@@ -356,7 +384,7 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
                 {searchQuery}
               </Text>
               <Text color={colors.textDim} dimColor>
-                {' '}
+                {" "}
                 ({currentResources.length} results) [/ to edit, Esc to clear]
               </Text>
             </Box>
@@ -380,14 +408,14 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
           {figures.hamburger} {resources.length}
         </Text>
         <Text color={colors.textDim} dimColor>
-          {' '}
+          {" "}
           total
         </Text>
         {totalPages > 1 && (
           <>
             <Text color={colors.textDim} dimColor>
-              {' '}
-              •{' '}
+              {" "}
+              •{" "}
             </Text>
             <Text color={colors.textDim} dimColor>
               Page {currentPage + 1} of {totalPages}
@@ -395,8 +423,8 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
           </>
         )}
         <Text color={colors.textDim} dimColor>
-          {' '}
-          •{' '}
+          {" "}
+          •{" "}
         </Text>
         <Text color={colors.textDim} dimColor>
           Showing {startIndex + 1}-{endIndex} of {filteredResources.length}
@@ -404,7 +432,11 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
         <Text> </Text>
         {refreshing ? (
           <Text color={colors.primary}>
-            {['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'][refreshIcon % 10]}
+            {
+              ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"][
+                refreshIcon % 10
+              ]
+            }
           </Text>
         ) : (
           <Text color={colors.success}>{figures.circleFilled}</Text>
@@ -419,32 +451,32 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
         </Text>
         {totalPages > 1 && (
           <Text color={colors.textDim} dimColor>
-            {' '}
+            {" "}
             • {figures.arrowLeft}
             {figures.arrowRight} Page
           </Text>
         )}
         {config.onSelect && (
           <Text color={colors.textDim} dimColor>
-            {' '}
+            {" "}
             • [Enter] Details
           </Text>
         )}
         {config.searchConfig?.enabled && (
           <Text color={colors.textDim} dimColor>
-            {' '}
+            {" "}
             • [/] Search
           </Text>
         )}
         {config.additionalShortcuts &&
-          config.additionalShortcuts.map(shortcut => (
+          config.additionalShortcuts.map((shortcut) => (
             <Text key={shortcut.key} color={colors.textDim} dimColor>
-              {' '}
+              {" "}
               • [{shortcut.key}] {shortcut.label}
             </Text>
           ))}
         <Text color={colors.textDim} dimColor>
-          {' '}
+          {" "}
           • [Esc] Back
         </Text>
       </Box>

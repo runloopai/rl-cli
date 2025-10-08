@@ -1,15 +1,15 @@
-import React from 'react';
-import { Box, Text, useInput } from 'ink';
-import TextInput from 'ink-text-input';
-import figures from 'figures';
-import { getClient } from '../utils/client.js';
-import { Header } from './Header.js';
-import { SpinnerComponent } from './Spinner.js';
-import { ErrorMessage } from './ErrorMessage.js';
-import { SuccessMessage } from './SuccessMessage.js';
-import { Breadcrumb } from './Breadcrumb.js';
-import { MetadataDisplay } from './MetadataDisplay.js';
-import { colors } from '../utils/theme.js';
+import React from "react";
+import { Box, Text, useInput } from "ink";
+import TextInput from "ink-text-input";
+import figures from "figures";
+import { getClient } from "../utils/client.js";
+import { Header } from "./Header.js";
+import { SpinnerComponent } from "./Spinner.js";
+import { ErrorMessage } from "./ErrorMessage.js";
+import { SuccessMessage } from "./SuccessMessage.js";
+import { Breadcrumb } from "./Breadcrumb.js";
+import { MetadataDisplay } from "./MetadataDisplay.js";
+import { colors } from "../utils/theme.js";
 
 interface DevboxCreatePageProps {
   onBack: () => void;
@@ -17,30 +17,30 @@ interface DevboxCreatePageProps {
 }
 
 type FormField =
-  | 'create'
-  | 'name'
-  | 'architecture'
-  | 'resource_size'
-  | 'custom_cpu'
-  | 'custom_memory'
-  | 'custom_disk'
-  | 'keep_alive'
-  | 'metadata'
-  | 'blueprint_id'
-  | 'snapshot_id';
+  | "create"
+  | "name"
+  | "architecture"
+  | "resource_size"
+  | "custom_cpu"
+  | "custom_memory"
+  | "custom_disk"
+  | "keep_alive"
+  | "metadata"
+  | "blueprint_id"
+  | "snapshot_id";
 
 interface FormData {
   name: string;
-  architecture: 'arm64' | 'x86_64';
+  architecture: "arm64" | "x86_64";
   resource_size:
-    | 'X_SMALL'
-    | 'SMALL'
-    | 'MEDIUM'
-    | 'LARGE'
-    | 'X_LARGE'
-    | 'XX_LARGE'
-    | 'CUSTOM_SIZE'
-    | '';
+    | "X_SMALL"
+    | "SMALL"
+    | "MEDIUM"
+    | "LARGE"
+    | "X_LARGE"
+    | "XX_LARGE"
+    | "CUSTOM_SIZE"
+    | "";
   custom_cpu: string;
   custom_memory: string;
   custom_disk: string;
@@ -50,24 +50,29 @@ interface FormData {
   snapshot_id: string;
 }
 
-export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCreate }) => {
-  const [currentField, setCurrentField] = React.useState<FormField>('create');
+export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({
+  onBack,
+  onCreate,
+}) => {
+  const [currentField, setCurrentField] = React.useState<FormField>("create");
   const [formData, setFormData] = React.useState<FormData>({
-    name: '',
-    architecture: 'arm64',
-    resource_size: 'SMALL',
-    custom_cpu: '',
-    custom_memory: '',
-    custom_disk: '',
-    keep_alive: '3600',
+    name: "",
+    architecture: "arm64",
+    resource_size: "SMALL",
+    custom_cpu: "",
+    custom_memory: "",
+    custom_disk: "",
+    keep_alive: "3600",
     metadata: {},
-    blueprint_id: '',
-    snapshot_id: '',
+    blueprint_id: "",
+    snapshot_id: "",
   });
-  const [metadataKey, setMetadataKey] = React.useState('');
-  const [metadataValue, setMetadataValue] = React.useState('');
+  const [metadataKey, setMetadataKey] = React.useState("");
+  const [metadataValue, setMetadataValue] = React.useState("");
   const [inMetadataSection, setInMetadataSection] = React.useState(false);
-  const [metadataInputMode, setMetadataInputMode] = React.useState<'key' | 'value' | null>(null);
+  const [metadataInputMode, setMetadataInputMode] = React.useState<
+    "key" | "value" | null
+  >(null);
   const [selectedMetadataIndex, setSelectedMetadataIndex] = React.useState(-1); // -1 means "add new" row
   const [creating, setCreating] = React.useState(false);
   const [result, setResult] = React.useState<any>(null);
@@ -76,58 +81,62 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
   const baseFields: Array<{
     key: FormField;
     label: string;
-    type: 'text' | 'select' | 'metadata' | 'action';
+    type: "text" | "select" | "metadata" | "action";
   }> = [
-    { key: 'create', label: 'Devbox Create', type: 'action' },
-    { key: 'name', label: 'Name', type: 'text' },
-    { key: 'architecture', label: 'Architecture', type: 'select' },
-    { key: 'resource_size', label: 'Resource Size', type: 'select' },
+    { key: "create", label: "Devbox Create", type: "action" },
+    { key: "name", label: "Name", type: "text" },
+    { key: "architecture", label: "Architecture", type: "select" },
+    { key: "resource_size", label: "Resource Size", type: "select" },
   ];
 
   // Add custom resource fields if CUSTOM_SIZE is selected
   const customFields: Array<{
     key: FormField;
     label: string;
-    type: 'text' | 'select' | 'metadata' | 'action';
+    type: "text" | "select" | "metadata" | "action";
   }> =
-    formData.resource_size === 'CUSTOM_SIZE'
+    formData.resource_size === "CUSTOM_SIZE"
       ? [
-          { key: 'custom_cpu', label: 'CPU Cores (2-16, even)', type: 'text' },
-          { key: 'custom_memory', label: 'Memory GB (2-64, even)', type: 'text' },
-          { key: 'custom_disk', label: 'Disk GB (2-64, even)', type: 'text' },
+          { key: "custom_cpu", label: "CPU Cores (2-16, even)", type: "text" },
+          {
+            key: "custom_memory",
+            label: "Memory GB (2-64, even)",
+            type: "text",
+          },
+          { key: "custom_disk", label: "Disk GB (2-64, even)", type: "text" },
         ]
       : [];
 
   const remainingFields: Array<{
     key: FormField;
     label: string;
-    type: 'text' | 'select' | 'metadata' | 'action';
+    type: "text" | "select" | "metadata" | "action";
   }> = [
-    { key: 'keep_alive', label: 'Keep Alive (seconds)', type: 'text' },
-    { key: 'blueprint_id', label: 'Blueprint ID (optional)', type: 'text' },
-    { key: 'snapshot_id', label: 'Snapshot ID (optional)', type: 'text' },
-    { key: 'metadata', label: 'Metadata (optional)', type: 'metadata' },
+    { key: "keep_alive", label: "Keep Alive (seconds)", type: "text" },
+    { key: "blueprint_id", label: "Blueprint ID (optional)", type: "text" },
+    { key: "snapshot_id", label: "Snapshot ID (optional)", type: "text" },
+    { key: "metadata", label: "Metadata (optional)", type: "metadata" },
   ];
 
   const fields = [...baseFields, ...customFields, ...remainingFields];
 
-  const architectures = ['arm64', 'x86_64'];
+  const architectures = ["arm64", "x86_64"];
   const resourceSizes = [
-    'X_SMALL',
-    'SMALL',
-    'MEDIUM',
-    'LARGE',
-    'X_LARGE',
-    'XX_LARGE',
-    'CUSTOM_SIZE',
+    "X_SMALL",
+    "SMALL",
+    "MEDIUM",
+    "LARGE",
+    "X_LARGE",
+    "XX_LARGE",
+    "CUSTOM_SIZE",
   ];
 
-  const currentFieldIndex = fields.findIndex(f => f.key === currentField);
+  const currentFieldIndex = fields.findIndex((f) => f.key === currentField);
 
   useInput((input, key) => {
     // Handle result screen
     if (result) {
-      if (input === 'q' || key.escape || key.return) {
+      if (input === "q" || key.escape || key.return) {
         if (onCreate) {
           onCreate(result);
         }
@@ -138,10 +147,10 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
 
     // Handle error screen
     if (error) {
-      if (input === 'r' || key.return) {
+      if (input === "r" || key.return) {
         // Retry - clear error and return to form
         setError(null);
-      } else if (input === 'q' || key.escape) {
+      } else if (input === "q" || key.escape) {
         // Quit - go back to list
         onBack();
       }
@@ -154,20 +163,20 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
     }
 
     // Back to list
-    if (input === 'q' || key.escape) {
+    if (input === "q" || key.escape) {
       console.clear();
       onBack();
       return;
     }
 
     // Submit form
-    if (input === 's' && key.ctrl) {
+    if (input === "s" && key.ctrl) {
       handleCreate();
       return;
     }
 
     // Handle Enter on create field
-    if (currentField === 'create' && key.return) {
+    if (currentField === "create" && key.return) {
       handleCreate();
       return;
     }
@@ -180,10 +189,10 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
 
       // Handle input mode (typing key or value)
       if (metadataInputMode) {
-        if (metadataInputMode === 'key' && key.return && metadataKey.trim()) {
-          setMetadataInputMode('value');
+        if (metadataInputMode === "key" && key.return && metadataKey.trim()) {
+          setMetadataInputMode("value");
           return;
-        } else if (metadataInputMode === 'value' && key.return) {
+        } else if (metadataInputMode === "value" && key.return) {
           if (metadataKey.trim() && metadataValue.trim()) {
             setFormData({
               ...formData,
@@ -193,20 +202,20 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
               },
             });
           }
-          setMetadataKey('');
-          setMetadataValue('');
+          setMetadataKey("");
+          setMetadataValue("");
           setMetadataInputMode(null);
           setSelectedMetadataIndex(0); // Back to "add new" row
           return;
         } else if (key.escape) {
           // Cancel input
-          setMetadataKey('');
-          setMetadataValue('');
+          setMetadataKey("");
+          setMetadataValue("");
           setMetadataInputMode(null);
           return;
         } else if (key.tab) {
           // Tab between key and value
-          setMetadataInputMode(metadataInputMode === 'key' ? 'value' : 'key');
+          setMetadataInputMode(metadataInputMode === "key" ? "value" : "key");
           return;
         }
         return; // Don't process other keys while in input mode
@@ -220,31 +229,34 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
       } else if (key.return) {
         if (selectedMetadataIndex === 0) {
           // Add new
-          setMetadataKey('');
-          setMetadataValue('');
-          setMetadataInputMode('key');
+          setMetadataKey("");
+          setMetadataValue("");
+          setMetadataInputMode("key");
         } else if (selectedMetadataIndex === maxIndex) {
           // Done - exit metadata section
           setInMetadataSection(false);
           setSelectedMetadataIndex(0);
-          setMetadataKey('');
-          setMetadataValue('');
+          setMetadataKey("");
+          setMetadataValue("");
           setMetadataInputMode(null);
-        } else if (selectedMetadataIndex >= 1 && selectedMetadataIndex <= metadataKeys.length) {
+        } else if (
+          selectedMetadataIndex >= 1 &&
+          selectedMetadataIndex <= metadataKeys.length
+        ) {
           // Edit existing (selectedMetadataIndex - 1 gives array index)
           const keyToEdit = metadataKeys[selectedMetadataIndex - 1];
-          setMetadataKey(keyToEdit || '');
-          setMetadataValue(formData.metadata[keyToEdit] || '');
+          setMetadataKey(keyToEdit || "");
+          setMetadataValue(formData.metadata[keyToEdit] || "");
 
           // Remove old entry
           const newMetadata = { ...formData.metadata };
           delete newMetadata[keyToEdit];
           setFormData({ ...formData, metadata: newMetadata });
 
-          setMetadataInputMode('key');
+          setMetadataInputMode("key");
         }
       } else if (
-        (input === 'd' || key.delete) &&
+        (input === "d" || key.delete) &&
         selectedMetadataIndex >= 1 &&
         selectedMetadataIndex <= metadataKeys.length
       ) {
@@ -258,12 +270,12 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
         if (selectedMetadataIndex > newLength) {
           setSelectedMetadataIndex(Math.max(0, newLength));
         }
-      } else if (key.escape || input === 'q') {
+      } else if (key.escape || input === "q") {
         // Exit metadata section
         setInMetadataSection(false);
         setSelectedMetadataIndex(0);
-        setMetadataKey('');
-        setMetadataValue('');
+        setMetadataKey("");
+        setMetadataValue("");
         setMetadataInputMode(null);
       }
       return;
@@ -284,26 +296,32 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
     }
 
     // Enter key on metadata field to enter metadata section
-    if (currentField === 'metadata' && key.return) {
+    if (currentField === "metadata" && key.return) {
       setInMetadataSection(true);
       setSelectedMetadataIndex(0); // Start at "add new" row
       return;
     }
 
     // Handle select fields
-    if (field && field.type === 'select' && (key.leftArrow || key.rightArrow)) {
-      if (currentField === 'architecture') {
+    if (field && field.type === "select" && (key.leftArrow || key.rightArrow)) {
+      if (currentField === "architecture") {
         const currentIndex = architectures.indexOf(formData.architecture);
         const newIndex = key.leftArrow
           ? Math.max(0, currentIndex - 1)
           : Math.min(architectures.length - 1, currentIndex + 1);
-        setFormData({ ...formData, architecture: architectures[newIndex] as 'arm64' | 'x86_64' });
-      } else if (currentField === 'resource_size') {
+        setFormData({
+          ...formData,
+          architecture: architectures[newIndex] as "arm64" | "x86_64",
+        });
+      } else if (currentField === "resource_size") {
         const currentIndex = resourceSizes.indexOf(formData.resource_size);
         const newIndex = key.leftArrow
           ? Math.max(0, currentIndex - 1)
           : Math.min(resourceSizes.length - 1, currentIndex + 1);
-        setFormData({ ...formData, resource_size: resourceSizes[newIndex] as any });
+        setFormData({
+          ...formData,
+          resource_size: resourceSizes[newIndex] as any,
+        });
       }
       return;
     }
@@ -311,7 +329,7 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
 
   // Validate custom resource configuration
   const validateCustomResources = (): string | null => {
-    if (formData.resource_size !== 'CUSTOM_SIZE') {
+    if (formData.resource_size !== "CUSTOM_SIZE") {
       return null;
     }
 
@@ -319,19 +337,25 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
     const memory = parseInt(formData.custom_memory);
     const disk = parseInt(formData.custom_disk);
 
-    if (formData.custom_cpu && (isNaN(cpu) || cpu < 2 || cpu > 16 || cpu % 2 !== 0)) {
-      return 'CPU cores must be an even number between 2 and 16';
+    if (
+      formData.custom_cpu &&
+      (isNaN(cpu) || cpu < 2 || cpu > 16 || cpu % 2 !== 0)
+    ) {
+      return "CPU cores must be an even number between 2 and 16";
     }
 
     if (
       formData.custom_memory &&
       (isNaN(memory) || memory < 2 || memory > 64 || memory % 2 !== 0)
     ) {
-      return 'Memory must be an even number between 2 and 64 GB';
+      return "Memory must be an even number between 2 and 64 GB";
     }
 
-    if (formData.custom_disk && (isNaN(disk) || disk < 2 || disk > 64 || disk % 2 !== 0)) {
-      return 'Disk must be an even number between 2 and 64 GB';
+    if (
+      formData.custom_disk &&
+      (isNaN(disk) || disk < 2 || disk > 64 || disk % 2 !== 0)
+    ) {
+      return "Disk must be an even number between 2 and 64 GB";
     }
 
     // Validate CPU to memory ratio (1:2 to 1:8)
@@ -369,8 +393,9 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
         launchParameters.resource_size_request = formData.resource_size;
       }
 
-      if (formData.resource_size === 'CUSTOM_SIZE') {
-        if (formData.custom_cpu) launchParameters.custom_cpu_cores = parseInt(formData.custom_cpu);
+      if (formData.resource_size === "CUSTOM_SIZE") {
+        if (formData.custom_cpu)
+          launchParameters.custom_cpu_cores = parseInt(formData.custom_cpu);
         if (formData.custom_memory)
           launchParameters.custom_gb_memory = parseInt(formData.custom_memory);
         if (formData.custom_disk)
@@ -378,7 +403,9 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
       }
 
       if (formData.keep_alive) {
-        launchParameters.keep_alive_time_seconds = parseInt(formData.keep_alive);
+        launchParameters.keep_alive_time_seconds = parseInt(
+          formData.keep_alive,
+        );
       }
 
       const createParams: any = {};
@@ -416,10 +443,12 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
   if (result) {
     return (
       <>
-        <Breadcrumb items={[{ label: 'Devboxes' }, { label: 'Create', active: true }]} />
+        <Breadcrumb
+          items={[{ label: "Devboxes" }, { label: "Create", active: true }]}
+        />
         <SuccessMessage
           message="Devbox created successfully!"
-          details={`ID: ${result.id}\nName: ${result.name || '(none)'}\nStatus: ${result.status}`}
+          details={`ID: ${result.id}\nName: ${result.name || "(none)"}\nStatus: ${result.status}`}
         />
         <Box marginTop={1}>
           <Text color={colors.textDim} dimColor>
@@ -434,7 +463,9 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
   if (error) {
     return (
       <>
-        <Breadcrumb items={[{ label: 'Devboxes' }, { label: 'Create', active: true }]} />
+        <Breadcrumb
+          items={[{ label: "Devboxes" }, { label: "Create", active: true }]}
+        />
         <ErrorMessage message="Failed to create devbox" error={error} />
         <Box marginTop={1}>
           <Text color={colors.textDim} dimColor>
@@ -449,7 +480,9 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
   if (creating) {
     return (
       <>
-        <Breadcrumb items={[{ label: 'Devboxes' }, { label: 'Create', active: true }]} />
+        <Breadcrumb
+          items={[{ label: "Devboxes" }, { label: "Create", active: true }]}
+        />
         <SpinnerComponent message="Creating devbox..." />
       </>
     );
@@ -458,22 +491,27 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
   // Form screen
   return (
     <>
-      <Breadcrumb items={[{ label: 'Devboxes' }, { label: 'Create', active: true }]} />
+      <Breadcrumb
+        items={[{ label: "Devboxes" }, { label: "Create", active: true }]}
+      />
 
       <Box flexDirection="column" marginBottom={1}>
         {fields.map((field, index) => {
           const isActive = currentField === field.key;
           const fieldData = formData[field.key as keyof FormData];
 
-          if (field.type === 'action') {
+          if (field.type === "action") {
             return (
               <Box key={field.key} marginBottom={0}>
-                <Text color={isActive ? colors.success : colors.textDim} bold={isActive}>
-                  {isActive ? figures.pointer : ' '} {field.label}
+                <Text
+                  color={isActive ? colors.success : colors.textDim}
+                  bold={isActive}
+                >
+                  {isActive ? figures.pointer : " "} {field.label}
                 </Text>
                 {isActive && (
                   <Text color={colors.textDim} dimColor>
-                    {' '}
+                    {" "}
                     [Enter to create]
                   </Text>
                 )}
@@ -481,51 +519,56 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
             );
           }
 
-          if (field.type === 'text') {
+          if (field.type === "text") {
             return (
               <Box key={field.key} marginBottom={0}>
                 <Text color={isActive ? colors.primary : colors.textDim}>
-                  {isActive ? figures.pointer : ' '} {field.label}:{' '}
+                  {isActive ? figures.pointer : " "} {field.label}:{" "}
                 </Text>
                 {isActive ? (
                   <TextInput
-                    value={String(fieldData || '')}
-                    onChange={value => {
+                    value={String(fieldData || "")}
+                    onChange={(value) => {
                       setFormData({ ...formData, [field.key]: value });
                     }}
                     placeholder={
-                      field.key === 'name'
-                        ? 'my-devbox'
-                        : field.key === 'keep_alive'
-                          ? '3600'
-                          : field.key === 'blueprint_id'
-                            ? 'bp_xxx'
-                            : field.key === 'snapshot_id'
-                              ? 'snap_xxx'
-                              : ''
+                      field.key === "name"
+                        ? "my-devbox"
+                        : field.key === "keep_alive"
+                          ? "3600"
+                          : field.key === "blueprint_id"
+                            ? "bp_xxx"
+                            : field.key === "snapshot_id"
+                              ? "snap_xxx"
+                              : ""
                     }
                   />
                 ) : (
-                  <Text color={colors.text}>{String(fieldData || '(empty)')}</Text>
+                  <Text color={colors.text}>
+                    {String(fieldData || "(empty)")}
+                  </Text>
                 )}
               </Box>
             );
           }
 
-          if (field.type === 'select') {
+          if (field.type === "select") {
             const value = fieldData as string;
             return (
               <Box key={field.key} marginBottom={0}>
                 <Text color={isActive ? colors.primary : colors.textDim}>
-                  {isActive ? figures.pointer : ' '} {field.label}:
+                  {isActive ? figures.pointer : " "} {field.label}:
                 </Text>
-                <Text color={isActive ? colors.primary : colors.text} bold={isActive}>
-                  {' '}
-                  {value || '(none)'}
+                <Text
+                  color={isActive ? colors.primary : colors.text}
+                  bold={isActive}
+                >
+                  {" "}
+                  {value || "(none)"}
                 </Text>
                 {isActive && (
                   <Text color={colors.textDim} dimColor>
-                    {' '}
+                    {" "}
                     [{figures.arrowLeft}
                     {figures.arrowRight} to change]
                   </Text>
@@ -534,26 +577,31 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
             );
           }
 
-          if (field.type === 'metadata') {
+          if (field.type === "metadata") {
             if (!inMetadataSection) {
               // Collapsed view
               return (
                 <Box key={field.key} flexDirection="column" marginBottom={0}>
                   <Box>
                     <Text color={isActive ? colors.primary : colors.textDim}>
-                      {isActive ? figures.pointer : ' '} {field.label}:{' '}
+                      {isActive ? figures.pointer : " "} {field.label}:{" "}
                     </Text>
-                    <Text color={colors.text}>{Object.keys(formData.metadata).length} item(s)</Text>
+                    <Text color={colors.text}>
+                      {Object.keys(formData.metadata).length} item(s)
+                    </Text>
                     {isActive && (
                       <Text color={colors.textDim} dimColor>
-                        {' '}
+                        {" "}
                         [Enter to manage]
                       </Text>
                     )}
                   </Box>
                   {Object.keys(formData.metadata).length > 0 && (
                     <Box marginLeft={2}>
-                      <MetadataDisplay metadata={formData.metadata} showBorder={false} />
+                      <MetadataDisplay
+                        metadata={formData.metadata}
+                        showBorder={false}
+                      />
                     </Box>
                   )}
                 </Box>
@@ -585,41 +633,49 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
                     flexDirection="column"
                     marginTop={1}
                     borderStyle="single"
-                    borderColor={selectedMetadataIndex === 0 ? colors.success : colors.warning}
+                    borderColor={
+                      selectedMetadataIndex === 0
+                        ? colors.success
+                        : colors.warning
+                    }
                     paddingX={1}
                   >
                     <Text
-                      color={selectedMetadataIndex === 0 ? colors.success : colors.warning}
+                      color={
+                        selectedMetadataIndex === 0
+                          ? colors.success
+                          : colors.warning
+                      }
                       bold
                     >
-                      {selectedMetadataIndex === 0 ? 'Adding New' : 'Editing'}
+                      {selectedMetadataIndex === 0 ? "Adding New" : "Editing"}
                     </Text>
                     <Box>
-                      {metadataInputMode === 'key' ? (
+                      {metadataInputMode === "key" ? (
                         <>
                           <Text color={colors.primary}>Key: </Text>
                           <TextInput
-                            value={metadataKey || ''}
+                            value={metadataKey || ""}
                             onChange={setMetadataKey}
                             placeholder="env"
                           />
                         </>
                       ) : (
-                        <Text dimColor>Key: {metadataKey || ''}</Text>
+                        <Text dimColor>Key: {metadataKey || ""}</Text>
                       )}
                     </Box>
                     <Box>
-                      {metadataInputMode === 'value' ? (
+                      {metadataInputMode === "value" ? (
                         <>
                           <Text color={colors.primary}>Value: </Text>
                           <TextInput
-                            value={metadataValue || ''}
+                            value={metadataValue || ""}
                             onChange={setMetadataValue}
                             placeholder="production"
                           />
                         </>
                       ) : (
-                        <Text dimColor>Value: {metadataValue || ''}</Text>
+                        <Text dimColor>Value: {metadataValue || ""}</Text>
                       )}
                     </Box>
                   </Box>
@@ -630,11 +686,23 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
                   <>
                     {/* Add new option */}
                     <Box marginTop={1}>
-                      <Text color={selectedMetadataIndex === 0 ? colors.primary : colors.textDim}>
-                        {selectedMetadataIndex === 0 ? figures.pointer : ' '}{' '}
+                      <Text
+                        color={
+                          selectedMetadataIndex === 0
+                            ? colors.primary
+                            : colors.textDim
+                        }
+                      >
+                        {selectedMetadataIndex === 0
+                          ? figures.pointer
+                          : " "}{" "}
                       </Text>
                       <Text
-                        color={selectedMetadataIndex === 0 ? colors.success : colors.textDim}
+                        color={
+                          selectedMetadataIndex === 0
+                            ? colors.success
+                            : colors.textDim
+                        }
                         bold={selectedMetadataIndex === 0}
                       >
                         + Add new metadata
@@ -646,14 +714,21 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
                       <Box flexDirection="column" marginTop={1}>
                         {metadataKeys.map((key, index) => {
                           const itemIndex = index + 1; // Items are at indices 1..n
-                          const isSelected = selectedMetadataIndex === itemIndex;
+                          const isSelected =
+                            selectedMetadataIndex === itemIndex;
                           return (
                             <Box key={key}>
-                              <Text color={isSelected ? colors.primary : colors.textDim}>
-                                {isSelected ? figures.pointer : ' '}{' '}
+                              <Text
+                                color={
+                                  isSelected ? colors.primary : colors.textDim
+                                }
+                              >
+                                {isSelected ? figures.pointer : " "}{" "}
                               </Text>
                               <Text
-                                color={isSelected ? colors.primary : colors.textDim}
+                                color={
+                                  isSelected ? colors.primary : colors.textDim
+                                }
                                 bold={isSelected}
                               >
                                 {key}: {formData.metadata[key]}
@@ -667,12 +742,22 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
                     {/* Done option */}
                     <Box marginTop={1}>
                       <Text
-                        color={selectedMetadataIndex === maxIndex ? colors.primary : colors.textDim}
+                        color={
+                          selectedMetadataIndex === maxIndex
+                            ? colors.primary
+                            : colors.textDim
+                        }
                       >
-                        {selectedMetadataIndex === maxIndex ? figures.pointer : ' '}{' '}
+                        {selectedMetadataIndex === maxIndex
+                          ? figures.pointer
+                          : " "}{" "}
                       </Text>
                       <Text
-                        color={selectedMetadataIndex === maxIndex ? colors.success : colors.textDim}
+                        color={
+                          selectedMetadataIndex === maxIndex
+                            ? colors.success
+                            : colors.textDim
+                        }
                         bold={selectedMetadataIndex === maxIndex}
                       >
                         {figures.tick} Done
@@ -682,11 +767,16 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
                 )}
 
                 {/* Help text */}
-                <Box marginTop={1} borderStyle="single" borderColor={colors.border} paddingX={1}>
+                <Box
+                  marginTop={1}
+                  borderStyle="single"
+                  borderColor={colors.border}
+                  paddingX={1}
+                >
                   <Text color={colors.textDim} dimColor>
                     {metadataInputMode
-                      ? `[Tab] Switch field • [Enter] ${metadataInputMode === 'key' ? 'Next' : 'Save'} • [esc] Cancel`
-                      : `${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedMetadataIndex === 0 ? 'Add' : selectedMetadataIndex === maxIndex ? 'Done' : 'Edit'} • [d] Delete • [esc] Back`}
+                      ? `[Tab] Switch field • [Enter] ${metadataInputMode === "key" ? "Next" : "Save"} • [esc] Cancel`
+                      : `${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedMetadataIndex === 0 ? "Add" : selectedMetadataIndex === maxIndex ? "Done" : "Edit"} • [d] Delete • [esc] Back`}
                   </Text>
                 </Box>
               </Box>
@@ -698,16 +788,23 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({ onBack, onCr
       </Box>
 
       {/* Validation warning */}
-      {formData.resource_size === 'CUSTOM_SIZE' && validateCustomResources() && (
-        <Box borderStyle="round" borderColor={colors.error} paddingX={1} paddingY={0} marginTop={1}>
-          <Text color={colors.error} bold>
-            {figures.cross} Validation Error
-          </Text>
-          <Text color={colors.error} dimColor>
-            {validateCustomResources()}
-          </Text>
-        </Box>
-      )}
+      {formData.resource_size === "CUSTOM_SIZE" &&
+        validateCustomResources() && (
+          <Box
+            borderStyle="round"
+            borderColor={colors.error}
+            paddingX={1}
+            paddingY={0}
+            marginTop={1}
+          >
+            <Text color={colors.error} bold>
+              {figures.cross} Validation Error
+            </Text>
+            <Text color={colors.error} dimColor>
+              {validateCustomResources()}
+            </Text>
+          </Box>
+        )}
 
       {!inMetadataSection && (
         <Box marginTop={1}>

@@ -11,11 +11,11 @@ export function getBaseUrl(): string {
   const env = process.env.RUNLOOP_ENV?.toLowerCase();
 
   switch (env) {
-    case 'dev':
-      return 'https://platform.runloop.pro';
-    case 'prod':
+    case "dev":
+      return "https://platform.runloop.pro";
+    case "prod":
     default:
-      return 'https://platform.runloop.ai';
+      return "https://platform.runloop.ai";
   }
 }
 

@@ -1,5 +1,5 @@
-import Runloop from '@runloop/api-client';
-import { getConfig } from './config.js';
+import Runloop from "@runloop/api-client";
+import { getConfig } from "./config.js";
 
 /**
  * Get the base URL based on RUNLOOP_ENV environment variable
@@ -10,11 +10,11 @@ function getBaseUrl(): string {
   const env = process.env.RUNLOOP_ENV?.toLowerCase();
 
   switch (env) {
-    case 'dev':
-      return 'https://api.runloop.pro';
-    case 'prod':
+    case "dev":
+      return "https://api.runloop.pro";
+    case "prod":
     default:
-      return 'https://api.runloop.ai';
+      return "https://api.runloop.ai";
   }
 }
 
@@ -22,7 +22,7 @@ export function getClient(): Runloop {
   const config = getConfig();
 
   if (!config.apiKey) {
-    throw new Error('API key not configured. Run: rln auth');
+    throw new Error("API key not configured. Run: rln auth");
   }
 
   const baseURL = getBaseUrl();
