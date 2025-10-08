@@ -1,12 +1,13 @@
-import React from 'react';
-import { render, Box, Text } from 'ink';
-import { getClient } from '../../utils/client.js';
-import { Header } from '../../components/Header.js';
-import { Banner } from '../../components/Banner.js';
-import { SpinnerComponent } from '../../components/Spinner.js';
-import { SuccessMessage } from '../../components/SuccessMessage.js';
-import { ErrorMessage } from '../../components/ErrorMessage.js';
-import { createExecutor } from '../../utils/CommandExecutor.js';
+import React from "react";
+import { render, Box, Text } from "ink";
+import { getClient } from "../../utils/client.js";
+import { Header } from "../../components/Header.js";
+import { Banner } from "../../components/Banner.js";
+import { SpinnerComponent } from "../../components/Spinner.js";
+import { SuccessMessage } from "../../components/SuccessMessage.js";
+import { ErrorMessage } from "../../components/ErrorMessage.js";
+import { createExecutor } from "../../utils/CommandExecutor.js";
+import { colors } from "../../utils/theme.js";
 
 interface CreateOptions {
   name?: string;
@@ -52,12 +53,14 @@ const CreateDevboxUI: React.FC<{
             details={`ID: ${result.id}\nStatus: ${result.status}`}
           />
           <Box marginTop={1}>
-            <Text color="gray">Try: </Text>
-            <Text color="cyan">rln devbox exec {result.id} ls</Text>
+            <Text color={colors.textDim}>Try: </Text>
+            <Text color={colors.primary}>rln devbox exec {result.id} ls</Text>
           </Box>
         </>
       )}
-      {error && <ErrorMessage message="Failed to create devbox" error={error} />}
+      {error && (
+        <ErrorMessage message="Failed to create devbox" error={error} />
+      )}
     </>
   );
 };
@@ -73,6 +76,6 @@ export async function createDevbox(options: CreateOptions) {
         ...(options.template && { template: options.template }),
       });
     },
-    () => <CreateDevboxUI name={options.name} template={options.template} />
+    () => <CreateDevboxUI name={options.name} template={options.template} />,
   );
 }

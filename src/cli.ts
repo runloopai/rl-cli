@@ -1,128 +1,265 @@
 #!/usr/bin/env node
 
-import { Command } from 'commander';
-import { createDevbox } from './commands/devbox/create.js';
-import { listDevboxes } from './commands/devbox/list.js';
-import { deleteDevbox } from './commands/devbox/delete.js';
-import { execCommand } from './commands/devbox/exec.js';
-import { uploadFile } from './commands/devbox/upload.js';
-import { getConfig } from './utils/config.js';
+import { Command } from "commander";
+import { createDevbox } from "./commands/devbox/create.js";
+import { listDevboxes } from "./commands/devbox/list.js";
+import { deleteDevbox } from "./commands/devbox/delete.js";
+import { execCommand } from "./commands/devbox/exec.js";
+import { uploadFile } from "./commands/devbox/upload.js";
+import { getConfig } from "./utils/config.js";
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+// Get version from package.json
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(
+  readFileSync(join(__dirname, "../package.json"), "utf8"),
+);
+export const VERSION = packageJson.version;
+
+// Global Ctrl+C handler to ensure it always exits
+process.on("SIGINT", () => {
+  // Force exit immediately, clearing alternate screen buffer
+  process.stdout.write("\x1b[?1049l");
+  process.stdout.write("\n");
+  process.exit(130); // Standard exit code for SIGINT
+});
 
 const program = new Command();
 
 program
-  .name('rln')
-  .description('Beautiful CLI for Runloop devbox management')
-  .version('1.0.0');
+  .name("rln")
+  .description("Beautiful CLI for Runloop devbox management")
+  .version(VERSION);
 
 program
-  .command('auth')
-  .description('Configure API authentication')
+  .command("auth")
+  .description("Configure API authentication")
   .action(async () => {
-    const { default: auth } = await import('./commands/auth.js');
+    const { default: auth } = await import("./commands/auth.js");
     auth();
   });
 
 // Devbox commands
 const devbox = program
-  .command('devbox')
-  .description('Manage devboxes')
-  .alias('d');
+  .command("devbox")
+  .description("Manage devboxes")
+  .alias("d");
 
 devbox
-  .command('create')
-  .description('Create a new devbox')
-  .option('-n, --name <name>', 'Devbox name')
-  .option('-t, --template <template>', 'Template to use')
-  .option('-o, --output [format]', 'Output format: text|json|yaml (default: interactive)')
+  .command("create")
+  .description("Create a new devbox")
+  .option("-n, --name <name>", "Devbox name")
+  .option("-t, --template <template>", "Template to use")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
   .action(createDevbox);
 
 devbox
-  .command('list')
-  .description('List all devboxes')
-  .option('-s, --status <status>', 'Filter by status')
-  .option('-o, --output [format]', 'Output format: text|json|yaml (default: interactive)')
-  .action(listDevboxes);
+  .command("list")
+  .description("List all devboxes")
+  .option("-s, --status <status>", "Filter by status")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (options) => {
+    // Only use alternate screen for interactive mode
+    if (!options.output) {
+      const { runInteractiveCommand } = await import(
+        "./utils/interactiveCommand.js"
+      );
+      await runInteractiveCommand(() => listDevboxes(options));
+    } else {
+      await listDevboxes(options);
+    }
+  });
 
 devbox
-  .command('delete <id>')
-  .description('Shutdown a devbox')
-  .alias('rm')
-  .option('-o, --output [format]', 'Output format: text|json|yaml (default: interactive)')
+  .command("delete <id>")
+  .description("Shutdown a devbox")
+  .alias("rm")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
   .action(deleteDevbox);
 
 devbox
-  .command('exec <id> <command...>')
-  .description('Execute a command in a devbox')
-  .option('-o, --output [format]', 'Output format: text|json|yaml (default: interactive)')
+  .command("exec <id> <command...>")
+  .description("Execute a command in a devbox")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
   .action(execCommand);
 
 devbox
-  .command('upload <id> <file>')
-  .description('Upload a file to a devbox')
-  .option('-p, --path <path>', 'Target path in devbox')
-  .option('-o, --output [format]', 'Output format: text|json|yaml (default: interactive)')
+  .command("upload <id> <file>")
+  .description("Upload a file to a devbox")
+  .option("-p, --path <path>", "Target path in devbox")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
   .action(uploadFile);
 
 // Snapshot commands
 const snapshot = program
-  .command('snapshot')
-  .description('Manage devbox snapshots')
-  .alias('snap');
+  .command("snapshot")
+  .description("Manage devbox snapshots")
+  .alias("snap");
 
 snapshot
-  .command('list')
-  .description('List all snapshots')
-  .option('-d, --devbox <id>', 'Filter by devbox ID')
-  .option('-o, --output [format]', 'Output format: text|json|yaml (default: interactive)')
+  .command("list")
+  .description("List all snapshots")
+  .option("-d, --devbox <id>", "Filter by devbox ID")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
   .action(async (options) => {
-    const { listSnapshots } = await import('./commands/snapshot/list.js');
-    listSnapshots(options);
+    const { listSnapshots } = await import("./commands/snapshot/list.js");
+    if (!options.output) {
+      const { runInteractiveCommand } = await import(
+        "./utils/interactiveCommand.js"
+      );
+      await runInteractiveCommand(() => listSnapshots(options));
+    } else {
+      await listSnapshots(options);
+    }
   });
 
 snapshot
-  .command('create <devbox-id>')
-  .description('Create a snapshot of a devbox')
-  .option('-n, --name <name>', 'Snapshot name')
-  .option('-o, --output [format]', 'Output format: text|json|yaml (default: interactive)')
+  .command("create <devbox-id>")
+  .description("Create a snapshot of a devbox")
+  .option("-n, --name <name>", "Snapshot name")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
   .action(async (devboxId, options) => {
-    const { createSnapshot } = await import('./commands/snapshot/create.js');
+    const { createSnapshot } = await import("./commands/snapshot/create.js");
     createSnapshot(devboxId, options);
   });
 
 snapshot
-  .command('delete <id>')
-  .description('Delete a snapshot')
-  .alias('rm')
-  .option('-o, --output [format]', 'Output format: text|json|yaml (default: interactive)')
+  .command("delete <id>")
+  .description("Delete a snapshot")
+  .alias("rm")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
   .action(async (id, options) => {
-    const { deleteSnapshot } = await import('./commands/snapshot/delete.js');
+    const { deleteSnapshot } = await import("./commands/snapshot/delete.js");
     deleteSnapshot(id, options);
   });
 
 // Blueprint commands
 const blueprint = program
-  .command('blueprint')
-  .description('Manage blueprints')
-  .alias('bp');
+  .command("blueprint")
+  .description("Manage blueprints")
+  .alias("bp");
 
 blueprint
-  .command('list')
-  .description('List all blueprints')
-  .option('-o, --output [format]', 'Output format: text|json|yaml (default: interactive)')
+  .command("list")
+  .description("List all blueprints")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
   .action(async (options) => {
-    const { listBlueprints } = await import('./commands/blueprint/list.js');
-    listBlueprints(options);
+    const { listBlueprints } = await import("./commands/blueprint/list.js");
+    if (!options.output) {
+      const { runInteractiveCommand } = await import(
+        "./utils/interactiveCommand.js"
+      );
+      await runInteractiveCommand(() => listBlueprints(options));
+    } else {
+      await listBlueprints(options);
+    }
   });
 
-// Check if API key is configured (except for auth command)
-const args = process.argv.slice(2);
-if (args[0] !== 'auth' && args[0] !== '--help' && args[0] !== '-h' && args.length > 0) {
-  const config = getConfig();
-  if (!config.apiKey) {
-    console.error('\n❌ API key not configured. Run: rln auth\n');
-    process.exit(1);
-  }
-}
+// MCP server commands
+const mcp = program
+  .command("mcp")
+  .description("Model Context Protocol (MCP) server commands");
 
-program.parse();
+mcp
+  .command("start")
+  .description("Start the MCP server")
+  .option("--http", "Use HTTP/SSE transport instead of stdio")
+  .option(
+    "-p, --port <port>",
+    "Port to listen on for HTTP mode (default: 3000)",
+    parseInt,
+  )
+  .action(async (options) => {
+    if (options.http) {
+      const { startMcpHttpServer } = await import("./commands/mcp-http.js");
+      await startMcpHttpServer(options.port);
+    } else {
+      const { startMcpServer } = await import("./commands/mcp.js");
+      await startMcpServer();
+    }
+  });
+
+mcp
+  .command("install")
+  .description("Install Runloop MCP server configuration in Claude Desktop")
+  .action(async () => {
+    const { installMcpConfig } = await import("./commands/mcp-install.js");
+    await installMcpConfig();
+  });
+
+// Hidden command: 'rln mcp' without subcommand starts the server (for Claude Desktop config compatibility)
+program
+  .command("mcp-server", { hidden: true })
+  .option("--http", "Use HTTP/SSE transport instead of stdio")
+  .option(
+    "-p, --port <port>",
+    "Port to listen on for HTTP mode (default: 3000)",
+    parseInt,
+  )
+  .action(async (options) => {
+    if (options.http) {
+      const { startMcpHttpServer } = await import("./commands/mcp-http.js");
+      await startMcpHttpServer(options.port);
+    } else {
+      const { startMcpServer } = await import("./commands/mcp.js");
+      await startMcpServer();
+    }
+  });
+
+// Main CLI entry point
+(async () => {
+  // Check if API key is configured (except for auth and mcp commands)
+  const args = process.argv.slice(2);
+  if (
+    args[0] !== "auth" &&
+    args[0] !== "mcp" &&
+    args[0] !== "mcp-server" &&
+    args[0] !== "--help" &&
+    args[0] !== "-h" &&
+    args.length > 0
+  ) {
+    const config = getConfig();
+    if (!config.apiKey) {
+      console.error("\n❌ API key not configured. Run: rln auth\n");
+      process.exit(1);
+    }
+  }
+
+  // If no command provided, show main menu
+  if (args.length === 0) {
+    const { runMainMenu } = await import("./commands/menu.js");
+    runMainMenu();
+  } else {
+    program.parse();
+  }
+})();

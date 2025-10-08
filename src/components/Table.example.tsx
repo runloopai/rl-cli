@@ -4,11 +4,12 @@
  * This file demonstrates how to use the Table component for different entity types.
  */
 
-import React from 'react';
-import { Box, Text } from 'ink';
-import { Table, createTextColumn, createComponentColumn } from './Table.js';
-import { StatusBadge } from './StatusBadge.js';
-import figures from 'figures';
+import React from "react";
+import { Box, Text } from "ink";
+import { Table, createTextColumn, createComponentColumn } from "./Table.js";
+import { StatusBadge } from "./StatusBadge.js";
+import figures from "figures";
+import { colors } from "../utils/theme.js";
 
 // ============================================================================
 // EXAMPLE 1: Blueprints Table
@@ -25,7 +26,7 @@ interface Blueprint {
 function BlueprintsTable({
   blueprints,
   selectedIndex,
-  terminalWidth
+  terminalWidth,
 }: {
   blueprints: Blueprint[];
   selectedIndex: number;
@@ -43,43 +44,54 @@ function BlueprintsTable({
       columns={[
         // Status badge column
         createComponentColumn<Blueprint>(
-          'status',
-          'Status',
+          "status",
+          "Status",
           (bp) => <StatusBadge status={bp.status} showText={false} />,
-          { width: 2 }
+          { width: 2 },
         ),
         // ID column (responsive)
         createTextColumn<Blueprint>(
-          'id',
-          'ID',
-          (bp) => showFullId ? bp.id : bp.id.slice(0, 13),
-          { width: showFullId ? 25 : 15, color: 'gray', dimColor: true, bold: false }
+          "id",
+          "ID",
+          (bp) => (showFullId ? bp.id : bp.id.slice(0, 13)),
+          {
+            width: showFullId ? 25 : 15,
+            color: colors.textDim,
+            dimColor: true,
+            bold: false,
+          },
         ),
         // Name column
         createTextColumn<Blueprint>(
-          'name',
-          'Name',
-          (bp) => bp.name || '(unnamed)',
-          { width: 30 }
+          "name",
+          "Name",
+          (bp) => bp.name || "(unnamed)",
+          { width: 30 },
         ),
         // Description column (optional)
         createTextColumn<Blueprint>(
-          'description',
-          'Description',
-          (bp) => bp.description || '',
-          { width: 40, color: 'gray', dimColor: true, bold: false, visible: showDescription }
+          "description",
+          "Description",
+          (bp) => bp.description || "",
+          {
+            width: 40,
+            color: colors.textDim,
+            dimColor: true,
+            bold: false,
+            visible: showDescription,
+          },
         ),
         // Created time column
         createTextColumn<Blueprint>(
-          'created',
-          'Created',
+          "created",
+          "Created",
           (bp) => new Date(bp.created_at).toLocaleDateString(),
-          { width: 15, color: 'gray', dimColor: true, bold: false }
+          { width: 15, color: colors.textDim, dimColor: true, bold: false },
         ),
       ]}
       emptyState={
         <Box>
-          <Text color="yellow">{figures.info} No blueprints found</Text>
+          <Text color={colors.warning}>{figures.info} No blueprints found</Text>
         </Box>
       }
     />
@@ -102,7 +114,7 @@ interface Snapshot {
 function SnapshotsTable({
   snapshots,
   selectedIndex,
-  terminalWidth
+  terminalWidth,
 }: {
   snapshots: Snapshot[];
   selectedIndex: number;
@@ -120,50 +132,66 @@ function SnapshotsTable({
       columns={[
         // Status badge column
         createComponentColumn<Snapshot>(
-          'status',
-          'Status',
+          "status",
+          "Status",
           (snap) => <StatusBadge status={snap.status} showText={false} />,
-          { width: 2 }
+          { width: 2 },
         ),
         // ID column (responsive)
         createTextColumn<Snapshot>(
-          'id',
-          'ID',
-          (snap) => showFullId ? snap.id : snap.id.slice(0, 13),
-          { width: showFullId ? 25 : 15, color: 'gray', dimColor: true, bold: false }
+          "id",
+          "ID",
+          (snap) => (showFullId ? snap.id : snap.id.slice(0, 13)),
+          {
+            width: showFullId ? 25 : 15,
+            color: colors.textDim,
+            dimColor: true,
+            bold: false,
+          },
         ),
         // Name column
         createTextColumn<Snapshot>(
-          'name',
-          'Name',
-          (snap) => snap.name || '(unnamed)',
-          { width: 25 }
+          "name",
+          "Name",
+          (snap) => snap.name || "(unnamed)",
+          { width: 25 },
         ),
         // Devbox ID column
         createTextColumn<Snapshot>(
-          'devbox',
-          'Devbox',
+          "devbox",
+          "Devbox",
           (snap) => snap.devbox_id.slice(0, 13),
-          { width: 15, color: 'cyan', dimColor: true, bold: false }
+          {
+            width: 15,
+            color: colors.primary,
+            dimColor: true,
+            bold: false,
+          },
         ),
         // Size column (optional)
         createTextColumn<Snapshot>(
-          'size',
-          'Size',
-          (snap) => snap.size_gb ? `${snap.size_gb.toFixed(1)}GB` : '',
-          { width: 10, color: 'yellow', dimColor: true, bold: false, visible: showSize }
+          "size",
+          "Size",
+          (snap) => (snap.size_gb ? `${snap.size_gb.toFixed(1)}GB` : ""),
+          {
+            width: 10,
+            color: colors.warning,
+            dimColor: true,
+            bold: false,
+            visible: showSize,
+          },
         ),
         // Created time column
         createTextColumn<Snapshot>(
-          'created',
-          'Created',
+          "created",
+          "Created",
           (snap) => new Date(snap.created_at).toLocaleDateString(),
-          { width: 15, color: 'gray', dimColor: true, bold: false }
+          { width: 15, color: colors.textDim, dimColor: true, bold: false },
         ),
       ]}
       emptyState={
         <Box>
-          <Text color="yellow">{figures.info} No snapshots found</Text>
+          <Text color={colors.warning}>{figures.info} No snapshots found</Text>
         </Box>
       }
     />
@@ -182,8 +210,8 @@ function CustomComplexColumn() {
   }
 
   const data: CustomEntity[] = [
-    { id: '1', name: 'Item 1', tags: ['tag1', 'tag2'] },
-    { id: '2', name: 'Item 2', tags: ['tag3'] },
+    { id: "1", name: "Item 1", tags: ["tag1", "tag2"] },
+    { id: "2", name: "Item 2", tags: ["tag3"] },
   ];
 
   return (
@@ -192,24 +220,21 @@ function CustomComplexColumn() {
       keyExtractor={(item: CustomEntity) => item.id}
       selectedIndex={0}
       columns={[
-        createTextColumn<CustomEntity>(
-          'name',
-          'Name',
-          (item) => item.name,
-          { width: 20 }
-        ),
+        createTextColumn<CustomEntity>("name", "Name", (item) => item.name, {
+          width: 20,
+        }),
         // Custom component column with complex rendering
         createComponentColumn<CustomEntity>(
-          'tags',
-          'Tags',
+          "tags",
+          "Tags",
           (item, index, isSelected) => (
             <Box width={30}>
-              <Text color={isSelected ? 'cyan' : 'blue'} dimColor>
-                {item.tags.map(tag => `[${tag}]`).join(' ')}
+              <Text color={isSelected ? colors.primary : colors.info} dimColor>
+                {item.tags.map((tag) => `[${tag}]`).join(" ")}
               </Text>
             </Box>
           ),
-          { width: 30 }
+          { width: 30 },
         ),
       ]}
     />

@@ -1,6 +1,7 @@
-import React from 'react';
-import { Box, Text } from 'ink';
-import figures from 'figures';
+import React from "react";
+import { Box, Text } from "ink";
+import figures from "figures";
+import { colors } from "../utils/theme.js";
 
 export interface Operation {
   key: string;
@@ -15,7 +16,7 @@ export interface Operation {
 interface OperationsMenuProps {
   operations: Operation[];
   selectedIndex: number;
-  onNavigate: (direction: 'up' | 'down') => void;
+  onNavigate: (direction: "up" | "down") => void;
   onSelect: (operation: Operation) => void;
   onBack: () => void;
   additionalActions?: Array<{
@@ -41,7 +42,7 @@ export const OperationsMenu: React.FC<OperationsMenuProps> = ({
     <>
       {/* Operations List */}
       <Box flexDirection="column">
-        <Text color="cyan" bold>
+        <Text color={colors.primary} bold>
           {figures.play} Operations
         </Text>
         <Box flexDirection="column">
@@ -49,10 +50,13 @@ export const OperationsMenu: React.FC<OperationsMenuProps> = ({
             const isSelected = index === selectedIndex;
             return (
               <Box key={op.key}>
-                <Text color={isSelected ? 'cyan' : 'gray'}>
-                  {isSelected ? figures.pointer : ' '}{' '}
+                <Text color={isSelected ? colors.primary : colors.textDim}>
+                  {isSelected ? figures.pointer : " "}{" "}
                 </Text>
-                <Text color={isSelected ? op.color : 'gray'} bold={isSelected}>
+                <Text
+                  color={isSelected ? op.color : colors.textDim}
+                  bold={isSelected}
+                >
                   {op.icon} {op.label}
                 </Text>
               </Box>
@@ -63,11 +67,13 @@ export const OperationsMenu: React.FC<OperationsMenuProps> = ({
 
       {/* Help text */}
       <Box marginTop={1}>
-        <Text color="gray" dimColor>
+        <Text color={colors.textDim} dimColor>
           {figures.arrowUp}
           {figures.arrowDown} Navigate • [Enter] Select •
-          {additionalActions.map((action) => ` [${action.key}] ${action.label} •`)}
-          {' '}[q] Back
+          {additionalActions.map(
+            (action) => ` [${action.key}] ${action.label} •`,
+          )}{" "}
+          [q] Back
         </Text>
       </Box>
     </>
@@ -79,7 +85,7 @@ export const OperationsMenu: React.FC<OperationsMenuProps> = ({
  */
 export function filterOperations(
   allOperations: Operation[],
-  condition: (op: Operation) => boolean
+  condition: (op: Operation) => boolean,
 ): Operation[] {
   return allOperations.filter(condition);
 }

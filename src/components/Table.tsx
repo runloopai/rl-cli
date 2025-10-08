@@ -1,6 +1,7 @@
-import React from 'react';
-import { Box, Text } from 'ink';
-import figures from 'figures';
+import React from "react";
+import { Box, Text } from "ink";
+import figures from "figures";
+import { colors } from "../utils/theme.js";
 
 export interface Column<T> {
   /** Column key for identification */
@@ -50,18 +51,25 @@ export function Table<T>({
   }
 
   // Filter visible columns
-  const visibleColumns = columns.filter(col => col.visible !== false);
+  const visibleColumns = columns.filter((col) => col.visible !== false);
 
   return (
     <Box flexDirection="column">
       {/* Title bar (if provided) */}
       {title && (
         <Box paddingX={1} marginBottom={0}>
-          <Text color="cyan" bold>╭─ {title} {'─'.repeat(Math.max(0, 10))}╮</Text>
+          <Text color={colors.primary} bold>
+            ╭─ {title} {"─".repeat(Math.max(0, 10))}╮
+          </Text>
         </Box>
       )}
 
-      <Box flexDirection="column" borderStyle={title ? 'single' : 'round'} borderColor="gray" paddingX={1}>
+      <Box
+        flexDirection="column"
+        borderStyle={title ? "single" : "round"}
+        borderColor={colors.border}
+        paddingX={1}
+      >
         {/* Header row */}
         <Box>
           {/* Space for selection pointer */}
@@ -75,37 +83,37 @@ export function Table<T>({
           {/* Column headers */}
           {visibleColumns.map((column) => (
             <Text key={`header-${column.key}`} bold dimColor>
-              {column.label.slice(0, column.width).padEnd(column.width, ' ')}
+              {column.label.slice(0, column.width).padEnd(column.width, " ")}
             </Text>
           ))}
         </Box>
 
-      {/* Data rows */}
-      {data.map((row, index) => {
-        const isSelected = index === selectedIndex;
-        const rowKey = keyExtractor(row);
+        {/* Data rows */}
+        {data.map((row, index) => {
+          const isSelected = index === selectedIndex;
+          const rowKey = keyExtractor(row);
 
-        return (
-          <Box key={rowKey}>
-            {/* Selection pointer */}
-            {showSelection && (
-              <>
-                <Text color={isSelected ? 'cyan' : 'gray'}>
-                  {isSelected ? figures.pointer : ' '}
-                </Text>
-                <Text> </Text>
-              </>
-            )}
+          return (
+            <Box key={rowKey}>
+              {/* Selection pointer */}
+              {showSelection && (
+                <>
+                  <Text color={isSelected ? colors.primary : colors.textDim}>
+                    {isSelected ? figures.pointer : " "}
+                  </Text>
+                  <Text> </Text>
+                </>
+              )}
 
-            {/* Render each column */}
-            {visibleColumns.map((column, colIndex) => (
-              <React.Fragment key={`${rowKey}-${column.key}`}>
-                {column.render(row, index, isSelected)}
-              </React.Fragment>
-            ))}
-          </Box>
-        );
-      })}
+              {/* Render each column */}
+              {visibleColumns.map((column, colIndex) => (
+                <React.Fragment key={`${rowKey}-${column.key}`}>
+                  {column.render(row, index, isSelected)}
+                </React.Fragment>
+              ))}
+            </Box>
+          );
+        })}
       </Box>
     </Box>
   );
@@ -124,7 +132,7 @@ export function createTextColumn<T>(
     bold?: boolean;
     dimColor?: boolean;
     visible?: boolean;
-  }
+  },
 ): Column<T> {
   return {
     key,
@@ -134,16 +142,28 @@ export function createTextColumn<T>(
     render: (row, index, isSelected) => {
       const value = getValue(row);
       const width = options?.width || 20;
-      const color = options?.color || (isSelected ? 'white' : 'white');
+      const color = options?.color || (isSelected ? colors.text : colors.text);
       const bold = options?.bold !== undefined ? options.bold : isSelected;
       const dimColor = options?.dimColor || false;
 
-      // Pad the value to fill the full width
-      const truncated = value.slice(0, width);
-      const padded = truncated.padEnd(width, ' ');
+      // Truncate and add ellipsis if text is too long
+      let truncated: string;
+      if (value.length > width) {
+        // Reserve space for ellipsis if truncating
+        truncated = value.slice(0, width - 1) + "…";
+      } else {
+        truncated = value;
+      }
+      const padded = truncated.padEnd(width, " ");
 
       return (
-        <Text color={isSelected ? 'white' : color} bold={bold} dimColor={!isSelected && dimColor} inverse={isSelected}>
+        <Text
+          color={isSelected ? colors.text : color}
+          bold={bold}
+          dimColor={!isSelected && dimColor}
+          inverse={isSelected}
+          wrap="truncate"
+        >
           {padded}
         </Text>
       );
@@ -157,11 +177,15 @@ export function createTextColumn<T>(
 export function createComponentColumn<T>(
   key: string,
   label: string,
-  renderComponent: (row: T, index: number, isSelected: boolean) => React.ReactNode,
+  renderComponent: (
+    row: T,
+    index: number,
+    isSelected: boolean,
+  ) => React.ReactNode,
   options?: {
     width?: number;
     visible?: boolean;
-  }
+  },
 ): Column<T> {
   return {
     key,
