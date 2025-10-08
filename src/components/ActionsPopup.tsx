@@ -69,7 +69,11 @@ export const ActionsPopup: React.FC<ActionsPopupProps> = ({
       <Box flexDirection="column">
         <Text>{borderTop}</Text>
         {lines.map((line, i) => (
-          <Text key={i}>{chalk.cyan('│')}{line}{chalk.cyan('│')}</Text>
+          <Text key={i}>
+            {chalk.cyan('│')}
+            {line}
+            {chalk.cyan('│')}
+          </Text>
         ))}
         <Text>{borderBottom}</Text>
       </Box>

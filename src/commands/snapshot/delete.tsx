@@ -33,12 +33,7 @@ const DeleteSnapshotUI: React.FC<{ id: string }> = ({ id }) => {
     <>
       <Header title="Delete Snapshot" subtitle={`Deleting snapshot: ${id}`} />
       {loading && <SpinnerComponent message="Deleting snapshot..." />}
-      {success && (
-        <SuccessMessage
-          message="Snapshot deleted successfully!"
-          details={`ID: ${id}`}
-        />
-      )}
+      {success && <SuccessMessage message="Snapshot deleted successfully!" details={`ID: ${id}`} />}
       {error && <ErrorMessage message="Failed to delete snapshot" error={error} />}
     </>
   );

@@ -74,67 +74,70 @@ export function useCursorPagination<T>(
   const pageCache = React.useRef<Map<number, T[]>>(new Map());
   const lastIdCache = React.useRef<Map<number, string>>(new Map());
 
-  const fetchData = React.useCallback(async (isInitialLoad: boolean = false) => {
-    try {
-      if (isInitialLoad) {
-        setRefreshing(true);
-      }
-      setLoading(true);
+  const fetchData = React.useCallback(
+    async (isInitialLoad: boolean = false) => {
+      try {
+        if (isInitialLoad) {
+          setRefreshing(true);
+        }
+        setLoading(true);
 
-      // Check cache first (skip on refresh)
-      if (!isInitialLoad && pageCache.current.has(currentPage)) {
-        setItems(pageCache.current.get(currentPage) || []);
+        // Check cache first (skip on refresh)
+        if (!isInitialLoad && pageCache.current.has(currentPage)) {
+          setItems(pageCache.current.get(currentPage) || []);
+          setLoading(false);
+          return;
+        }
+
+        const pageItems: T[] = [];
+
+        // Get starting_at cursor from previous page's last ID
+        const startingAt = currentPage > 0 ? lastIdCache.current.get(currentPage - 1) : undefined;
+
+        // Build query params
+        const queryParams: any = {
+          limit: config.pageSize,
+          ...config.queryParams,
+        };
+        if (startingAt) {
+          queryParams.starting_at = startingAt;
+        }
+
+        // Fetch the page
+        const result = await config.fetchPage(queryParams);
+
+        // Extract items (handle both array response and paginated response)
+        const fetchedItems = Array.isArray(result) ? result : result.items;
+        pageItems.push(...fetchedItems.slice(0, config.pageSize));
+
+        // Update pagination metadata
+        if (!Array.isArray(result)) {
+          setTotalCount(result.total_count || pageItems.length);
+          setHasMore(result.has_more || false);
+        } else {
+          setTotalCount(pageItems.length);
+          setHasMore(false);
+        }
+
+        // Cache the page data and last ID
+        if (pageItems.length > 0) {
+          pageCache.current.set(currentPage, pageItems);
+          lastIdCache.current.set(currentPage, config.getItemId(pageItems[pageItems.length - 1]));
+        }
+
+        // Update items for current page
+        setItems(pageItems);
+      } catch (err) {
+        setError(err as Error);
+      } finally {
         setLoading(false);
-        return;
+        if (isInitialLoad) {
+          setTimeout(() => setRefreshing(false), 300);
+        }
       }
-
-      const pageItems: T[] = [];
-
-      // Get starting_at cursor from previous page's last ID
-      const startingAt = currentPage > 0 ? lastIdCache.current.get(currentPage - 1) : undefined;
-
-      // Build query params
-      const queryParams: any = {
-        limit: config.pageSize,
-        ...config.queryParams,
-      };
-      if (startingAt) {
-        queryParams.starting_at = startingAt;
-      }
-
-      // Fetch the page
-      const result = await config.fetchPage(queryParams);
-
-      // Extract items (handle both array response and paginated response)
-      const fetchedItems = Array.isArray(result) ? result : result.items;
-      pageItems.push(...fetchedItems.slice(0, config.pageSize));
-
-      // Update pagination metadata
-      if (!Array.isArray(result)) {
-        setTotalCount(result.total_count || pageItems.length);
-        setHasMore(result.has_more || false);
-      } else {
-        setTotalCount(pageItems.length);
-        setHasMore(false);
-      }
-
-      // Cache the page data and last ID
-      if (pageItems.length > 0) {
-        pageCache.current.set(currentPage, pageItems);
-        lastIdCache.current.set(currentPage, config.getItemId(pageItems[pageItems.length - 1]));
-      }
-
-      // Update items for current page
-      setItems(pageItems);
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setLoading(false);
-      if (isInitialLoad) {
-        setTimeout(() => setRefreshing(false), 300);
-      }
-    }
-  }, [currentPage, config]);
+    },
+    [currentPage, config]
+  );
 
   // Initial load and page changes
   React.useEffect(() => {
@@ -169,11 +172,14 @@ export function useCursorPagination<T>(
     }
   }, [loading, currentPage]);
 
-  const goToPage = React.useCallback((page: number) => {
-    if (!loading && page >= 0) {
-      setCurrentPage(page);
-    }
-  }, [loading]);
+  const goToPage = React.useCallback(
+    (page: number) => {
+      if (!loading && page >= 0) {
+        setCurrentPage(page);
+      }
+    },
+    [loading]
+  );
 
   const refresh = React.useCallback(() => {
     pageCache.current.clear();

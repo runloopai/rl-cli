@@ -11,7 +11,17 @@ import { Breadcrumb } from './Breadcrumb.js';
 import type { SSHSessionConfig } from '../utils/sshSession.js';
 import { colors } from '../utils/theme.js';
 
-type Operation = 'exec' | 'upload' | 'snapshot' | 'ssh' | 'logs' | 'tunnel' | 'suspend' | 'resume' | 'delete' | null;
+type Operation =
+  | 'exec'
+  | 'upload'
+  | 'snapshot'
+  | 'ssh'
+  | 'logs'
+  | 'tunnel'
+  | 'suspend'
+  | 'resume'
+  | 'delete'
+  | null;
 
 interface DevboxActionsMenuProps {
   devbox: any;
@@ -26,10 +36,7 @@ interface DevboxActionsMenuProps {
 export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
   devbox,
   onBack,
-  breadcrumbItems = [
-    { label: 'Devboxes' },
-    { label: devbox.name || devbox.id, active: true }
-  ],
+  breadcrumbItems = [{ label: 'Devboxes' }, { label: devbox.name || devbox.id, active: true }],
   initialOperation,
   initialOperationIndex = 0,
   skipOperationsMenu = false,
@@ -39,7 +46,9 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
   const { stdout } = useStdout();
   const [loading, setLoading] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(initialOperationIndex);
-  const [executingOperation, setExecutingOperation] = React.useState<Operation>(initialOperation as Operation || null);
+  const [executingOperation, setExecutingOperation] = React.useState<Operation>(
+    (initialOperation as Operation) || null
+  );
   const [operationInput, setOperationInput] = React.useState('');
   const [operationResult, setOperationResult] = React.useState<string | null>(null);
   const [operationError, setOperationError] = React.useState<Error | null>(null);
@@ -50,38 +59,88 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
 
   const allOperations = [
     { key: 'logs', label: 'View Logs', color: colors.info, icon: figures.info, shortcut: 'l' },
-    { key: 'exec', label: 'Execute Command', color: colors.success, icon: figures.play, shortcut: 'e' },
-    { key: 'upload', label: 'Upload File', color: colors.success, icon: figures.arrowUp, shortcut: 'u' },
-    { key: 'snapshot', label: 'Create Snapshot', color: colors.warning, icon: figures.circleFilled, shortcut: 'n' },
-    { key: 'ssh', label: 'SSH onto the box', color: colors.primary, icon: figures.arrowRight, shortcut: 's' },
-    { key: 'tunnel', label: 'Open Tunnel', color: colors.secondary, icon: figures.pointerSmall, shortcut: 't' },
-    { key: 'suspend', label: 'Suspend Devbox', color: colors.warning, icon: figures.squareSmallFilled, shortcut: 'p' },
-    { key: 'resume', label: 'Resume Devbox', color: colors.success, icon: figures.play, shortcut: 'r' },
-    { key: 'delete', label: 'Shutdown Devbox', color: colors.error, icon: figures.cross, shortcut: 'd' },
+    {
+      key: 'exec',
+      label: 'Execute Command',
+      color: colors.success,
+      icon: figures.play,
+      shortcut: 'e',
+    },
+    {
+      key: 'upload',
+      label: 'Upload File',
+      color: colors.success,
+      icon: figures.arrowUp,
+      shortcut: 'u',
+    },
+    {
+      key: 'snapshot',
+      label: 'Create Snapshot',
+      color: colors.warning,
+      icon: figures.circleFilled,
+      shortcut: 'n',
+    },
+    {
+      key: 'ssh',
+      label: 'SSH onto the box',
+      color: colors.primary,
+      icon: figures.arrowRight,
+      shortcut: 's',
+    },
+    {
+      key: 'tunnel',
+      label: 'Open Tunnel',
+      color: colors.secondary,
+      icon: figures.pointerSmall,
+      shortcut: 't',
+    },
+    {
+      key: 'suspend',
+      label: 'Suspend Devbox',
+      color: colors.warning,
+      icon: figures.squareSmallFilled,
+      shortcut: 'p',
+    },
+    {
+      key: 'resume',
+      label: 'Resume Devbox',
+      color: colors.success,
+      icon: figures.play,
+      shortcut: 'r',
+    },
+    {
+      key: 'delete',
+      label: 'Shutdown Devbox',
+      color: colors.error,
+      icon: figures.cross,
+      shortcut: 'd',
+    },
   ];
 
   // Filter operations based on devbox status
-  const operations = devbox ? allOperations.filter(op => {
-    const status = devbox.status;
+  const operations = devbox
+    ? allOperations.filter(op => {
+        const status = devbox.status;
 
-    // When suspended: logs and resume
-    if (status === 'suspended') {
-      return op.key === 'resume' || op.key === 'logs';
-    }
+        // When suspended: logs and resume
+        if (status === 'suspended') {
+          return op.key === 'resume' || op.key === 'logs';
+        }
 
-    // When not running (shutdown, failure, etc): only logs
-    if (status !== 'running' && status !== 'provisioning' && status !== 'initializing') {
-      return op.key === 'logs';
-    }
+        // When not running (shutdown, failure, etc): only logs
+        if (status !== 'running' && status !== 'provisioning' && status !== 'initializing') {
+          return op.key === 'logs';
+        }
 
-    // When running: everything except resume
-    if (status === 'running') {
-      return op.key !== 'resume';
-    }
+        // When running: everything except resume
+        if (status === 'running') {
+          return op.key !== 'resume';
+        }
 
-    // Default for transitional states (provisioning, initializing)
-    return op.key === 'logs' || op.key === 'delete';
-  }) : allOperations;
+        // Default for transitional states (provisioning, initializing)
+        return op.key === 'logs' || op.key === 'delete';
+      })
+    : allOperations;
 
   // Auto-execute operations that don't need input
   React.useEffect(() => {
@@ -121,25 +180,64 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
           setExecScroll(0);
           setCopyStatus(null);
         }
-      } else if ((key.upArrow || input === 'k') && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'exec') {
+      } else if (
+        (key.upArrow || input === 'k') &&
+        operationResult &&
+        typeof operationResult === 'object' &&
+        (operationResult as any).__customRender === 'exec'
+      ) {
         setExecScroll(Math.max(0, execScroll - 1));
-      } else if ((key.downArrow || input === 'j') && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'exec') {
+      } else if (
+        (key.downArrow || input === 'j') &&
+        operationResult &&
+        typeof operationResult === 'object' &&
+        (operationResult as any).__customRender === 'exec'
+      ) {
         setExecScroll(execScroll + 1);
-      } else if (key.pageUp && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'exec') {
+      } else if (
+        key.pageUp &&
+        operationResult &&
+        typeof operationResult === 'object' &&
+        (operationResult as any).__customRender === 'exec'
+      ) {
         setExecScroll(Math.max(0, execScroll - 10));
-      } else if (key.pageDown && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'exec') {
+      } else if (
+        key.pageDown &&
+        operationResult &&
+        typeof operationResult === 'object' &&
+        (operationResult as any).__customRender === 'exec'
+      ) {
         setExecScroll(execScroll + 10);
-      } else if (input === 'g' && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'exec') {
+      } else if (
+        input === 'g' &&
+        operationResult &&
+        typeof operationResult === 'object' &&
+        (operationResult as any).__customRender === 'exec'
+      ) {
         setExecScroll(0);
-      } else if (input === 'G' && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'exec') {
-        const lines = [...((operationResult as any).stdout || '').split('\n'), ...((operationResult as any).stderr || '').split('\n')];
+      } else if (
+        input === 'G' &&
+        operationResult &&
+        typeof operationResult === 'object' &&
+        (operationResult as any).__customRender === 'exec'
+      ) {
+        const lines = [
+          ...((operationResult as any).stdout || '').split('\n'),
+          ...((operationResult as any).stderr || '').split('\n'),
+        ];
         const terminalHeight = stdout?.rows || 30;
         const viewportHeight = Math.max(10, terminalHeight - 15);
         const maxScroll = Math.max(0, lines.length - viewportHeight);
         setExecScroll(maxScroll);
-      } else if (input === 'c' && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'exec') {
+      } else if (
+        input === 'c' &&
+        operationResult &&
+        typeof operationResult === 'object' &&
+        (operationResult as any).__customRender === 'exec'
+      ) {
         // Copy exec output to clipboard
-        const output = ((operationResult as any).stdout || '') + ((operationResult as any).stderr || '');
+        const output =
+          ((operationResult as any).stdout || '') + ((operationResult as any).stderr || '');
 
         const copyToClipboard = async (text: string) => {
           const { spawn } = await import('child_process');
@@ -163,7 +261,7 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
           proc.stdin.write(text);
           proc.stdin.end();
 
-          proc.on('exit', (code) => {
+          proc.on('exit', code => {
             if (code === 0) {
               setCopyStatus('Copied to clipboard!');
               setTimeout(() => setCopyStatus(null), 2000);
@@ -180,36 +278,79 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
         };
 
         copyToClipboard(output);
-      } else if ((key.upArrow || input === 'k') && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+      } else if (
+        (key.upArrow || input === 'k') &&
+        operationResult &&
+        typeof operationResult === 'object' &&
+        (operationResult as any).__customRender === 'logs'
+      ) {
         setLogsScroll(Math.max(0, logsScroll - 1));
-      } else if ((key.downArrow || input === 'j') && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+      } else if (
+        (key.downArrow || input === 'j') &&
+        operationResult &&
+        typeof operationResult === 'object' &&
+        (operationResult as any).__customRender === 'logs'
+      ) {
         setLogsScroll(logsScroll + 1);
-      } else if (key.pageUp && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+      } else if (
+        key.pageUp &&
+        operationResult &&
+        typeof operationResult === 'object' &&
+        (operationResult as any).__customRender === 'logs'
+      ) {
         setLogsScroll(Math.max(0, logsScroll - 10));
-      } else if (key.pageDown && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+      } else if (
+        key.pageDown &&
+        operationResult &&
+        typeof operationResult === 'object' &&
+        (operationResult as any).__customRender === 'logs'
+      ) {
         setLogsScroll(logsScroll + 10);
-      } else if (input === 'g' && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+      } else if (
+        input === 'g' &&
+        operationResult &&
+        typeof operationResult === 'object' &&
+        (operationResult as any).__customRender === 'logs'
+      ) {
         setLogsScroll(0);
-      } else if (input === 'G' && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+      } else if (
+        input === 'G' &&
+        operationResult &&
+        typeof operationResult === 'object' &&
+        (operationResult as any).__customRender === 'logs'
+      ) {
         const logs = (operationResult as any).__logs || [];
         const terminalHeight = stdout?.rows || 30;
         const viewportHeight = Math.max(10, terminalHeight - 10);
         const maxScroll = Math.max(0, logs.length - viewportHeight);
         setLogsScroll(maxScroll);
-      } else if (input === 'w' && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+      } else if (
+        input === 'w' &&
+        operationResult &&
+        typeof operationResult === 'object' &&
+        (operationResult as any).__customRender === 'logs'
+      ) {
         setLogsWrapMode(!logsWrapMode);
-      } else if (input === 'c' && operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+      } else if (
+        input === 'c' &&
+        operationResult &&
+        typeof operationResult === 'object' &&
+        (operationResult as any).__customRender === 'logs'
+      ) {
         // Copy logs to clipboard
         const logs = (operationResult as any).__logs || [];
-        const logsText = logs.map((log: any) => {
-          const time = new Date(log.timestamp_ms).toLocaleString();
-          const level = log.level || 'INFO';
-          const source = log.source || 'exec';
-          const message = log.message || '';
-          const cmd = log.cmd ? `[${log.cmd}] ` : '';
-          const exitCode = log.exit_code !== null && log.exit_code !== undefined ? `(${log.exit_code}) ` : '';
-          return `${time} ${level}/${source} ${exitCode}${cmd}${message}`;
-        }).join('\n');
+        const logsText = logs
+          .map((log: any) => {
+            const time = new Date(log.timestamp_ms).toLocaleString();
+            const level = log.level || 'INFO';
+            const source = log.source || 'exec';
+            const message = log.message || '';
+            const cmd = log.cmd ? `[${log.cmd}] ` : '';
+            const exitCode =
+              log.exit_code !== null && log.exit_code !== undefined ? `(${log.exit_code}) ` : '';
+            return `${time} ${level}/${source} ${exitCode}${cmd}${message}`;
+          })
+          .join('\n');
 
         const copyToClipboard = async (text: string) => {
           const { spawn } = await import('child_process');
@@ -233,7 +374,7 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
           proc.stdin.write(text);
           proc.stdin.end();
 
-          proc.on('exit', (code) => {
+          proc.on('exit', code => {
             if (code === 0) {
               setCopyStatus('Copied to clipboard!');
               setTimeout(() => setCopyStatus(null), 2000);
@@ -340,7 +481,7 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
             sshUser,
             url: sshKey.url,
             devboxId: devbox.id,
-            devboxName: devbox.name || devbox.id
+            devboxName: devbox.name || devbox.id,
           };
 
           // Notify parent that SSH is requested
@@ -367,14 +508,16 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
         case 'tunnel':
           const port = parseInt(operationInput);
           if (isNaN(port) || port < 1 || port > 65535) {
-            setOperationError(new Error('Invalid port number. Please enter a port between 1 and 65535.'));
+            setOperationError(
+              new Error('Invalid port number. Please enter a port between 1 and 65535.')
+            );
           } else {
             const tunnel = await client.devboxes.createTunnel(devbox.id, { port });
             setOperationResult(
               `Tunnel created!\n\n` +
-              `Local Port: ${port}\n` +
-              `Public URL: ${tunnel.url}\n\n` +
-              `You can now access port ${port} on the devbox via:\n${tunnel.url}`
+                `Local Port: ${port}\n` +
+                `Public URL: ${tunnel.url}\n\n` +
+                `You can now access port ${port} on the devbox via:\n${tunnel.url}`
             );
           }
           break;
@@ -401,12 +544,16 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
     }
   };
 
-  const operationLabel = operations.find((o) => o.key === executingOperation)?.label || 'Operation';
+  const operationLabel = operations.find(o => o.key === executingOperation)?.label || 'Operation';
 
   // Operation result display
   if (operationResult || operationError) {
     // Check for custom exec rendering
-    if (operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'exec') {
+    if (
+      operationResult &&
+      typeof operationResult === 'object' &&
+      (operationResult as any).__customRender === 'exec'
+    ) {
       const command = (operationResult as any).command || '';
       const stdout = (operationResult as any).stdout || '';
       const stderr = (operationResult as any).stderr || '';
@@ -431,22 +578,36 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
           <Breadcrumb items={[...breadcrumbItems, { label: 'Execute Command', active: true }]} />
 
           {/* Command header */}
-          <Box flexDirection="column" borderStyle="round" borderColor={colors.primary} paddingX={1} marginBottom={1}>
+          <Box
+            flexDirection="column"
+            borderStyle="round"
+            borderColor={colors.primary}
+            paddingX={1}
+            marginBottom={1}
+          >
             <Box>
-              <Text color={colors.primary} bold>{figures.play} Command:</Text>
+              <Text color={colors.primary} bold>
+                {figures.play} Command:
+              </Text>
               <Text> </Text>
               <Text color={colors.text}>{command}</Text>
             </Box>
             <Box>
-              <Text color={colors.textDim} dimColor>Exit Code: </Text>
-              <Text color={exitCodeColor} bold>{exitCode}</Text>
+              <Text color={colors.textDim} dimColor>
+                Exit Code:{' '}
+              </Text>
+              <Text color={exitCodeColor} bold>
+                {exitCode}
+              </Text>
             </Box>
           </Box>
 
           {/* Output display */}
           <Box flexDirection="column" borderStyle="round" borderColor={colors.border} paddingX={1}>
             {allLines.length === 0 && (
-              <Text color={colors.textDim} dimColor>No output</Text>
+              <Text color={colors.textDim} dimColor>
+                No output
+              </Text>
             )}
             {visibleLines.map((line: string, index: number) => {
               const actualIndex = actualScroll + index;
@@ -477,31 +638,53 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
             <Text color={colors.primary} bold>
               {figures.hamburger} {allLines.length}
             </Text>
-            <Text color={colors.textDim} dimColor> lines</Text>
+            <Text color={colors.textDim} dimColor>
+              {' '}
+              lines
+            </Text>
             {allLines.length > 0 && (
               <>
-                <Text color={colors.textDim} dimColor> • </Text>
                 <Text color={colors.textDim} dimColor>
-                  Viewing {actualScroll + 1}-{Math.min(actualScroll + viewportHeight, allLines.length)} of {allLines.length}
+                  {' '}
+                  •{' '}
+                </Text>
+                <Text color={colors.textDim} dimColor>
+                  Viewing {actualScroll + 1}-
+                  {Math.min(actualScroll + viewportHeight, allLines.length)} of {allLines.length}
                 </Text>
               </>
             )}
             {stdout && (
               <>
-                <Text color={colors.textDim} dimColor> • </Text>
-                <Text color={colors.success} dimColor>stdout: {stdoutLines.length} lines</Text>
+                <Text color={colors.textDim} dimColor>
+                  {' '}
+                  •{' '}
+                </Text>
+                <Text color={colors.success} dimColor>
+                  stdout: {stdoutLines.length} lines
+                </Text>
               </>
             )}
             {stderr && (
               <>
-                <Text color={colors.textDim} dimColor> • </Text>
-                <Text color={colors.error} dimColor>stderr: {stderrLines.length} lines</Text>
+                <Text color={colors.textDim} dimColor>
+                  {' '}
+                  •{' '}
+                </Text>
+                <Text color={colors.error} dimColor>
+                  stderr: {stderrLines.length} lines
+                </Text>
               </>
             )}
             {copyStatus && (
               <>
-                <Text color={colors.textDim} dimColor> • </Text>
-                <Text color={colors.success} bold>{copyStatus}</Text>
+                <Text color={colors.textDim} dimColor>
+                  {' '}
+                  •{' '}
+                </Text>
+                <Text color={colors.success} bold>
+                  {copyStatus}
+                </Text>
               </>
             )}
           </Box>
@@ -509,7 +692,9 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
           {/* Help bar */}
           <Box marginTop={1} paddingX={1}>
             <Text color={colors.textDim} dimColor>
-              {figures.arrowUp}{figures.arrowDown} Navigate • [g] Top • [G] Bottom • [c] Copy • [Enter], [q], or [esc] Back
+              {figures.arrowUp}
+              {figures.arrowDown} Navigate • [g] Top • [G] Bottom • [c] Copy • [Enter], [q], or
+              [esc] Back
             </Text>
           </Box>
         </>
@@ -517,7 +702,11 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
     }
 
     // Check for custom logs rendering
-    if (operationResult && typeof operationResult === 'object' && (operationResult as any).__customRender === 'logs') {
+    if (
+      operationResult &&
+      typeof operationResult === 'object' &&
+      (operationResult as any).__customRender === 'logs'
+    ) {
       const logs = (operationResult as any).__logs || [];
       const totalCount = (operationResult as any).__totalCount || 0;
 
@@ -540,8 +729,11 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
               const level = log.level ? log.level[0].toUpperCase() : 'I';
               const source = log.source ? log.source.substring(0, 8) : 'exec';
               const fullMessage = log.message || '';
-              const cmd = log.cmd ? `[${log.cmd.substring(0, 40)}${log.cmd.length > 40 ? '...' : ''}] ` : '';
-              const exitCode = log.exit_code !== null && log.exit_code !== undefined ? `(${log.exit_code}) ` : '';
+              const cmd = log.cmd
+                ? `[${log.cmd.substring(0, 40)}${log.cmd.length > 40 ? '...' : ''}] `
+                : '';
+              const exitCode =
+                log.exit_code !== null && log.exit_code !== undefined ? `(${log.exit_code}) ` : '';
 
               let levelColor: string = colors.textDim;
               if (level === 'E') levelColor = colors.error;
@@ -551,31 +743,52 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
               if (logsWrapMode) {
                 return (
                   <Box key={index}>
-                    <Text color={colors.textDim} dimColor>{time}</Text>
+                    <Text color={colors.textDim} dimColor>
+                      {time}
+                    </Text>
                     <Text> </Text>
-                    <Text color={levelColor} bold>{level}</Text>
-                    <Text color={colors.textDim} dimColor>/{source}</Text>
+                    <Text color={levelColor} bold>
+                      {level}
+                    </Text>
+                    <Text color={colors.textDim} dimColor>
+                      /{source}
+                    </Text>
                     <Text> </Text>
                     {exitCode && <Text color={colors.warning}>{exitCode}</Text>}
-                    {cmd && <Text color={colors.info} dimColor>{cmd}</Text>}
+                    {cmd && (
+                      <Text color={colors.info} dimColor>
+                        {cmd}
+                      </Text>
+                    )}
                     <Text>{fullMessage}</Text>
                   </Box>
                 );
               } else {
                 const metadataWidth = 11 + 1 + 1 + 1 + 8 + 1 + exitCode.length + cmd.length + 6;
                 const availableMessageWidth = Math.max(20, terminalWidth - metadataWidth);
-                const truncatedMessage = fullMessage.length > availableMessageWidth
-                  ? fullMessage.substring(0, availableMessageWidth - 3) + '...'
-                  : fullMessage;
+                const truncatedMessage =
+                  fullMessage.length > availableMessageWidth
+                    ? fullMessage.substring(0, availableMessageWidth - 3) + '...'
+                    : fullMessage;
                 return (
                   <Box key={index}>
-                    <Text color={colors.textDim} dimColor>{time}</Text>
+                    <Text color={colors.textDim} dimColor>
+                      {time}
+                    </Text>
                     <Text> </Text>
-                    <Text color={levelColor} bold>{level}</Text>
-                    <Text color={colors.textDim} dimColor>/{source}</Text>
+                    <Text color={levelColor} bold>
+                      {level}
+                    </Text>
+                    <Text color={colors.textDim} dimColor>
+                      /{source}
+                    </Text>
                     <Text> </Text>
                     {exitCode && <Text color={colors.warning}>{exitCode}</Text>}
-                    {cmd && <Text color={colors.info} dimColor>{cmd}</Text>}
+                    {cmd && (
+                      <Text color={colors.info} dimColor>
+                        {cmd}
+                      </Text>
+                    )}
                     <Text>{truncatedMessage}</Text>
                   </Box>
                 );
@@ -598,26 +811,43 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
             <Text color={colors.primary} bold>
               {figures.hamburger} {totalCount}
             </Text>
-            <Text color={colors.textDim} dimColor> total logs</Text>
-            <Text color={colors.textDim} dimColor> • </Text>
             <Text color={colors.textDim} dimColor>
-              Viewing {actualScroll + 1}-{Math.min(actualScroll + viewportHeight, logs.length)} of {logs.length}
+              {' '}
+              total logs
             </Text>
-            <Text color={colors.textDim} dimColor> • </Text>
+            <Text color={colors.textDim} dimColor>
+              {' '}
+              •{' '}
+            </Text>
+            <Text color={colors.textDim} dimColor>
+              Viewing {actualScroll + 1}-{Math.min(actualScroll + viewportHeight, logs.length)} of{' '}
+              {logs.length}
+            </Text>
+            <Text color={colors.textDim} dimColor>
+              {' '}
+              •{' '}
+            </Text>
             <Text color={logsWrapMode ? colors.success : colors.textDim} bold={logsWrapMode}>
               {logsWrapMode ? 'Wrap: ON' : 'Wrap: OFF'}
             </Text>
             {copyStatus && (
               <>
-                <Text color={colors.textDim} dimColor> • </Text>
-                <Text color={colors.success} bold>{copyStatus}</Text>
+                <Text color={colors.textDim} dimColor>
+                  {' '}
+                  •{' '}
+                </Text>
+                <Text color={colors.success} bold>
+                  {copyStatus}
+                </Text>
               </>
             )}
           </Box>
 
           <Box marginTop={1} paddingX={1}>
             <Text color={colors.textDim} dimColor>
-              {figures.arrowUp}{figures.arrowDown} Navigate • [g] Top • [G] Bottom • [w] Toggle Wrap • [c] Copy • [Enter], [q], or [esc] Back
+              {figures.arrowUp}
+              {figures.arrowDown} Navigate • [g] Top • [G] Bottom • [w] Toggle Wrap • [c] Copy •
+              [Enter], [q], or [esc] Back
             </Text>
           </Box>
         </>
@@ -702,10 +932,10 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
                 executingOperation === 'exec'
                   ? 'ls -la'
                   : executingOperation === 'upload'
-                  ? '/path/to/file'
-                  : executingOperation === 'tunnel'
-                  ? '8080'
-                  : 'my-snapshot'
+                    ? '/path/to/file'
+                    : executingOperation === 'tunnel'
+                      ? '8080'
+                      : 'my-snapshot'
               }
             />
           </Box>
@@ -725,15 +955,24 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
       <>
         <Breadcrumb items={breadcrumbItems} />
         <Box flexDirection="column">
-          <Text color={colors.primary} bold>{figures.play} Operations</Text>
+          <Text color={colors.primary} bold>
+            {figures.play} Operations
+          </Text>
           <Box flexDirection="column">
             {operations.map((op, index) => {
               const isSelected = index === selectedOperation;
               return (
                 <Box key={op.key}>
-                  <Text color={isSelected ? colors.primary : colors.textDim}>{isSelected ? figures.pointer : ' '} </Text>
-                  <Text color={isSelected ? op.color : colors.textDim} bold={isSelected}>{op.icon} {op.label}</Text>
-                  <Text color={colors.textDim} dimColor> [{op.shortcut}]</Text>
+                  <Text color={isSelected ? colors.primary : colors.textDim}>
+                    {isSelected ? figures.pointer : ' '}{' '}
+                  </Text>
+                  <Text color={isSelected ? op.color : colors.textDim} bold={isSelected}>
+                    {op.icon} {op.label}
+                  </Text>
+                  <Text color={colors.textDim} dimColor>
+                    {' '}
+                    [{op.shortcut}]
+                  </Text>
                 </Box>
               );
             })}
@@ -742,7 +981,8 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
 
         <Box marginTop={1}>
           <Text color={colors.textDim} dimColor>
-            {figures.arrowUp}{figures.arrowDown} Navigate • [Enter] Select • [q] Back
+            {figures.arrowUp}
+            {figures.arrowDown} Navigate • [Enter] Select • [q] Back
           </Text>
         </Box>
       </>

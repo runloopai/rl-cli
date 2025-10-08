@@ -8,7 +8,7 @@ export const Banner: React.FC = React.memo(() => {
     <Box flexDirection="column" alignItems="flex-start">
       <Gradient name="vice">
         <BigText text="RUNLOOP.ai" font="simple3d" />
-      </Gradient>    
+      </Gradient>
       {/* <Box marginTop={-1}>
         <Text color="cyan" dimColor>.ai</Text>  
       </Box> */}

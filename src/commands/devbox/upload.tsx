@@ -58,13 +58,7 @@ const UploadFileUI: React.FC<{
   );
 };
 
-export async function uploadFile(
-  id: string,
-  file: string,
-  options: UploadOptions
-) {
-  const { waitUntilExit } = render(
-    <UploadFileUI id={id} file={file} targetPath={options.path} />
-  );
+export async function uploadFile(id: string, file: string, options: UploadOptions) {
+  const { waitUntilExit } = render(<UploadFileUI id={id} file={file} targetPath={options.path} />);
   await waitUntilExit();
 }

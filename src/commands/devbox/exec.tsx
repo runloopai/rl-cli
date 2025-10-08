@@ -6,10 +6,7 @@ import { SpinnerComponent } from '../../components/Spinner.js';
 import { ErrorMessage } from '../../components/ErrorMessage.js';
 import { colors } from '../../utils/theme.js';
 
-const ExecCommandUI: React.FC<{ id: string; command: string[] }> = ({
-  id,
-  command,
-}) => {
+const ExecCommandUI: React.FC<{ id: string; command: string[] }> = ({ id, command }) => {
   const [loading, setLoading] = React.useState(true);
   const [output, setOutput] = React.useState<string>('');
   const [error, setError] = React.useState<Error | null>(null);
@@ -34,10 +31,7 @@ const ExecCommandUI: React.FC<{ id: string; command: string[] }> = ({
 
   return (
     <>
-      <Header
-        title="Execute Command"
-        subtitle={`Running in devbox: ${id}`}
-      />
+      <Header title="Execute Command" subtitle={`Running in devbox: ${id}`} />
       {loading && <SpinnerComponent message="Executing command..." />}
       {!loading && !error && (
         <Box flexDirection="column" marginTop={1}>

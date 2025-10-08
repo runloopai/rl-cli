@@ -48,7 +48,9 @@ const App: React.FC<AppProps> = ({ onSSHRequest, initialScreen = 'menu', focusDe
           focusDevboxId={focusDevboxId}
         />
       )}
-      {currentScreen === 'blueprints' && <ListBlueprintsUI onBack={handleBack} onExit={handleExit} />}
+      {currentScreen === 'blueprints' && (
+        <ListBlueprintsUI onBack={handleBack} onExit={handleExit} />
+      )}
       {currentScreen === 'snapshots' && <ListSnapshotsUI onBack={handleBack} onExit={handleExit} />}
     </Box>
   );
@@ -69,7 +71,7 @@ export async function runMainMenu(initialScreen: Screen = 'menu', focusDevboxId?
     try {
       const { waitUntilExit } = render(
         <App
-          onSSHRequest={(config) => {
+          onSSHRequest={config => {
             sshSessionConfig = config;
           }}
           initialScreen={currentInitialScreen}

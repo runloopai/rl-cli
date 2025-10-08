@@ -24,21 +24,29 @@ export async function runSSHSession(config: SSHSessionConfig): Promise<SSHSessio
   console.log(`\nConnecting to devbox ${config.devboxName}...\n`);
 
   // Spawn SSH in foreground with proper terminal settings
-  const result = spawnSync('ssh', [
-    '-t', // Force pseudo-terminal allocation for proper input handling
-    '-i', config.keyPath,
-    '-o', `ProxyCommand=${config.proxyCommand}`,
-    '-o', 'StrictHostKeyChecking=no',
-    '-o', 'UserKnownHostsFile=/dev/null',
-    `${config.sshUser}@${config.url}`
-  ], {
-    stdio: 'inherit',
-    shell: false
-  });
+  const result = spawnSync(
+    'ssh',
+    [
+      '-t', // Force pseudo-terminal allocation for proper input handling
+      '-i',
+      config.keyPath,
+      '-o',
+      `ProxyCommand=${config.proxyCommand}`,
+      '-o',
+      'StrictHostKeyChecking=no',
+      '-o',
+      'UserKnownHostsFile=/dev/null',
+      `${config.sshUser}@${config.url}`,
+    ],
+    {
+      stdio: 'inherit',
+      shell: false,
+    }
+  );
 
   return {
     exitCode: result.status || 0,
     shouldRestart: true,
-    returnToDevboxId: config.devboxId
+    returnToDevboxId: config.devboxId,
   };
 }

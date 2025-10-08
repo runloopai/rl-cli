@@ -56,28 +56,27 @@ const ListSnapshotsUI: React.FC<{
           return allSnapshots;
         },
         columns: [
-          createTextColumn(
-            'id',
-            'ID',
-            (snapshot: any) => snapshot.id,
-            { width: idWidth, color: colors.textDim, dimColor: true, bold: false }
-          ),
-          createTextColumn(
-            'name',
-            'Name',
-            (snapshot: any) => snapshot.name || '(unnamed)',
-            { width: nameWidth }
-          ),
-          createTextColumn(
-            'devbox',
-            'Devbox',
-            (snapshot: any) => snapshot.source_devbox_id || '',
-            { width: devboxWidth, color: colors.primary, dimColor: true, bold: false, visible: showDevboxId }
-          ),
+          createTextColumn('id', 'ID', (snapshot: any) => snapshot.id, {
+            width: idWidth,
+            color: colors.textDim,
+            dimColor: true,
+            bold: false,
+          }),
+          createTextColumn('name', 'Name', (snapshot: any) => snapshot.name || '(unnamed)', {
+            width: nameWidth,
+          }),
+          createTextColumn('devbox', 'Devbox', (snapshot: any) => snapshot.source_devbox_id || '', {
+            width: devboxWidth,
+            color: colors.primary,
+            dimColor: true,
+            bold: false,
+            visible: showDevboxId,
+          }),
           createTextColumn(
             'created',
             'Created',
-            (snapshot: any) => snapshot.create_time_ms ? formatTimeAgo(snapshot.create_time_ms) : '',
+            (snapshot: any) =>
+              snapshot.create_time_ms ? formatTimeAgo(snapshot.create_time_ms) : '',
             { width: timeWidth, color: colors.textDim, dimColor: true, bold: false }
           ),
         ],

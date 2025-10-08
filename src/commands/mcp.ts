@@ -16,12 +16,12 @@ export async function startMcpServer() {
     stdio: 'inherit', // Pass through stdin/stdout/stderr
   });
 
-  serverProcess.on('error', (error) => {
+  serverProcess.on('error', error => {
     console.error('Failed to start MCP server:', error);
     process.exit(1);
   });
 
-  serverProcess.on('exit', (code) => {
+  serverProcess.on('exit', code => {
     if (code !== 0) {
       console.error(`MCP server exited with code ${code}`);
       process.exit(code || 1);

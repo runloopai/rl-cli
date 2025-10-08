@@ -33,12 +33,7 @@ const DeleteDevboxUI: React.FC<{ id: string }> = ({ id }) => {
     <>
       <Header title="Shutdown Devbox" subtitle={`Shutting down devbox: ${id}`} />
       {loading && <SpinnerComponent message="Shutting down devbox..." />}
-      {success && (
-        <SuccessMessage
-          message="Devbox shut down successfully!"
-          details={`ID: ${id}`}
-        />
-      )}
+      {success && <SuccessMessage message="Devbox shut down successfully!" details={`ID: ${id}`} />}
       {error && <ErrorMessage message="Failed to shutdown devbox" error={error} />}
     </>
   );

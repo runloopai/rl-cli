@@ -31,7 +31,7 @@ export const DetailView: React.FC<DetailViewProps> = ({ sections }) => {
           {section.items.map((item, itemIndex) => (
             <Box key={itemIndex}>
               <Text color={item.color || colors.textDim} dimColor>
-                  {item.label}: {item.value}
+                {item.label}: {item.value}
               </Text>
             </Box>
           ))}
@@ -62,19 +62,25 @@ export function buildDetailSections(
     };
   }
 ): DetailSection[] {
-  return Object.entries(config).map(([sectionName, sectionConfig]) => ({
-    title: sectionName,
-    items: sectionConfig.fields
-      .map((field) => {
-        const value = data[field.key];
-        if (value === undefined || value === null) return null;
+  return Object.entries(config)
+    .map(([sectionName, sectionConfig]) => ({
+      title: sectionName,
+      items: sectionConfig.fields
+        .map(field => {
+          const value = data[field.key];
+          if (value === undefined || value === null) return null;
 
-        return {
-          label: field.label,
-          value: field.formatter ? field.formatter(value) : String(value),
-          color: field.color,
-        };
-      })
-      .filter(Boolean) as Array<{ label: string; value: string | React.ReactNode; color?: string }>,
-  })).filter((section) => section.items.length > 0);
+          return {
+            label: field.label,
+            value: field.formatter ? field.formatter(value) : String(value),
+            color: field.color,
+          };
+        })
+        .filter(Boolean) as Array<{
+        label: string;
+        value: string | React.ReactNode;
+        color?: string;
+      }>,
+    }))
+    .filter(section => section.items.length > 0);
 }

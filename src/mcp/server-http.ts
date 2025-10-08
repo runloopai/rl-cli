@@ -212,7 +212,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 });
 
 // Handle tool execution
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
+server.setRequestHandler(CallToolRequestSchema, async request => {
   const { name, arguments: args } = request.params;
 
   try {
@@ -256,7 +256,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (args.blueprint_id) createParams.blueprint_id = args.blueprint_id;
         if (args.snapshot_id) createParams.snapshot_id = args.snapshot_id;
         if (args.entrypoint) createParams.entrypoint = args.entrypoint;
-        if (args.environment_variables) createParams.environment_variables = args.environment_variables;
+        if (args.environment_variables)
+          createParams.environment_variables = args.environment_variables;
         if (args.resource_size) {
           createParams.launch_parameters = {
             resource_size_request: args.resource_size,
@@ -428,7 +429,7 @@ async function main() {
   });
 }
 
-main().catch((error) => {
+main().catch(error => {
   console.error('Fatal error in main():', error);
   process.exit(1);
 });

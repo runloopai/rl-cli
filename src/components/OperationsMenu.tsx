@@ -67,8 +67,7 @@ export const OperationsMenu: React.FC<OperationsMenuProps> = ({
         <Text color={colors.textDim} dimColor>
           {figures.arrowUp}
           {figures.arrowDown} Navigate • [Enter] Select •
-          {additionalActions.map((action) => ` [${action.key}] ${action.label} •`)}
-          {' '}[q] Back
+          {additionalActions.map(action => ` [${action.key}] ${action.label} •`)} [q] Back
         </Text>
       </Box>
     </>

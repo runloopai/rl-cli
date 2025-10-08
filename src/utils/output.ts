@@ -35,7 +35,7 @@ export function outputData(data: any, format: OutputFormat = 'json'): void {
     // Simple text output
     if (Array.isArray(data)) {
       // For lists of complex objects, just output IDs
-      data.forEach((item) => {
+      data.forEach(item => {
         if (typeof item === 'object' && item !== null && 'id' in item) {
           console.log(item.id);
         } else {
@@ -73,11 +73,7 @@ function formatTextOutput(item: any): string {
 /**
  * Output a single result (for create, delete, etc)
  */
-export function outputResult(
-  result: any,
-  options: OutputOptions,
-  successMessage?: string
-): void {
+export function outputResult(result: any, options: OutputOptions, successMessage?: string): void {
   if (shouldUseNonInteractiveOutput(options)) {
     outputData(result, options.output as OutputFormat);
     return;
@@ -92,10 +88,7 @@ export function outputResult(
 /**
  * Output a list of items (for list commands)
  */
-export function outputList(
-  items: any[],
-  options: OutputOptions
-): void {
+export function outputList(items: any[], options: OutputOptions): void {
   if (shouldUseNonInteractiveOutput(options)) {
     outputData(items, options.output as OutputFormat);
   }

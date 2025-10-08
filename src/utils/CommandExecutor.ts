@@ -5,7 +5,12 @@
 
 import { render } from 'ink';
 import { getClient } from './client.js';
-import { shouldUseNonInteractiveOutput, outputList, outputResult, OutputOptions } from './output.js';
+import {
+  shouldUseNonInteractiveOutput,
+  outputList,
+  outputResult,
+  OutputOptions,
+} from './output.js';
 import YAML from 'yaml';
 
 export class CommandExecutor<T = any> {
@@ -44,10 +49,7 @@ export class CommandExecutor<T = any> {
   /**
    * Execute a create/action command with automatic format handling
    */
-  async executeAction(
-    performAction: () => Promise<T>,
-    renderUI: () => JSX.Element
-  ): Promise<void> {
+  async executeAction(performAction: () => Promise<T>, renderUI: () => JSX.Element): Promise<void> {
     if (shouldUseNonInteractiveOutput(this.options)) {
       try {
         const result = await performAction();

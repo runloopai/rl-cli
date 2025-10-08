@@ -8,10 +8,7 @@ interface SuccessMessageProps {
   details?: string;
 }
 
-export const SuccessMessage: React.FC<SuccessMessageProps> = ({
-  message,
-  details,
-}) => {
+export const SuccessMessage: React.FC<SuccessMessageProps> = ({ message, details }) => {
   return (
     <Box flexDirection="column" marginY={1}>
       <Box>

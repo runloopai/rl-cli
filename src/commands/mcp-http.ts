@@ -24,12 +24,12 @@ export async function startMcpHttpServer(port?: number) {
     env,
   });
 
-  serverProcess.on('error', (error) => {
+  serverProcess.on('error', error => {
     console.error('Failed to start MCP HTTP server:', error);
     process.exit(1);
   });
 
-  serverProcess.on('exit', (code) => {
+  serverProcess.on('exit', code => {
     if (code !== 0) {
       console.error(`MCP HTTP server exited with code ${code}`);
       process.exit(code || 1);
