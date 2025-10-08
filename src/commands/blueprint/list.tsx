@@ -32,10 +32,9 @@ const ListBlueprintsUI: React.FC<{
 }> = ({ onBack, onExit }) => {
   const { stdout } = useStdout();
   const [showDetails, setShowDetails] = React.useState(false);
-  const [selectedBlueprint, _setSelectedBlueprint] = React.useState<
-     
-    any | null
-  >(null);
+  const [selectedBlueprint, _setSelectedBlueprint] = React.useState<any | null>(
+    null,
+  );
   const [selectedOperation, setSelectedOperation] = React.useState(0);
   const [executingOperation, setExecutingOperation] =
     React.useState<OperationType>(null);
