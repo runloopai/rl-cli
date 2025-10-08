@@ -68,7 +68,6 @@ const ListBlueprintsUI: React.FC<{
     },
   ];
 
-
   // Clear console when transitioning to detail view
   const prevShowDetailsRef = React.useRef(showDetails);
   React.useEffect(() => {
@@ -123,7 +122,7 @@ const ListBlueprintsUI: React.FC<{
   useInput((input, key) => {
     // Handle operation input mode
     if (executingOperation && !operationResult && !operationError) {
-      const currentOp = allOperations.find((op) => op.key === executingOperation);
+      const currentOp = allOperations.find(op => op.key === executingOperation);
       if (currentOp?.needsInput) {
         if (key.return) {
           executeOperation();
@@ -188,7 +187,7 @@ const ListBlueprintsUI: React.FC<{
 
   // Filter operations based on blueprint status
   const operations = selectedBlueprint
-    ? allOperations.filter((op) => {
+    ? allOperations.filter(op => {
         const status = selectedBlueprint.status;
 
         // Only allow creating devbox if build is complete
@@ -203,8 +202,7 @@ const ListBlueprintsUI: React.FC<{
 
   // Operation result display
   if (operationResult || operationError) {
-    const operationLabel =
-      operations.find((o) => o.key === executingOperation)?.label || 'Operation';
+    const operationLabel = operations.find(o => o.key === executingOperation)?.label || 'Operation';
     return (
       <>
         <Breadcrumb
@@ -230,7 +228,7 @@ const ListBlueprintsUI: React.FC<{
 
   // Operation input mode
   if (executingOperation && selectedBlueprint) {
-    const currentOp = allOperations.find((op) => op.key === executingOperation);
+    const currentOp = allOperations.find(op => op.key === executingOperation);
     const needsInput = currentOp?.needsInput;
     const operationLabel = currentOp?.label || 'Operation';
 
@@ -377,21 +375,13 @@ const ListBlueprintsUI: React.FC<{
             <Text color={colors.warning} bold>
               {figures.squareSmallFilled} Dockerfile Setup
             </Text>
-            {ds.base_image && (
-              <Text dimColor>Base Image: {ds.base_image}</Text>
-            )}
-            {ds.entrypoint && (
-              <Text dimColor>Entrypoint: {ds.entrypoint}</Text>
-            )}
+            {ds.base_image && <Text dimColor>Base Image: {ds.base_image}</Text>}
+            {ds.entrypoint && <Text dimColor>Entrypoint: {ds.entrypoint}</Text>}
             {ds.system_packages && ds.system_packages.length > 0 && (
-              <Text dimColor>
-                System Packages: {ds.system_packages.join(', ')}
-              </Text>
+              <Text dimColor>System Packages: {ds.system_packages.join(', ')}</Text>
             )}
             {ds.python_packages && ds.python_packages.length > 0 && (
-              <Text dimColor>
-                Python Packages: {ds.python_packages.join(', ')}
-              </Text>
+              <Text dimColor>Python Packages: {ds.python_packages.join(', ')}</Text>
             )}
           </Box>
         )}
@@ -419,14 +409,14 @@ const ListBlueprintsUI: React.FC<{
         <OperationsMenu
           operations={operations}
           selectedIndex={selectedOperation}
-          onNavigate={(direction) => {
+          onNavigate={direction => {
             if (direction === 'up' && selectedOperation > 0) {
               setSelectedOperation(selectedOperation - 1);
             } else if (direction === 'down' && selectedOperation < operations.length - 1) {
               setSelectedOperation(selectedOperation + 1);
             }
           }}
-          onSelect={(op) => {
+          onSelect={op => {
             console.clear();
             setExecutingOperation(op.key as OperationType);
           }}
@@ -466,11 +456,16 @@ const ListBlueprintsUI: React.FC<{
             render: (blueprint: any, index: number, isSelected: boolean) => {
               const statusDisplay = getStatusDisplay(blueprint.status);
               return (
-                <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected} wrap="truncate">
+                <Text
+                  color={isSelected ? 'white' : statusDisplay.color}
+                  bold={true}
+                  inverse={isSelected}
+                  wrap="truncate"
+                >
                   {statusDisplay.icon}{' '}
                 </Text>
               );
-            }
+            },
           },
           {
             key: 'id',
@@ -482,11 +477,17 @@ const ListBlueprintsUI: React.FC<{
               const truncated = value.slice(0, width - 1);
               const padded = truncated.padEnd(width, ' ');
               return (
-                <Text color={isSelected ? 'white' : colors.textDim} bold={false} dimColor={!isSelected} inverse={isSelected} wrap="truncate">
+                <Text
+                  color={isSelected ? 'white' : colors.textDim}
+                  bold={false}
+                  dimColor={!isSelected}
+                  inverse={isSelected}
+                  wrap="truncate"
+                >
                   {padded}
                 </Text>
               );
-            }
+            },
           },
           {
             key: 'statusText',
@@ -497,18 +498,20 @@ const ListBlueprintsUI: React.FC<{
               const truncated = statusDisplay.text.slice(0, statusTextWidth);
               const padded = truncated.padEnd(statusTextWidth, ' ');
               return (
-                <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected} wrap="truncate">
+                <Text
+                  color={isSelected ? 'white' : statusDisplay.color}
+                  bold={true}
+                  inverse={isSelected}
+                  wrap="truncate"
+                >
                   {padded}
                 </Text>
               );
-            }
+            },
           },
-          createTextColumn(
-            'name',
-            'Name',
-            (blueprint: any) => blueprint.name || '(unnamed)',
-            { width: nameWidth }
-          ),
+          createTextColumn('name', 'Name', (blueprint: any) => blueprint.name || '(unnamed)', {
+            width: nameWidth,
+          }),
           createTextColumn(
             'description',
             'Description',

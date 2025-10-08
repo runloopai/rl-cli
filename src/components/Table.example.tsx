@@ -26,7 +26,7 @@ interface Blueprint {
 function BlueprintsTable({
   blueprints,
   selectedIndex,
-  terminalWidth
+  terminalWidth,
 }: {
   blueprints: Blueprint[];
   selectedIndex: number;
@@ -46,35 +46,31 @@ function BlueprintsTable({
         createComponentColumn<Blueprint>(
           'status',
           'Status',
-          (bp) => <StatusBadge status={bp.status} showText={false} />,
+          bp => <StatusBadge status={bp.status} showText={false} />,
           { width: 2 }
         ),
         // ID column (responsive)
-        createTextColumn<Blueprint>(
-          'id',
-          'ID',
-          (bp) => showFullId ? bp.id : bp.id.slice(0, 13),
-          { width: showFullId ? 25 : 15, color: colors.textDim, dimColor: true, bold: false }
-        ),
+        createTextColumn<Blueprint>('id', 'ID', bp => (showFullId ? bp.id : bp.id.slice(0, 13)), {
+          width: showFullId ? 25 : 15,
+          color: colors.textDim,
+          dimColor: true,
+          bold: false,
+        }),
         // Name column
-        createTextColumn<Blueprint>(
-          'name',
-          'Name',
-          (bp) => bp.name || '(unnamed)',
-          { width: 30 }
-        ),
+        createTextColumn<Blueprint>('name', 'Name', bp => bp.name || '(unnamed)', { width: 30 }),
         // Description column (optional)
-        createTextColumn<Blueprint>(
-          'description',
-          'Description',
-          (bp) => bp.description || '',
-          { width: 40, color: colors.textDim, dimColor: true, bold: false, visible: showDescription }
-        ),
+        createTextColumn<Blueprint>('description', 'Description', bp => bp.description || '', {
+          width: 40,
+          color: colors.textDim,
+          dimColor: true,
+          bold: false,
+          visible: showDescription,
+        }),
         // Created time column
         createTextColumn<Blueprint>(
           'created',
           'Created',
-          (bp) => new Date(bp.created_at).toLocaleDateString(),
+          bp => new Date(bp.created_at).toLocaleDateString(),
           { width: 15, color: colors.textDim, dimColor: true, bold: false }
         ),
       ]}
@@ -103,7 +99,7 @@ interface Snapshot {
 function SnapshotsTable({
   snapshots,
   selectedIndex,
-  terminalWidth
+  terminalWidth,
 }: {
   snapshots: Snapshot[];
   selectedIndex: number;
@@ -123,42 +119,37 @@ function SnapshotsTable({
         createComponentColumn<Snapshot>(
           'status',
           'Status',
-          (snap) => <StatusBadge status={snap.status} showText={false} />,
+          snap => <StatusBadge status={snap.status} showText={false} />,
           { width: 2 }
         ),
         // ID column (responsive)
         createTextColumn<Snapshot>(
           'id',
           'ID',
-          (snap) => showFullId ? snap.id : snap.id.slice(0, 13),
+          snap => (showFullId ? snap.id : snap.id.slice(0, 13)),
           { width: showFullId ? 25 : 15, color: colors.textDim, dimColor: true, bold: false }
         ),
         // Name column
-        createTextColumn<Snapshot>(
-          'name',
-          'Name',
-          (snap) => snap.name || '(unnamed)',
-          { width: 25 }
-        ),
+        createTextColumn<Snapshot>('name', 'Name', snap => snap.name || '(unnamed)', { width: 25 }),
         // Devbox ID column
-        createTextColumn<Snapshot>(
-          'devbox',
-          'Devbox',
-          (snap) => snap.devbox_id.slice(0, 13),
-          { width: 15, color: colors.primary, dimColor: true, bold: false }
-        ),
+        createTextColumn<Snapshot>('devbox', 'Devbox', snap => snap.devbox_id.slice(0, 13), {
+          width: 15,
+          color: colors.primary,
+          dimColor: true,
+          bold: false,
+        }),
         // Size column (optional)
         createTextColumn<Snapshot>(
           'size',
           'Size',
-          (snap) => snap.size_gb ? `${snap.size_gb.toFixed(1)}GB` : '',
+          snap => (snap.size_gb ? `${snap.size_gb.toFixed(1)}GB` : ''),
           { width: 10, color: colors.warning, dimColor: true, bold: false, visible: showSize }
         ),
         // Created time column
         createTextColumn<Snapshot>(
           'created',
           'Created',
-          (snap) => new Date(snap.created_at).toLocaleDateString(),
+          snap => new Date(snap.created_at).toLocaleDateString(),
           { width: 15, color: colors.textDim, dimColor: true, bold: false }
         ),
       ]}
@@ -193,12 +184,7 @@ function CustomComplexColumn() {
       keyExtractor={(item: CustomEntity) => item.id}
       selectedIndex={0}
       columns={[
-        createTextColumn<CustomEntity>(
-          'name',
-          'Name',
-          (item) => item.name,
-          { width: 20 }
-        ),
+        createTextColumn<CustomEntity>('name', 'Name', item => item.name, { width: 20 }),
         // Custom component column with complex rendering
         createComponentColumn<CustomEntity>(
           'tags',

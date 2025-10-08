@@ -58,11 +58,18 @@ export function Table<T>({
       {/* Title bar (if provided) */}
       {title && (
         <Box paddingX={1} marginBottom={0}>
-          <Text color={colors.primary} bold>╭─ {title} {'─'.repeat(Math.max(0, 10))}╮</Text>
+          <Text color={colors.primary} bold>
+            ╭─ {title} {'─'.repeat(Math.max(0, 10))}╮
+          </Text>
         </Box>
       )}
 
-      <Box flexDirection="column" borderStyle={title ? 'single' : 'round'} borderColor={colors.border} paddingX={1}>
+      <Box
+        flexDirection="column"
+        borderStyle={title ? 'single' : 'round'}
+        borderColor={colors.border}
+        paddingX={1}
+      >
         {/* Header row */}
         <Box>
           {/* Space for selection pointer */}
@@ -74,39 +81,39 @@ export function Table<T>({
           )}
 
           {/* Column headers */}
-          {visibleColumns.map((column) => (
+          {visibleColumns.map(column => (
             <Text key={`header-${column.key}`} bold dimColor>
               {column.label.slice(0, column.width).padEnd(column.width, ' ')}
             </Text>
           ))}
         </Box>
 
-      {/* Data rows */}
-      {data.map((row, index) => {
-        const isSelected = index === selectedIndex;
-        const rowKey = keyExtractor(row);
+        {/* Data rows */}
+        {data.map((row, index) => {
+          const isSelected = index === selectedIndex;
+          const rowKey = keyExtractor(row);
 
-        return (
-          <Box key={rowKey}>
-            {/* Selection pointer */}
-            {showSelection && (
-              <>
-                <Text color={isSelected ? colors.primary : colors.textDim}>
-                  {isSelected ? figures.pointer : ' '}
-                </Text>
-                <Text> </Text>
-              </>
-            )}
+          return (
+            <Box key={rowKey}>
+              {/* Selection pointer */}
+              {showSelection && (
+                <>
+                  <Text color={isSelected ? colors.primary : colors.textDim}>
+                    {isSelected ? figures.pointer : ' '}
+                  </Text>
+                  <Text> </Text>
+                </>
+              )}
 
-            {/* Render each column */}
-            {visibleColumns.map((column, colIndex) => (
-              <React.Fragment key={`${rowKey}-${column.key}`}>
-                {column.render(row, index, isSelected)}
-              </React.Fragment>
-            ))}
-          </Box>
-        );
-      })}
+              {/* Render each column */}
+              {visibleColumns.map((column, colIndex) => (
+                <React.Fragment key={`${rowKey}-${column.key}`}>
+                  {column.render(row, index, isSelected)}
+                </React.Fragment>
+              ))}
+            </Box>
+          );
+        })}
       </Box>
     </Box>
   );
@@ -150,7 +157,13 @@ export function createTextColumn<T>(
       const padded = truncated.padEnd(width, ' ');
 
       return (
-        <Text color={isSelected ? colors.text : color} bold={bold} dimColor={!isSelected && dimColor} inverse={isSelected} wrap="truncate">
+        <Text
+          color={isSelected ? colors.text : color}
+          bold={bold}
+          dimColor={!isSelected && dimColor}
+          inverse={isSelected}
+          wrap="truncate"
+        >
           {padded}
         </Text>
       );

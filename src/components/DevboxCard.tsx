@@ -11,12 +11,7 @@ interface DevboxCardProps {
   index?: number;
 }
 
-export const DevboxCard: React.FC<DevboxCardProps> = ({
-  id,
-  name,
-  status,
-  createdAt,
-}) => {
+export const DevboxCard: React.FC<DevboxCardProps> = ({ id, name, status, createdAt }) => {
   const getStatusDisplay = (status: string) => {
     switch (status) {
       case 'running':

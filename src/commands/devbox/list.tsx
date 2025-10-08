@@ -83,27 +83,93 @@ const ListDevboxesUI: React.FC<{
   // Name width is flexible and uses remaining space
   let nameWidth = 15;
   if (terminalWidth >= 120) {
-    const remainingWidth = terminalWidth - fixedWidth - statusIconWidth - idWidth - statusTextWidth - timeWidth - capabilitiesWidth - tagWidth - 12;
+    const remainingWidth =
+      terminalWidth -
+      fixedWidth -
+      statusIconWidth -
+      idWidth -
+      statusTextWidth -
+      timeWidth -
+      capabilitiesWidth -
+      tagWidth -
+      12;
     nameWidth = Math.max(15, remainingWidth);
   } else if (terminalWidth >= 110) {
-    const remainingWidth = terminalWidth - fixedWidth - statusIconWidth - idWidth - statusTextWidth - timeWidth - tagWidth - 10;
+    const remainingWidth =
+      terminalWidth -
+      fixedWidth -
+      statusIconWidth -
+      idWidth -
+      statusTextWidth -
+      timeWidth -
+      tagWidth -
+      10;
     nameWidth = Math.max(12, remainingWidth);
   } else {
-    const remainingWidth = terminalWidth - fixedWidth - statusIconWidth - idWidth - statusTextWidth - timeWidth - 10;
+    const remainingWidth =
+      terminalWidth - fixedWidth - statusIconWidth - idWidth - statusTextWidth - timeWidth - 10;
     nameWidth = Math.max(8, remainingWidth);
   }
 
   // Define allOperations
   const allOperations = [
     { key: 'logs', label: 'View Logs', color: colors.info, icon: figures.info, shortcut: 'l' },
-    { key: 'exec', label: 'Execute Command', color: colors.success, icon: figures.play, shortcut: 'e' },
-    { key: 'upload', label: 'Upload File', color: colors.success, icon: figures.arrowUp, shortcut: 'u' },
-    { key: 'snapshot', label: 'Create Snapshot', color: colors.warning, icon: figures.circleFilled, shortcut: 'n' },
-    { key: 'ssh', label: 'SSH onto the box', color: colors.primary, icon: figures.arrowRight, shortcut: 's' },
-    { key: 'tunnel', label: 'Open Tunnel', color: colors.secondary, icon: figures.pointerSmall, shortcut: 't' },
-    { key: 'suspend', label: 'Suspend Devbox', color: colors.warning, icon: figures.squareSmallFilled, shortcut: 'p' },
-    { key: 'resume', label: 'Resume Devbox', color: colors.success, icon: figures.play, shortcut: 'r' },
-    { key: 'delete', label: 'Shutdown Devbox', color: colors.error, icon: figures.cross, shortcut: 'd' },
+    {
+      key: 'exec',
+      label: 'Execute Command',
+      color: colors.success,
+      icon: figures.play,
+      shortcut: 'e',
+    },
+    {
+      key: 'upload',
+      label: 'Upload File',
+      color: colors.success,
+      icon: figures.arrowUp,
+      shortcut: 'u',
+    },
+    {
+      key: 'snapshot',
+      label: 'Create Snapshot',
+      color: colors.warning,
+      icon: figures.circleFilled,
+      shortcut: 'n',
+    },
+    {
+      key: 'ssh',
+      label: 'SSH onto the box',
+      color: colors.primary,
+      icon: figures.arrowRight,
+      shortcut: 's',
+    },
+    {
+      key: 'tunnel',
+      label: 'Open Tunnel',
+      color: colors.secondary,
+      icon: figures.pointerSmall,
+      shortcut: 't',
+    },
+    {
+      key: 'suspend',
+      label: 'Suspend Devbox',
+      color: colors.warning,
+      icon: figures.squareSmallFilled,
+      shortcut: 'p',
+    },
+    {
+      key: 'resume',
+      label: 'Resume Devbox',
+      color: colors.success,
+      icon: figures.play,
+      shortcut: 'r',
+    },
+    {
+      key: 'delete',
+      label: 'Shutdown Devbox',
+      color: colors.error,
+      icon: figures.cross,
+      shortcut: 'd',
+    },
   ];
 
   // Check if we need to focus on a specific devbox after returning from SSH
@@ -149,7 +215,8 @@ const ListDevboxesUI: React.FC<{
         const pageDevboxes: any[] = [];
 
         // Get starting_after cursor from previous page's last ID
-        const startingAfter = currentPage > 0 ? lastIdCache.current.get(currentPage - 1) : undefined;
+        const startingAfter =
+          currentPage > 0 ? lastIdCache.current.get(currentPage - 1) : undefined;
 
         // Build query params
         const queryParams: any = {
@@ -159,7 +226,15 @@ const ListDevboxesUI: React.FC<{
           queryParams.starting_after = startingAfter;
         }
         if (status) {
-          queryParams.status = status as 'provisioning' | 'initializing' | 'running' | 'suspending' | 'suspended' | 'resuming' | 'failure' | 'shutdown';
+          queryParams.status = status as
+            | 'provisioning'
+            | 'initializing'
+            | 'running'
+            | 'suspending'
+            | 'suspended'
+            | 'resuming'
+            | 'failure'
+            | 'shutdown';
         }
         if (searchQuery) {
           queryParams.search = searchQuery;
@@ -194,7 +269,7 @@ const ListDevboxesUI: React.FC<{
         }
 
         // Update devboxes for current page
-        setDevboxes((prev) => {
+        setDevboxes(prev => {
           const hasChanged = JSON.stringify(prev) !== JSON.stringify(pageDevboxes);
           return hasChanged ? pageDevboxes : prev;
         });
@@ -234,7 +309,7 @@ const ListDevboxesUI: React.FC<{
     }
 
     const interval = setInterval(() => {
-      setRefreshIcon((prev) => (prev + 1) % 10);
+      setRefreshIcon(prev => (prev + 1) % 10);
     }, 80);
     return () => clearInterval(interval);
   }, [showDetails, showCreate, showActions]);
@@ -305,7 +380,11 @@ const ListDevboxesUI: React.FC<{
       setSelectedIndex(selectedIndex - 1);
     } else if (key.downArrow && selectedIndex < pageDevboxes - 1) {
       setSelectedIndex(selectedIndex + 1);
-    } else if ((input === 'n' || key.rightArrow) && !isNavigating.current && currentPage < totalPages - 1) {
+    } else if (
+      (input === 'n' || key.rightArrow) &&
+      !isNavigating.current &&
+      currentPage < totalPages - 1
+    ) {
       setCurrentPage(currentPage + 1);
       setSelectedIndex(0);
     } else if ((input === 'p' || key.leftArrow) && !isNavigating.current && currentPage > 0) {
@@ -379,27 +458,29 @@ const ListDevboxesUI: React.FC<{
   const endIndex = startIndex + currentDevboxes.length;
 
   // Filter operations based on devbox status
-  const operations = selectedDevbox ? allOperations.filter(op => {
-    const status = selectedDevbox.status;
+  const operations = selectedDevbox
+    ? allOperations.filter(op => {
+        const status = selectedDevbox.status;
 
-    // When suspended: logs and resume
-    if (status === 'suspended') {
-      return op.key === 'resume' || op.key === 'logs';
-    }
+        // When suspended: logs and resume
+        if (status === 'suspended') {
+          return op.key === 'resume' || op.key === 'logs';
+        }
 
-    // When not running (shutdown, failure, etc): only logs
-    if (status !== 'running' && status !== 'provisioning' && status !== 'initializing') {
-      return op.key === 'logs';
-    }
+        // When not running (shutdown, failure, etc): only logs
+        if (status !== 'running' && status !== 'provisioning' && status !== 'initializing') {
+          return op.key === 'logs';
+        }
 
-    // When running: everything except resume
-    if (status === 'running') {
-      return op.key !== 'resume';
-    }
+        // When running: everything except resume
+        if (status === 'running') {
+          return op.key !== 'resume';
+        }
 
-    // Default for transitional states (provisioning, initializing)
-    return op.key === 'logs' || op.key === 'delete';
-  }) : allOperations;
+        // Default for transitional states (provisioning, initializing)
+        return op.key === 'logs' || op.key === 'delete';
+      })
+    : allOperations;
 
   // Create view
   if (showCreate) {
@@ -408,7 +489,7 @@ const ListDevboxesUI: React.FC<{
         onBack={() => {
           setShowCreate(false);
         }}
-        onCreate={(devbox) => {
+        onCreate={devbox => {
           // Refresh the list after creation
           setShowCreate(false);
           // The list will auto-refresh via the polling effect
@@ -429,7 +510,7 @@ const ListDevboxesUI: React.FC<{
         }}
         breadcrumbItems={[
           { label: 'Devboxes' },
-          { label: selectedDevbox.name || selectedDevbox.id, active: true }
+          { label: selectedDevbox.name || selectedDevbox.id, active: true },
         ]}
         initialOperation={selectedOp?.key}
         skipOperationsMenu={true}
@@ -453,9 +534,7 @@ const ListDevboxesUI: React.FC<{
   if (showPopup && selectedDevbox) {
     return (
       <>
-        <Breadcrumb items={[
-          { label: 'Devboxes', active: true }
-        ]} />
+        <Breadcrumb items={[{ label: 'Devboxes', active: true }]} />
         {!initialLoading && !error && devboxes.length > 0 && (
           <>
             <Table
@@ -472,18 +551,23 @@ const ListDevboxesUI: React.FC<{
                     const statusDisplay = getStatusDisplay(devbox.status);
 
                     return (
-                      <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected} wrap="truncate">
+                      <Text
+                        color={isSelected ? 'white' : statusDisplay.color}
+                        bold={true}
+                        inverse={isSelected}
+                        wrap="truncate"
+                      >
                         {statusDisplay.icon}{' '}
                       </Text>
                     );
-                  }
+                  },
                 },
-                createTextColumn(
-                  'id',
-                  'ID',
-                  (devbox: any) => devbox.id,
-                  { width: idWidth, color: colors.textDim, dimColor: true, bold: false }
-                ),
+                createTextColumn('id', 'ID', (devbox: any) => devbox.id, {
+                  width: idWidth,
+                  color: colors.textDim,
+                  dimColor: true,
+                  bold: false,
+                }),
                 {
                   key: 'statusText',
                   label: 'Status',
@@ -495,42 +579,69 @@ const ListDevboxesUI: React.FC<{
                     const padded = truncated.padEnd(statusTextWidth, ' ');
 
                     return (
-                      <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected} wrap="truncate">
+                      <Text
+                        color={isSelected ? 'white' : statusDisplay.color}
+                        bold={true}
+                        inverse={isSelected}
+                        wrap="truncate"
+                      >
                         {padded}
                       </Text>
                     );
-                  }
+                  },
                 },
-                createTextColumn(
-                  'name',
-                  'Name',
-                  (devbox: any) => devbox.name || '',
-                  { width: nameWidth, dimColor: true }
-                ),
+                createTextColumn('name', 'Name', (devbox: any) => devbox.name || '', {
+                  width: nameWidth,
+                  dimColor: true,
+                }),
                 createTextColumn(
                   'capabilities',
                   'Capabilities',
                   (devbox: any) => {
-                    const hasCapabilities = devbox.capabilities && devbox.capabilities.filter((c: string) => c !== 'unknown').length > 0;
+                    const hasCapabilities =
+                      devbox.capabilities &&
+                      devbox.capabilities.filter((c: string) => c !== 'unknown').length > 0;
                     return hasCapabilities
                       ? `[${devbox.capabilities
                           .filter((c: string) => c !== 'unknown')
-                          .map((c: string) => c === 'computer_usage' ? 'comp' : c === 'browser_usage' ? 'browser' : c === 'docker_in_docker' ? 'docker' : c)
+                          .map((c: string) =>
+                            c === 'computer_usage'
+                              ? 'comp'
+                              : c === 'browser_usage'
+                                ? 'browser'
+                                : c === 'docker_in_docker'
+                                  ? 'docker'
+                                  : c
+                          )
                           .join(',')}]`
                       : '';
                   },
-                  { width: capabilitiesWidth, color: colors.info, dimColor: true, bold: false, visible: showCapabilities }
+                  {
+                    width: capabilitiesWidth,
+                    color: colors.info,
+                    dimColor: true,
+                    bold: false,
+                    visible: showCapabilities,
+                  }
                 ),
                 createTextColumn(
                   'tags',
                   'Tags',
-                  (devbox: any) => devbox.blueprint_id ? '[bp]' : devbox.snapshot_id ? '[snap]' : '',
-                  { width: tagWidth, color: colors.warning, dimColor: true, bold: false, visible: showTags }
+                  (devbox: any) =>
+                    devbox.blueprint_id ? '[bp]' : devbox.snapshot_id ? '[snap]' : '',
+                  {
+                    width: tagWidth,
+                    color: colors.warning,
+                    dimColor: true,
+                    bold: false,
+                    visible: showTags,
+                  }
                 ),
                 createTextColumn(
                   'created',
                   'Created',
-                  (devbox: any) => devbox.create_time_ms ? formatTimeAgo(devbox.create_time_ms) : '',
+                  (devbox: any) =>
+                    devbox.create_time_ms ? formatTimeAgo(devbox.create_time_ms) : '',
                   { width: timeWidth, color: colors.textDim, dimColor: true, bold: false }
                 ),
               ]}
@@ -555,9 +666,7 @@ const ListDevboxesUI: React.FC<{
   if (initialLoading) {
     return (
       <>
-        <Breadcrumb items={[
-          { label: 'Devboxes', active: true }
-        ]} />
+        <Breadcrumb items={[{ label: 'Devboxes', active: true }]} />
         <SpinnerComponent message="Loading..." />
       </>
     );
@@ -566,9 +675,7 @@ const ListDevboxesUI: React.FC<{
   if (error) {
     return (
       <>
-        <Breadcrumb items={[
-          { label: 'Devboxes', active: true }
-        ]} />
+        <Breadcrumb items={[{ label: 'Devboxes', active: true }]} />
         <ErrorMessage message="Failed to list devboxes" error={error} />
       </>
     );
@@ -577,9 +684,7 @@ const ListDevboxesUI: React.FC<{
   // List view with data (always show, even if empty)
   return (
     <>
-      <Breadcrumb items={[
-        { label: 'Devboxes', active: true }
-      ]} />
+      <Breadcrumb items={[{ label: 'Devboxes', active: true }]} />
       {currentDevboxes && currentDevboxes.length >= 0 && (
         <>
           {searchMode && (
@@ -595,14 +700,22 @@ const ListDevboxesUI: React.FC<{
                   setSelectedIndex(0);
                 }}
               />
-              <Text color={colors.textDim} dimColor> [Esc to cancel]</Text>
+              <Text color={colors.textDim} dimColor>
+                {' '}
+                [Esc to cancel]
+              </Text>
             </Box>
           )}
           {!searchMode && searchQuery && (
             <Box marginBottom={1}>
               <Text color={colors.primary}>{figures.info} Searching for: </Text>
-              <Text color={colors.warning} bold>{searchQuery}</Text>
-              <Text color={colors.textDim} dimColor> ({totalCount} results) [/ to edit, Esc to clear]</Text>
+              <Text color={colors.warning} bold>
+                {searchQuery}
+              </Text>
+              <Text color={colors.textDim} dimColor>
+                {' '}
+                ({totalCount} results) [/ to edit, Esc to clear]
+              </Text>
             </Box>
           )}
           <Table
@@ -620,18 +733,23 @@ const ListDevboxesUI: React.FC<{
                   const statusDisplay = getStatusDisplay(devbox.status);
 
                   return (
-                    <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected} wrap="truncate">
+                    <Text
+                      color={isSelected ? 'white' : statusDisplay.color}
+                      bold={true}
+                      inverse={isSelected}
+                      wrap="truncate"
+                    >
                       {statusDisplay.icon}{' '}
                     </Text>
                   );
-                }
+                },
               },
-              createTextColumn(
-                'id',
-                'ID',
-                (devbox: any) => devbox.id,
-                { width: idWidth, color: colors.textDim, dimColor: true, bold: false }
-              ),
+              createTextColumn('id', 'ID', (devbox: any) => devbox.id, {
+                width: idWidth,
+                color: colors.textDim,
+                dimColor: true,
+                bold: false,
+              }),
               {
                 key: 'statusText',
                 label: 'Status',
@@ -643,42 +761,68 @@ const ListDevboxesUI: React.FC<{
                   const padded = truncated.padEnd(statusTextWidth, ' ');
 
                   return (
-                    <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected} wrap="truncate">
+                    <Text
+                      color={isSelected ? 'white' : statusDisplay.color}
+                      bold={true}
+                      inverse={isSelected}
+                      wrap="truncate"
+                    >
                       {padded}
                     </Text>
                   );
-                }
+                },
               },
-              createTextColumn(
-                'name',
-                'Name',
-                (devbox: any) => devbox.name || '',
-                { width: nameWidth }
-              ),
+              createTextColumn('name', 'Name', (devbox: any) => devbox.name || '', {
+                width: nameWidth,
+              }),
               createTextColumn(
                 'capabilities',
                 'Capabilities',
                 (devbox: any) => {
-                  const hasCapabilities = devbox.capabilities && devbox.capabilities.filter((c: string) => c !== 'unknown').length > 0;
+                  const hasCapabilities =
+                    devbox.capabilities &&
+                    devbox.capabilities.filter((c: string) => c !== 'unknown').length > 0;
                   return hasCapabilities
                     ? `[${devbox.capabilities
                         .filter((c: string) => c !== 'unknown')
-                        .map((c: string) => c === 'computer_usage' ? 'comp' : c === 'browser_usage' ? 'browser' : c === 'docker_in_docker' ? 'docker' : c)
+                        .map((c: string) =>
+                          c === 'computer_usage'
+                            ? 'comp'
+                            : c === 'browser_usage'
+                              ? 'browser'
+                              : c === 'docker_in_docker'
+                                ? 'docker'
+                                : c
+                        )
                         .join(',')}]`
                     : '';
                 },
-                { width: capabilitiesWidth, color: colors.info, dimColor: true, bold: false, visible: showCapabilities }
+                {
+                  width: capabilitiesWidth,
+                  color: colors.info,
+                  dimColor: true,
+                  bold: false,
+                  visible: showCapabilities,
+                }
               ),
               createTextColumn(
                 'tags',
                 'Tags',
-                (devbox: any) => devbox.blueprint_id ? '[bp]' : devbox.snapshot_id ? '[snap]' : '',
-                { width: tagWidth, color: colors.warning, dimColor: true, bold: false, visible: showTags }
+                (devbox: any) =>
+                  devbox.blueprint_id ? '[bp]' : devbox.snapshot_id ? '[snap]' : '',
+                {
+                  width: tagWidth,
+                  color: colors.warning,
+                  dimColor: true,
+                  bold: false,
+                  visible: showTags,
+                }
               ),
               createTextColumn(
                 'created',
                 'Created',
-                (devbox: any) => devbox.create_time_ms ? formatTimeAgo(devbox.create_time_ms) : '',
+                (devbox: any) =>
+                  devbox.create_time_ms ? formatTimeAgo(devbox.create_time_ms) : '',
                 { width: timeWidth, color: colors.textDim, dimColor: true, bold: false }
               ),
             ]}
@@ -689,21 +833,33 @@ const ListDevboxesUI: React.FC<{
             <Text color={colors.primary} bold>
               {figures.hamburger} {totalCount}
             </Text>
-            <Text color={colors.textDim} dimColor> total</Text>
+            <Text color={colors.textDim} dimColor>
+              {' '}
+              total
+            </Text>
             {totalPages > 1 && (
               <>
-                <Text color={colors.textDim} dimColor> • </Text>
+                <Text color={colors.textDim} dimColor>
+                  {' '}
+                  •{' '}
+                </Text>
                 <Text color={colors.textDim} dimColor>
                   Page {currentPage + 1} of {totalPages}
                 </Text>
               </>
             )}
-            <Text color={colors.textDim} dimColor> • </Text>
+            <Text color={colors.textDim} dimColor>
+              {' '}
+              •{' '}
+            </Text>
             <Text color={colors.textDim} dimColor>
               Showing {startIndex + 1}-{endIndex} of {totalCount}
             </Text>
             {hasMore && (
-              <Text color={colors.textDim} dimColor> (more available)</Text>
+              <Text color={colors.textDim} dimColor>
+                {' '}
+                (more available)
+              </Text>
             )}
             <Text> </Text>
             {refreshing ? (
@@ -711,9 +867,7 @@ const ListDevboxesUI: React.FC<{
                 {['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'][refreshIcon % 10]}
               </Text>
             ) : (
-              <Text color={colors.success}>
-                {figures.circleFilled}
-              </Text>
+              <Text color={colors.success}>{figures.circleFilled}</Text>
             )}
           </Box>
 
@@ -725,14 +879,16 @@ const ListDevboxesUI: React.FC<{
             </Text>
             {totalPages > 1 && (
               <Text color={colors.textDim} dimColor>
-                {' '}• {figures.arrowLeft}{figures.arrowRight} Page
+                {' '}
+                • {figures.arrowLeft}
+                {figures.arrowRight} Page
               </Text>
             )}
             <Text color={colors.textDim} dimColor>
-              {' '}• [Enter] Details • [a] Actions • [c] Create • [/] Search • [o] Browser • [Esc] Back
+              {' '}
+              • [Enter] Details • [a] Actions • [c] Create • [/] Search • [o] Browser • [Esc] Back
             </Text>
           </Box>
-
         </>
       )}
     </>
@@ -759,7 +915,7 @@ export async function listDevboxes(options: ListOptions, focusDevboxId?: string)
       <ListDevboxesUI
         status={options.status}
         focusDevboxId={focusDevboxId}
-        onSSHRequest={(config) => {
+        onSSHRequest={config => {
           sshSessionConfig = config;
         }}
       />

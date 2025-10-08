@@ -13,7 +13,14 @@ interface MetadataDisplayProps {
 
 // Generate color for each key based on hash
 const getColorForKey = (key: string, index: number): string => {
-  const colorList = [colors.primary, colors.secondary, colors.warning, colors.info, colors.success, colors.error];
+  const colorList = [
+    colors.primary,
+    colors.secondary,
+    colors.warning,
+    colors.info,
+    colors.success,
+    colors.error,
+  ];
   return colorList[index % colorList.length];
 };
 
@@ -21,7 +28,7 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
   metadata,
   title = 'Metadata',
   showBorder = false,
-  selectedKey
+  selectedKey,
 }) => {
   const entries = Object.entries(metadata);
 
@@ -45,11 +52,11 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
         return (
           <Box key={key} flexDirection="row" alignItems="center">
             {isSelected && (
-              <Text color={colors.primary} bold>{figures.pointer} </Text>
+              <Text color={colors.primary} bold>
+                {figures.pointer}{' '}
+              </Text>
             )}
-            <Badge color={isSelected ? colors.primary : color}>
-              {`${key}: ${value}`}
-            </Badge>
+            <Badge color={isSelected ? colors.primary : color}>{`${key}: ${value}`}</Badge>
           </Box>
         );
       })}

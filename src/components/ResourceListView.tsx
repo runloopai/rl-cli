@@ -51,15 +51,15 @@ export interface ResourceListConfig<T> {
 
   /** Status display configuration */
   statusConfig?: {
-    success: string[];  // e.g., ['running', 'build_complete', 'ready']
-    warning: string[];  // e.g., ['provisioning', 'building']
-    error: string[];    // e.g., ['failure', 'build_failed']
+    success: string[]; // e.g., ['running', 'build_complete', 'ready']
+    warning: string[]; // e.g., ['provisioning', 'building']
+    error: string[]; // e.g., ['failure', 'build_failed']
   };
 
   /** Search configuration */
   searchConfig?: {
     enabled: boolean;
-    fields: (item: T) => string[];  // Fields to search in
+    fields: (item: T) => string[]; // Fields to search in
     placeholder?: string;
   };
 
@@ -91,7 +91,7 @@ export interface ResourceListConfig<T> {
   /** Auto-refresh configuration */
   autoRefresh?: {
     enabled: boolean;
-    interval?: number;  // milliseconds
+    interval?: number; // milliseconds
   };
 }
 
@@ -120,23 +120,26 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   const terminalHeight = stdout?.rows || 30;
 
   // Fetch resources
-  const fetchData = React.useCallback(async (isInitialLoad: boolean = false) => {
-    try {
-      if (isInitialLoad) {
-        setRefreshing(true);
-      }
+  const fetchData = React.useCallback(
+    async (isInitialLoad: boolean = false) => {
+      try {
+        if (isInitialLoad) {
+          setRefreshing(true);
+        }
 
-      const data = await config.fetchResources();
-      setResources(data);
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setLoading(false);
-      if (isInitialLoad) {
-        setTimeout(() => setRefreshing(false), 300);
+        const data = await config.fetchResources();
+        setResources(data);
+      } catch (err) {
+        setError(err as Error);
+      } finally {
+        setLoading(false);
+        if (isInitialLoad) {
+          setTimeout(() => setRefreshing(false), 300);
+        }
       }
-    }
-  }, [config.fetchResources]);
+    },
+    [config.fetchResources]
+  );
 
   // Initial load
   React.useEffect(() => {
@@ -156,7 +159,7 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   // Animate refresh icon
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setRefreshIcon((prev) => (prev + 1) % 10);
+      setRefreshIcon(prev => (prev + 1) % 10);
     }, 80);
     return () => clearInterval(interval);
   }, []);
@@ -272,9 +275,9 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   if (loading) {
     return (
       <>
-        <Breadcrumb items={config.breadcrumbItems || [
-          { label: config.resourceNamePlural, active: true }
-        ]} />
+        <Breadcrumb
+          items={config.breadcrumbItems || [{ label: config.resourceNamePlural, active: true }]}
+        />
         <SpinnerComponent message={`Loading ${config.resourceNamePlural.toLowerCase()}...`} />
       </>
     );
@@ -284,10 +287,13 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   if (error) {
     return (
       <>
-        <Breadcrumb items={config.breadcrumbItems || [
-          { label: config.resourceNamePlural, active: true }
-        ]} />
-        <ErrorMessage message={`Failed to list ${config.resourceNamePlural.toLowerCase()}`} error={error} />
+        <Breadcrumb
+          items={config.breadcrumbItems || [{ label: config.resourceNamePlural, active: true }]}
+        />
+        <ErrorMessage
+          message={`Failed to list ${config.resourceNamePlural.toLowerCase()}`}
+          error={error}
+        />
       </>
     );
   }
@@ -296,9 +302,9 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   if (!loading && !error && resources.length === 0) {
     return (
       <>
-        <Breadcrumb items={config.breadcrumbItems || [
-          { label: config.resourceNamePlural, active: true }
-        ]} />
+        <Breadcrumb
+          items={config.breadcrumbItems || [{ label: config.resourceNamePlural, active: true }]}
+        />
         {config.emptyState && (
           <Box>
             <Text color={colors.warning}>{figures.info}</Text>
@@ -317,9 +323,9 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   // List view with data
   return (
     <>
-      <Breadcrumb items={config.breadcrumbItems || [
-        { label: config.resourceNamePlural, active: true }
-      ]} />
+      <Breadcrumb
+        items={config.breadcrumbItems || [{ label: config.resourceNamePlural, active: true }]}
+      />
 
       {/* Search bar */}
       {config.searchConfig?.enabled && (
@@ -337,14 +343,22 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
                   setSelectedIndex(0);
                 }}
               />
-              <Text color={colors.textDim} dimColor> [Esc to cancel]</Text>
+              <Text color={colors.textDim} dimColor>
+                {' '}
+                [Esc to cancel]
+              </Text>
             </Box>
           )}
           {!searchMode && searchQuery && (
             <Box marginBottom={1}>
               <Text color={colors.primary}>{figures.info} Searching for: </Text>
-              <Text color={colors.warning} bold>{searchQuery}</Text>
-              <Text color={colors.textDim} dimColor> ({currentResources.length} results) [/ to edit, Esc to clear]</Text>
+              <Text color={colors.warning} bold>
+                {searchQuery}
+              </Text>
+              <Text color={colors.textDim} dimColor>
+                {' '}
+                ({currentResources.length} results) [/ to edit, Esc to clear]
+              </Text>
             </Box>
           )}
         </>
@@ -365,16 +379,25 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
         <Text color={colors.primary} bold>
           {figures.hamburger} {resources.length}
         </Text>
-        <Text color={colors.textDim} dimColor> total</Text>
+        <Text color={colors.textDim} dimColor>
+          {' '}
+          total
+        </Text>
         {totalPages > 1 && (
           <>
-            <Text color={colors.textDim} dimColor> • </Text>
+            <Text color={colors.textDim} dimColor>
+              {' '}
+              •{' '}
+            </Text>
             <Text color={colors.textDim} dimColor>
               Page {currentPage + 1} of {totalPages}
             </Text>
           </>
         )}
-        <Text color={colors.textDim} dimColor> • </Text>
+        <Text color={colors.textDim} dimColor>
+          {' '}
+          •{' '}
+        </Text>
         <Text color={colors.textDim} dimColor>
           Showing {startIndex + 1}-{endIndex} of {filteredResources.length}
         </Text>
@@ -384,9 +407,7 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
             {['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'][refreshIcon % 10]}
           </Text>
         ) : (
-          <Text color={colors.success}>
-            {figures.circleFilled}
-          </Text>
+          <Text color={colors.success}>{figures.circleFilled}</Text>
         )}
       </Box>
 
@@ -398,26 +419,33 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
         </Text>
         {totalPages > 1 && (
           <Text color={colors.textDim} dimColor>
-            {' '}• {figures.arrowLeft}{figures.arrowRight} Page
+            {' '}
+            • {figures.arrowLeft}
+            {figures.arrowRight} Page
           </Text>
         )}
         {config.onSelect && (
           <Text color={colors.textDim} dimColor>
-            {' '}• [Enter] Details
+            {' '}
+            • [Enter] Details
           </Text>
         )}
         {config.searchConfig?.enabled && (
           <Text color={colors.textDim} dimColor>
-            {' '}• [/] Search
+            {' '}
+            • [/] Search
           </Text>
         )}
-        {config.additionalShortcuts && config.additionalShortcuts.map(shortcut => (
-          <Text key={shortcut.key} color={colors.textDim} dimColor>
-            {' '}• [{shortcut.key}] {shortcut.label}
-          </Text>
-        ))}
+        {config.additionalShortcuts &&
+          config.additionalShortcuts.map(shortcut => (
+            <Text key={shortcut.key} color={colors.textDim} dimColor>
+              {' '}
+              • [{shortcut.key}] {shortcut.label}
+            </Text>
+          ))}
         <Text color={colors.textDim} dimColor>
-          {' '}• [Esc] Back
+          {' '}
+          • [Esc] Back
         </Text>
       </Box>
     </>

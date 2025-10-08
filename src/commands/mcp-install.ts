@@ -8,7 +8,13 @@ function getClaudeConfigPath(): string {
   const plat = platform();
 
   if (plat === 'darwin') {
-    return join(homedir(), 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
+    return join(
+      homedir(),
+      'Library',
+      'Application Support',
+      'Claude',
+      'claude_desktop_config.json'
+    );
   } else if (plat === 'win32') {
     const appData = process.env.APPDATA;
     if (!appData) {
@@ -77,8 +83,8 @@ export async function installMcpConfig() {
 
       // For non-interactive mode, just exit
       if (process.stdin.isTTY) {
-        const response = await new Promise<string>((resolve) => {
-          process.stdin.once('data', (data) => {
+        const response = await new Promise<string>(resolve => {
+          process.stdin.once('data', data => {
             resolve(data.toString().trim().toLowerCase());
           });
         });
@@ -110,20 +116,25 @@ export async function installMcpConfig() {
     console.log('1. Restart Claude Desktop completely (quit and reopen)');
     console.log('2. Ask Claude: "List my devboxes" or "What Runloop tools do you have?"');
     console.log('\n💡 Tip: Make sure you\'ve run "rln auth" to configure your API key first!');
-
   } catch (error: any) {
     console.error('\n❌ Error installing MCP configuration:', error.message);
     console.error('\n💡 You can manually add this configuration to your Claude Desktop config:');
     console.error(`\nFile location: ${getClaudeConfigPath()}`);
     console.error('\nConfiguration to add:');
-    console.error(JSON.stringify({
-      mcpServers: {
-        runloop: {
-          command: 'rln',
-          args: ['mcp', 'start'],
+    console.error(
+      JSON.stringify(
+        {
+          mcpServers: {
+            runloop: {
+              command: 'rln',
+              args: ['mcp', 'start'],
+            },
+          },
         },
-      },
-    }, null, 2));
+        null,
+        2
+      )
+    );
     process.exit(1);
   }
 }

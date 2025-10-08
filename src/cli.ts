@@ -27,10 +27,7 @@ process.on('SIGINT', () => {
 
 const program = new Command();
 
-program
-  .name('rln')
-  .description('Beautiful CLI for Runloop devbox management')
-  .version(VERSION);
+program.name('rln').description('Beautiful CLI for Runloop devbox management').version(VERSION);
 
 program
   .command('auth')
@@ -41,10 +38,7 @@ program
   });
 
 // Devbox commands
-const devbox = program
-  .command('devbox')
-  .description('Manage devboxes')
-  .alias('d');
+const devbox = program.command('devbox').description('Manage devboxes').alias('d');
 
 devbox
   .command('create')
@@ -59,7 +53,7 @@ devbox
   .description('List all devboxes')
   .option('-s, --status <status>', 'Filter by status')
   .option('-o, --output [format]', 'Output format: text|json|yaml (default: interactive)')
-  .action(async (options) => {
+  .action(async options => {
     // Only use alternate screen for interactive mode
     if (!options.output) {
       const { runInteractiveCommand } = await import('./utils/interactiveCommand.js');
@@ -90,17 +84,14 @@ devbox
   .action(uploadFile);
 
 // Snapshot commands
-const snapshot = program
-  .command('snapshot')
-  .description('Manage devbox snapshots')
-  .alias('snap');
+const snapshot = program.command('snapshot').description('Manage devbox snapshots').alias('snap');
 
 snapshot
   .command('list')
   .description('List all snapshots')
   .option('-d, --devbox <id>', 'Filter by devbox ID')
   .option('-o, --output [format]', 'Output format: text|json|yaml (default: interactive)')
-  .action(async (options) => {
+  .action(async options => {
     const { listSnapshots } = await import('./commands/snapshot/list.js');
     if (!options.output) {
       const { runInteractiveCommand } = await import('./utils/interactiveCommand.js');
@@ -131,16 +122,13 @@ snapshot
   });
 
 // Blueprint commands
-const blueprint = program
-  .command('blueprint')
-  .description('Manage blueprints')
-  .alias('bp');
+const blueprint = program.command('blueprint').description('Manage blueprints').alias('bp');
 
 blueprint
   .command('list')
   .description('List all blueprints')
   .option('-o, --output [format]', 'Output format: text|json|yaml (default: interactive)')
-  .action(async (options) => {
+  .action(async options => {
     const { listBlueprints } = await import('./commands/blueprint/list.js');
     if (!options.output) {
       const { runInteractiveCommand } = await import('./utils/interactiveCommand.js');
@@ -151,16 +139,14 @@ blueprint
   });
 
 // MCP server commands
-const mcp = program
-  .command('mcp')
-  .description('Model Context Protocol (MCP) server commands');
+const mcp = program.command('mcp').description('Model Context Protocol (MCP) server commands');
 
 mcp
   .command('start')
   .description('Start the MCP server')
   .option('--http', 'Use HTTP/SSE transport instead of stdio')
   .option('-p, --port <port>', 'Port to listen on for HTTP mode (default: 3000)', parseInt)
-  .action(async (options) => {
+  .action(async options => {
     if (options.http) {
       const { startMcpHttpServer } = await import('./commands/mcp-http.js');
       await startMcpHttpServer(options.port);
@@ -183,7 +169,7 @@ program
   .command('mcp-server', { hidden: true })
   .option('--http', 'Use HTTP/SSE transport instead of stdio')
   .option('-p, --port <port>', 'Port to listen on for HTTP mode (default: 3000)', parseInt)
-  .action(async (options) => {
+  .action(async options => {
     if (options.http) {
       const { startMcpHttpServer } = await import('./commands/mcp-http.js');
       await startMcpHttpServer(options.port);
@@ -197,7 +183,14 @@ program
 (async () => {
   // Check if API key is configured (except for auth and mcp commands)
   const args = process.argv.slice(2);
-  if (args[0] !== 'auth' && args[0] !== 'mcp' && args[0] !== 'mcp-server' && args[0] !== '--help' && args[0] !== '-h' && args.length > 0) {
+  if (
+    args[0] !== 'auth' &&
+    args[0] !== 'mcp' &&
+    args[0] !== 'mcp-server' &&
+    args[0] !== '--help' &&
+    args[0] !== '-h' &&
+    args.length > 0
+  ) {
     const config = getConfig();
     if (!config.apiKey) {
       console.error('\n❌ API key not configured. Run: rln auth\n');
