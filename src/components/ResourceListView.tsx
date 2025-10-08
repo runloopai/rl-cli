@@ -350,36 +350,6 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
         </>
       )}
 
-      {/* Stats bar */}
-      {stats && (
-        <Box marginBottom={1}>
-          <Text color={colors.success}>
-            {figures.tick} {stats.successCount}
-          </Text>
-          <Text> </Text>
-          <Text color={colors.warning}>
-            {figures.ellipsis} {stats.warningCount}
-          </Text>
-          <Text> </Text>
-          <Text color={colors.error}>
-            {figures.cross} {stats.errorCount}
-          </Text>
-          <Text> </Text>
-          <Text color={colors.primary}>
-            {figures.hamburger} {resources.length}
-            {resources.length >= maxFetch && '+'}
-          </Text>
-          {totalPages > 1 && (
-            <>
-              <Text color={colors.textDim}> • </Text>
-              <Text color={colors.textDim} dimColor>
-                Page {currentPage + 1}/{totalPages}
-              </Text>
-            </>
-          )}
-        </Box>
-      )}
-
       {/* Table */}
       <Table
         key={`table-${searchQuery}-${currentPage}`}
