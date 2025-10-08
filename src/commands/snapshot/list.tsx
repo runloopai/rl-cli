@@ -4,7 +4,7 @@ import figures from 'figures';
 import { getClient } from '../../utils/client.js';
 import { SpinnerComponent } from '../../components/Spinner.js';
 import { ErrorMessage } from '../../components/ErrorMessage.js';
-import { StatusBadge } from '../../components/StatusBadge.js';
+import { StatusBadge, getStatusDisplay } from '../../components/StatusBadge.js';
 import { Breadcrumb } from '../../components/Breadcrumb.js';
 import { Table, createTextColumn, createComponentColumn } from '../../components/Table.js';
 import { ResourceListView, formatTimeAgo } from '../../components/ResourceListView.js';
@@ -31,6 +31,8 @@ const ListSnapshotsUI: React.FC<{
   const showDevboxId = terminalWidth >= 100 && !devboxId; // Hide devbox column if filtering by devbox
   const showFullId = terminalWidth >= 80;
 
+  const statusIconWidth = 2;
+  const statusTextWidth = 10;
   const idWidth = 25;
   const nameWidth = terminalWidth >= 120 ? 30 : 25;
   const devboxWidth = 15;
@@ -54,17 +56,11 @@ const ListSnapshotsUI: React.FC<{
           return allSnapshots;
         },
         columns: [
-          createComponentColumn(
-            'status',
-            'Status',
-            (snapshot: any) => <StatusBadge status={snapshot.status} showText={false} />,
-            { width: 2 }
-          ),
           createTextColumn(
             'id',
             'ID',
-            (snapshot: any) => showFullId ? snapshot.id : snapshot.id.slice(0, 13),
-            { width: showFullId ? idWidth : 15, color: colors.textDim, dimColor: true, bold: false }
+            (snapshot: any) => snapshot.id,
+            { width: idWidth, color: colors.textDim, dimColor: true, bold: false }
           ),
           createTextColumn(
             'name',
@@ -75,23 +71,17 @@ const ListSnapshotsUI: React.FC<{
           createTextColumn(
             'devbox',
             'Devbox',
-            (snapshot: any) => snapshot.devbox_id || '',
+            (snapshot: any) => snapshot.source_devbox_id || '',
             { width: devboxWidth, color: colors.primary, dimColor: true, bold: false, visible: showDevboxId }
           ),
           createTextColumn(
             'created',
             'Created',
-            (snapshot: any) => snapshot.created_at ? formatTimeAgo(new Date(snapshot.created_at).getTime()) : '',
+            (snapshot: any) => snapshot.create_time_ms ? formatTimeAgo(snapshot.create_time_ms) : '',
             { width: timeWidth, color: colors.textDim, dimColor: true, bold: false }
           ),
         ],
         keyExtractor: (snapshot: any) => snapshot.id,
-        getStatus: (snapshot: any) => snapshot.status,
-        statusConfig: {
-          success: ['ready'],
-          warning: ['creating', 'pending'],
-          error: ['failed'],
-        },
         emptyState: {
           message: 'No snapshots found. Try:',
           command: 'rln snapshot create <devbox-id>',

@@ -38,7 +38,7 @@ const ListDevboxesUI: React.FC<{
 }> = ({ status, onSSHRequest, focusDevboxId, onBack, onExit }) => {
   const { exit: inkExit } = useApp();
   const { stdout } = useStdout();
-  const [loading, setLoading] = React.useState(true);
+  const [initialLoading, setInitialLoading] = React.useState(true);
   const [devboxes, setDevboxes] = React.useState<any[]>([]);
   const [error, setError] = React.useState<Error | null>(null);
   const [currentPage, setCurrentPage] = React.useState(0);
@@ -50,6 +50,7 @@ const ListDevboxesUI: React.FC<{
   const [selectedOperation, setSelectedOperation] = React.useState(0);
   const [refreshing, setRefreshing] = React.useState(false);
   const [refreshIcon, setRefreshIcon] = React.useState(0);
+  const isNavigating = React.useRef(false);
   const [searchMode, setSearchMode] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [totalCount, setTotalCount] = React.useState(0);
@@ -107,7 +108,7 @@ const ListDevboxesUI: React.FC<{
 
   // Check if we need to focus on a specific devbox after returning from SSH
   React.useEffect(() => {
-    if (focusDevboxId && devboxes.length > 0 && !loading) {
+    if (focusDevboxId && devboxes.length > 0 && !initialLoading) {
       // Find the devbox in the current page
       const devboxIndex = devboxes.findIndex(d => d.id === focusDevboxId);
       if (devboxIndex !== -1) {
@@ -115,20 +116,32 @@ const ListDevboxesUI: React.FC<{
         setShowDetails(true);
       }
     }
-  }, [devboxes, loading, focusDevboxId]);
+  }, [devboxes, initialLoading, focusDevboxId]);
+
+  // Clear cache when search query changes
+  React.useEffect(() => {
+    pageCache.current.clear();
+    lastIdCache.current.clear();
+    setCurrentPage(0);
+  }, [searchQuery]);
 
   React.useEffect(() => {
-    const list = async (isInitialLoad: boolean = false) => {
+    const list = async (isInitialLoad: boolean = false, isBackgroundRefresh: boolean = false) => {
       try {
+        // Set navigating flag at the start (but not for background refresh)
+        if (!isBackgroundRefresh) {
+          isNavigating.current = true;
+        }
+
         // Only show refreshing indicator on initial load
         if (isInitialLoad) {
           setRefreshing(true);
         }
 
         // Check if we have cached data for this page
-        if (!isInitialLoad && pageCache.current.has(currentPage)) {
+        if (!isInitialLoad && !isBackgroundRefresh && pageCache.current.has(currentPage)) {
           setDevboxes(pageCache.current.get(currentPage) || []);
-          setLoading(false);
+          isNavigating.current = false;
           return;
         }
 
@@ -147,6 +160,9 @@ const ListDevboxesUI: React.FC<{
         }
         if (status) {
           queryParams.status = status as 'provisioning' | 'initializing' | 'running' | 'suspending' | 'suspended' | 'resuming' | 'failure' | 'shutdown';
+        }
+        if (searchQuery) {
+          queryParams.search = searchQuery;
         }
 
         // Fetch only the current page
@@ -185,28 +201,31 @@ const ListDevboxesUI: React.FC<{
       } catch (err) {
         setError(err as Error);
       } finally {
-        setLoading(false);
-        // Show refresh indicator briefly
+        if (!isBackgroundRefresh) {
+          isNavigating.current = false;
+        }
+        // Only set initialLoading to false after first successful load
         if (isInitialLoad) {
+          setInitialLoading(false);
           setTimeout(() => setRefreshing(false), 300);
         }
       }
     };
 
-    list(true);
+    // Only treat as initial load on first mount
+    const isFirstMount = initialLoading;
+    list(isFirstMount, false);
 
-    // Poll every 3 seconds (increased from 2), but only when in list view
+    // Poll every 3 seconds (increased from 2), but only when in list view and not navigating
     const interval = setInterval(() => {
-      if (!showDetails && !showCreate && !showActions) {
-        // Clear cache on refresh to get latest data
-        pageCache.current.clear();
-        lastIdCache.current.clear();
-        list(false);
+      if (!showDetails && !showCreate && !showActions && !isNavigating.current) {
+        // Don't clear cache on background refresh - just update the current page
+        list(false, true);
       }
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [showDetails, showCreate, showActions, currentPage]);
+  }, [showDetails, showCreate, showActions, currentPage, searchQuery]);
 
   // Animate refresh icon only when in list view
   React.useEffect(() => {
@@ -286,10 +305,10 @@ const ListDevboxesUI: React.FC<{
       setSelectedIndex(selectedIndex - 1);
     } else if (key.downArrow && selectedIndex < pageDevboxes - 1) {
       setSelectedIndex(selectedIndex + 1);
-    } else if ((input === 'n' || key.rightArrow) && currentPage < totalPages - 1) {
+    } else if ((input === 'n' || key.rightArrow) && !isNavigating.current && currentPage < totalPages - 1) {
       setCurrentPage(currentPage + 1);
       setSelectedIndex(0);
-    } else if ((input === 'p' || key.leftArrow) && currentPage > 0) {
+    } else if ((input === 'p' || key.leftArrow) && !isNavigating.current && currentPage > 0) {
       setCurrentPage(currentPage - 1);
       setSelectedIndex(0);
     } else if (key.return) {
@@ -342,22 +361,8 @@ const ListDevboxesUI: React.FC<{
     }
   });
 
-  // Filter devboxes based on search query (client-side only for current page)
-  const filteredDevboxes = React.useMemo(() => {
-    if (!searchQuery.trim()) return devboxes;
-
-    const query = searchQuery.toLowerCase();
-    return devboxes.filter(devbox => {
-      return (
-        devbox.id?.toLowerCase().includes(query) ||
-        devbox.name?.toLowerCase().includes(query) ||
-        devbox.status?.toLowerCase().includes(query)
-      );
-    });
-  }, [devboxes, searchQuery]);
-
-  // Current page is already fetched, no need to slice
-  const currentDevboxes = filteredDevboxes;
+  // No client-side filtering - search is handled server-side
+  const currentDevboxes = devboxes;
 
   // Ensure selected index is within bounds after filtering
   React.useEffect(() => {
@@ -451,7 +456,7 @@ const ListDevboxesUI: React.FC<{
         <Breadcrumb items={[
           { label: 'Devboxes', active: true }
         ]} />
-        {!loading && !error && devboxes.length > 0 && (
+        {!initialLoading && !error && devboxes.length > 0 && (
           <>
             <Table
               data={currentDevboxes}
@@ -466,13 +471,9 @@ const ListDevboxesUI: React.FC<{
                   render: (devbox: any, index: number, isSelected: boolean) => {
                     const statusDisplay = getStatusDisplay(devbox.status);
 
-                    // Truncate icon to fit width and pad
-                    const icon = statusDisplay.icon.slice(0, statusIconWidth);
-                    const padded = icon.padEnd(statusIconWidth, ' ');
-
                     return (
-                      <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected}>
-                        {padded}
+                      <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected} wrap="truncate">
+                        {statusDisplay.icon}{' '}
                       </Text>
                     );
                   }
@@ -494,7 +495,7 @@ const ListDevboxesUI: React.FC<{
                     const padded = truncated.padEnd(statusTextWidth, ' ');
 
                     return (
-                      <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected}>
+                      <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected} wrap="truncate">
                         {padded}
                       </Text>
                     );
@@ -550,8 +551,8 @@ const ListDevboxesUI: React.FC<{
     );
   }
 
-  // If loading or error, show that first
-  if (loading) {
+  // If initial loading or error, show that first
+  if (initialLoading) {
     return (
       <>
         <Breadcrumb items={[
@@ -573,24 +574,7 @@ const ListDevboxesUI: React.FC<{
     );
   }
 
-  if (!loading && !error && devboxes.length === 0) {
-    return (
-      <>
-        <Breadcrumb items={[
-          { label: 'Devboxes', active: true }
-        ]} />
-        <Box>
-          <Text color={colors.warning}>{figures.info}</Text>
-          <Text> No devboxes found. Try: </Text>
-          <Text color={colors.primary} bold>
-            rln devbox create
-          </Text>
-        </Box>
-      </>
-    );
-  }
-
-  // List view with data
+  // List view with data (always show, even if empty)
   return (
     <>
       <Breadcrumb items={[
@@ -618,7 +602,7 @@ const ListDevboxesUI: React.FC<{
             <Box marginBottom={1}>
               <Text color={colors.primary}>{figures.info} Searching for: </Text>
               <Text color={colors.warning} bold>{searchQuery}</Text>
-              <Text color={colors.textDim} dimColor> ({currentDevboxes.length} results) [/ to edit, Esc to clear]</Text>
+              <Text color={colors.textDim} dimColor> ({totalCount} results) [/ to edit, Esc to clear]</Text>
             </Box>
           )}
           <Table
@@ -626,7 +610,7 @@ const ListDevboxesUI: React.FC<{
             data={currentDevboxes}
             keyExtractor={(devbox: any) => devbox.id}
             selectedIndex={selectedIndex}
-            title={`devboxes[${searchQuery ? currentDevboxes.length : totalCount}]`}
+            title={`devboxes[${totalCount}]`}
             columns={[
               {
                 key: 'statusIcon',
@@ -635,13 +619,9 @@ const ListDevboxesUI: React.FC<{
                 render: (devbox: any, index: number, isSelected: boolean) => {
                   const statusDisplay = getStatusDisplay(devbox.status);
 
-                  // Truncate icon to fit width and pad
-                  const icon = statusDisplay.icon.slice(0, statusIconWidth);
-                  const padded = icon.padEnd(statusIconWidth, ' ');
-
                   return (
-                    <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected}>
-                      {padded}
+                    <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected} wrap="truncate">
+                      {statusDisplay.icon}{' '}
                     </Text>
                   );
                 }
@@ -663,7 +643,7 @@ const ListDevboxesUI: React.FC<{
                   const padded = truncated.padEnd(statusTextWidth, ' ');
 
                   return (
-                    <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected}>
+                    <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected} wrap="truncate">
                       {padded}
                     </Text>
                   );

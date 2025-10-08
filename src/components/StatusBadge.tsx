@@ -16,7 +16,7 @@ export interface StatusDisplay {
 
 export const getStatusDisplay = (status: string): StatusDisplay => {
   if (!status) {
-    return { icon: figures.questionMarkPrefix, color: colors.textDim, text: 'UNKNOWN' };
+    return { icon: figures.questionMarkPrefix, color: colors.textDim, text: 'UNKNOWN   ' };
   }
 
   switch (status) {
@@ -37,13 +37,14 @@ export const getStatusDisplay = (status: string): StatusDisplay => {
     case 'suspending':
       return { icon: figures.ellipsis, color: colors.warning, text: 'SUSPENDING' };
     case 'ready':
-      return { icon: figures.tick, color: colors.success, text: 'READY     ' };
+      return { icon: figures.bullet, color: colors.success, text: 'READY     ' };
     case 'build_complete':
     case 'building_complete':
-      return { icon: figures.tick, color: colors.success, text: 'COMPLETE  ' };
+      return { icon: figures.bullet, color: colors.success, text: 'COMPLETE  ' };
     case 'building':
       return { icon: figures.ellipsis, color: colors.warning, text: 'BUILDING  ' };
     case 'build_failed':
+    case 'failed':
       return { icon: figures.cross, color: colors.error, text: 'FAILED    ' };
     default:
       // Truncate and pad any unknown status to 10 chars to match column width

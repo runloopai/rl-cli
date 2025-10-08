@@ -139,12 +139,18 @@ export function createTextColumn<T>(
       const bold = options?.bold !== undefined ? options.bold : isSelected;
       const dimColor = options?.dimColor || false;
 
-      // Pad the value to fill the full width
-      const truncated = value.slice(0, width);
+      // Truncate and add ellipsis if text is too long
+      let truncated: string;
+      if (value.length > width) {
+        // Reserve space for ellipsis if truncating
+        truncated = value.slice(0, width - 1) + '…';
+      } else {
+        truncated = value;
+      }
       const padded = truncated.padEnd(width, ' ');
 
       return (
-        <Text color={isSelected ? colors.text : color} bold={bold} dimColor={!isSelected && dimColor} inverse={isSelected}>
+        <Text color={isSelected ? colors.text : color} bold={bold} dimColor={!isSelected && dimColor} inverse={isSelected} wrap="truncate">
           {padded}
         </Text>
       );

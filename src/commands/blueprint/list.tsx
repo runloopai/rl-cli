@@ -16,6 +16,7 @@ import { ResourceListView, formatTimeAgo } from '../../components/ResourceListVi
 import { createExecutor } from '../../utils/CommandExecutor.js';
 import { getBlueprintUrl } from '../../utils/url.js';
 import { colors } from '../../utils/theme.js';
+import { getStatusDisplay } from '../../components/StatusBadge.js';
 
 const PAGE_SIZE = 10;
 const MAX_FETCH = 100;
@@ -42,6 +43,8 @@ const ListBlueprintsUI: React.FC<{
   const showDescription = terminalWidth >= 120;
   const showFullId = terminalWidth >= 80;
 
+  const statusIconWidth = 2;
+  const statusTextWidth = 10;
   const idWidth = 25;
   const nameWidth = terminalWidth >= 120 ? 30 : 25;
   const descriptionWidth = 40;
@@ -456,23 +459,50 @@ const ListBlueprintsUI: React.FC<{
           return allBlueprints;
         },
         columns: [
-          createComponentColumn(
-            'status',
-            'Status',
-            (blueprint: any) => <StatusBadge status={blueprint.status} showText={false} />,
-            { width: 2 }
-          ),
-          createTextColumn(
-            'id',
-            'ID',
-            (blueprint: any) => (showFullId ? blueprint.id : blueprint.id.slice(0, 13)),
-            {
-              width: showFullId ? idWidth : 15,
-              color: colors.textDim,
-              dimColor: true,
-              bold: false,
+          {
+            key: 'statusIcon',
+            label: '',
+            width: statusIconWidth,
+            render: (blueprint: any, index: number, isSelected: boolean) => {
+              const statusDisplay = getStatusDisplay(blueprint.status);
+              return (
+                <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected} wrap="truncate">
+                  {statusDisplay.icon}{' '}
+                </Text>
+              );
             }
-          ),
+          },
+          {
+            key: 'id',
+            label: 'ID',
+            width: idWidth + 1,
+            render: (blueprint: any, index: number, isSelected: boolean) => {
+              const value = blueprint.id;
+              const width = idWidth + 1;
+              const truncated = value.slice(0, width - 1);
+              const padded = truncated.padEnd(width, ' ');
+              return (
+                <Text color={isSelected ? 'white' : colors.textDim} bold={false} dimColor={!isSelected} inverse={isSelected} wrap="truncate">
+                  {padded}
+                </Text>
+              );
+            }
+          },
+          {
+            key: 'statusText',
+            label: 'Status',
+            width: statusTextWidth,
+            render: (blueprint: any, index: number, isSelected: boolean) => {
+              const statusDisplay = getStatusDisplay(blueprint.status);
+              const truncated = statusDisplay.text.slice(0, statusTextWidth);
+              const padded = truncated.padEnd(statusTextWidth, ' ');
+              return (
+                <Text color={isSelected ? 'white' : statusDisplay.color} bold={true} inverse={isSelected} wrap="truncate">
+                  {padded}
+                </Text>
+              );
+            }
+          },
           createTextColumn(
             'name',
             'Name',
