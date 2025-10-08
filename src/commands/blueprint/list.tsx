@@ -542,10 +542,6 @@ const ListBlueprintsUI: React.FC<{
         },
         pageSize: PAGE_SIZE,
         maxFetch: MAX_FETCH,
-        onSelect: (blueprint: any) => {
-          setSelectedBlueprint(blueprint);
-          setShowDetails(true);
-        },
         onBack: onBack,
         onExit: onExit,
         additionalShortcuts: [
