@@ -1,7 +1,7 @@
-import React from 'react';
-import { Box, Text } from 'ink';
-import figures from 'figures';
-import { colors } from '../utils/theme.js';
+import React from "react";
+import { Box, Text } from "ink";
+import figures from "figures";
+import { colors } from "../utils/theme.js";
 
 interface DetailSection {
   title: string;
@@ -60,13 +60,13 @@ export function buildDetailSections(
         color?: string;
       }>;
     };
-  }
+  },
 ): DetailSection[] {
   return Object.entries(config)
     .map(([sectionName, sectionConfig]) => ({
       title: sectionName,
       items: sectionConfig.fields
-        .map(field => {
+        .map((field) => {
           const value = data[field.key];
           if (value === undefined || value === null) return null;
 
@@ -82,5 +82,5 @@ export function buildDetailSections(
         color?: string;
       }>,
     }))
-    .filter(section => section.items.length > 0);
+    .filter((section) => section.items.length > 0);
 }

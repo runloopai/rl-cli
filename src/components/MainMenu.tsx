@@ -1,10 +1,10 @@
-import React from 'react';
-import { Box, Text, useInput, useApp } from 'ink';
-import figures from 'figures';
-import { Banner } from './Banner.js';
-import { Breadcrumb } from './Breadcrumb.js';
-import { VERSION } from '../cli.js';
-import { colors } from '../utils/theme.js';
+import React from "react";
+import { Box, Text, useInput, useApp } from "ink";
+import figures from "figures";
+import { Banner } from "./Banner.js";
+import { Breadcrumb } from "./Breadcrumb.js";
+import { VERSION } from "../cli.js";
+import { colors } from "../utils/theme.js";
 
 interface MenuItem {
   key: string;
@@ -28,28 +28,28 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
   const menuItems: MenuItem[] = React.useMemo(
     () => [
       {
-        key: 'devboxes',
-        label: 'Devboxes',
-        description: 'Manage cloud development environments',
-        icon: '◉',
+        key: "devboxes",
+        label: "Devboxes",
+        description: "Manage cloud development environments",
+        icon: "◉",
         color: colors.accent1,
       },
       {
-        key: 'blueprints',
-        label: 'Blueprints',
-        description: 'Create and manage devbox templates',
-        icon: '▣',
+        key: "blueprints",
+        label: "Blueprints",
+        description: "Create and manage devbox templates",
+        icon: "▣",
         color: colors.accent2,
       },
       {
-        key: 'snapshots',
-        label: 'Snapshots',
-        description: 'Save and restore devbox states',
-        icon: '◈',
+        key: "snapshots",
+        label: "Snapshots",
+        description: "Save and restore devbox states",
+        icon: "◈",
         color: colors.accent3,
       },
     ],
-    []
+    [],
   );
 
   useInput((input, key) => {
@@ -61,17 +61,20 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
       onSelect(menuItems[selectedIndex].key);
     } else if (key.escape) {
       exit();
-    } else if (input === 'd' || input === '1') {
-      onSelect('devboxes');
-    } else if (input === 'b' || input === '2') {
-      onSelect('blueprints');
-    } else if (input === 's' || input === '3') {
-      onSelect('snapshots');
+    } else if (input === "d" || input === "1") {
+      onSelect("devboxes");
+    } else if (input === "b" || input === "2") {
+      onSelect("blueprints");
+    } else if (input === "s" || input === "3") {
+      onSelect("snapshots");
     }
   });
 
   // Use compact layout if terminal height is less than 20 lines (memoized)
-  const useCompactLayout = React.useMemo(() => terminalHeight < 20, [terminalHeight]);
+  const useCompactLayout = React.useMemo(
+    () => terminalHeight < 20,
+    [terminalHeight],
+  );
 
   if (useCompactLayout) {
     return (
@@ -81,7 +84,7 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
             RUNLOOP.ai
           </Text>
           <Text color={colors.textDim} dimColor>
-            {' '}
+            {" "}
             • Cloud development environments • v{VERSION}
           </Text>
         </Box>
@@ -92,22 +95,25 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
             return (
               <Box key={item.key} marginBottom={0}>
                 <Text color={isSelected ? item.color : colors.textDim}>
-                  {isSelected ? figures.pointer : ' '}
+                  {isSelected ? figures.pointer : " "}
                 </Text>
                 <Text> </Text>
                 <Text color={item.color} bold>
                   {item.icon}
                 </Text>
                 <Text> </Text>
-                <Text color={isSelected ? item.color : colors.text} bold={isSelected}>
+                <Text
+                  color={isSelected ? item.color : colors.text}
+                  bold={isSelected}
+                >
                   {item.label}
                 </Text>
                 <Text color={colors.textDim} dimColor>
-                  {' '}
+                  {" "}
                   - {item.description}
                 </Text>
                 <Text color={colors.textDim} dimColor>
-                  {' '}
+                  {" "}
                   [{index + 1}]
                 </Text>
               </Box>
@@ -118,7 +124,8 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
         <Box paddingX={2} marginTop={1}>
           <Text color={colors.textDim} dimColor>
             {figures.arrowUp}
-            {figures.arrowDown} Navigate • [1-3] Quick select • [Enter] Select • [Esc] Quit
+            {figures.arrowDown} Navigate • [1-3] Quick select • [Enter] Select •
+            [Esc] Quit
           </Text>
         </Box>
       </Box>
@@ -127,7 +134,7 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
 
   return (
     <Box flexDirection="column" height="100%">
-      <Breadcrumb items={[{ label: 'Home', active: true }]} />
+      <Breadcrumb items={[{ label: "Home", active: true }]} />
 
       <Box flexShrink={0}>
         <Banner />
@@ -155,7 +162,7 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
               key={item.key}
               paddingX={2}
               paddingY={0}
-              borderStyle={isSelected ? 'round' : 'single'}
+              borderStyle={isSelected ? "round" : "single"}
               borderColor={isSelected ? item.color : colors.border}
               marginTop={index === 0 ? 1 : 0}
               flexShrink={0}
@@ -164,7 +171,10 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
                 {item.icon}
               </Text>
               <Text> </Text>
-              <Text color={isSelected ? item.color : colors.text} bold={isSelected}>
+              <Text
+                color={isSelected ? item.color : colors.text}
+                bold={isSelected}
+              >
                 {item.label}
               </Text>
               <Text color={colors.textDim}> </Text>
@@ -184,7 +194,8 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
         <Box paddingX={1}>
           <Text color={colors.textDim} dimColor>
             {figures.arrowUp}
-            {figures.arrowDown} Navigate • [1-3] Quick select • [Enter] Select • [Esc] Quit
+            {figures.arrowDown} Navigate • [1-3] Quick select • [Enter] Select •
+            [Esc] Quit
           </Text>
         </Box>
       </Box>

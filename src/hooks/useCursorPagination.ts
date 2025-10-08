@@ -1,11 +1,15 @@
-import React from 'react';
+import React from "react";
 
 export interface CursorPaginationConfig<T> {
   /** Page size (items per page) */
   pageSize: number;
 
   /** Fetch function that takes query params and returns a page of results */
-  fetchPage: (params: { limit: number; starting_at?: string; [key: string]: any }) => Promise<{
+  fetchPage: (params: {
+    limit: number;
+    starting_at?: string;
+    [key: string]: any;
+  }) => Promise<{
     items: T[];
     total_count?: number;
     has_more?: boolean;
@@ -60,7 +64,7 @@ export interface CursorPaginationResult<T> {
 }
 
 export function useCursorPagination<T>(
-  config: CursorPaginationConfig<T>
+  config: CursorPaginationConfig<T>,
 ): CursorPaginationResult<T> {
   const [items, setItems] = React.useState<T[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -92,7 +96,10 @@ export function useCursorPagination<T>(
         const pageItems: T[] = [];
 
         // Get starting_at cursor from previous page's last ID
-        const startingAt = currentPage > 0 ? lastIdCache.current.get(currentPage - 1) : undefined;
+        const startingAt =
+          currentPage > 0
+            ? lastIdCache.current.get(currentPage - 1)
+            : undefined;
 
         // Build query params
         const queryParams: any = {
@@ -122,7 +129,10 @@ export function useCursorPagination<T>(
         // Cache the page data and last ID
         if (pageItems.length > 0) {
           pageCache.current.set(currentPage, pageItems);
-          lastIdCache.current.set(currentPage, config.getItemId(pageItems[pageItems.length - 1]));
+          lastIdCache.current.set(
+            currentPage,
+            config.getItemId(pageItems[pageItems.length - 1]),
+          );
         }
 
         // Update items for current page
@@ -136,7 +146,7 @@ export function useCursorPagination<T>(
         }
       }
     },
-    [currentPage, config]
+    [currentPage, config],
   );
 
   // Initial load and page changes
@@ -162,13 +172,13 @@ export function useCursorPagination<T>(
 
   const nextPage = React.useCallback(() => {
     if (!loading && hasMore) {
-      setCurrentPage(prev => prev + 1);
+      setCurrentPage((prev) => prev + 1);
     }
   }, [loading, hasMore]);
 
   const prevPage = React.useCallback(() => {
     if (!loading && currentPage > 0) {
-      setCurrentPage(prev => prev - 1);
+      setCurrentPage((prev) => prev - 1);
     }
   }, [loading, currentPage]);
 
@@ -178,7 +188,7 @@ export function useCursorPagination<T>(
         setCurrentPage(page);
       }
     },
-    [loading]
+    [loading],
   );
 
   const refresh = React.useCallback(() => {

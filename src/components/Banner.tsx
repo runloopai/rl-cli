@@ -1,7 +1,7 @@
-import React from 'react';
-import { Box, Text } from 'ink';
-import BigText from 'ink-big-text';
-import Gradient from 'ink-gradient';
+import React from "react";
+import { Box, Text } from "ink";
+import BigText from "ink-big-text";
+import Gradient from "ink-gradient";
 
 export const Banner: React.FC = React.memo(() => {
   return (

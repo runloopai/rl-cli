@@ -1,11 +1,11 @@
-import React from 'react';
-import { render } from 'ink';
-import { createReadStream } from 'fs';
-import { getClient } from '../../utils/client.js';
-import { Header } from '../../components/Header.js';
-import { SpinnerComponent } from '../../components/Spinner.js';
-import { SuccessMessage } from '../../components/SuccessMessage.js';
-import { ErrorMessage } from '../../components/ErrorMessage.js';
+import React from "react";
+import { render } from "ink";
+import { createReadStream } from "fs";
+import { getClient } from "../../utils/client.js";
+import { Header } from "../../components/Header.js";
+import { SpinnerComponent } from "../../components/Spinner.js";
+import { SuccessMessage } from "../../components/SuccessMessage.js";
+import { ErrorMessage } from "../../components/ErrorMessage.js";
 
 interface UploadOptions {
   path?: string;
@@ -25,7 +25,7 @@ const UploadFileUI: React.FC<{
       try {
         const client = getClient();
         const fileStream = createReadStream(file);
-        const filename = file.split('/').pop() || 'uploaded-file';
+        const filename = file.split("/").pop() || "uploaded-file";
 
         await client.devboxes.uploadFile(id, {
           path: targetPath || filename,
@@ -50,7 +50,7 @@ const UploadFileUI: React.FC<{
       {success && (
         <SuccessMessage
           message="File uploaded successfully!"
-          details={`File: ${file}${targetPath ? `\nTarget: ${targetPath}` : ''}`}
+          details={`File: ${file}${targetPath ? `\nTarget: ${targetPath}` : ""}`}
         />
       )}
       {error && <ErrorMessage message="Failed to upload file" error={error} />}
@@ -58,7 +58,13 @@ const UploadFileUI: React.FC<{
   );
 };
 
-export async function uploadFile(id: string, file: string, options: UploadOptions) {
-  const { waitUntilExit } = render(<UploadFileUI id={id} file={file} targetPath={options.path} />);
+export async function uploadFile(
+  id: string,
+  file: string,
+  options: UploadOptions,
+) {
+  const { waitUntilExit } = render(
+    <UploadFileUI id={id} file={file} targetPath={options.path} />,
+  );
   await waitUntilExit();
 }

@@ -1,7 +1,7 @@
-import React from 'react';
-import { Box, Text } from 'ink';
-import figures from 'figures';
-import { colors } from '../utils/theme.js';
+import React from "react";
+import { Box, Text } from "ink";
+import figures from "figures";
+import { colors } from "../utils/theme.js";
 
 export interface Column<T> {
   /** Column key for identification */
@@ -51,7 +51,7 @@ export function Table<T>({
   }
 
   // Filter visible columns
-  const visibleColumns = columns.filter(col => col.visible !== false);
+  const visibleColumns = columns.filter((col) => col.visible !== false);
 
   return (
     <Box flexDirection="column">
@@ -59,14 +59,14 @@ export function Table<T>({
       {title && (
         <Box paddingX={1} marginBottom={0}>
           <Text color={colors.primary} bold>
-            ╭─ {title} {'─'.repeat(Math.max(0, 10))}╮
+            ╭─ {title} {"─".repeat(Math.max(0, 10))}╮
           </Text>
         </Box>
       )}
 
       <Box
         flexDirection="column"
-        borderStyle={title ? 'single' : 'round'}
+        borderStyle={title ? "single" : "round"}
         borderColor={colors.border}
         paddingX={1}
       >
@@ -81,9 +81,9 @@ export function Table<T>({
           )}
 
           {/* Column headers */}
-          {visibleColumns.map(column => (
+          {visibleColumns.map((column) => (
             <Text key={`header-${column.key}`} bold dimColor>
-              {column.label.slice(0, column.width).padEnd(column.width, ' ')}
+              {column.label.slice(0, column.width).padEnd(column.width, " ")}
             </Text>
           ))}
         </Box>
@@ -99,7 +99,7 @@ export function Table<T>({
               {showSelection && (
                 <>
                   <Text color={isSelected ? colors.primary : colors.textDim}>
-                    {isSelected ? figures.pointer : ' '}
+                    {isSelected ? figures.pointer : " "}
                   </Text>
                   <Text> </Text>
                 </>
@@ -132,7 +132,7 @@ export function createTextColumn<T>(
     bold?: boolean;
     dimColor?: boolean;
     visible?: boolean;
-  }
+  },
 ): Column<T> {
   return {
     key,
@@ -150,11 +150,11 @@ export function createTextColumn<T>(
       let truncated: string;
       if (value.length > width) {
         // Reserve space for ellipsis if truncating
-        truncated = value.slice(0, width - 1) + '…';
+        truncated = value.slice(0, width - 1) + "…";
       } else {
         truncated = value;
       }
-      const padded = truncated.padEnd(width, ' ');
+      const padded = truncated.padEnd(width, " ");
 
       return (
         <Text
@@ -177,11 +177,15 @@ export function createTextColumn<T>(
 export function createComponentColumn<T>(
   key: string,
   label: string,
-  renderComponent: (row: T, index: number, isSelected: boolean) => React.ReactNode,
+  renderComponent: (
+    row: T,
+    index: number,
+    isSelected: boolean,
+  ) => React.ReactNode,
   options?: {
     width?: number;
     visible?: boolean;
-  }
+  },
 ): Column<T> {
   return {
     key,

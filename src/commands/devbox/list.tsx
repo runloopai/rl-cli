@@ -1,26 +1,33 @@
-import React from 'react';
-import { render, Box, Text, useInput, useApp, useStdout } from 'ink';
-import TextInput from 'ink-text-input';
-import figures from 'figures';
-import { getClient } from '../../utils/client.js';
-import { Header } from '../../components/Header.js';
-import { Banner } from '../../components/Banner.js';
-import { SpinnerComponent } from '../../components/Spinner.js';
-import { ErrorMessage } from '../../components/ErrorMessage.js';
-import { SuccessMessage } from '../../components/SuccessMessage.js';
-import { StatusBadge, getStatusDisplay } from '../../components/StatusBadge.js';
-import { MetadataDisplay } from '../../components/MetadataDisplay.js';
-import { Breadcrumb } from '../../components/Breadcrumb.js';
-import { Table, createTextColumn, createComponentColumn } from '../../components/Table.js';
-import { formatTimeAgo } from '../../components/ResourceListView.js';
-import { createExecutor } from '../../utils/CommandExecutor.js';
-import { DevboxDetailPage } from '../../components/DevboxDetailPage.js';
-import { DevboxCreatePage } from '../../components/DevboxCreatePage.js';
-import { DevboxActionsMenu } from '../../components/DevboxActionsMenu.js';
-import { ActionsPopup } from '../../components/ActionsPopup.js';
-import { getDevboxUrl } from '../../utils/url.js';
-import { runSSHSession, type SSHSessionConfig } from '../../utils/sshSession.js';
-import { colors } from '../../utils/theme.js';
+import React from "react";
+import { render, Box, Text, useInput, useApp, useStdout } from "ink";
+import TextInput from "ink-text-input";
+import figures from "figures";
+import { getClient } from "../../utils/client.js";
+import { Header } from "../../components/Header.js";
+import { Banner } from "../../components/Banner.js";
+import { SpinnerComponent } from "../../components/Spinner.js";
+import { ErrorMessage } from "../../components/ErrorMessage.js";
+import { SuccessMessage } from "../../components/SuccessMessage.js";
+import { StatusBadge, getStatusDisplay } from "../../components/StatusBadge.js";
+import { MetadataDisplay } from "../../components/MetadataDisplay.js";
+import { Breadcrumb } from "../../components/Breadcrumb.js";
+import {
+  Table,
+  createTextColumn,
+  createComponentColumn,
+} from "../../components/Table.js";
+import { formatTimeAgo } from "../../components/ResourceListView.js";
+import { createExecutor } from "../../utils/CommandExecutor.js";
+import { DevboxDetailPage } from "../../components/DevboxDetailPage.js";
+import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
+import { DevboxActionsMenu } from "../../components/DevboxActionsMenu.js";
+import { ActionsPopup } from "../../components/ActionsPopup.js";
+import { getDevboxUrl } from "../../utils/url.js";
+import {
+  runSSHSession,
+  type SSHSessionConfig,
+} from "../../utils/sshSession.js";
+import { colors } from "../../utils/theme.js";
 
 interface ListOptions {
   status?: string;
@@ -52,7 +59,7 @@ const ListDevboxesUI: React.FC<{
   const [refreshIcon, setRefreshIcon] = React.useState(0);
   const isNavigating = React.useRef(false);
   const [searchMode, setSearchMode] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState('');
+  const [searchQuery, setSearchQuery] = React.useState("");
   const [totalCount, setTotalCount] = React.useState(0);
   const [hasMore, setHasMore] = React.useState(false);
   const pageCache = React.useRef<Map<number, any[]>>(new Map());
@@ -107,68 +114,80 @@ const ListDevboxesUI: React.FC<{
     nameWidth = Math.max(12, remainingWidth);
   } else {
     const remainingWidth =
-      terminalWidth - fixedWidth - statusIconWidth - idWidth - statusTextWidth - timeWidth - 10;
+      terminalWidth -
+      fixedWidth -
+      statusIconWidth -
+      idWidth -
+      statusTextWidth -
+      timeWidth -
+      10;
     nameWidth = Math.max(8, remainingWidth);
   }
 
   // Define allOperations
   const allOperations = [
-    { key: 'logs', label: 'View Logs', color: colors.info, icon: figures.info, shortcut: 'l' },
     {
-      key: 'exec',
-      label: 'Execute Command',
-      color: colors.success,
-      icon: figures.play,
-      shortcut: 'e',
+      key: "logs",
+      label: "View Logs",
+      color: colors.info,
+      icon: figures.info,
+      shortcut: "l",
     },
     {
-      key: 'upload',
-      label: 'Upload File',
+      key: "exec",
+      label: "Execute Command",
+      color: colors.success,
+      icon: figures.play,
+      shortcut: "e",
+    },
+    {
+      key: "upload",
+      label: "Upload File",
       color: colors.success,
       icon: figures.arrowUp,
-      shortcut: 'u',
+      shortcut: "u",
     },
     {
-      key: 'snapshot',
-      label: 'Create Snapshot',
+      key: "snapshot",
+      label: "Create Snapshot",
       color: colors.warning,
       icon: figures.circleFilled,
-      shortcut: 'n',
+      shortcut: "n",
     },
     {
-      key: 'ssh',
-      label: 'SSH onto the box',
+      key: "ssh",
+      label: "SSH onto the box",
       color: colors.primary,
       icon: figures.arrowRight,
-      shortcut: 's',
+      shortcut: "s",
     },
     {
-      key: 'tunnel',
-      label: 'Open Tunnel',
+      key: "tunnel",
+      label: "Open Tunnel",
       color: colors.secondary,
       icon: figures.pointerSmall,
-      shortcut: 't',
+      shortcut: "t",
     },
     {
-      key: 'suspend',
-      label: 'Suspend Devbox',
+      key: "suspend",
+      label: "Suspend Devbox",
       color: colors.warning,
       icon: figures.squareSmallFilled,
-      shortcut: 'p',
+      shortcut: "p",
     },
     {
-      key: 'resume',
-      label: 'Resume Devbox',
+      key: "resume",
+      label: "Resume Devbox",
       color: colors.success,
       icon: figures.play,
-      shortcut: 'r',
+      shortcut: "r",
     },
     {
-      key: 'delete',
-      label: 'Shutdown Devbox',
+      key: "delete",
+      label: "Shutdown Devbox",
       color: colors.error,
       icon: figures.cross,
-      shortcut: 'd',
+      shortcut: "d",
     },
   ];
 
@@ -176,7 +195,7 @@ const ListDevboxesUI: React.FC<{
   React.useEffect(() => {
     if (focusDevboxId && devboxes.length > 0 && !initialLoading) {
       // Find the devbox in the current page
-      const devboxIndex = devboxes.findIndex(d => d.id === focusDevboxId);
+      const devboxIndex = devboxes.findIndex((d) => d.id === focusDevboxId);
       if (devboxIndex !== -1) {
         setSelectedIndex(devboxIndex);
         setShowDetails(true);
@@ -192,7 +211,10 @@ const ListDevboxesUI: React.FC<{
   }, [searchQuery]);
 
   React.useEffect(() => {
-    const list = async (isInitialLoad: boolean = false, isBackgroundRefresh: boolean = false) => {
+    const list = async (
+      isInitialLoad: boolean = false,
+      isBackgroundRefresh: boolean = false,
+    ) => {
       try {
         // Set navigating flag at the start (but not for background refresh)
         if (!isBackgroundRefresh) {
@@ -205,7 +227,11 @@ const ListDevboxesUI: React.FC<{
         }
 
         // Check if we have cached data for this page
-        if (!isInitialLoad && !isBackgroundRefresh && pageCache.current.has(currentPage)) {
+        if (
+          !isInitialLoad &&
+          !isBackgroundRefresh &&
+          pageCache.current.has(currentPage)
+        ) {
           setDevboxes(pageCache.current.get(currentPage) || []);
           isNavigating.current = false;
           return;
@@ -216,7 +242,9 @@ const ListDevboxesUI: React.FC<{
 
         // Get starting_after cursor from previous page's last ID
         const startingAfter =
-          currentPage > 0 ? lastIdCache.current.get(currentPage - 1) : undefined;
+          currentPage > 0
+            ? lastIdCache.current.get(currentPage - 1)
+            : undefined;
 
         // Build query params
         const queryParams: any = {
@@ -227,14 +255,14 @@ const ListDevboxesUI: React.FC<{
         }
         if (status) {
           queryParams.status = status as
-            | 'provisioning'
-            | 'initializing'
-            | 'running'
-            | 'suspending'
-            | 'suspended'
-            | 'resuming'
-            | 'failure'
-            | 'shutdown';
+            | "provisioning"
+            | "initializing"
+            | "running"
+            | "suspending"
+            | "suspended"
+            | "resuming"
+            | "failure"
+            | "shutdown";
         }
         if (searchQuery) {
           queryParams.search = searchQuery;
@@ -265,12 +293,16 @@ const ListDevboxesUI: React.FC<{
         // Cache the page data and last ID
         if (pageDevboxes.length > 0) {
           pageCache.current.set(currentPage, pageDevboxes);
-          lastIdCache.current.set(currentPage, pageDevboxes[pageDevboxes.length - 1].id);
+          lastIdCache.current.set(
+            currentPage,
+            pageDevboxes[pageDevboxes.length - 1].id,
+          );
         }
 
         // Update devboxes for current page
-        setDevboxes(prev => {
-          const hasChanged = JSON.stringify(prev) !== JSON.stringify(pageDevboxes);
+        setDevboxes((prev) => {
+          const hasChanged =
+            JSON.stringify(prev) !== JSON.stringify(pageDevboxes);
           return hasChanged ? pageDevboxes : prev;
         });
       } catch (err) {
@@ -293,7 +325,12 @@ const ListDevboxesUI: React.FC<{
 
     // Poll every 3 seconds (increased from 2), but only when in list view and not navigating
     const interval = setInterval(() => {
-      if (!showDetails && !showCreate && !showActions && !isNavigating.current) {
+      if (
+        !showDetails &&
+        !showCreate &&
+        !showActions &&
+        !isNavigating.current
+      ) {
         // Don't clear cache on background refresh - just update the current page
         list(false, true);
       }
@@ -309,15 +346,15 @@ const ListDevboxesUI: React.FC<{
     }
 
     const interval = setInterval(() => {
-      setRefreshIcon(prev => (prev + 1) % 10);
+      setRefreshIcon((prev) => (prev + 1) % 10);
     }, 80);
     return () => clearInterval(interval);
   }, [showDetails, showCreate, showActions]);
 
   useInput((input, key) => {
     // Handle Ctrl+C to force exit
-    if (key.ctrl && input === 'c') {
-      process.stdout.write('\x1b[?1049l'); // Exit alternate screen
+    if (key.ctrl && input === "c") {
+      process.stdout.write("\x1b[?1049l"); // Exit alternate screen
       process.exit(130);
     }
 
@@ -327,7 +364,7 @@ const ListDevboxesUI: React.FC<{
     if (searchMode) {
       if (key.escape) {
         setSearchMode(false);
-        setSearchQuery('');
+        setSearchQuery("");
       }
       return;
     }
@@ -349,7 +386,7 @@ const ListDevboxesUI: React.FC<{
 
     // Handle popup navigation
     if (showPopup) {
-      if (key.escape || input === 'q') {
+      if (key.escape || input === "q") {
         console.clear();
         setShowPopup(false);
         setSelectedOperation(0);
@@ -364,7 +401,9 @@ const ListDevboxesUI: React.FC<{
         setShowActions(true);
       } else if (input) {
         // Check for shortcut match
-        const matchedOpIndex = operations.findIndex(op => op.shortcut === input);
+        const matchedOpIndex = operations.findIndex(
+          (op) => op.shortcut === input,
+        );
         if (matchedOpIndex !== -1) {
           setSelectedOperation(matchedOpIndex);
           console.clear();
@@ -381,36 +420,40 @@ const ListDevboxesUI: React.FC<{
     } else if (key.downArrow && selectedIndex < pageDevboxes - 1) {
       setSelectedIndex(selectedIndex + 1);
     } else if (
-      (input === 'n' || key.rightArrow) &&
+      (input === "n" || key.rightArrow) &&
       !isNavigating.current &&
       currentPage < totalPages - 1
     ) {
       setCurrentPage(currentPage + 1);
       setSelectedIndex(0);
-    } else if ((input === 'p' || key.leftArrow) && !isNavigating.current && currentPage > 0) {
+    } else if (
+      (input === "p" || key.leftArrow) &&
+      !isNavigating.current &&
+      currentPage > 0
+    ) {
       setCurrentPage(currentPage - 1);
       setSelectedIndex(0);
     } else if (key.return) {
       console.clear();
       setShowDetails(true);
-    } else if (input === 'a') {
+    } else if (input === "a") {
       console.clear();
       setShowPopup(true);
       setSelectedOperation(0);
-    } else if (input === 'c') {
+    } else if (input === "c") {
       console.clear();
       setShowCreate(true);
-    } else if (input === 'o' && selectedDevbox) {
+    } else if (input === "o" && selectedDevbox) {
       // Open in browser
       const url = getDevboxUrl(selectedDevbox.id);
       const openBrowser = async () => {
-        const { exec } = await import('child_process');
+        const { exec } = await import("child_process");
         const platform = process.platform;
 
         let openCommand: string;
-        if (platform === 'darwin') {
+        if (platform === "darwin") {
           openCommand = `open "${url}"`;
-        } else if (platform === 'win32') {
+        } else if (platform === "win32") {
           openCommand = `start "${url}"`;
         } else {
           openCommand = `xdg-open "${url}"`;
@@ -419,12 +462,12 @@ const ListDevboxesUI: React.FC<{
         exec(openCommand);
       };
       openBrowser();
-    } else if (input === '/') {
+    } else if (input === "/") {
       setSearchMode(true);
     } else if (key.escape) {
       if (searchQuery) {
         // Clear search when Esc is pressed and there's an active search
-        setSearchQuery('');
+        setSearchQuery("");
         setCurrentPage(0);
         setSelectedIndex(0);
       } else {
@@ -459,26 +502,30 @@ const ListDevboxesUI: React.FC<{
 
   // Filter operations based on devbox status
   const operations = selectedDevbox
-    ? allOperations.filter(op => {
+    ? allOperations.filter((op) => {
         const status = selectedDevbox.status;
 
         // When suspended: logs and resume
-        if (status === 'suspended') {
-          return op.key === 'resume' || op.key === 'logs';
+        if (status === "suspended") {
+          return op.key === "resume" || op.key === "logs";
         }
 
         // When not running (shutdown, failure, etc): only logs
-        if (status !== 'running' && status !== 'provisioning' && status !== 'initializing') {
-          return op.key === 'logs';
+        if (
+          status !== "running" &&
+          status !== "provisioning" &&
+          status !== "initializing"
+        ) {
+          return op.key === "logs";
         }
 
         // When running: everything except resume
-        if (status === 'running') {
-          return op.key !== 'resume';
+        if (status === "running") {
+          return op.key !== "resume";
         }
 
         // Default for transitional states (provisioning, initializing)
-        return op.key === 'logs' || op.key === 'delete';
+        return op.key === "logs" || op.key === "delete";
       })
     : allOperations;
 
@@ -489,7 +536,7 @@ const ListDevboxesUI: React.FC<{
         onBack={() => {
           setShowCreate(false);
         }}
-        onCreate={devbox => {
+        onCreate={(devbox) => {
           // Refresh the list after creation
           setShowCreate(false);
           // The list will auto-refresh via the polling effect
@@ -509,7 +556,7 @@ const ListDevboxesUI: React.FC<{
           setSelectedOperation(0);
         }}
         breadcrumbItems={[
-          { label: 'Devboxes' },
+          { label: "Devboxes" },
           { label: selectedDevbox.name || selectedDevbox.id, active: true },
         ]}
         initialOperation={selectedOp?.key}
@@ -534,7 +581,7 @@ const ListDevboxesUI: React.FC<{
   if (showPopup && selectedDevbox) {
     return (
       <>
-        <Breadcrumb items={[{ label: 'Devboxes', active: true }]} />
+        <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
         {!initialLoading && !error && devboxes.length > 0 && (
           <>
             <Table
@@ -544,43 +591,46 @@ const ListDevboxesUI: React.FC<{
               title={`devboxes[${totalCount}]`}
               columns={[
                 {
-                  key: 'statusIcon',
-                  label: '',
+                  key: "statusIcon",
+                  label: "",
                   width: statusIconWidth,
                   render: (devbox: any, index: number, isSelected: boolean) => {
                     const statusDisplay = getStatusDisplay(devbox.status);
 
                     return (
                       <Text
-                        color={isSelected ? 'white' : statusDisplay.color}
+                        color={isSelected ? "white" : statusDisplay.color}
                         bold={true}
                         inverse={isSelected}
                         wrap="truncate"
                       >
-                        {statusDisplay.icon}{' '}
+                        {statusDisplay.icon}{" "}
                       </Text>
                     );
                   },
                 },
-                createTextColumn('id', 'ID', (devbox: any) => devbox.id, {
+                createTextColumn("id", "ID", (devbox: any) => devbox.id, {
                   width: idWidth,
                   color: colors.textDim,
                   dimColor: true,
                   bold: false,
                 }),
                 {
-                  key: 'statusText',
-                  label: 'Status',
+                  key: "statusText",
+                  label: "Status",
                   width: statusTextWidth,
                   render: (devbox: any, index: number, isSelected: boolean) => {
                     const statusDisplay = getStatusDisplay(devbox.status);
 
-                    const truncated = statusDisplay.text.slice(0, statusTextWidth);
-                    const padded = truncated.padEnd(statusTextWidth, ' ');
+                    const truncated = statusDisplay.text.slice(
+                      0,
+                      statusTextWidth,
+                    );
+                    const padded = truncated.padEnd(statusTextWidth, " ");
 
                     return (
                       <Text
-                        color={isSelected ? 'white' : statusDisplay.color}
+                        color={isSelected ? "white" : statusDisplay.color}
                         bold={true}
                         inverse={isSelected}
                         wrap="truncate"
@@ -590,31 +640,37 @@ const ListDevboxesUI: React.FC<{
                     );
                   },
                 },
-                createTextColumn('name', 'Name', (devbox: any) => devbox.name || '', {
-                  width: nameWidth,
-                  dimColor: true,
-                }),
                 createTextColumn(
-                  'capabilities',
-                  'Capabilities',
+                  "name",
+                  "Name",
+                  (devbox: any) => devbox.name || "",
+                  {
+                    width: nameWidth,
+                    dimColor: true,
+                  },
+                ),
+                createTextColumn(
+                  "capabilities",
+                  "Capabilities",
                   (devbox: any) => {
                     const hasCapabilities =
                       devbox.capabilities &&
-                      devbox.capabilities.filter((c: string) => c !== 'unknown').length > 0;
+                      devbox.capabilities.filter((c: string) => c !== "unknown")
+                        .length > 0;
                     return hasCapabilities
                       ? `[${devbox.capabilities
-                          .filter((c: string) => c !== 'unknown')
+                          .filter((c: string) => c !== "unknown")
                           .map((c: string) =>
-                            c === 'computer_usage'
-                              ? 'comp'
-                              : c === 'browser_usage'
-                                ? 'browser'
-                                : c === 'docker_in_docker'
-                                  ? 'docker'
-                                  : c
+                            c === "computer_usage"
+                              ? "comp"
+                              : c === "browser_usage"
+                                ? "browser"
+                                : c === "docker_in_docker"
+                                  ? "docker"
+                                  : c,
                           )
-                          .join(',')}]`
-                      : '';
+                          .join(",")}]`
+                      : "";
                   },
                   {
                     width: capabilitiesWidth,
@@ -622,27 +678,38 @@ const ListDevboxesUI: React.FC<{
                     dimColor: true,
                     bold: false,
                     visible: showCapabilities,
-                  }
+                  },
                 ),
                 createTextColumn(
-                  'tags',
-                  'Tags',
+                  "tags",
+                  "Tags",
                   (devbox: any) =>
-                    devbox.blueprint_id ? '[bp]' : devbox.snapshot_id ? '[snap]' : '',
+                    devbox.blueprint_id
+                      ? "[bp]"
+                      : devbox.snapshot_id
+                        ? "[snap]"
+                        : "",
                   {
                     width: tagWidth,
                     color: colors.warning,
                     dimColor: true,
                     bold: false,
                     visible: showTags,
-                  }
+                  },
                 ),
                 createTextColumn(
-                  'created',
-                  'Created',
+                  "created",
+                  "Created",
                   (devbox: any) =>
-                    devbox.create_time_ms ? formatTimeAgo(devbox.create_time_ms) : '',
-                  { width: timeWidth, color: colors.textDim, dimColor: true, bold: false }
+                    devbox.create_time_ms
+                      ? formatTimeAgo(devbox.create_time_ms)
+                      : "",
+                  {
+                    width: timeWidth,
+                    color: colors.textDim,
+                    dimColor: true,
+                    bold: false,
+                  },
                 ),
               ]}
             />
@@ -650,7 +717,10 @@ const ListDevboxesUI: React.FC<{
         )}
 
         {/* Popup overlaying - use negative margin to pull it up over the table */}
-        <Box marginTop={-Math.min(operations.length + 10, PAGE_SIZE + 5)} justifyContent="center">
+        <Box
+          marginTop={-Math.min(operations.length + 10, PAGE_SIZE + 5)}
+          justifyContent="center"
+        >
           <ActionsPopup
             devbox={selectedDevbox}
             operations={operations}
@@ -666,7 +736,7 @@ const ListDevboxesUI: React.FC<{
   if (initialLoading) {
     return (
       <>
-        <Breadcrumb items={[{ label: 'Devboxes', active: true }]} />
+        <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
         <SpinnerComponent message="Loading..." />
       </>
     );
@@ -675,7 +745,7 @@ const ListDevboxesUI: React.FC<{
   if (error) {
     return (
       <>
-        <Breadcrumb items={[{ label: 'Devboxes', active: true }]} />
+        <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
         <ErrorMessage message="Failed to list devboxes" error={error} />
       </>
     );
@@ -684,12 +754,14 @@ const ListDevboxesUI: React.FC<{
   // List view with data (always show, even if empty)
   return (
     <>
-      <Breadcrumb items={[{ label: 'Devboxes', active: true }]} />
+      <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
       {currentDevboxes && currentDevboxes.length >= 0 && (
         <>
           {searchMode && (
             <Box marginBottom={1}>
-              <Text color={colors.primary}>{figures.pointerSmall} Search: </Text>
+              <Text color={colors.primary}>
+                {figures.pointerSmall} Search:{" "}
+              </Text>
               <TextInput
                 value={searchQuery}
                 onChange={setSearchQuery}
@@ -701,7 +773,7 @@ const ListDevboxesUI: React.FC<{
                 }}
               />
               <Text color={colors.textDim} dimColor>
-                {' '}
+                {" "}
                 [Esc to cancel]
               </Text>
             </Box>
@@ -713,7 +785,7 @@ const ListDevboxesUI: React.FC<{
                 {searchQuery}
               </Text>
               <Text color={colors.textDim} dimColor>
-                {' '}
+                {" "}
                 ({totalCount} results) [/ to edit, Esc to clear]
               </Text>
             </Box>
@@ -726,43 +798,46 @@ const ListDevboxesUI: React.FC<{
             title={`devboxes[${totalCount}]`}
             columns={[
               {
-                key: 'statusIcon',
-                label: '',
+                key: "statusIcon",
+                label: "",
                 width: statusIconWidth,
                 render: (devbox: any, index: number, isSelected: boolean) => {
                   const statusDisplay = getStatusDisplay(devbox.status);
 
                   return (
                     <Text
-                      color={isSelected ? 'white' : statusDisplay.color}
+                      color={isSelected ? "white" : statusDisplay.color}
                       bold={true}
                       inverse={isSelected}
                       wrap="truncate"
                     >
-                      {statusDisplay.icon}{' '}
+                      {statusDisplay.icon}{" "}
                     </Text>
                   );
                 },
               },
-              createTextColumn('id', 'ID', (devbox: any) => devbox.id, {
+              createTextColumn("id", "ID", (devbox: any) => devbox.id, {
                 width: idWidth,
                 color: colors.textDim,
                 dimColor: true,
                 bold: false,
               }),
               {
-                key: 'statusText',
-                label: 'Status',
+                key: "statusText",
+                label: "Status",
                 width: statusTextWidth,
                 render: (devbox: any, index: number, isSelected: boolean) => {
                   const statusDisplay = getStatusDisplay(devbox.status);
 
-                  const truncated = statusDisplay.text.slice(0, statusTextWidth);
-                  const padded = truncated.padEnd(statusTextWidth, ' ');
+                  const truncated = statusDisplay.text.slice(
+                    0,
+                    statusTextWidth,
+                  );
+                  const padded = truncated.padEnd(statusTextWidth, " ");
 
                   return (
                     <Text
-                      color={isSelected ? 'white' : statusDisplay.color}
+                      color={isSelected ? "white" : statusDisplay.color}
                       bold={true}
                       inverse={isSelected}
                       wrap="truncate"
@@ -772,30 +847,36 @@ const ListDevboxesUI: React.FC<{
                   );
                 },
               },
-              createTextColumn('name', 'Name', (devbox: any) => devbox.name || '', {
-                width: nameWidth,
-              }),
               createTextColumn(
-                'capabilities',
-                'Capabilities',
+                "name",
+                "Name",
+                (devbox: any) => devbox.name || "",
+                {
+                  width: nameWidth,
+                },
+              ),
+              createTextColumn(
+                "capabilities",
+                "Capabilities",
                 (devbox: any) => {
                   const hasCapabilities =
                     devbox.capabilities &&
-                    devbox.capabilities.filter((c: string) => c !== 'unknown').length > 0;
+                    devbox.capabilities.filter((c: string) => c !== "unknown")
+                      .length > 0;
                   return hasCapabilities
                     ? `[${devbox.capabilities
-                        .filter((c: string) => c !== 'unknown')
+                        .filter((c: string) => c !== "unknown")
                         .map((c: string) =>
-                          c === 'computer_usage'
-                            ? 'comp'
-                            : c === 'browser_usage'
-                              ? 'browser'
-                              : c === 'docker_in_docker'
-                                ? 'docker'
-                                : c
+                          c === "computer_usage"
+                            ? "comp"
+                            : c === "browser_usage"
+                              ? "browser"
+                              : c === "docker_in_docker"
+                                ? "docker"
+                                : c,
                         )
-                        .join(',')}]`
-                    : '';
+                        .join(",")}]`
+                    : "";
                 },
                 {
                   width: capabilitiesWidth,
@@ -803,27 +884,38 @@ const ListDevboxesUI: React.FC<{
                   dimColor: true,
                   bold: false,
                   visible: showCapabilities,
-                }
+                },
               ),
               createTextColumn(
-                'tags',
-                'Tags',
+                "tags",
+                "Tags",
                 (devbox: any) =>
-                  devbox.blueprint_id ? '[bp]' : devbox.snapshot_id ? '[snap]' : '',
+                  devbox.blueprint_id
+                    ? "[bp]"
+                    : devbox.snapshot_id
+                      ? "[snap]"
+                      : "",
                 {
                   width: tagWidth,
                   color: colors.warning,
                   dimColor: true,
                   bold: false,
                   visible: showTags,
-                }
+                },
               ),
               createTextColumn(
-                'created',
-                'Created',
+                "created",
+                "Created",
                 (devbox: any) =>
-                  devbox.create_time_ms ? formatTimeAgo(devbox.create_time_ms) : '',
-                { width: timeWidth, color: colors.textDim, dimColor: true, bold: false }
+                  devbox.create_time_ms
+                    ? formatTimeAgo(devbox.create_time_ms)
+                    : "",
+                {
+                  width: timeWidth,
+                  color: colors.textDim,
+                  dimColor: true,
+                  bold: false,
+                },
               ),
             ]}
           />
@@ -834,14 +926,14 @@ const ListDevboxesUI: React.FC<{
               {figures.hamburger} {totalCount}
             </Text>
             <Text color={colors.textDim} dimColor>
-              {' '}
+              {" "}
               total
             </Text>
             {totalPages > 1 && (
               <>
                 <Text color={colors.textDim} dimColor>
-                  {' '}
-                  •{' '}
+                  {" "}
+                  •{" "}
                 </Text>
                 <Text color={colors.textDim} dimColor>
                   Page {currentPage + 1} of {totalPages}
@@ -849,22 +941,26 @@ const ListDevboxesUI: React.FC<{
               </>
             )}
             <Text color={colors.textDim} dimColor>
-              {' '}
-              •{' '}
+              {" "}
+              •{" "}
             </Text>
             <Text color={colors.textDim} dimColor>
               Showing {startIndex + 1}-{endIndex} of {totalCount}
             </Text>
             {hasMore && (
               <Text color={colors.textDim} dimColor>
-                {' '}
+                {" "}
                 (more available)
               </Text>
             )}
             <Text> </Text>
             {refreshing ? (
               <Text color={colors.primary}>
-                {['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'][refreshIcon % 10]}
+                {
+                  ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"][
+                    refreshIcon % 10
+                  ]
+                }
               </Text>
             ) : (
               <Text color={colors.success}>{figures.circleFilled}</Text>
@@ -879,14 +975,15 @@ const ListDevboxesUI: React.FC<{
             </Text>
             {totalPages > 1 && (
               <Text color={colors.textDim} dimColor>
-                {' '}
+                {" "}
                 • {figures.arrowLeft}
                 {figures.arrowRight} Page
               </Text>
             )}
             <Text color={colors.textDim} dimColor>
-              {' '}
-              • [Enter] Details • [a] Actions • [c] Create • [/] Search • [o] Browser • [Esc] Back
+              {" "}
+              • [Enter] Details • [a] Actions • [c] Create • [/] Search • [o]
+              Browser • [Esc] Back
             </Text>
           </Box>
         </>
@@ -898,7 +995,10 @@ const ListDevboxesUI: React.FC<{
 // Export the UI component for use in the main menu
 export { ListDevboxesUI };
 
-export async function listDevboxes(options: ListOptions, focusDevboxId?: string) {
+export async function listDevboxes(
+  options: ListOptions,
+  focusDevboxId?: string,
+) {
   const executor = createExecutor(options);
 
   let sshSessionConfig: SSHSessionConfig | null = null;
@@ -907,7 +1007,9 @@ export async function listDevboxes(options: ListOptions, focusDevboxId?: string)
     async () => {
       const client = executor.getClient();
       return executor.fetchFromIterator(client.devboxes.list(), {
-        filter: options.status ? (devbox: any) => devbox.status === options.status : undefined,
+        filter: options.status
+          ? (devbox: any) => devbox.status === options.status
+          : undefined,
         limit: DEFAULT_PAGE_SIZE,
       });
     },
@@ -915,12 +1017,12 @@ export async function listDevboxes(options: ListOptions, focusDevboxId?: string)
       <ListDevboxesUI
         status={options.status}
         focusDevboxId={focusDevboxId}
-        onSSHRequest={config => {
+        onSSHRequest={(config) => {
           sshSessionConfig = config;
         }}
       />
     ),
-    DEFAULT_PAGE_SIZE
+    DEFAULT_PAGE_SIZE,
   );
 
   // If SSH was requested, handle it now after Ink has exited
@@ -930,7 +1032,7 @@ export async function listDevboxes(options: ListOptions, focusDevboxId?: string)
     if (result.shouldRestart) {
       console.clear();
       console.log(`\nSSH session ended. Returning to CLI...\n`);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Restart the list view with the devbox ID to focus on
       await listDevboxes(options, result.returnToDevboxId);

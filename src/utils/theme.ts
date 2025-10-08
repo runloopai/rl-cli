@@ -5,24 +5,24 @@
 
 export const colors = {
   // Primary brand colors
-  primary: 'cyan',
-  secondary: 'magenta',
+  primary: "cyan",
+  secondary: "magenta",
 
   // Status colors
-  success: 'green',
-  warning: 'yellow',
-  error: 'red',
-  info: 'blue',
+  success: "green",
+  warning: "yellow",
+  error: "red",
+  info: "blue",
 
   // UI colors
-  text: 'white',
-  textDim: 'gray',
-  border: 'gray',
+  text: "white",
+  textDim: "gray",
+  border: "gray",
 
   // Accent colors for menu items and highlights
-  accent1: 'cyan',
-  accent2: 'magenta',
-  accent3: 'green',
+  accent1: "cyan",
+  accent2: "magenta",
+  accent3: "green",
 } as const;
 
 export type ColorName = keyof typeof colors;

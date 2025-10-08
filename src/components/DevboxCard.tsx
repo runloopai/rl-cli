@@ -1,7 +1,7 @@
-import React from 'react';
-import { Box, Text } from 'ink';
-import figures from 'figures';
-import { colors } from '../utils/theme.js';
+import React from "react";
+import { Box, Text } from "ink";
+import figures from "figures";
+import { colors } from "../utils/theme.js";
 
 interface DevboxCardProps {
   id: string;
@@ -11,18 +11,23 @@ interface DevboxCardProps {
   index?: number;
 }
 
-export const DevboxCard: React.FC<DevboxCardProps> = ({ id, name, status, createdAt }) => {
+export const DevboxCard: React.FC<DevboxCardProps> = ({
+  id,
+  name,
+  status,
+  createdAt,
+}) => {
   const getStatusDisplay = (status: string) => {
     switch (status) {
-      case 'running':
+      case "running":
         return { icon: figures.tick, color: colors.success };
-      case 'provisioning':
-      case 'initializing':
+      case "provisioning":
+      case "initializing":
         return { icon: figures.ellipsis, color: colors.warning };
-      case 'stopped':
-      case 'suspended':
+      case "stopped":
+      case "suspended":
         return { icon: figures.circle, color: colors.textDim };
-      case 'failed':
+      case "failed":
         return { icon: figures.cross, color: colors.error };
       default:
         return { icon: figures.circle, color: colors.textDim };

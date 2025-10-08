@@ -1,16 +1,16 @@
-import React from 'react';
-import { render, Box, Text, useInput } from 'ink';
-import TextInput from 'ink-text-input';
-import figures from 'figures';
-import { setApiKey } from '../utils/config.js';
-import { Header } from '../components/Header.js';
-import { Banner } from '../components/Banner.js';
-import { SuccessMessage } from '../components/SuccessMessage.js';
-import { getSettingsUrl } from '../utils/url.js';
-import { colors } from '../utils/theme.js';
+import React from "react";
+import { render, Box, Text, useInput } from "ink";
+import TextInput from "ink-text-input";
+import figures from "figures";
+import { setApiKey } from "../utils/config.js";
+import { Header } from "../components/Header.js";
+import { Banner } from "../components/Banner.js";
+import { SuccessMessage } from "../components/SuccessMessage.js";
+import { getSettingsUrl } from "../utils/url.js";
+import { colors } from "../utils/theme.js";
 
 const AuthUI: React.FC = () => {
-  const [apiKey, setApiKeyInput] = React.useState('');
+  const [apiKey, setApiKeyInput] = React.useState("");
   const [saved, setSaved] = React.useState(false);
 
   useInput((input, key) => {
@@ -26,7 +26,10 @@ const AuthUI: React.FC = () => {
       <>
         <Banner />
         <Header title="Authentication" />
-        <SuccessMessage message="API key saved!" details="Try: rln devbox list" />
+        <SuccessMessage
+          message="API key saved!"
+          details="Try: rln devbox list"
+        />
       </>
     );
   }
@@ -41,7 +44,12 @@ const AuthUI: React.FC = () => {
       </Box>
       <Box>
         <Text color={colors.primary}>API Key: </Text>
-        <TextInput value={apiKey} onChange={setApiKeyInput} placeholder="ak_..." mask="*" />
+        <TextInput
+          value={apiKey}
+          onChange={setApiKeyInput}
+          placeholder="ak_..."
+          mask="*"
+        />
       </Box>
       <Box marginTop={1}>
         <Text color={colors.textDim} dimColor>

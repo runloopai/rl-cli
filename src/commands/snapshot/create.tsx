@@ -1,14 +1,14 @@
-import React from 'react';
-import { render, Box, Text } from 'ink';
-import Gradient from 'ink-gradient';
-import figures from 'figures';
-import { getClient } from '../../utils/client.js';
-import { Header } from '../../components/Header.js';
-import { Banner } from '../../components/Banner.js';
-import { SpinnerComponent } from '../../components/Spinner.js';
-import { SuccessMessage } from '../../components/SuccessMessage.js';
-import { ErrorMessage } from '../../components/ErrorMessage.js';
-import { colors } from '../../utils/theme.js';
+import React from "react";
+import { render, Box, Text } from "ink";
+import Gradient from "ink-gradient";
+import figures from "figures";
+import { getClient } from "../../utils/client.js";
+import { Header } from "../../components/Header.js";
+import { Banner } from "../../components/Banner.js";
+import { SpinnerComponent } from "../../components/Spinner.js";
+import { SuccessMessage } from "../../components/SuccessMessage.js";
+import { ErrorMessage } from "../../components/ErrorMessage.js";
+import { colors } from "../../utils/theme.js";
 
 interface CreateOptions {
   name?: string;
@@ -43,7 +43,10 @@ const CreateSnapshotUI: React.FC<{
   return (
     <>
       <Banner />
-      <Header title="Create Snapshot" subtitle="Taking a snapshot of your devbox..." />
+      <Header
+        title="Create Snapshot"
+        subtitle="Taking a snapshot of your devbox..."
+      />
 
       {loading && (
         <>
@@ -63,7 +66,9 @@ const CreateSnapshotUI: React.FC<{
             </Box>
             <Box flexDirection="column" gap={1}>
               <Box>
-                <Text color={colors.textDim}>{figures.pointer} Devbox ID: </Text>
+                <Text color={colors.textDim}>
+                  {figures.pointer} Devbox ID:{" "}
+                </Text>
                 <Text color={colors.text}>{devboxId}</Text>
               </Box>
               {name && (
@@ -81,7 +86,7 @@ const CreateSnapshotUI: React.FC<{
         <>
           <SuccessMessage
             message="Snapshot created successfully!"
-            details={`ID: ${result.id}\nName: ${result.name || '(unnamed)'}\nStatus: ${result.status}`}
+            details={`ID: ${result.id}\nName: ${result.name || "(unnamed)"}\nStatus: ${result.status}`}
           />
           <Box
             borderStyle="double"
@@ -98,25 +103,35 @@ const CreateSnapshotUI: React.FC<{
             </Box>
             <Box flexDirection="column" gap={1} marginLeft={2}>
               <Box>
-                <Text color={colors.textDim}>{figures.tick} View snapshots: </Text>
+                <Text color={colors.textDim}>
+                  {figures.tick} View snapshots:{" "}
+                </Text>
                 <Text color={colors.primary}>rln snapshot list</Text>
               </Box>
               <Box>
-                <Text color={colors.textDim}>{figures.tick} Create devbox from snapshot: </Text>
-                <Text color={colors.primary}>rln devbox create -t {result.id}</Text>
+                <Text color={colors.textDim}>
+                  {figures.tick} Create devbox from snapshot:{" "}
+                </Text>
+                <Text color={colors.primary}>
+                  rln devbox create -t {result.id}
+                </Text>
               </Box>
             </Box>
           </Box>
         </>
       )}
 
-      {error && <ErrorMessage message="Failed to create snapshot" error={error} />}
+      {error && (
+        <ErrorMessage message="Failed to create snapshot" error={error} />
+      )}
     </>
   );
 };
 
 export async function createSnapshot(devboxId: string, options: CreateOptions) {
   console.clear();
-  const { waitUntilExit } = render(<CreateSnapshotUI devboxId={devboxId} name={options.name} />);
+  const { waitUntilExit } = render(
+    <CreateSnapshotUI devboxId={devboxId} name={options.name} />,
+  );
   await waitUntilExit();
 }

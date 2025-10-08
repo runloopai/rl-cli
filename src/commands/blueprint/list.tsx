@@ -1,27 +1,34 @@
-import React from 'react';
-import { render, Box, Text, useInput, useStdout, useApp } from 'ink';
-import TextInput from 'ink-text-input';
-import figures from 'figures';
-import { getClient } from '../../utils/client.js';
-import { Header } from '../../components/Header.js';
-import { SpinnerComponent } from '../../components/Spinner.js';
-import { ErrorMessage } from '../../components/ErrorMessage.js';
-import { SuccessMessage } from '../../components/SuccessMessage.js';
-import { StatusBadge } from '../../components/StatusBadge.js';
-import { Breadcrumb } from '../../components/Breadcrumb.js';
-import { MetadataDisplay } from '../../components/MetadataDisplay.js';
-import { Table, createTextColumn, createComponentColumn } from '../../components/Table.js';
-import { OperationsMenu, Operation } from '../../components/OperationsMenu.js';
-import { ResourceListView, formatTimeAgo } from '../../components/ResourceListView.js';
-import { createExecutor } from '../../utils/CommandExecutor.js';
-import { getBlueprintUrl } from '../../utils/url.js';
-import { colors } from '../../utils/theme.js';
-import { getStatusDisplay } from '../../components/StatusBadge.js';
+import React from "react";
+import { render, Box, Text, useInput, useStdout, useApp } from "ink";
+import TextInput from "ink-text-input";
+import figures from "figures";
+import { getClient } from "../../utils/client.js";
+import { Header } from "../../components/Header.js";
+import { SpinnerComponent } from "../../components/Spinner.js";
+import { ErrorMessage } from "../../components/ErrorMessage.js";
+import { SuccessMessage } from "../../components/SuccessMessage.js";
+import { StatusBadge } from "../../components/StatusBadge.js";
+import { Breadcrumb } from "../../components/Breadcrumb.js";
+import { MetadataDisplay } from "../../components/MetadataDisplay.js";
+import {
+  Table,
+  createTextColumn,
+  createComponentColumn,
+} from "../../components/Table.js";
+import { OperationsMenu, Operation } from "../../components/OperationsMenu.js";
+import {
+  ResourceListView,
+  formatTimeAgo,
+} from "../../components/ResourceListView.js";
+import { createExecutor } from "../../utils/CommandExecutor.js";
+import { getBlueprintUrl } from "../../utils/url.js";
+import { colors } from "../../utils/theme.js";
+import { getStatusDisplay } from "../../components/StatusBadge.js";
 
 const PAGE_SIZE = 10;
 const MAX_FETCH = 100;
 
-type OperationType = 'create_devbox' | 'delete' | null;
+type OperationType = "create_devbox" | "delete" | null;
 
 const ListBlueprintsUI: React.FC<{
   onBack?: () => void;
@@ -30,12 +37,19 @@ const ListBlueprintsUI: React.FC<{
   const { stdout } = useStdout();
   const { exit: inkExit } = useApp();
   const [showDetails, setShowDetails] = React.useState(false);
-  const [selectedBlueprint, setSelectedBlueprint] = React.useState<any | null>(null);
+  const [selectedBlueprint, setSelectedBlueprint] = React.useState<any | null>(
+    null,
+  );
   const [selectedOperation, setSelectedOperation] = React.useState(0);
-  const [executingOperation, setExecutingOperation] = React.useState<OperationType>(null);
-  const [operationInput, setOperationInput] = React.useState('');
-  const [operationResult, setOperationResult] = React.useState<string | null>(null);
-  const [operationError, setOperationError] = React.useState<Error | null>(null);
+  const [executingOperation, setExecutingOperation] =
+    React.useState<OperationType>(null);
+  const [operationInput, setOperationInput] = React.useState("");
+  const [operationResult, setOperationResult] = React.useState<string | null>(
+    null,
+  );
+  const [operationError, setOperationError] = React.useState<Error | null>(
+    null,
+  );
   const [loading, setLoading] = React.useState(false);
 
   // Calculate responsive column widths
@@ -52,17 +66,17 @@ const ListBlueprintsUI: React.FC<{
 
   const allOperations: Operation[] = [
     {
-      key: 'create_devbox',
-      label: 'Create Devbox from Blueprint',
+      key: "create_devbox",
+      label: "Create Devbox from Blueprint",
       color: colors.success,
       icon: figures.play,
       needsInput: true,
-      inputPrompt: 'Devbox name (optional):',
-      inputPlaceholder: 'my-devbox',
+      inputPrompt: "Devbox name (optional):",
+      inputPlaceholder: "my-devbox",
     },
     {
-      key: 'delete',
-      label: 'Delete Blueprint',
+      key: "delete",
+      label: "Delete Blueprint",
       color: colors.error,
       icon: figures.cross,
     },
@@ -79,7 +93,7 @@ const ListBlueprintsUI: React.FC<{
 
   // Auto-execute operations that don't need input
   React.useEffect(() => {
-    if (executingOperation === 'delete' && !loading && selectedBlueprint) {
+    if (executingOperation === "delete" && !loading && selectedBlueprint) {
       executeOperation();
     }
   }, [executingOperation, loading, selectedBlueprint]);
@@ -93,7 +107,7 @@ const ListBlueprintsUI: React.FC<{
     try {
       setLoading(true);
       switch (executingOperation) {
-        case 'create_devbox':
+        case "create_devbox":
           const devbox = await client.devboxes.create({
             blueprint_id: blueprint.id,
             name: operationInput || undefined,
@@ -101,13 +115,13 @@ const ListBlueprintsUI: React.FC<{
           setOperationResult(
             `Devbox created successfully!\n\n` +
               `ID: ${devbox.id}\n` +
-              `Name: ${devbox.name || '(none)'}\n` +
+              `Name: ${devbox.name || "(none)"}\n` +
               `Status: ${devbox.status}\n\n` +
-              `Use 'rln devbox list' to view all devboxes.`
+              `Use 'rln devbox list' to view all devboxes.`,
           );
           break;
 
-        case 'delete':
+        case "delete":
           await client.blueprints.delete(blueprint.id);
           setOperationResult(`Blueprint ${blueprint.id} deleted successfully`);
           break;
@@ -122,14 +136,16 @@ const ListBlueprintsUI: React.FC<{
   useInput((input, key) => {
     // Handle operation input mode
     if (executingOperation && !operationResult && !operationError) {
-      const currentOp = allOperations.find(op => op.key === executingOperation);
+      const currentOp = allOperations.find(
+        (op) => op.key === executingOperation,
+      );
       if (currentOp?.needsInput) {
         if (key.return) {
           executeOperation();
-        } else if (input === 'q' || key.escape) {
+        } else if (input === "q" || key.escape) {
           console.clear();
           setExecutingOperation(null);
-          setOperationInput('');
+          setOperationInput("");
         }
       }
       return;
@@ -137,33 +153,33 @@ const ListBlueprintsUI: React.FC<{
 
     // Handle operation result display
     if (operationResult || operationError) {
-      if (input === 'q' || key.escape || key.return) {
+      if (input === "q" || key.escape || key.return) {
         console.clear();
         setOperationResult(null);
         setOperationError(null);
         setExecutingOperation(null);
-        setOperationInput('');
+        setOperationInput("");
       }
       return;
     }
 
     // Handle details view
     if (showDetails) {
-      if (input === 'q' || key.escape) {
+      if (input === "q" || key.escape) {
         console.clear();
         setShowDetails(false);
         setSelectedOperation(0);
-      } else if (input === 'o' && selectedBlueprint) {
+      } else if (input === "o" && selectedBlueprint) {
         // Open in browser
         const url = getBlueprintUrl(selectedBlueprint.id);
         const openBrowser = async () => {
-          const { exec } = await import('child_process');
+          const { exec } = await import("child_process");
           const platform = process.platform;
 
           let openCommand: string;
-          if (platform === 'darwin') {
+          if (platform === "darwin") {
             openCommand = `open "${url}"`;
-          } else if (platform === 'win32') {
+          } else if (platform === "win32") {
             openCommand = `start "${url}"`;
           } else {
             openCommand = `xdg-open "${url}"`;
@@ -187,12 +203,12 @@ const ListBlueprintsUI: React.FC<{
 
   // Filter operations based on blueprint status
   const operations = selectedBlueprint
-    ? allOperations.filter(op => {
+    ? allOperations.filter((op) => {
         const status = selectedBlueprint.status;
 
         // Only allow creating devbox if build is complete
-        if (op.key === 'create_devbox') {
-          return status === 'build_complete';
+        if (op.key === "create_devbox") {
+          return status === "build_complete";
         }
 
         // Allow delete for any status
@@ -202,21 +218,26 @@ const ListBlueprintsUI: React.FC<{
 
   // Operation result display
   if (operationResult || operationError) {
-    const operationLabel = operations.find(o => o.key === executingOperation)?.label || 'Operation';
+    const operationLabel =
+      operations.find((o) => o.key === executingOperation)?.label ||
+      "Operation";
     return (
       <>
         <Breadcrumb
           items={[
-            { label: 'Blueprints' },
+            { label: "Blueprints" },
             {
-              label: selectedBlueprint?.name || selectedBlueprint?.id || 'Blueprint',
+              label:
+                selectedBlueprint?.name || selectedBlueprint?.id || "Blueprint",
             },
             { label: operationLabel, active: true },
           ]}
         />
         <Header title="Operation Result" />
         {operationResult && <SuccessMessage message={operationResult} />}
-        {operationError && <ErrorMessage message="Operation failed" error={operationError} />}
+        {operationError && (
+          <ErrorMessage message="Operation failed" error={operationError} />
+        )}
         <Box marginTop={1}>
           <Text color={colors.textDim} dimColor>
             Press [Enter], [q], or [esc] to continue
@@ -228,16 +249,16 @@ const ListBlueprintsUI: React.FC<{
 
   // Operation input mode
   if (executingOperation && selectedBlueprint) {
-    const currentOp = allOperations.find(op => op.key === executingOperation);
+    const currentOp = allOperations.find((op) => op.key === executingOperation);
     const needsInput = currentOp?.needsInput;
-    const operationLabel = currentOp?.label || 'Operation';
+    const operationLabel = currentOp?.label || "Operation";
 
     if (loading) {
       return (
         <>
           <Breadcrumb
             items={[
-              { label: 'Blueprints' },
+              { label: "Blueprints" },
               { label: selectedBlueprint.name || selectedBlueprint.id },
               { label: operationLabel, active: true },
             ]}
@@ -250,19 +271,21 @@ const ListBlueprintsUI: React.FC<{
 
     if (!needsInput) {
       const messages: Record<string, string> = {
-        delete: 'Deleting blueprint...',
+        delete: "Deleting blueprint...",
       };
       return (
         <>
           <Breadcrumb
             items={[
-              { label: 'Blueprints' },
+              { label: "Blueprints" },
               { label: selectedBlueprint.name || selectedBlueprint.id },
               { label: operationLabel, active: true },
             ]}
           />
           <Header title="Executing Operation" />
-          <SpinnerComponent message={messages[executingOperation as string] || 'Please wait...'} />
+          <SpinnerComponent
+            message={messages[executingOperation as string] || "Please wait..."}
+          />
         </>
       );
     }
@@ -271,7 +294,7 @@ const ListBlueprintsUI: React.FC<{
       <>
         <Breadcrumb
           items={[
-            { label: 'Blueprints' },
+            { label: "Blueprints" },
             { label: selectedBlueprint.name || selectedBlueprint.id },
             { label: operationLabel, active: true },
           ]}
@@ -290,7 +313,7 @@ const ListBlueprintsUI: React.FC<{
             <TextInput
               value={operationInput}
               onChange={setOperationInput}
-              placeholder={currentOp.inputPlaceholder || ''}
+              placeholder={currentOp.inputPlaceholder || ""}
             />
           </Box>
           <Box marginTop={1}>
@@ -311,7 +334,7 @@ const ListBlueprintsUI: React.FC<{
       <>
         <Breadcrumb
           items={[
-            { label: 'Blueprints' },
+            { label: "Blueprints" },
             {
               label: selectedBlueprint.name || selectedBlueprint.id,
               active: true,
@@ -335,7 +358,7 @@ const ListBlueprintsUI: React.FC<{
             <Text> </Text>
             <StatusBadge status={selectedBlueprint.status} />
             <Text color={colors.textDim} dimColor>
-              {' '}
+              {" "}
               • {selectedBlueprint.id}
             </Text>
           </Box>
@@ -343,14 +366,14 @@ const ListBlueprintsUI: React.FC<{
             <Text color={colors.textDim} dimColor>
               {selectedBlueprint.create_time_ms
                 ? new Date(selectedBlueprint.create_time_ms).toLocaleString()
-                : ''}
+                : ""}
             </Text>
             <Text color={colors.textDim} dimColor>
-              {' '}
+              {" "}
               (
               {selectedBlueprint.create_time_ms
                 ? formatTimeAgo(selectedBlueprint.create_time_ms)
-                : ''}
+                : ""}
               )
             </Text>
           </Box>
@@ -378,26 +401,44 @@ const ListBlueprintsUI: React.FC<{
             {ds.base_image && <Text dimColor>Base Image: {ds.base_image}</Text>}
             {ds.entrypoint && <Text dimColor>Entrypoint: {ds.entrypoint}</Text>}
             {ds.system_packages && ds.system_packages.length > 0 && (
-              <Text dimColor>System Packages: {ds.system_packages.join(', ')}</Text>
+              <Text dimColor>
+                System Packages: {ds.system_packages.join(", ")}
+              </Text>
             )}
             {ds.python_packages && ds.python_packages.length > 0 && (
-              <Text dimColor>Python Packages: {ds.python_packages.join(', ')}</Text>
+              <Text dimColor>
+                Python Packages: {ds.python_packages.join(", ")}
+              </Text>
             )}
           </Box>
         )}
 
         {/* Metadata */}
-        {selectedBlueprint.metadata && Object.keys(selectedBlueprint.metadata).length > 0 && (
-          <Box borderStyle="round" borderColor={colors.success} paddingX={1} paddingY={0}>
-            <MetadataDisplay metadata={selectedBlueprint.metadata} showBorder={false} />
-          </Box>
-        )}
+        {selectedBlueprint.metadata &&
+          Object.keys(selectedBlueprint.metadata).length > 0 && (
+            <Box
+              borderStyle="round"
+              borderColor={colors.success}
+              paddingX={1}
+              paddingY={0}
+            >
+              <MetadataDisplay
+                metadata={selectedBlueprint.metadata}
+                showBorder={false}
+              />
+            </Box>
+          )}
 
         {/* Failure reason */}
         {selectedBlueprint.build_error && (
-          <Box borderStyle="round" borderColor={colors.error} paddingX={1} paddingY={0}>
+          <Box
+            borderStyle="round"
+            borderColor={colors.error}
+            paddingX={1}
+            paddingY={0}
+          >
             <Text color={colors.error} bold>
-              {figures.cross}{' '}
+              {figures.cross}{" "}
             </Text>
             <Text color={colors.error} dimColor>
               {selectedBlueprint.build_error}
@@ -409,14 +450,17 @@ const ListBlueprintsUI: React.FC<{
         <OperationsMenu
           operations={operations}
           selectedIndex={selectedOperation}
-          onNavigate={direction => {
-            if (direction === 'up' && selectedOperation > 0) {
+          onNavigate={(direction) => {
+            if (direction === "up" && selectedOperation > 0) {
               setSelectedOperation(selectedOperation - 1);
-            } else if (direction === 'down' && selectedOperation < operations.length - 1) {
+            } else if (
+              direction === "down" &&
+              selectedOperation < operations.length - 1
+            ) {
               setSelectedOperation(selectedOperation + 1);
             }
           }}
-          onSelect={op => {
+          onSelect={(op) => {
             console.clear();
             setExecutingOperation(op.key as OperationType);
           }}
@@ -425,7 +469,9 @@ const ListBlueprintsUI: React.FC<{
             setShowDetails(false);
             setSelectedOperation(0);
           }}
-          additionalActions={[{ key: 'o', label: 'Browser', handler: () => {} }]}
+          additionalActions={[
+            { key: "o", label: "Browser", handler: () => {} },
+          ]}
         />
       </>
     );
@@ -435,8 +481,8 @@ const ListBlueprintsUI: React.FC<{
   return (
     <ResourceListView
       config={{
-        resourceName: 'Blueprint',
-        resourceNamePlural: 'Blueprints',
+        resourceName: "Blueprint",
+        resourceNamePlural: "Blueprints",
         fetchResources: async () => {
           const client = getClient();
           const allBlueprints: any[] = [];
@@ -450,35 +496,35 @@ const ListBlueprintsUI: React.FC<{
         },
         columns: [
           {
-            key: 'statusIcon',
-            label: '',
+            key: "statusIcon",
+            label: "",
             width: statusIconWidth,
             render: (blueprint: any, index: number, isSelected: boolean) => {
               const statusDisplay = getStatusDisplay(blueprint.status);
               return (
                 <Text
-                  color={isSelected ? 'white' : statusDisplay.color}
+                  color={isSelected ? "white" : statusDisplay.color}
                   bold={true}
                   inverse={isSelected}
                   wrap="truncate"
                 >
-                  {statusDisplay.icon}{' '}
+                  {statusDisplay.icon}{" "}
                 </Text>
               );
             },
           },
           {
-            key: 'id',
-            label: 'ID',
+            key: "id",
+            label: "ID",
             width: idWidth + 1,
             render: (blueprint: any, index: number, isSelected: boolean) => {
               const value = blueprint.id;
               const width = idWidth + 1;
               const truncated = value.slice(0, width - 1);
-              const padded = truncated.padEnd(width, ' ');
+              const padded = truncated.padEnd(width, " ");
               return (
                 <Text
-                  color={isSelected ? 'white' : colors.textDim}
+                  color={isSelected ? "white" : colors.textDim}
                   bold={false}
                   dimColor={!isSelected}
                   inverse={isSelected}
@@ -490,16 +536,16 @@ const ListBlueprintsUI: React.FC<{
             },
           },
           {
-            key: 'statusText',
-            label: 'Status',
+            key: "statusText",
+            label: "Status",
             width: statusTextWidth,
             render: (blueprint: any, index: number, isSelected: boolean) => {
               const statusDisplay = getStatusDisplay(blueprint.status);
               const truncated = statusDisplay.text.slice(0, statusTextWidth);
-              const padded = truncated.padEnd(statusTextWidth, ' ');
+              const padded = truncated.padEnd(statusTextWidth, " ");
               return (
                 <Text
-                  color={isSelected ? 'white' : statusDisplay.color}
+                  color={isSelected ? "white" : statusDisplay.color}
                   bold={true}
                   inverse={isSelected}
                   wrap="truncate"
@@ -509,39 +555,51 @@ const ListBlueprintsUI: React.FC<{
               );
             },
           },
-          createTextColumn('name', 'Name', (blueprint: any) => blueprint.name || '(unnamed)', {
-            width: nameWidth,
-          }),
           createTextColumn(
-            'description',
-            'Description',
-            (blueprint: any) => blueprint.dockerfile_setup?.description || '',
+            "name",
+            "Name",
+            (blueprint: any) => blueprint.name || "(unnamed)",
+            {
+              width: nameWidth,
+            },
+          ),
+          createTextColumn(
+            "description",
+            "Description",
+            (blueprint: any) => blueprint.dockerfile_setup?.description || "",
             {
               width: descriptionWidth,
               color: colors.textDim,
               dimColor: true,
               bold: false,
               visible: showDescription,
-            }
+            },
           ),
           createTextColumn(
-            'created',
-            'Created',
+            "created",
+            "Created",
             (blueprint: any) =>
-              blueprint.create_time_ms ? formatTimeAgo(blueprint.create_time_ms) : '',
-            { width: timeWidth, color: colors.textDim, dimColor: true, bold: false }
+              blueprint.create_time_ms
+                ? formatTimeAgo(blueprint.create_time_ms)
+                : "",
+            {
+              width: timeWidth,
+              color: colors.textDim,
+              dimColor: true,
+              bold: false,
+            },
           ),
         ],
         keyExtractor: (blueprint: any) => blueprint.id,
         getStatus: (blueprint: any) => blueprint.status,
         statusConfig: {
-          success: ['build_complete'],
-          warning: ['provisioning', 'building'],
-          error: ['build_failed'],
+          success: ["build_complete"],
+          warning: ["provisioning", "building"],
+          error: ["build_failed"],
         },
         emptyState: {
-          message: 'No blueprints found. Try:',
-          command: 'rln blueprint create',
+          message: "No blueprints found. Try:",
+          command: "rln blueprint create",
         },
         pageSize: PAGE_SIZE,
         maxFetch: MAX_FETCH,
@@ -549,17 +607,17 @@ const ListBlueprintsUI: React.FC<{
         onExit: onExit,
         additionalShortcuts: [
           {
-            key: 'o',
-            label: 'Browser',
+            key: "o",
+            label: "Browser",
             handler: (blueprint: any) => {
               const url = getBlueprintUrl(blueprint.id);
               const openBrowser = async () => {
-                const { exec } = await import('child_process');
+                const { exec } = await import("child_process");
                 const platform = process.platform;
                 let openCommand: string;
-                if (platform === 'darwin') {
+                if (platform === "darwin") {
                   openCommand = `open "${url}"`;
-                } else if (platform === 'win32') {
+                } else if (platform === "win32") {
                   openCommand = `start "${url}"`;
                 } else {
                   openCommand = `xdg-open "${url}"`;
@@ -570,7 +628,7 @@ const ListBlueprintsUI: React.FC<{
             },
           },
         ],
-        breadcrumbItems: [{ label: 'Blueprints', active: true }],
+        breadcrumbItems: [{ label: "Blueprints", active: true }],
       }}
     />
   );
@@ -594,6 +652,6 @@ export async function listBlueprints(options: ListBlueprintsOptions = {}) {
       });
     },
     () => <ListBlueprintsUI />,
-    PAGE_SIZE
+    PAGE_SIZE,
   );
 }
