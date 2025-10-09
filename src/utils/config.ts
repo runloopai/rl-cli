@@ -29,44 +29,45 @@ export function clearConfig(): void {
 }
 
 export function baseUrl(): string {
-  return process.env.RUNLOOP_ENV === 'dev' 
-    ? 'https://api.runloop.pro' 
-    : 'https://api.runloop.ai';
+  return process.env.RUNLOOP_ENV === "dev"
+    ? "https://api.runloop.pro"
+    : "https://api.runloop.ai";
 }
 
 export function sshUrl(): string {
-  return process.env.RUNLOOP_ENV === 'dev'
-    ? 'ssh.runloop.pro:443'
-    : 'ssh.runloop.ai:443';
+  return process.env.RUNLOOP_ENV === "dev"
+    ? "ssh.runloop.pro:443"
+    : "ssh.runloop.ai:443";
 }
 
 export function getCacheDir(): string {
-  return join(homedir(), '.cache', 'rl-cli');
+  return join(homedir(), ".cache", "rl-cli");
 }
 
 export function shouldCheckForUpdates(): boolean {
   const cacheDir = getCacheDir();
-  const cacheFile = join(cacheDir, 'last_update_check');
-  
+  const cacheFile = join(cacheDir, "last_update_check");
+
   if (!existsSync(cacheFile)) {
     return true;
   }
-  
+
   const stats = statSync(cacheFile);
-  const daysSinceUpdate = (Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60 * 24);
-  
+  const daysSinceUpdate =
+    (Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60 * 24);
+
   return daysSinceUpdate >= 1;
 }
 
 export function updateCheckCache(): void {
   const cacheDir = getCacheDir();
-  const cacheFile = join(cacheDir, 'last_update_check');
-  
+  const cacheFile = join(cacheDir, "last_update_check");
+
   // Create cache directory if it doesn't exist
   if (!existsSync(cacheDir)) {
-    require('fs').mkdirSync(cacheDir, { recursive: true });
+    require("fs").mkdirSync(cacheDir, { recursive: true });
   }
-  
+
   // Touch the cache file
-  require('fs').writeFileSync(cacheFile, '');
+  require("fs").writeFileSync(cacheFile, "");
 }

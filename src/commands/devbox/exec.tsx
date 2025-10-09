@@ -57,7 +57,11 @@ interface ExecCommandOptions {
   output?: string;
 }
 
-export async function execCommand(id: string, command: string[], options: ExecCommandOptions = {}) {
+export async function execCommand(
+  id: string,
+  command: string[],
+  options: ExecCommandOptions = {},
+) {
   const executor = createExecutor({ output: options.output });
 
   await executor.executeAction(
@@ -67,9 +71,10 @@ export async function execCommand(id: string, command: string[], options: ExecCo
         command: command.join(" "),
       });
       return {
-        result: result.stdout || result.stderr || "Command executed successfully",
+        result:
+          result.stdout || result.stderr || "Command executed successfully",
       };
     },
-    () => <ExecCommandUI id={id} command={command} />
+    () => <ExecCommandUI id={id} command={command} />,
   );
 }

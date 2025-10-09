@@ -28,9 +28,9 @@ const ExecAsyncUI: React.FC<{
     const execAsync = async () => {
       try {
         const client = getClient();
-        const execution = await client.devboxes.executeAsync(devboxId, { 
+        const execution = await client.devboxes.executeAsync(devboxId, {
           command,
-          shell_name: shellName || undefined
+          shell_name: shellName || undefined,
         });
         setResult(execution);
       } catch (err) {
@@ -66,11 +66,17 @@ export async function execAsync(devboxId: string, options: ExecAsyncOptions) {
   await executor.executeAction(
     async () => {
       const client = executor.getClient();
-      return client.devboxes.executeAsync(devboxId, { 
+      return client.devboxes.executeAsync(devboxId, {
         command: options.command,
-        shell_name: options.shellName || undefined
+        shell_name: options.shellName || undefined,
       });
     },
-    () => <ExecAsyncUI devboxId={devboxId} command={options.command} shellName={options.shellName} />,
+    () => (
+      <ExecAsyncUI
+        devboxId={devboxId}
+        command={options.command}
+        shellName={options.shellName}
+      />
+    ),
   );
 }

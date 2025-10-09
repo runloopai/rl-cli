@@ -46,9 +46,7 @@ const GetDevboxUI: React.FC<{
           details={`ID: ${result.id}\nStatus: ${result.status}\nCreated: ${new Date(result.createdAt).toLocaleString()}`}
         />
       )}
-      {error && (
-        <ErrorMessage message="Failed to get devbox" error={error} />
-      )}
+      {error && <ErrorMessage message="Failed to get devbox" error={error} />}
     </>
   );
 };

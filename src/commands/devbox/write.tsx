@@ -30,7 +30,10 @@ const WriteFileUI: React.FC<{
       try {
         const client = getClient();
         const contents = await readFile(inputPath, "utf-8");
-        await client.devboxes.writeFileContents(devboxId, { file_path: remotePath, contents });
+        await client.devboxes.writeFileContents(devboxId, {
+          file_path: remotePath,
+          contents,
+        });
         setResult({ inputPath, remotePath, size: contents.length });
       } catch (err) {
         setError(err as Error);
@@ -52,9 +55,7 @@ const WriteFileUI: React.FC<{
           details={`Local: ${result.inputPath}\nRemote: ${result.remotePath}\nSize: ${result.size} bytes`}
         />
       )}
-      {error && (
-        <ErrorMessage message="Failed to write file" error={error} />
-      )}
+      {error && <ErrorMessage message="Failed to write file" error={error} />}
     </>
   );
 };
@@ -66,13 +67,22 @@ export async function writeFile(devboxId: string, options: WriteOptions) {
     async () => {
       const client = executor.getClient();
       const contents = await readFile(options.input, "utf-8");
-      await client.devboxes.writeFileContents(devboxId, { file_path: options.remote, contents });
+      await client.devboxes.writeFileContents(devboxId, {
+        file_path: options.remote,
+        contents,
+      });
       return {
         inputPath: options.input,
         remotePath: options.remote,
-        size: contents.length
+        size: contents.length,
       };
     },
-    () => <WriteFileUI devboxId={devboxId} inputPath={options.input} remotePath={options.remote} />,
+    () => (
+      <WriteFileUI
+        devboxId={devboxId}
+        inputPath={options.input}
+        remotePath={options.remote}
+      />
+    ),
   );
 }

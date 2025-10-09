@@ -29,7 +29,9 @@ const DownloadFileUI: React.FC<{
     const downloadFile = async () => {
       try {
         const client = getClient();
-        const result = await client.devboxes.downloadFile(devboxId, { path: filePath });
+        const result = await client.devboxes.downloadFile(devboxId, {
+          path: filePath,
+        });
         // The result should contain the file contents, write them to the output path
         writeFileSync(outputPath, result as any);
         setResult({ filePath, outputPath });
@@ -46,7 +48,9 @@ const DownloadFileUI: React.FC<{
   return (
     <>
       <Banner />
-      {loading && <SpinnerComponent message="Downloading file from devbox..." />}
+      {loading && (
+        <SpinnerComponent message="Downloading file from devbox..." />
+      )}
       {result && (
         <SuccessMessage
           message="File downloaded successfully"
@@ -66,13 +70,21 @@ export async function downloadFile(devboxId: string, options: DownloadOptions) {
   await executor.executeAction(
     async () => {
       const client = executor.getClient();
-      const result = await client.devboxes.downloadFile(devboxId, { path: options.filePath });
+      const result = await client.devboxes.downloadFile(devboxId, {
+        path: options.filePath,
+      });
       writeFileSync(options.outputPath, result as any);
       return {
         filePath: options.filePath,
-        outputPath: options.outputPath
+        outputPath: options.outputPath,
       };
     },
-    () => <DownloadFileUI devboxId={devboxId} filePath={options.filePath} outputPath={options.outputPath} />,
+    () => (
+      <DownloadFileUI
+        devboxId={devboxId}
+        filePath={options.filePath}
+        outputPath={options.outputPath}
+      />
+    ),
   );
 }

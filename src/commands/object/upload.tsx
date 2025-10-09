@@ -31,16 +31,30 @@ const UploadObjectUI: React.FC<{
     const uploadObject = async () => {
       try {
         const client = getClient();
-        
+
         // Check if file exists
         const stats = await stat(path);
         const fileBuffer = await readFile(path);
-        
+
         // Auto-detect content type if not provided
-        let detectedContentType: "binary" | "text" | "unspecified" | "gzip" | "tar" | "tgz" = contentType as any;
+        let detectedContentType:
+          | "binary"
+          | "text"
+          | "unspecified"
+          | "gzip"
+          | "tar"
+          | "tgz" = contentType as any;
         if (!detectedContentType) {
           const ext = extname(path).toLowerCase();
-          const contentTypeMap: { [key: string]: "binary" | "text" | "unspecified" | "gzip" | "tar" | "tgz" } = {
+          const contentTypeMap: {
+            [key: string]:
+              | "binary"
+              | "text"
+              | "unspecified"
+              | "gzip"
+              | "tar"
+              | "tgz";
+          } = {
             ".txt": "text",
             ".html": "text",
             ".css": "text",
@@ -79,11 +93,11 @@ const UploadObjectUI: React.FC<{
         // Step 3: Complete the upload
         await client.objects.complete(createResponse.id);
 
-        setResult({ 
-          id: createResponse.id, 
-          name, 
+        setResult({
+          id: createResponse.id,
+          name,
           contentType: detectedContentType,
-          size: stats.size 
+          size: stats.size,
         });
       } catch (err) {
         setError(err as Error);
@@ -118,16 +132,30 @@ export async function uploadObject(options: UploadObjectOptions) {
   await executor.executeAction(
     async () => {
       const client = executor.getClient();
-      
+
       // Check if file exists
       const stats = await stat(options.path);
       const fileBuffer = await readFile(options.path);
-      
+
       // Auto-detect content type if not provided
-      let detectedContentType: "binary" | "text" | "unspecified" | "gzip" | "tar" | "tgz" = options.contentType as any;
+      let detectedContentType:
+        | "binary"
+        | "text"
+        | "unspecified"
+        | "gzip"
+        | "tar"
+        | "tgz" = options.contentType as any;
       if (!detectedContentType) {
         const ext = extname(options.path).toLowerCase();
-        const contentTypeMap: { [key: string]: "binary" | "text" | "unspecified" | "gzip" | "tar" | "tgz" } = {
+        const contentTypeMap: {
+          [key: string]:
+            | "binary"
+            | "text"
+            | "unspecified"
+            | "gzip"
+            | "tar"
+            | "tgz";
+        } = {
           ".txt": "text",
           ".html": "text",
           ".css": "text",
@@ -166,17 +194,19 @@ export async function uploadObject(options: UploadObjectOptions) {
       // Step 3: Complete the upload
       await client.objects.complete(createResponse.id);
 
-      return { 
-        id: createResponse.id, 
-        name: options.name, 
+      return {
+        id: createResponse.id,
+        name: options.name,
         contentType: detectedContentType,
-        size: stats.size 
+        size: stats.size,
       };
     },
-    () => <UploadObjectUI 
-      path={options.path}
-      name={options.name}
-      contentType={options.contentType}
-    />,
+    () => (
+      <UploadObjectUI
+        path={options.path}
+        name={options.name}
+        contentType={options.contentType}
+      />
+    ),
   );
 }

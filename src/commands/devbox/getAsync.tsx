@@ -26,7 +26,10 @@ const GetAsyncUI: React.FC<{
     const getAsync = async () => {
       try {
         const client = getClient();
-        const execution = await client.devboxes.executions.retrieve(executionId, devboxId);
+        const execution = await client.devboxes.executions.retrieve(
+          executionId,
+          devboxId,
+        );
         setResult(execution);
       } catch (err) {
         setError(err as Error);
@@ -41,7 +44,9 @@ const GetAsyncUI: React.FC<{
   return (
     <>
       <Banner />
-      {loading && <SpinnerComponent message="Getting async execution status..." />}
+      {loading && (
+        <SpinnerComponent message="Getting async execution status..." />
+      )}
       {result && (
         <SuccessMessage
           message="Async execution status retrieved"
@@ -49,7 +54,10 @@ const GetAsyncUI: React.FC<{
         />
       )}
       {error && (
-        <ErrorMessage message="Failed to get async execution status" error={error} />
+        <ErrorMessage
+          message="Failed to get async execution status"
+          error={error}
+        />
       )}
     </>
   );

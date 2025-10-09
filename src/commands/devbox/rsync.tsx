@@ -37,14 +37,17 @@ const RsyncUI: React.FC<{
         // Check if SSH tools are available
         const sshToolsAvailable = await checkSSHTools();
         if (!sshToolsAvailable) {
-          throw new Error("SSH tools (ssh, rsync, openssl) are not available on this system");
+          throw new Error(
+            "SSH tools (ssh, rsync, openssl) are not available on this system",
+          );
         }
 
         const client = getClient();
-        
+
         // Get devbox details to determine user
         const devbox = await client.devboxes.retrieve(devboxId);
-        const user = devbox.launch_parameters?.user_parameters?.username || "user";
+        const user =
+          devbox.launch_parameters?.user_parameters?.username || "user";
 
         // Get SSH key
         const sshInfo = await getSSHKey(devboxId);
@@ -101,9 +104,7 @@ const RsyncUI: React.FC<{
           details={`Source: ${result.src}\nDestination: ${result.dst}`}
         />
       )}
-      {error && (
-        <ErrorMessage message="Rsync operation failed" error={error} />
-      )}
+      {error && <ErrorMessage message="Rsync operation failed" error={error} />}
     </>
   );
 };
@@ -116,14 +117,17 @@ export async function rsyncFiles(devboxId: string, options: RsyncOptions) {
       // Check if SSH tools are available
       const sshToolsAvailable = await checkSSHTools();
       if (!sshToolsAvailable) {
-        throw new Error("SSH tools (ssh, rsync, openssl) are not available on this system");
+        throw new Error(
+          "SSH tools (ssh, rsync, openssl) are not available on this system",
+        );
       }
 
       const client = executor.getClient();
-      
+
       // Get devbox details to determine user
       const devbox = await client.devboxes.retrieve(devboxId);
-        const user = devbox.launch_parameters?.user_parameters?.username || "user";
+      const user =
+        devbox.launch_parameters?.user_parameters?.username || "user";
 
       // Get SSH key
       const sshInfo = await getSSHKey(devboxId);
@@ -161,6 +165,13 @@ export async function rsyncFiles(devboxId: string, options: RsyncOptions) {
       const { stdout, stderr } = await execAsync(rsyncCommand.join(" "));
       return { src: options.src, dst: options.dst, stdout, stderr };
     },
-    () => <RsyncUI devboxId={devboxId} src={options.src} dst={options.dst} rsyncOptions={options.rsyncOptions} />,
+    () => (
+      <RsyncUI
+        devboxId={devboxId}
+        src={options.src}
+        dst={options.dst}
+        rsyncOptions={options.rsyncOptions}
+      />
+    ),
   );
 }

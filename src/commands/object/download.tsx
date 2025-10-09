@@ -31,16 +31,15 @@ const DownloadObjectUI: React.FC<{
     const downloadObject = async () => {
       try {
         const client = getClient();
-        
+
         // Get the object metadata first
         const object = await client.objects.retrieve(objectId);
-        
+
         // Get the download URL
-        const downloadUrlResponse = await client.objects.download(
-          objectId, 
-          { duration_seconds: durationSeconds || 3600 }
-        );
-        
+        const downloadUrlResponse = await client.objects.download(objectId, {
+          duration_seconds: durationSeconds || 3600,
+        });
+
         // Download the file
         const response = await fetch(downloadUrlResponse.download_url);
         if (!response.ok) {
@@ -53,15 +52,11 @@ const DownloadObjectUI: React.FC<{
           // In a full implementation, you'd handle archive extraction here
           const arrayBuffer = await response.arrayBuffer();
           const buffer = Buffer.from(arrayBuffer);
-          await import("fs/promises").then(fs => 
-            fs.writeFile(path, buffer)
-          );
+          await import("fs/promises").then((fs) => fs.writeFile(path, buffer));
         } else {
           const arrayBuffer = await response.arrayBuffer();
           const buffer = Buffer.from(arrayBuffer);
-          await import("fs/promises").then(fs => 
-            fs.writeFile(path, buffer)
-          );
+          await import("fs/promises").then((fs) => fs.writeFile(path, buffer));
         }
 
         setResult({ objectId, path, extract });
@@ -98,16 +93,15 @@ export async function downloadObject(options: DownloadObjectOptions) {
   await executor.executeAction(
     async () => {
       const client = executor.getClient();
-      
+
       // Get the object metadata first
       const object = await client.objects.retrieve(options.id);
-      
+
       // Get the download URL
-      const downloadUrlResponse = await client.objects.download(
-        options.id, 
-        { duration_seconds: options.durationSeconds || 3600 }
-      );
-      
+      const downloadUrlResponse = await client.objects.download(options.id, {
+        duration_seconds: options.durationSeconds || 3600,
+      });
+
       // Download the file
       const response = await fetch(downloadUrlResponse.download_url);
       if (!response.ok) {
@@ -120,24 +114,30 @@ export async function downloadObject(options: DownloadObjectOptions) {
         // In a full implementation, you'd handle archive extraction here
         const arrayBuffer = await response.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        await import("fs/promises").then(fs => 
-          fs.writeFile(options.path, buffer)
+        await import("fs/promises").then((fs) =>
+          fs.writeFile(options.path, buffer),
         );
       } else {
         const arrayBuffer = await response.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        await import("fs/promises").then(fs => 
-          fs.writeFile(options.path, buffer)
+        await import("fs/promises").then((fs) =>
+          fs.writeFile(options.path, buffer),
         );
       }
 
-      return { objectId: options.id, path: options.path, extract: options.extract };
+      return {
+        objectId: options.id,
+        path: options.path,
+        extract: options.extract,
+      };
     },
-    () => <DownloadObjectUI 
-      objectId={options.id} 
-      path={options.path} 
-      extract={options.extract}
-      durationSeconds={options.durationSeconds}
-    />,
+    () => (
+      <DownloadObjectUI
+        objectId={options.id}
+        path={options.path}
+        extract={options.extract}
+        durationSeconds={options.durationSeconds}
+      />
+    ),
   );
 }

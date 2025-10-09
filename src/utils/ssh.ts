@@ -46,7 +46,7 @@ export async function getSSHKey(devboxId: string): Promise<SSHKeyInfo | null> {
   try {
     const client = getClient();
     const result = await client.devboxes.createSSHKey(devboxId);
-    
+
     if (!result || !result.ssh_private_key || !result.url) {
       throw new Error("Failed to create SSH key");
     }
@@ -77,7 +77,7 @@ export async function getSSHKey(devboxId: string): Promise<SSHKeyInfo | null> {
 export async function waitForReady(
   devboxId: string,
   timeoutSeconds: number = 180,
-  pollIntervalSeconds: number = 3
+  pollIntervalSeconds: number = 3,
 ): Promise<boolean> {
   const startTime = Date.now();
   const client = getClient();
@@ -92,38 +92,46 @@ export async function waitForReady(
         console.log(`Devbox ${devboxId} is ready!`);
         return true;
       } else if (devbox.status === "failure") {
-        console.log(`Devbox ${devboxId} failed to start (status: ${devbox.status})`);
+        console.log(
+          `Devbox ${devboxId} failed to start (status: ${devbox.status})`,
+        );
         return false;
       } else if (["shutdown", "suspended"].includes(devbox.status)) {
-        console.log(`Devbox ${devboxId} is not running (status: ${devbox.status})`);
+        console.log(
+          `Devbox ${devboxId} is not running (status: ${devbox.status})`,
+        );
         return false;
       } else {
         console.log(
-          `Devbox ${devboxId} is still ${devbox.status}... (elapsed: ${elapsed.toFixed(0)}s, remaining: ${remaining.toFixed(0)}s)`
+          `Devbox ${devboxId} is still ${devbox.status}... (elapsed: ${elapsed.toFixed(0)}s, remaining: ${remaining.toFixed(0)}s)`,
         );
 
         if (elapsed >= timeoutSeconds) {
           console.log(
-            `Timeout waiting for devbox ${devboxId} to be ready after ${timeoutSeconds} seconds`
+            `Timeout waiting for devbox ${devboxId} to be ready after ${timeoutSeconds} seconds`,
           );
           return false;
         }
 
-        await new Promise(resolve => setTimeout(resolve, pollIntervalSeconds * 1000));
+        await new Promise((resolve) =>
+          setTimeout(resolve, pollIntervalSeconds * 1000),
+        );
       }
     } catch (error) {
       const elapsed = (Date.now() - startTime) / 1000;
       if (elapsed >= timeoutSeconds) {
         console.log(
-          `Timeout waiting for devbox ${devboxId} to be ready after ${timeoutSeconds} seconds (error: ${error})`
+          `Timeout waiting for devbox ${devboxId} to be ready after ${timeoutSeconds} seconds (error: ${error})`,
         );
         return false;
       }
 
       console.log(
-        `Error checking devbox status: ${error}, retrying in ${pollIntervalSeconds} seconds...`
+        `Error checking devbox status: ${error}, retrying in ${pollIntervalSeconds} seconds...`,
       );
-      await new Promise(resolve => setTimeout(resolve, pollIntervalSeconds * 1000));
+      await new Promise((resolve) =>
+        setTimeout(resolve, pollIntervalSeconds * 1000),
+      );
     }
   }
 }
@@ -152,7 +160,7 @@ export async function executeSSH(
   user: string,
   keyfilePath: string,
   url: string,
-  additionalArgs: string[] = []
+  additionalArgs: string[] = [],
 ): Promise<void> {
   const proxyCommand = getProxyCommand();
   const command = [
@@ -180,7 +188,12 @@ export async function executeSSH(
 /**
  * Generate SSH config for a devbox
  */
-export function generateSSHConfig(devboxId: string, user: string, keyfilePath: string, url: string): string {
+export function generateSSHConfig(
+  devboxId: string,
+  user: string,
+  keyfilePath: string,
+  url: string,
+): string {
   const proxyCommand = getProxyCommand();
   return `
 Host ${devboxId}

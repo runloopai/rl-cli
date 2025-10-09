@@ -47,9 +47,7 @@ const GetObjectUI: React.FC<{
           details={`ID: ${result.id}\nName: ${result.name}\nType: ${result.contentType}\nState: ${result.state}\nSize: ${result.sizeBytes ? `${result.sizeBytes} bytes` : "Unknown"}`}
         />
       )}
-      {error && (
-        <ErrorMessage message="Failed to get object" error={error} />
-      )}
+      {error && <ErrorMessage message="Failed to get object" error={error} />}
     </>
   );
 };
