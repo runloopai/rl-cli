@@ -53,6 +53,13 @@ devbox
   .description("Create a new devbox")
   .option("-n, --name <name>", "Devbox name")
   .option("-t, --template <template>", "Template to use")
+  .option("--blueprint <blueprint>", "Blueprint ID to use")
+  .option("--resources <size>", "Resource size (X_SMALL, SMALL, MEDIUM, LARGE, X_LARGE, XX_LARGE)")
+  .option("--architecture <arch>", "Architecture (arm64, x86_64)")
+  .option("--entrypoint <command>", "Entrypoint command to run")
+  .option("--available-ports <ports...>", "Available ports")
+  .option("--root", "Run as root")
+  .option("--user <user:uid>", "Run as this user (format: username:uid)")
   .option(
     "-o, --output [format]",
     "Output format: text|json|yaml (default: interactive)",
@@ -96,7 +103,9 @@ devbox
     "-o, --output [format]",
     "Output format: text|json|yaml (default: interactive)",
   )
-  .action(execCommand);
+  .action(async (id, command, options) => {
+    await execCommand(id, command, options);
+  });
 
 devbox
   .command("upload <id> <file>")
@@ -107,6 +116,188 @@ devbox
     "Output format: text|json|yaml (default: interactive)",
   )
   .action(uploadFile);
+
+// Additional devbox commands
+devbox
+  .command("get <id>")
+  .description("Get devbox details")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, options) => {
+    const { getDevbox } = await import("./commands/devbox/get.js");
+    await getDevbox(id, options);
+  });
+
+devbox
+  .command("suspend <id>")
+  .description("Suspend a devbox")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, options) => {
+    const { suspendDevbox } = await import("./commands/devbox/suspend.js");
+    await suspendDevbox(id, options);
+  });
+
+devbox
+  .command("resume <id>")
+  .description("Resume a suspended devbox")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, options) => {
+    const { resumeDevbox } = await import("./commands/devbox/resume.js");
+    await resumeDevbox(id, options);
+  });
+
+devbox
+  .command("shutdown <id>")
+  .description("Shutdown a devbox")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, options) => {
+    const { shutdownDevbox } = await import("./commands/devbox/shutdown.js");
+    await shutdownDevbox(id, options);
+  });
+
+devbox
+  .command("ssh <id>")
+  .description("SSH into a devbox")
+  .option("--config-only", "Print SSH config only")
+  .option("--no-wait", "Do not wait for devbox to be ready")
+  .option("--timeout <seconds>", "Timeout in seconds to wait for readiness", "180")
+  .option("--poll-interval <seconds>", "Polling interval in seconds while waiting", "3")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, options) => {
+    const { sshDevbox } = await import("./commands/devbox/ssh.js");
+    await sshDevbox(id, options);
+  });
+
+devbox
+  .command("scp <id> <src> <dst>")
+  .description("Copy files to/from a devbox using scp")
+  .option("--scp-options <options>", "Additional scp options (quoted)")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, src, dst, options) => {
+    const { scpFiles } = await import("./commands/devbox/scp.js");
+    await scpFiles(id, { src, dst, ...options });
+  });
+
+devbox
+  .command("rsync <id> <src> <dst>")
+  .description("Sync files to/from a devbox using rsync")
+  .option("--rsync-options <options>", "Additional rsync options (quoted)")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, src, dst, options) => {
+    const { rsyncFiles } = await import("./commands/devbox/rsync.js");
+    await rsyncFiles(id, { src, dst, ...options });
+  });
+
+devbox
+  .command("tunnel <id> <ports>")
+  .description("Create a port-forwarding tunnel to a devbox")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, ports, options) => {
+    const { createTunnel } = await import("./commands/devbox/tunnel.js");
+    await createTunnel(id, { ports, ...options });
+  });
+
+devbox
+  .command("read <id>")
+  .description("Read a file from a devbox using the API")
+  .option("--remote <path>", "Remote file path to read from the devbox")
+  .option("--output-path <path>", "Local file path to write the contents to")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, options) => {
+    const { readFile } = await import("./commands/devbox/read.js");
+    await readFile(id, options);
+  });
+
+devbox
+  .command("write <id>")
+  .description("Write a file to a devbox using the API")
+  .option("--input <path>", "Local file path to read contents from")
+  .option("--remote <path>", "Remote file path to write to on the devbox")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, options) => {
+    const { writeFile } = await import("./commands/devbox/write.js");
+    await writeFile(id, options);
+  });
+
+devbox
+  .command("download <id>")
+  .description("Download a file from a devbox")
+  .option("--file-path <path>", "Path to the file in the devbox")
+  .option("--output-path <path>", "Local path where to save the downloaded file")
+  .option(
+    "-o, --output-format [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, options) => {
+    const { downloadFile } = await import("./commands/devbox/download.js");
+    await downloadFile(id, options);
+  });
+
+devbox
+  .command("exec-async <id> <command...>")
+  .description("Execute a command asynchronously on a devbox")
+  .option("--shell-name <name>", "Shell name to use (optional)")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, command, options) => {
+    const { execAsync } = await import("./commands/devbox/execAsync.js");
+    await execAsync(id, { command: command.join(" "), ...options });
+  });
+
+devbox
+  .command("get-async <id> <execution-id>")
+  .description("Get status of an async execution")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, executionId, options) => {
+    const { getAsync } = await import("./commands/devbox/getAsync.js");
+    await getAsync(id, { executionId, ...options });
+  });
+
+devbox
+  .command("logs <id>")
+  .description("View devbox logs")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, options) => {
+    const { getLogs } = await import("./commands/devbox/logs.js");
+    await getLogs(id, options);
+  });
 
 // Snapshot commands
 const snapshot = program
@@ -160,6 +351,18 @@ snapshot
     deleteSnapshot(id, options);
   });
 
+snapshot
+  .command("status <snapshot-id>")
+  .description("Get snapshot operation status")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (snapshotId, options) => {
+    const { getSnapshotStatus } = await import("./commands/snapshot/status.js");
+    await getSnapshotStatus({ snapshotId, ...options });
+  });
+
 // Blueprint commands
 const blueprint = program
   .command("blueprint")
@@ -183,6 +386,162 @@ blueprint
     } else {
       await listBlueprints(options);
     }
+  });
+
+blueprint
+  .command("create")
+  .description("Create a new blueprint")
+  .option("--name <name>", "Blueprint name")
+  .option("--dockerfile <content>", "Dockerfile contents")
+  .option("--dockerfile-path <path>", "Dockerfile path")
+  .option("--system-setup-commands <commands...>", "System setup commands")
+  .option("--resources <size>", "Resource size (X_SMALL, SMALL, MEDIUM, LARGE, X_LARGE, XX_LARGE)")
+  .option("--architecture <arch>", "Architecture (arm64, x86_64)")
+  .option("--available-ports <ports...>", "Available ports")
+  .option("--root", "Run as root")
+  .option("--user <user:uid>", "Run as this user (format: username:uid)")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (options) => {
+    const { createBlueprint } = await import("./commands/blueprint/create.js");
+    await createBlueprint(options);
+  });
+
+blueprint
+  .command("preview <name>")
+  .description("Preview blueprint before creation")
+  .option("--dockerfile <content>", "Dockerfile contents")
+  .option("--system-setup-commands <commands...>", "System setup commands")
+  .option("--resources <size>", "Resource size (X_SMALL, SMALL, MEDIUM, LARGE, X_LARGE, XX_LARGE)")
+  .option("--architecture <arch>", "Architecture (arm64, x86_64)")
+  .option("--available-ports <ports...>", "Available ports")
+  .option("--root", "Run as root")
+  .option("--user <user:uid>", "Run as this user (format: username:uid)")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (name, options) => {
+    const { previewBlueprint } = await import("./commands/blueprint/preview.js");
+    await previewBlueprint({ name, ...options });
+  });
+
+blueprint
+  .command("get <id>")
+  .description("Get blueprint details")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, options) => {
+    const { getBlueprint } = await import("./commands/blueprint/get.js");
+    await getBlueprint({ id, ...options });
+  });
+
+blueprint
+  .command("logs <id>")
+  .description("Get blueprint build logs")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, options) => {
+    const { getBlueprintLogs } = await import("./commands/blueprint/logs.js");
+    await getBlueprintLogs({ id, ...options });
+  });
+
+// Object storage commands
+const object = program
+  .command("object")
+  .description("Manage object storage")
+  .alias("obj");
+
+object
+  .command("list")
+  .description("List objects")
+  .option("--limit <n>", "Max results", "20")
+  .option("--starting-after <id>", "Starting point for pagination")
+  .option("--name <name>", "Filter by name (partial match supported)")
+  .option("--content-type <type>", "Filter by content type")
+  .option("--state <state>", "Filter by state (UPLOADING, READ_ONLY, DELETED)")
+  .option("--search <query>", "Search by object ID or name")
+  .option("--public", "List public objects only")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (options) => {
+    const { listObjects } = await import("./commands/object/list.js");
+    if (!options.output) {
+      const { runInteractiveCommand } = await import(
+        "./utils/interactiveCommand.js"
+      );
+      await runInteractiveCommand(() => listObjects(options));
+    } else {
+      await listObjects(options);
+    }
+  });
+
+object
+  .command("get <id>")
+  .description("Get object details")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, options) => {
+    const { getObject } = await import("./commands/object/get.js");
+    await getObject({ id, ...options });
+  });
+
+object
+  .command("download <id> <path>")
+  .description("Download object to local file")
+  .option("--extract", "Extract downloaded archive after download")
+  .option("--duration-seconds <seconds>", "Duration in seconds for the presigned URL validity", "3600")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, path, options) => {
+    const { downloadObject } = await import("./commands/object/download.js");
+    await downloadObject({ id, path, ...options });
+  });
+
+object
+  .command("upload <path>")
+  .description("Upload a file as an object")
+  .option("--name <name>", "Object name (required)")
+  .option("--content-type <type>", "Content type: unspecified|text|binary|gzip|tar|tgz")
+  .option("--public", "Make object publicly accessible")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (path, options) => {
+    const { uploadObject } = await import("./commands/object/upload.js");
+    if (!options.output) {
+      const { runInteractiveCommand } = await import(
+        "./utils/interactiveCommand.js"
+      );
+      await runInteractiveCommand(() => uploadObject({ path, ...options }));
+    } else {
+      await uploadObject({ path, ...options });
+    }
+  });
+
+object
+  .command("delete <id>")
+  .description("Delete an object (irreversible)")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: interactive)",
+  )
+  .action(async (id, options) => {
+    const { deleteObject } = await import("./commands/object/delete.js");
+    await deleteObject({ id, ...options });
   });
 
 // MCP server commands
