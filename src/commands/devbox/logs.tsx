@@ -47,12 +47,26 @@ const LogsUI: React.FC<{
             result.logs.map((log: any, index: number) => (
               <Box key={index} marginLeft={2}>
                 <Text color={colors.textDim}>
-                  {log.timestampMs ? new Date(log.timestampMs).toISOString() : ""}
+                  {log.timestampMs
+                    ? new Date(log.timestampMs).toISOString()
+                    : ""}
                 </Text>
-                {log.source && <Text color={colors.textDim}> [{log.source}]</Text>}
-                {log.cmd && <Text color={colors.primary}> {"->"} {log.cmd}</Text>}
+                {log.source && (
+                  <Text color={colors.textDim}> [{log.source}]</Text>
+                )}
+                {log.cmd && (
+                  <Text color={colors.primary}>
+                    {" "}
+                    {"->"} {log.cmd}
+                  </Text>
+                )}
                 {log.message && <Text> {log.message}</Text>}
-                {log.exitCode !== null && <Text color={colors.warning}> {"->"} exit_code={log.exitCode}</Text>}
+                {log.exitCode !== null && (
+                  <Text color={colors.warning}>
+                    {" "}
+                    {"->"} exit_code={log.exitCode}
+                  </Text>
+                )}
               </Box>
             ))
           ) : (

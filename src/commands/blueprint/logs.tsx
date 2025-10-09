@@ -40,7 +40,9 @@ const BlueprintLogsUI: React.FC<{
   return (
     <>
       <Banner />
-      {loading && <SpinnerComponent message="Fetching blueprint build logs..." />}
+      {loading && (
+        <SpinnerComponent message="Fetching blueprint build logs..." />
+      )}
       {result && (
         <Box flexDirection="column">
           <Text color={colors.primary}>Blueprint Build Logs:</Text>
@@ -48,7 +50,9 @@ const BlueprintLogsUI: React.FC<{
             result.logs.map((log: any, index: number) => (
               <Box key={index} marginLeft={2}>
                 <Text color={colors.textDim}>
-                  {log.timestampMs ? new Date(log.timestampMs).toISOString() : ""}
+                  {log.timestampMs
+                    ? new Date(log.timestampMs).toISOString()
+                    : ""}
                 </Text>
                 <Text color={colors.textDim}> [{log.level}]</Text>
                 <Text> {log.message}</Text>

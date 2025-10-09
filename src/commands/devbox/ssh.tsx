@@ -8,7 +8,12 @@ import { SuccessMessage } from "../../components/SuccessMessage.js";
 import { ErrorMessage } from "../../components/ErrorMessage.js";
 import { createExecutor } from "../../utils/CommandExecutor.js";
 import { colors } from "../../utils/theme.js";
-import { getSSHKey, waitForReady, generateSSHConfig, checkSSHTools } from "../../utils/ssh.js";
+import {
+  getSSHKey,
+  waitForReady,
+  generateSSHConfig,
+  checkSSHTools,
+} from "../../utils/ssh.js";
 
 interface SSHOptions {
   configOnly?: boolean;
@@ -32,27 +37,32 @@ const SSHDevboxUI: React.FC<{
         // Check if SSH tools are available
         const sshToolsAvailable = await checkSSHTools();
         if (!sshToolsAvailable) {
-          throw new Error("SSH tools (ssh, scp, rsync, openssl) are not available on this system");
+          throw new Error(
+            "SSH tools (ssh, scp, rsync, openssl) are not available on this system",
+          );
         }
 
         const client = getClient();
-        
+
         // Wait for devbox to be ready unless --no-wait is specified
         if (!options.noWait) {
           console.log(`Waiting for devbox ${devboxId} to be ready...`);
           const isReady = await waitForReady(
             devboxId,
             options.timeout || 180,
-            options.pollInterval || 3
+            options.pollInterval || 3,
           );
           if (!isReady) {
-            throw new Error(`Devbox ${devboxId} is not ready. Please try again later.`);
+            throw new Error(
+              `Devbox ${devboxId} is not ready. Please try again later.`,
+            );
           }
         }
 
         // Get devbox details to determine user
         const devbox = await client.devboxes.retrieve(devboxId);
-        const user = devbox.launch_parameters?.user_parameters?.username || "user";
+        const user =
+          devbox.launch_parameters?.user_parameters?.username || "user";
 
         // Get SSH key
         const sshInfo = await getSSHKey(devboxId);
@@ -61,14 +71,19 @@ const SSHDevboxUI: React.FC<{
         }
 
         if (options.configOnly) {
-          const config = generateSSHConfig(devboxId, user, sshInfo.keyfilePath, sshInfo.url);
+          const config = generateSSHConfig(
+            devboxId,
+            user,
+            sshInfo.keyfilePath,
+            sshInfo.url,
+          );
           setResult({ config });
         } else {
-          setResult({ 
-            devboxId, 
-            user, 
-            keyfilePath: sshInfo.keyfilePath, 
-            url: sshInfo.url 
+          setResult({
+            devboxId,
+            user,
+            keyfilePath: sshInfo.keyfilePath,
+            url: sshInfo.url,
           });
         }
       } catch (err) {
@@ -112,27 +127,32 @@ export async function sshDevbox(devboxId: string, options: SSHOptions) {
       // Check if SSH tools are available
       const sshToolsAvailable = await checkSSHTools();
       if (!sshToolsAvailable) {
-        throw new Error("SSH tools (ssh, scp, rsync, openssl) are not available on this system");
+        throw new Error(
+          "SSH tools (ssh, scp, rsync, openssl) are not available on this system",
+        );
       }
 
       const client = executor.getClient();
-      
+
       // Wait for devbox to be ready unless --no-wait is specified
       if (!options.noWait) {
         console.log(`Waiting for devbox ${devboxId} to be ready...`);
         const isReady = await waitForReady(
           devboxId,
           options.timeout || 180,
-          options.pollInterval || 3
+          options.pollInterval || 3,
         );
         if (!isReady) {
-          throw new Error(`Devbox ${devboxId} is not ready. Please try again later.`);
+          throw new Error(
+            `Devbox ${devboxId} is not ready. Please try again later.`,
+          );
         }
       }
 
       // Get devbox details to determine user
       const devbox = await client.devboxes.retrieve(devboxId);
-      const user = devbox.launch_parameters?.user_parameters?.username || "user";
+      const user =
+        devbox.launch_parameters?.user_parameters?.username || "user";
 
       // Get SSH key
       const sshInfo = await getSSHKey(devboxId);
@@ -141,15 +161,20 @@ export async function sshDevbox(devboxId: string, options: SSHOptions) {
       }
 
       if (options.configOnly) {
-        return { 
-          config: generateSSHConfig(devboxId, user, sshInfo.keyfilePath, sshInfo.url)
+        return {
+          config: generateSSHConfig(
+            devboxId,
+            user,
+            sshInfo.keyfilePath,
+            sshInfo.url,
+          ),
         };
       } else {
-        return { 
-          devboxId, 
-          user, 
-          keyfilePath: sshInfo.keyfilePath, 
-          url: sshInfo.url 
+        return {
+          devboxId,
+          user,
+          keyfilePath: sshInfo.keyfilePath,
+          url: sshInfo.url,
         };
       }
     },

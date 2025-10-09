@@ -33,7 +33,7 @@ const ListObjectsUI: React.FC<{
       try {
         const client = getClient();
         const params: any = {};
-        
+
         if (options.limit) params.limit = options.limit;
         if (options.startingAfter) params.startingAfter = options.startingAfter;
         if (options.name) params.name = options.name;
@@ -42,10 +42,10 @@ const ListObjectsUI: React.FC<{
         if (options.search) params.search = options.search;
         if (options.public) params.isPublic = true;
 
-        const objects = options.public 
+        const objects = options.public
           ? await client.objects.listPublic(params)
           : await client.objects.list(params);
-        
+
         setResult(objects);
       } catch (err) {
         setError(err as Error);
@@ -75,48 +75,48 @@ const ListObjectsUI: React.FC<{
               data={result.objects}
               keyExtractor={(item: any) => item.id}
               columns={[
-                { 
-                  key: "id", 
-                  label: "ID", 
-                  width: 20, 
+                {
+                  key: "id",
+                  label: "ID",
+                  width: 20,
                   render: (row: any) => (
                     <Text color={colors.text}>{row.id}</Text>
-                  )
+                  ),
                 },
-                { 
-                  key: "name", 
-                  label: "Name", 
-                  width: 30, 
+                {
+                  key: "name",
+                  label: "Name",
+                  width: 30,
                   render: (row: any) => (
                     <Text color={colors.text}>{row.name}</Text>
-                  )
+                  ),
                 },
-                { 
-                  key: "type", 
-                  label: "Type", 
-                  width: 15, 
+                {
+                  key: "type",
+                  label: "Type",
+                  width: 15,
                   render: (row: any) => (
                     <Text color={colors.text}>{row.content_type}</Text>
-                  )
+                  ),
                 },
-                { 
-                  key: "state", 
-                  label: "State", 
-                  width: 15, 
+                {
+                  key: "state",
+                  label: "State",
+                  width: 15,
                   render: (row: any) => (
                     <Text color={colors.text}>{row.state}</Text>
-                  )
+                  ),
                 },
-                { 
-                  key: "size", 
-                  label: "Size", 
-                  width: 10, 
+                {
+                  key: "size",
+                  label: "Size",
+                  width: 10,
                   render: (row: any) => (
                     <Text color={colors.text}>
                       {row.size_bytes ? formatSize(row.size_bytes) : "N/A"}
                     </Text>
-                  )
-                }
+                  ),
+                },
               ]}
             />
           ) : (
@@ -124,9 +124,7 @@ const ListObjectsUI: React.FC<{
           )}
         </Box>
       )}
-      {error && (
-        <ErrorMessage message="Failed to list objects" error={error} />
-      )}
+      {error && <ErrorMessage message="Failed to list objects" error={error} />}
     </>
   );
 };
@@ -138,7 +136,7 @@ export async function listObjects(options: ListObjectsOptions) {
     async () => {
       const client = executor.getClient();
       const params: any = {};
-      
+
       if (options.limit) params.limit = options.limit;
       if (options.startingAfter) params.startingAfter = options.startingAfter;
       if (options.name) params.name = options.name;
@@ -147,13 +145,13 @@ export async function listObjects(options: ListObjectsOptions) {
       if (options.search) params.search = options.search;
       if (options.public) params.isPublic = true;
 
-      const objects = options.public 
+      const objects = options.public
         ? await client.objects.listPublic(params)
         : await client.objects.list(params);
-      
+
       return objects.objects || [];
     },
     () => <ListObjectsUI options={options} />,
-    options.limit || 20
+    options.limit || 20,
   );
 }

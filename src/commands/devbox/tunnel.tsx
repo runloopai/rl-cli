@@ -33,7 +33,9 @@ const TunnelUI: React.FC<{
         // Check if SSH tools are available
         const sshToolsAvailable = await checkSSHTools();
         if (!sshToolsAvailable) {
-          throw new Error("SSH tools (ssh, openssl) are not available on this system");
+          throw new Error(
+            "SSH tools (ssh, openssl) are not available on this system",
+          );
         }
 
         if (!ports.includes(":")) {
@@ -43,10 +45,11 @@ const TunnelUI: React.FC<{
         const [localPort, remotePort] = ports.split(":");
 
         const client = getClient();
-        
+
         // Get devbox details to determine user
         const devbox = await client.devboxes.retrieve(devboxId);
-        const user = devbox.launch_parameters?.user_parameters?.username || "user";
+        const user =
+          devbox.launch_parameters?.user_parameters?.username || "user";
 
         // Get SSH key
         const sshInfo = await getSSHKey(devboxId);
@@ -69,7 +72,9 @@ const TunnelUI: React.FC<{
           `${user}@${sshInfo.url}`,
         ];
 
-        console.log(`Starting tunnel: local port ${localPort} -> remote port ${remotePort}`);
+        console.log(
+          `Starting tunnel: local port ${localPort} -> remote port ${remotePort}`,
+        );
         console.log("Press Ctrl+C to stop the tunnel.");
 
         // Set up signal handler for graceful shutdown
@@ -116,7 +121,9 @@ export async function createTunnel(devboxId: string, options: TunnelOptions) {
       // Check if SSH tools are available
       const sshToolsAvailable = await checkSSHTools();
       if (!sshToolsAvailable) {
-        throw new Error("SSH tools (ssh, openssl) are not available on this system");
+        throw new Error(
+          "SSH tools (ssh, openssl) are not available on this system",
+        );
       }
 
       if (!options.ports.includes(":")) {
@@ -126,10 +133,11 @@ export async function createTunnel(devboxId: string, options: TunnelOptions) {
       const [localPort, remotePort] = options.ports.split(":");
 
       const client = executor.getClient();
-      
+
       // Get devbox details to determine user
       const devbox = await client.devboxes.retrieve(devboxId);
-        const user = devbox.launch_parameters?.user_parameters?.username || "user";
+      const user =
+        devbox.launch_parameters?.user_parameters?.username || "user";
 
       // Get SSH key
       const sshInfo = await getSSHKey(devboxId);
@@ -152,7 +160,9 @@ export async function createTunnel(devboxId: string, options: TunnelOptions) {
         `${user}@${sshInfo.url}`,
       ];
 
-      console.log(`Starting tunnel: local port ${localPort} -> remote port ${remotePort}`);
+      console.log(
+        `Starting tunnel: local port ${localPort} -> remote port ${remotePort}`,
+      );
       console.log("Press Ctrl+C to stop the tunnel.");
 
       // Set up signal handler for graceful shutdown

@@ -29,7 +29,9 @@ const ReadFileUI: React.FC<{
     const readFile = async () => {
       try {
         const client = getClient();
-        const contents = await client.devboxes.readFileContents(devboxId, { file_path: remotePath });
+        const contents = await client.devboxes.readFileContents(devboxId, {
+          file_path: remotePath,
+        });
         await writeFile(outputPath, contents);
         setResult({ remotePath, outputPath, size: contents.length });
       } catch (err) {
@@ -52,9 +54,7 @@ const ReadFileUI: React.FC<{
           details={`Remote: ${result.remotePath}\nLocal: ${result.outputPath}\nSize: ${result.size} bytes`}
         />
       )}
-      {error && (
-        <ErrorMessage message="Failed to read file" error={error} />
-      )}
+      {error && <ErrorMessage message="Failed to read file" error={error} />}
     </>
   );
 };
@@ -65,14 +65,22 @@ export async function readFile(devboxId: string, options: ReadOptions) {
   await executor.executeAction(
     async () => {
       const client = executor.getClient();
-      const contents = await client.devboxes.readFileContents(devboxId, { file_path: options.remote });
+      const contents = await client.devboxes.readFileContents(devboxId, {
+        file_path: options.remote,
+      });
       await writeFile(options.outputPath!, contents);
       return {
         remotePath: options.remote,
         outputPath: options.outputPath!,
-        size: contents.length
+        size: contents.length,
       };
     },
-    () => <ReadFileUI devboxId={devboxId} remotePath={options.remote} outputPath={options.outputPath!} />,
+    () => (
+      <ReadFileUI
+        devboxId={devboxId}
+        remotePath={options.remote}
+        outputPath={options.outputPath!}
+      />
+    ),
   );
 }

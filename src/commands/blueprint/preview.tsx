@@ -74,10 +74,12 @@ export async function previewBlueprint(options: PreviewBlueprintOptions) {
         system_setup_commands: options.systemSetupCommands,
       });
     },
-    () => <PreviewBlueprintUI 
-      name={options.name}
-      dockerfile={options.dockerfile}
-      systemSetupCommands={options.systemSetupCommands}
-    />,
+    () => (
+      <PreviewBlueprintUI
+        name={options.name}
+        dockerfile={options.dockerfile}
+        systemSetupCommands={options.systemSetupCommands}
+      />
+    ),
   );
 }

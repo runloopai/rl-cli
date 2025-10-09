@@ -33,16 +33,16 @@ const CreateBlueprintUI: React.FC<{
   availablePorts?: string[];
   root?: boolean;
   user?: string;
-}> = ({ 
-  name, 
-  dockerfile, 
-  dockerfilePath, 
-  systemSetupCommands, 
-  resources, 
-  architecture, 
-  availablePorts, 
-  root, 
-  user 
+}> = ({
+  name,
+  dockerfile,
+  dockerfilePath,
+  systemSetupCommands,
+  resources,
+  architecture,
+  availablePorts,
+  root,
+  user,
 }) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
@@ -52,7 +52,7 @@ const CreateBlueprintUI: React.FC<{
     const createBlueprint = async () => {
       try {
         const client = getClient();
-        
+
         // Read dockerfile from file if path is provided
         let dockerfileContents = dockerfile;
         if (dockerfilePath) {
@@ -80,7 +80,9 @@ const CreateBlueprintUI: React.FC<{
           launch_parameters: {
             resource_size_request: resources as any,
             architecture: architecture as any,
-            available_ports: availablePorts?.map(port => parseInt(port, 10)) as any,
+            available_ports: availablePorts?.map((port) =>
+              parseInt(port, 10),
+            ) as any,
             user_parameters: userParameters,
           },
         });
@@ -94,7 +96,17 @@ const CreateBlueprintUI: React.FC<{
     };
 
     createBlueprint();
-  }, [name, dockerfile, dockerfilePath, systemSetupCommands, resources, architecture, availablePorts, root, user]);
+  }, [
+    name,
+    dockerfile,
+    dockerfilePath,
+    systemSetupCommands,
+    resources,
+    architecture,
+    availablePorts,
+    root,
+    user,
+  ]);
 
   return (
     <>
@@ -119,7 +131,7 @@ export async function createBlueprint(options: CreateBlueprintOptions) {
   await executor.executeAction(
     async () => {
       const client = executor.getClient();
-      
+
       // Read dockerfile from file if path is provided
       let dockerfileContents = options.dockerfile;
       if (options.dockerfilePath) {
@@ -147,21 +159,25 @@ export async function createBlueprint(options: CreateBlueprintOptions) {
         launch_parameters: {
           resource_size_request: options.resources as any,
           architecture: options.architecture as any,
-          available_ports: options.availablePorts?.map(port => parseInt(port, 10)) as any,
+          available_ports: options.availablePorts?.map((port) =>
+            parseInt(port, 10),
+          ) as any,
           user_parameters: userParameters,
         },
       });
     },
-    () => <CreateBlueprintUI 
-      name={options.name}
-      dockerfile={options.dockerfile}
-      dockerfilePath={options.dockerfilePath}
-      systemSetupCommands={options.systemSetupCommands}
-      resources={options.resources}
-      architecture={options.architecture}
-      availablePorts={options.availablePorts}
-      root={options.root}
-      user={options.user}
-    />,
+    () => (
+      <CreateBlueprintUI
+        name={options.name}
+        dockerfile={options.dockerfile}
+        dockerfilePath={options.dockerfilePath}
+        systemSetupCommands={options.systemSetupCommands}
+        resources={options.resources}
+        architecture={options.architecture}
+        availablePorts={options.availablePorts}
+        root={options.root}
+        user={options.user}
+      />
+    ),
   );
 }

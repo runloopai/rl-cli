@@ -53,7 +53,10 @@ const ShutdownDevboxUI: React.FC<{
   );
 };
 
-export async function shutdownDevbox(devboxId: string, options: ShutdownOptions) {
+export async function shutdownDevbox(
+  devboxId: string,
+  options: ShutdownOptions,
+) {
   const executor = createExecutor(options);
 
   await executor.executeAction(

@@ -25,7 +25,8 @@ const SnapshotStatusUI: React.FC<{
     const getSnapshotStatus = async () => {
       try {
         const client = getClient();
-        const status = await client.devboxes.diskSnapshots.queryStatus(snapshotId);
+        const status =
+          await client.devboxes.diskSnapshots.queryStatus(snapshotId);
         setResult(status);
       } catch (err) {
         setError(err as Error);

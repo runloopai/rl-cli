@@ -37,14 +37,17 @@ const SCPUI: React.FC<{
         // Check if SSH tools are available
         const sshToolsAvailable = await checkSSHTools();
         if (!sshToolsAvailable) {
-          throw new Error("SSH tools (ssh, scp, openssl) are not available on this system");
+          throw new Error(
+            "SSH tools (ssh, scp, openssl) are not available on this system",
+          );
         }
 
         const client = getClient();
-        
+
         // Get devbox details to determine user
         const devbox = await client.devboxes.retrieve(devboxId);
-        const user = devbox.launch_parameters?.user_parameters?.username || "user";
+        const user =
+          devbox.launch_parameters?.user_parameters?.username || "user";
 
         // Get SSH key
         const sshInfo = await getSSHKey(devboxId);
@@ -102,9 +105,7 @@ const SCPUI: React.FC<{
           details={`Source: ${result.src}\nDestination: ${result.dst}`}
         />
       )}
-      {error && (
-        <ErrorMessage message="SCP operation failed" error={error} />
-      )}
+      {error && <ErrorMessage message="SCP operation failed" error={error} />}
     </>
   );
 };
@@ -117,14 +118,17 @@ export async function scpFiles(devboxId: string, options: SCPOptions) {
       // Check if SSH tools are available
       const sshToolsAvailable = await checkSSHTools();
       if (!sshToolsAvailable) {
-        throw new Error("SSH tools (ssh, scp, openssl) are not available on this system");
+        throw new Error(
+          "SSH tools (ssh, scp, openssl) are not available on this system",
+        );
       }
 
       const client = executor.getClient();
-      
+
       // Get devbox details to determine user
       const devbox = await client.devboxes.retrieve(devboxId);
-        const user = devbox.launch_parameters?.user_parameters?.username || "user";
+      const user =
+        devbox.launch_parameters?.user_parameters?.username || "user";
 
       // Get SSH key
       const sshInfo = await getSSHKey(devboxId);
@@ -163,6 +167,13 @@ export async function scpFiles(devboxId: string, options: SCPOptions) {
       const { stdout, stderr } = await execAsync(scpCommand.join(" "));
       return { src: options.src, dst: options.dst, stdout, stderr };
     },
-    () => <SCPUI devboxId={devboxId} src={options.src} dst={options.dst} scpOptions={options.scpOptions} />,
+    () => (
+      <SCPUI
+        devboxId={devboxId}
+        src={options.src}
+        dst={options.dst}
+        scpOptions={options.scpOptions}
+      />
+    ),
   );
 }

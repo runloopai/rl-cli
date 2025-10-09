@@ -54,7 +54,10 @@ devbox
   .option("-n, --name <name>", "Devbox name")
   .option("-t, --template <template>", "Template to use")
   .option("--blueprint <blueprint>", "Blueprint ID to use")
-  .option("--resources <size>", "Resource size (X_SMALL, SMALL, MEDIUM, LARGE, X_LARGE, XX_LARGE)")
+  .option(
+    "--resources <size>",
+    "Resource size (X_SMALL, SMALL, MEDIUM, LARGE, X_LARGE, XX_LARGE)",
+  )
   .option("--architecture <arch>", "Architecture (arm64, x86_64)")
   .option("--entrypoint <command>", "Entrypoint command to run")
   .option("--available-ports <ports...>", "Available ports")
@@ -171,8 +174,16 @@ devbox
   .description("SSH into a devbox")
   .option("--config-only", "Print SSH config only")
   .option("--no-wait", "Do not wait for devbox to be ready")
-  .option("--timeout <seconds>", "Timeout in seconds to wait for readiness", "180")
-  .option("--poll-interval <seconds>", "Polling interval in seconds while waiting", "3")
+  .option(
+    "--timeout <seconds>",
+    "Timeout in seconds to wait for readiness",
+    "180",
+  )
+  .option(
+    "--poll-interval <seconds>",
+    "Polling interval in seconds while waiting",
+    "3",
+  )
   .option(
     "-o, --output [format]",
     "Output format: text|json|yaml (default: interactive)",
@@ -252,7 +263,10 @@ devbox
   .command("download <id>")
   .description("Download a file from a devbox")
   .option("--file-path <path>", "Path to the file in the devbox")
-  .option("--output-path <path>", "Local path where to save the downloaded file")
+  .option(
+    "--output-path <path>",
+    "Local path where to save the downloaded file",
+  )
   .option(
     "-o, --output-format [format]",
     "Output format: text|json|yaml (default: interactive)",
@@ -394,7 +408,10 @@ blueprint
   .option("--dockerfile <content>", "Dockerfile contents")
   .option("--dockerfile-path <path>", "Dockerfile path")
   .option("--system-setup-commands <commands...>", "System setup commands")
-  .option("--resources <size>", "Resource size (X_SMALL, SMALL, MEDIUM, LARGE, X_LARGE, XX_LARGE)")
+  .option(
+    "--resources <size>",
+    "Resource size (X_SMALL, SMALL, MEDIUM, LARGE, X_LARGE, XX_LARGE)",
+  )
   .option("--architecture <arch>", "Architecture (arm64, x86_64)")
   .option("--available-ports <ports...>", "Available ports")
   .option("--root", "Run as root")
@@ -413,7 +430,10 @@ blueprint
   .description("Preview blueprint before creation")
   .option("--dockerfile <content>", "Dockerfile contents")
   .option("--system-setup-commands <commands...>", "System setup commands")
-  .option("--resources <size>", "Resource size (X_SMALL, SMALL, MEDIUM, LARGE, X_LARGE, XX_LARGE)")
+  .option(
+    "--resources <size>",
+    "Resource size (X_SMALL, SMALL, MEDIUM, LARGE, X_LARGE, XX_LARGE)",
+  )
   .option("--architecture <arch>", "Architecture (arm64, x86_64)")
   .option("--available-ports <ports...>", "Available ports")
   .option("--root", "Run as root")
@@ -423,7 +443,9 @@ blueprint
     "Output format: text|json|yaml (default: interactive)",
   )
   .action(async (name, options) => {
-    const { previewBlueprint } = await import("./commands/blueprint/preview.js");
+    const { previewBlueprint } = await import(
+      "./commands/blueprint/preview.js"
+    );
     await previewBlueprint({ name, ...options });
   });
 
@@ -499,7 +521,11 @@ object
   .command("download <id> <path>")
   .description("Download object to local file")
   .option("--extract", "Extract downloaded archive after download")
-  .option("--duration-seconds <seconds>", "Duration in seconds for the presigned URL validity", "3600")
+  .option(
+    "--duration-seconds <seconds>",
+    "Duration in seconds for the presigned URL validity",
+    "3600",
+  )
   .option(
     "-o, --output [format]",
     "Output format: text|json|yaml (default: interactive)",
@@ -513,7 +539,10 @@ object
   .command("upload <path>")
   .description("Upload a file as an object")
   .option("--name <name>", "Object name (required)")
-  .option("--content-type <type>", "Content type: unspecified|text|binary|gzip|tar|tgz")
+  .option(
+    "--content-type <type>",
+    "Content type: unspecified|text|binary|gzip|tar|tgz",
+  )
   .option("--public", "Make object publicly accessible")
   .option(
     "-o, --output [format]",
