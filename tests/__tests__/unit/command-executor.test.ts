@@ -1,15 +1,15 @@
-import { CommandExecutor } from "../../../src/utils/CommandExecutor.js";
-import { OutputOptions } from "../../../src/utils/output.js";
+import { CommandExecutor } from "@/utils/CommandExecutor";
+import { OutputOptions } from "@/utils/output";
 
 // Mock the output functions
-jest.mock("../../../src/utils/output.js", () => ({
+jest.mock("@/utils/output", () => ({
   shouldUseNonInteractiveOutput: jest.fn(),
   outputList: jest.fn(),
   outputResult: jest.fn(),
 }));
 
 // Mock the client
-jest.mock("../../../src/utils/client.js", () => ({
+jest.mock("@/utils/client", () => ({
   getClient: jest.fn(() => ({
     devboxes: {
       list: jest.fn(),
@@ -26,7 +26,7 @@ jest.mock("ink", () => ({
   })),
 }));
 
-import { shouldUseNonInteractiveOutput, outputList, outputResult } from "../../../src/utils/output.js";
+import { shouldUseNonInteractiveOutput, outputList, outputResult } from "@/utils/output";
 
 const mockShouldUseNonInteractiveOutput = shouldUseNonInteractiveOutput as jest.MockedFunction<typeof shouldUseNonInteractiveOutput>;
 const mockOutputList = outputList as jest.MockedFunction<typeof outputList>;

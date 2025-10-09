@@ -1,15 +1,6 @@
 import { jest } from '@jest/globals';
 import { mockObject, mockAPIClient } from '../../../fixtures/mocks';
-import { createMockCommandOptions } from '../../../helpers';
-
-// Mock the client and executor
-jest.mock('../../../../../src/utils/client', () => ({
-  getClient: jest.fn()
-}));
-
-jest.mock('../../../../../src/utils/CommandExecutor', () => ({
-  createExecutor: jest.fn()
-}));
+import { createMockCommandOptions, mockNetwork, mockFileSystem } from '../../../helpers';
 
 describe('Object Commands', () => {
   let mockClient: any;
@@ -21,14 +12,22 @@ describe('Object Commands', () => {
     mockClient = mockAPIClient();
     mockExecutor = {
       getClient: jest.fn().mockReturnValue(mockClient),
-      executeAction: jest.fn()
+      executeAction: jest.fn().mockImplementation(async (fetchData, renderUI) => {
+        const result = await fetchData();
+        return result;
+      }),
+      executeList: jest.fn().mockImplementation(async (fetchData, renderUI, limit) => {
+        const items = await fetchData();
+        return items;
+      })
     };
 
-    jest.doMock('../../../../../src/utils/client', () => ({
+    // Mock the modules before each test
+    jest.doMock('@/utils/client', () => ({
       getClient: () => mockClient
     }));
 
-    jest.doMock('../../../../../src/utils/CommandExecutor', () => ({
+    jest.doMock('@/utils/CommandExecutor', () => ({
       createExecutor: () => mockExecutor
     }));
   });
@@ -43,7 +42,19 @@ describe('Object Commands', () => {
       };
       mockClient.objects.list.mockResolvedValue(mockObjects);
 
-      const { listObjects } = await import('../../../../../src/commands/object/list');
+      // Clear module cache and import dynamically
+      jest.resetModules();
+      
+      // Re-setup mocks after clearing modules
+      jest.doMock('@/utils/client', () => ({
+        getClient: () => mockClient
+      }));
+
+      jest.doMock('@/utils/CommandExecutor', () => ({
+        createExecutor: () => mockExecutor
+      }));
+      
+      const { listObjects } = await import('@/commands/object/list');
       
       await listObjects(createMockCommandOptions());
 
@@ -62,8 +73,21 @@ describe('Object Commands', () => {
         objects: [mockObject({ name: 'test.txt', content_type: 'text/plain' })]
       };
       mockClient.objects.list.mockResolvedValue(mockObjects);
+      mockClient.objects.listPublic.mockResolvedValue(mockObjects);
 
-      const { listObjects } = await import('../../../../../src/commands/object/list');
+      // Clear module cache and import dynamically
+      jest.resetModules();
+      
+      // Re-setup mocks after clearing modules
+      jest.doMock('@/utils/client', () => ({
+        getClient: () => mockClient
+      }));
+
+      jest.doMock('@/utils/CommandExecutor', () => ({
+        createExecutor: () => mockExecutor
+      }));
+      
+      const { listObjects } = await import('@/commands/object/list');
       
       await listObjects({
         ...createMockCommandOptions(),
@@ -75,13 +99,13 @@ describe('Object Commands', () => {
         public: true
       });
 
-      expect(mockClient.objects.list).toHaveBeenCalledWith({
+      expect(mockClient.objects.listPublic).toHaveBeenCalledWith({
         limit: 10,
         name: 'test',
-        content_type: 'text/plain',
+        contentType: 'text/plain',
         state: 'READ_ONLY',
         search: 'test query',
-        public: true
+        isPublic: true
       });
     });
   });
@@ -91,9 +115,21 @@ describe('Object Commands', () => {
       const mockObjectData = mockObject();
       mockClient.objects.retrieve.mockResolvedValue(mockObjectData);
 
-      const { getObject } = await import('../../../../../src/commands/object/get');
+      // Clear module cache and import dynamically
+      jest.resetModules();
       
-      await getObject('obj-test-id', createMockCommandOptions());
+      // Re-setup mocks after clearing modules
+      jest.doMock('@/utils/client', () => ({
+        getClient: () => mockClient
+      }));
+
+      jest.doMock('@/utils/CommandExecutor', () => ({
+        createExecutor: () => mockExecutor
+      }));
+      
+      const { getObject } = await import('@/commands/object/get');
+      
+      await getObject({ id: 'obj-test-id', ...createMockCommandOptions() });
 
       expect(mockClient.objects.retrieve).toHaveBeenCalledWith('obj-test-id');
       expect(mockExecutor.executeAction).toHaveBeenCalled();
@@ -102,9 +138,21 @@ describe('Object Commands', () => {
     it('should handle object not found', async () => {
       mockClient.objects.retrieve.mockRejectedValue(new Error('Object not found'));
 
-      const { getObject } = await import('../../../../../src/commands/object/get');
+      // Clear module cache and import dynamically
+      jest.resetModules();
       
-      await expect(getObject('nonexistent-id', createMockCommandOptions()))
+      // Re-setup mocks after clearing modules
+      jest.doMock('@/utils/client', () => ({
+        getClient: () => mockClient
+      }));
+
+      jest.doMock('@/utils/CommandExecutor', () => ({
+        createExecutor: () => mockExecutor
+      }));
+      
+      const { getObject } = await import('@/commands/object/get');
+      
+      await expect(getObject({ id: 'nonexistent-id', ...createMockCommandOptions() }))
         .rejects.toThrow('Object not found');
     });
   });
@@ -126,12 +174,37 @@ describe('Object Commands', () => {
         arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(8))
       });
 
-      const { downloadObject } = await import('../../../../../src/commands/object/download');
+      // Clear module cache and import dynamically
+      jest.resetModules();
       
-      await downloadObject('obj-test-id', {
-        ...createMockCommandOptions(),
-        outputPath: '/path/to/output.txt',
-        durationSeconds: 3600
+      // Re-setup mocks after clearing modules
+      jest.doMock('@/utils/client', () => ({
+        getClient: () => mockClient
+      }));
+
+      jest.doMock('@/utils/CommandExecutor', () => ({
+        createExecutor: () => mockExecutor
+      }));
+
+      // Mock global fetch for download requests
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(8))
+      });
+
+      // Mock fs/promises for file operations
+      jest.doMock('fs/promises', () => ({
+        writeFile: jest.fn().mockResolvedValue(undefined)
+      }));
+      
+      const { downloadObject } = await import('@/commands/object/download');
+      
+      await downloadObject({
+        id: 'obj-test-id',
+        path: '/path/to/output.txt',
+        durationSeconds: 3600,
+        ...createMockCommandOptions()
       });
 
       expect(mockClient.objects.download).toHaveBeenCalledWith('obj-test-id', {
@@ -144,16 +217,37 @@ describe('Object Commands', () => {
         download_url: 'https://example.com/download/obj-test-id'
       };
       mockClient.objects.download.mockResolvedValue(mockDownloadResponse);
-      mockFetch.mockResolvedValue({
+
+      // Clear module cache and import dynamically
+      jest.resetModules();
+      
+      // Re-setup mocks after clearing modules
+      jest.doMock('@/utils/client', () => ({
+        getClient: () => mockClient
+      }));
+
+      jest.doMock('@/utils/CommandExecutor', () => ({
+        createExecutor: () => mockExecutor
+      }));
+
+      // Mock global fetch for download requests
+      global.fetch = jest.fn().mockResolvedValue({
         ok: true,
+        status: 200,
         arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(8))
       });
 
-      const { downloadObject } = await import('../../../../../src/commands/object/download');
+      // Mock fs/promises for file operations
+      jest.doMock('fs/promises', () => ({
+        writeFile: jest.fn().mockResolvedValue(undefined)
+      }));
+
+      const { downloadObject } = await import('@/commands/object/download');
       
-      await downloadObject('obj-test-id', {
-        ...createMockCommandOptions(),
-        outputPath: '/path/to/output.txt'
+      await downloadObject({
+        id: 'obj-test-id',
+        path: '/path/to/output.txt',
+        ...createMockCommandOptions()
       });
 
       expect(mockClient.objects.download).toHaveBeenCalledWith('obj-test-id', {
@@ -164,7 +258,7 @@ describe('Object Commands', () => {
     it('should handle download failure', async () => {
       mockClient.objects.download.mockRejectedValue(new Error('Download failed'));
 
-      const { downloadObject } = await import('../../../../../src/commands/object/download');
+      const { downloadObject } = await import('@/commands/object/download');
       
       await expect(downloadObject('obj-test-id', {
         ...createMockCommandOptions(),
@@ -174,6 +268,7 @@ describe('Object Commands', () => {
   });
 
   describe('uploadObject', () => {
+    const { mockExists, mockMkdir, mockChmod, mockFsync } = mockFileSystem();
     const mockFs = {
       existsSync: jest.fn(),
       statSync: jest.fn(),
@@ -186,7 +281,7 @@ describe('Object Commands', () => {
 
     it('should upload file as object', async () => {
       const mockCreateResponse = {
-        object_id: 'obj-test-id',
+        id: 'obj-test-id',
         upload_url: 'https://example.com/upload',
         fields: { key: 'value' }
       };
@@ -199,11 +294,35 @@ describe('Object Commands', () => {
       mockFs.statSync.mockReturnValue({ size: 1024 });
       mockFs.readFileSync.mockReturnValue('file content');
 
-      const { uploadObject } = await import('../../../../../src/commands/object/upload');
+      // Clear module cache and import dynamically
+      jest.resetModules();
+      
+      // Re-setup mocks after clearing modules
+      jest.doMock('@/utils/client', () => ({
+        getClient: () => mockClient
+      }));
+
+      jest.doMock('@/utils/CommandExecutor', () => ({
+        createExecutor: () => mockExecutor
+      }));
+
+      jest.doMock('fs', () => mockFs);
+      jest.doMock('fs/promises', () => ({
+        stat: jest.fn().mockResolvedValue({ size: 1024 }),
+        readFile: jest.fn().mockResolvedValue(Buffer.from('file content'))
+      }));
+
+      // Mock global fetch for upload requests
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200
+      });
+      
+      const { uploadObject } = await import('@/commands/object/upload');
       
       await uploadObject({
         ...createMockCommandOptions(),
-        filePath: '/path/to/file.txt',
+        path: '/path/to/file.txt',
         name: 'test-object',
         contentType: 'text/plain',
         public: false
@@ -211,8 +330,7 @@ describe('Object Commands', () => {
 
       expect(mockClient.objects.create).toHaveBeenCalledWith({
         name: 'test-object',
-        content_type: 'text/plain',
-        public: false
+        content_type: 'text/plain'
       });
       expect(mockClient.objects.complete).toHaveBeenCalledWith('obj-test-id');
     });
@@ -232,41 +350,76 @@ describe('Object Commands', () => {
       mockFs.statSync.mockReturnValue({ size: 1024 });
       mockFs.readFileSync.mockReturnValue('file content');
 
-      const { uploadObject } = await import('../../../../../src/commands/object/upload');
+      const { uploadObject } = await import('@/commands/object/upload');
       
       await uploadObject({
         ...createMockCommandOptions(),
-        filePath: '/path/to/file.json',
+        path: '/path/to/file.json',
         name: 'test-object'
       });
 
       expect(mockClient.objects.create).toHaveBeenCalledWith({
         name: 'test-object',
-        content_type: 'application/json',
-        public: false
+        content_type: 'text'
       });
     });
 
     it('should handle file not found', async () => {
       mockFs.existsSync.mockReturnValue(false);
 
-      const { uploadObject } = await import('../../../../../src/commands/object/upload');
+      // Clear module cache and import dynamically
+      jest.resetModules();
+      
+      // Re-setup mocks after clearing modules
+      jest.doMock('@/utils/client', () => ({
+        getClient: () => mockClient
+      }));
+
+      jest.doMock('@/utils/CommandExecutor', () => ({
+        createExecutor: () => mockExecutor
+      }));
+
+      jest.doMock('fs', () => mockFs);
+      jest.doMock('fs/promises', () => ({
+        stat: jest.fn().mockRejectedValue(new Error('ENOENT: no such file or directory')),
+        readFile: jest.fn().mockRejectedValue(new Error('ENOENT: no such file or directory'))
+      }));
+
+      const { uploadObject } = await import('@/commands/object/upload');
       
       await expect(uploadObject({
         ...createMockCommandOptions(),
-        filePath: '/nonexistent/file.txt',
+        path: '/nonexistent/file.txt',
         name: 'test-object'
-      })).rejects.toThrow('File /nonexistent/file.txt does not exist');
+      })).rejects.toThrow('ENOENT: no such file or directory');
     });
 
     it('should handle upload failure', async () => {
       mockClient.objects.create.mockRejectedValue(new Error('Upload failed'));
 
-      const { uploadObject } = await import('../../../../../src/commands/object/upload');
+      // Clear module cache and import dynamically
+      jest.resetModules();
+      
+      // Re-setup mocks after clearing modules
+      jest.doMock('@/utils/client', () => ({
+        getClient: () => mockClient
+      }));
+
+      jest.doMock('@/utils/CommandExecutor', () => ({
+        createExecutor: () => mockExecutor
+      }));
+
+      jest.doMock('fs', () => mockFs);
+      jest.doMock('fs/promises', () => ({
+        stat: jest.fn().mockResolvedValue({ size: 1024 }),
+        readFile: jest.fn().mockResolvedValue(Buffer.from('file content'))
+      }));
+
+      const { uploadObject } = await import('@/commands/object/upload');
       
       await expect(uploadObject({
         ...createMockCommandOptions(),
-        filePath: '/path/to/file.txt',
+        path: '/path/to/file.txt',
         name: 'test-object'
       })).rejects.toThrow('Upload failed');
     });
@@ -277,7 +430,7 @@ describe('Object Commands', () => {
       const mockDeletedObject = mockObject({ state: 'DELETED' });
       mockClient.objects.delete.mockResolvedValue(mockDeletedObject);
 
-      const { deleteObject } = await import('../../../../../src/commands/object/delete');
+      const { deleteObject } = await import('@/commands/object/delete');
       
       await deleteObject({
         ...createMockCommandOptions(),
@@ -290,7 +443,7 @@ describe('Object Commands', () => {
     it('should handle delete failure', async () => {
       mockClient.objects.delete.mockRejectedValue(new Error('Delete failed'));
 
-      const { deleteObject } = await import('../../../../../src/commands/object/delete');
+      const { deleteObject } = await import('@/commands/object/delete');
       
       await expect(deleteObject({
         ...createMockCommandOptions(),
@@ -300,18 +453,28 @@ describe('Object Commands', () => {
   });
 
   describe('Content Type Detection', () => {
+    const mockFs = {
+      existsSync: jest.fn(),
+      statSync: jest.fn(),
+      readFileSync: jest.fn()
+    };
+
+    beforeEach(() => {
+      jest.doMock('fs', () => mockFs);
+    });
+
     it('should detect common content types', async () => {
       const testCases = [
-        { file: 'test.txt', expected: 'text/plain' },
-        { file: 'test.json', expected: 'application/json' },
-        { file: 'test.html', expected: 'text/html' },
-        { file: 'test.css', expected: 'text/css' },
-        { file: 'test.js', expected: 'application/javascript' },
-        { file: 'test.png', expected: 'image/png' },
-        { file: 'test.jpg', expected: 'image/jpeg' },
-        { file: 'test.pdf', expected: 'application/pdf' },
-        { file: 'test.zip', expected: 'application/zip' },
-        { file: 'test.tar.gz', expected: 'application/gzip' }
+        { file: 'test.txt', expected: 'text' },
+        { file: 'test.json', expected: 'text' },
+        { file: 'test.html', expected: 'text' },
+        { file: 'test.css', expected: 'text' },
+        { file: 'test.js', expected: 'text' },
+        { file: 'test.png', expected: 'unspecified' },
+        { file: 'test.jpg', expected: 'unspecified' },
+        { file: 'test.pdf', expected: 'unspecified' },
+        { file: 'test.zip', expected: 'unspecified' },
+        { file: 'test.tar.gz', expected: 'gzip' } // extname returns .gz, not .tar.gz
       ];
 
       for (const testCase of testCases) {
@@ -329,18 +492,41 @@ describe('Object Commands', () => {
         mockFs.statSync.mockReturnValue({ size: 1024 });
         mockFs.readFileSync.mockReturnValue('file content');
 
-        const { uploadObject } = await import('../../../../../src/commands/object/upload');
+        // Clear module cache and import dynamically
+        jest.resetModules();
+        
+        // Re-setup mocks after clearing modules
+        jest.doMock('@/utils/client', () => ({
+          getClient: () => mockClient
+        }));
+
+        jest.doMock('@/utils/CommandExecutor', () => ({
+          createExecutor: () => mockExecutor
+        }));
+
+        jest.doMock('fs', () => mockFs);
+        jest.doMock('fs/promises', () => ({
+          stat: jest.fn().mockResolvedValue({ size: 1024 }),
+          readFile: jest.fn().mockResolvedValue(Buffer.from('file content'))
+        }));
+
+        // Mock global fetch for upload requests
+        global.fetch = jest.fn().mockResolvedValue({
+          ok: true,
+          status: 200
+        });
+
+        const { uploadObject } = await import('@/commands/object/upload');
         
         await uploadObject({
           ...createMockCommandOptions(),
-          filePath: `/path/to/${testCase.file}`,
+          path: `/path/to/${testCase.file}`,
           name: 'test-object'
         });
 
         expect(mockClient.objects.create).toHaveBeenCalledWith({
           name: 'test-object',
-          content_type: testCase.expected,
-          public: false
+          content_type: testCase.expected
         });
       }
     });
@@ -354,9 +540,21 @@ describe('Object Commands', () => {
         const mockObjectData = mockObject({ state });
         mockClient.objects.retrieve.mockResolvedValue(mockObjectData);
 
-        const { getObject } = await import('../../../../../src/commands/object/get');
+        // Clear module cache and import dynamically
+        jest.resetModules();
         
-        await getObject('obj-test-id', createMockCommandOptions());
+        // Re-setup mocks after clearing modules
+        jest.doMock('@/utils/client', () => ({
+          getClient: () => mockClient
+        }));
+
+        jest.doMock('@/utils/CommandExecutor', () => ({
+          createExecutor: () => mockExecutor
+        }));
+        
+        const { getObject } = await import('@/commands/object/get');
+        
+        await getObject({ id: 'obj-test-id', ...createMockCommandOptions() });
 
         expect(mockClient.objects.retrieve).toHaveBeenCalledWith('obj-test-id');
       }

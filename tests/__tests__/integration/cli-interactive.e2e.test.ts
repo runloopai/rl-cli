@@ -169,63 +169,6 @@ describe("CLI Interactive Mode", () => {
   });
 
   describe("Backward Compatibility", () => {
-    it.skip("should maintain interactive mode for auth command", async () => {
-      const process = spawn("node", [CLI_PATH, "auth"], {
-        stdio: ["pipe", "pipe", "pipe"],
-        timeout: 5000,
-      });
-
-      let hasAlternateScreenBuffer = false;
-      let output = "";
-      let hasRawModeError = false;
-
-      process.stdout.on("data", (data) => {
-        output += data.toString();
-        if (data.toString().includes("\x1b[?1049h")) {
-          hasAlternateScreenBuffer = true;
-        }
-      });
-
-      process.stderr.on("data", (data) => {
-        output += data.toString();
-        if (data.toString().includes("Raw mode is not supported")) {
-          hasRawModeError = true;
-        }
-      });
-
-      return new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          process.kill();
-          // Accept either alternate screen buffer OR raw mode error (which indicates interactive mode)
-          if (hasAlternateScreenBuffer || hasRawModeError) {
-            resolve();
-          } else {
-            reject(new Error("Process timeout - no interactive mode detected"));
-          }
-        }, 5000);
-
-        process.on("close", (code) => {
-          clearTimeout(timeout);
-          // Accept either alternate screen buffer OR raw mode error (which indicates interactive mode)
-          expect(hasAlternateScreenBuffer || hasRawModeError).toBe(true);
-          resolve();
-        });
-
-        process.on("error", (error) => {
-          clearTimeout(timeout);
-          if (error.message.includes("Raw mode is not supported")) {
-            expect(hasAlternateScreenBuffer).toBe(true);
-            resolve();
-          } else {
-            reject(error);
-          }
-        });
-
-        setTimeout(() => {
-          process.kill("SIGINT");
-        }, 1000);
-      });
-    }, 10000);
 
     it("should maintain interactive mode for main menu (no args)", async () => {
       const process = spawn("node", [CLI_PATH], {

@@ -4,7 +4,7 @@ import {
   outputResult,
   outputList,
   OutputOptions,
-} from "../../../src/utils/output.js";
+} from "@/utils/output";
 
 describe("Output Utility", () => {
   describe("shouldUseNonInteractiveOutput", () => {
