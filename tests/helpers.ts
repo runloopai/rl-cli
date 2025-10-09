@@ -17,8 +17,8 @@ export const createTempDir = (): string => {
 };
 
 export const mockSubprocess = () => {
-  const mockRun = jest.fn();
-  const mockSpawn = jest.fn();
+  const mockRun = jest.fn() as jest.MockedFunction<any>;
+  const mockSpawn = jest.fn() as jest.MockedFunction<any>;
   
   // Mock successful execution
   mockRun.mockResolvedValue({
@@ -54,12 +54,13 @@ export const mockFileSystem = () => {
 export const mockNetwork = () => {
   const mockFetch = jest.fn();
   
-  mockFetch.mockResolvedValue({
+  // Set up default mock response - using any to avoid typing issues
+  (mockFetch as any).mockResolvedValue({
     ok: true,
     status: 200,
-    json: jest.fn().mockResolvedValue({}),
-    text: jest.fn().mockResolvedValue(''),
-    arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(0))
+    json: jest.fn(),
+    text: jest.fn(),
+    arrayBuffer: jest.fn()
   });
   
   return { mockFetch };
@@ -76,7 +77,7 @@ export const expectToHaveBeenCalledWithAPI = (mockFn: jest.Mock, expectedCall: a
 };
 
 export const createMockCommandOptions = (overrides = {}) => ({
-  outputFormat: 'interactive',
+  output: 'interactive',
   ...overrides
 });
 

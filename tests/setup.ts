@@ -61,3 +61,14 @@ jest.mock('ink', () => ({
   measureElement: jest.fn(),
   useMeasure: jest.fn(),
 }));
+
+// Mock ESM-only Ink dependencies so Jest doesn't parse their ESM bundles
+jest.mock('ink-big-text', () => ({ __esModule: true, default: () => null }));
+jest.mock('ink-gradient', () => ({ __esModule: true, default: () => null }));
+
+// Mock app UI components that import Ink deps, to avoid pulling in ESM from node_modules
+jest.mock('../src/components/Banner.tsx', () => ({ __esModule: true, Banner: () => null }));
+jest.mock('../src/components/Header.tsx', () => ({ __esModule: true, Header: () => null }));
+jest.mock('../src/components/Spinner.tsx', () => ({ __esModule: true, SpinnerComponent: () => null }));
+jest.mock('../src/components/SuccessMessage.tsx', () => ({ __esModule: true, SuccessMessage: () => null }));
+jest.mock('../src/components/ErrorMessage.tsx', () => ({ __esModule: true, ErrorMessage: () => null }));

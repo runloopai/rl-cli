@@ -96,6 +96,7 @@ export const mockAPIClient = () => ({
   objects: {
     create: jest.fn(),
     list: jest.fn(),
+    listPublic: jest.fn(),
     retrieve: jest.fn(),
     download: jest.fn(),
     upload: jest.fn(),

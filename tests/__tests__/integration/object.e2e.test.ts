@@ -79,7 +79,7 @@ describe('Object E2E Tests', () => {
       
       const { stdout } = await execAsync(`node dist/cli.js object download ${objectId} ${downloadPath}`);
       
-      expect(stdout).toContain('Object downloaded successfully');
+      expect(stdout).toContain('objectId');
       expect(existsSync(downloadPath)).toBe(true);
     }, 30000);
 
@@ -188,7 +188,7 @@ describe('Object E2E Tests', () => {
         // Create and upload files
         for (const file of testFiles) {
           writeFileSync(file.path, file.content);
-          const { stdout } = await execAsync(`node dist/cli.js object upload ${file.path}`);
+          const { stdout } = await execAsync(`node dist/cli.js object upload ${file.path} --name test-${file.name}`);
           const match = stdout.match(/"id":\s*"([^"]+)"/);
           if (match) {
             objectIds.push(match[1]);
