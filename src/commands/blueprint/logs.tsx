@@ -11,7 +11,7 @@ import { colors } from "../../utils/theme.js";
 
 interface BlueprintLogsOptions {
   id: string;
-  outputFormat?: string;
+  output?: string;
 }
 
 const BlueprintLogsUI: React.FC<{
@@ -67,7 +67,7 @@ const BlueprintLogsUI: React.FC<{
 };
 
 export async function getBlueprintLogs(options: BlueprintLogsOptions) {
-  const executor = createExecutor({ output: options.outputFormat });
+  const executor = createExecutor({ output: options.output });
 
   await executor.executeAction(
     async () => {

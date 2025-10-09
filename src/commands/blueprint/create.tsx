@@ -17,10 +17,10 @@ interface CreateBlueprintOptions {
   systemSetupCommands?: string[];
   resources?: string;
   architecture?: string;
-  availablePorts?: number[];
+  availablePorts?: string[];
   root?: boolean;
   user?: string;
-  outputFormat?: string;
+  output?: string;
 }
 
 const CreateBlueprintUI: React.FC<{
@@ -30,7 +30,7 @@ const CreateBlueprintUI: React.FC<{
   systemSetupCommands?: string[];
   resources?: string;
   architecture?: string;
-  availablePorts?: number[];
+  availablePorts?: string[];
   root?: boolean;
   user?: string;
 }> = ({ 
@@ -80,7 +80,7 @@ const CreateBlueprintUI: React.FC<{
           launch_parameters: {
             resource_size_request: resources as any,
             architecture: architecture as any,
-            available_ports: availablePorts,
+            available_ports: availablePorts?.map(port => parseInt(port, 10)) as any,
             user_parameters: userParameters,
           },
         });
@@ -114,7 +114,7 @@ const CreateBlueprintUI: React.FC<{
 };
 
 export async function createBlueprint(options: CreateBlueprintOptions) {
-  const executor = createExecutor({ output: options.outputFormat });
+  const executor = createExecutor({ output: options.output });
 
   await executor.executeAction(
     async () => {
@@ -147,7 +147,7 @@ export async function createBlueprint(options: CreateBlueprintOptions) {
         launch_parameters: {
           resource_size_request: options.resources as any,
           architecture: options.architecture as any,
-          available_ports: options.availablePorts,
+          available_ports: options.availablePorts?.map(port => parseInt(port, 10)) as any,
           user_parameters: userParameters,
         },
       });

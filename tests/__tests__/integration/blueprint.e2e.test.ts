@@ -23,7 +23,7 @@ describe('Blueprint E2E Tests', () => {
     let blueprintId: string;
 
     it('should create a blueprint', async () => {
-      const { stdout } = await execAsync('node dist/cli.js blueprint create test-blueprint --dockerfile "FROM ubuntu:20.04" --system-setup-commands "apt update" --resources SMALL');
+      const { stdout } = await execAsync('node dist/cli.js blueprint create test-blueprint --dockerfile "FROM ubuntu:20.04" --system-setup-commands "apt update" --resources SMALL --output json');
       
       // Extract blueprint ID from output
       const match = stdout.match(/"id":\s*"([^"]+)"/);
@@ -35,22 +35,22 @@ describe('Blueprint E2E Tests', () => {
     it('should get blueprint details', async () => {
       expect(blueprintId).toBeDefined();
       
-      const { stdout } = await execAsync(`node dist/cli.js blueprint get ${blueprintId}`);
+      const { stdout } = await execAsync(`node dist/cli.js blueprint get ${blueprintId} --output json`);
       
-      expect(stdout).toContain('blueprint=');
+      expect(stdout).toContain('"id":');
       expect(stdout).toContain(blueprintId);
     }, 30000);
 
     it('should list blueprints', async () => {
-      const { stdout } = await execAsync('node dist/cli.js blueprint list');
+      const { stdout } = await execAsync('node dist/cli.js blueprint list --output json');
       
-      expect(stdout).toContain('blueprint=');
+      expect(stdout).toContain('"id":');
     }, 30000);
 
     it('should preview blueprint', async () => {
-      const { stdout } = await execAsync('node dist/cli.js blueprint preview test-blueprint-preview --dockerfile "FROM ubuntu:20.04" --resources SMALL');
+      const { stdout } = await execAsync('node dist/cli.js blueprint preview test-blueprint-preview --dockerfile "FROM ubuntu:20.04" --resources SMALL --output json');
       
-      expect(stdout).toContain('preview=');
+      expect(stdout).toContain('"dockerfile":');
     }, 30000);
   });
 
@@ -82,7 +82,7 @@ describe('Blueprint E2E Tests', () => {
     });
 
     it('should create blueprint with dockerfile file', async () => {
-      const { stdout } = await execAsync(`node dist/cli.js blueprint create test-blueprint-file --dockerfile-path ${dockerfilePath} --resources SMALL`);
+      const { stdout } = await execAsync(`node dist/cli.js blueprint create test-blueprint-file --dockerfile-path ${dockerfilePath} --resources SMALL --output json`);
       
       // Extract blueprint ID from output
       const match = stdout.match(/"id":\s*"([^"]+)"/);
@@ -96,7 +96,7 @@ describe('Blueprint E2E Tests', () => {
     let blueprintId: string;
 
     it('should create blueprint with root user', async () => {
-      const { stdout } = await execAsync('node dist/cli.js blueprint create test-blueprint-root --dockerfile "FROM ubuntu:20.04" --root --resources SMALL');
+      const { stdout } = await execAsync('node dist/cli.js blueprint create test-blueprint-root --dockerfile "FROM ubuntu:20.04" --root --resources SMALL --output json');
       
       // Extract blueprint ID from output
       const match = stdout.match(/"id":\s*"([^"]+)"/);
@@ -106,7 +106,7 @@ describe('Blueprint E2E Tests', () => {
     }, 60000);
 
     it('should create blueprint with custom user', async () => {
-      const { stdout } = await execAsync('node dist/cli.js blueprint create test-blueprint-user --dockerfile "FROM ubuntu:20.04" --user testuser:1000 --resources SMALL');
+      const { stdout } = await execAsync('node dist/cli.js blueprint create test-blueprint-user --dockerfile "FROM ubuntu:20.04" --user testuser:1000 --resources SMALL --output json');
       
       // Extract blueprint ID from output
       const match = stdout.match(/"id":\s*"([^"]+)"/);
@@ -119,7 +119,7 @@ describe('Blueprint E2E Tests', () => {
     let blueprintId: string;
 
     it('should create blueprint with architecture and ports', async () => {
-      const { stdout } = await execAsync('node dist/cli.js blueprint create test-blueprint-advanced --dockerfile "FROM ubuntu:20.04" --architecture arm64 --available-ports 3000,8080 --resources MEDIUM');
+      const { stdout } = await execAsync('node dist/cli.js blueprint create test-blueprint-advanced --dockerfile "FROM ubuntu:20.04" --architecture arm64 --available-ports 3000,8080 --resources MEDIUM --output json');
       
       // Extract blueprint ID from output
       const match = stdout.match(/"id":\s*"([^"]+)"/);
@@ -136,7 +136,7 @@ describe('Blueprint E2E Tests', () => {
       if (!apiKey) return;
       
       // Create a blueprint for logs
-      const { stdout } = await execAsync('node dist/cli.js blueprint create test-blueprint-logs --dockerfile "FROM ubuntu:20.04" --system-setup-commands "apt update" --resources SMALL');
+      const { stdout } = await execAsync('node dist/cli.js blueprint create test-blueprint-logs --dockerfile "FROM ubuntu:20.04" --system-setup-commands "apt update" --resources SMALL --output json');
       const match = stdout.match(/"id":\s*"([^"]+)"/);
       if (match) {
         blueprintId = match[1];
@@ -148,9 +148,9 @@ describe('Blueprint E2E Tests', () => {
         pending('Blueprint not created');
       }
 
-      const { stdout } = await execAsync(`node dist/cli.js blueprint logs ${blueprintId}`);
+      const { stdout } = await execAsync(`node dist/cli.js blueprint logs ${blueprintId} --output json`);
       
-      expect(stdout).toContain('logs=');
+      expect(stdout).toContain('"logs":');
     }, 30000);
   });
 });
