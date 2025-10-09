@@ -14,7 +14,7 @@ export interface OutputOptions {
  * Check if the command should use non-interactive output
  */
 export function shouldUseNonInteractiveOutput(options: OutputOptions): boolean {
-  return !!options.output;
+  return !!options.output && options.output !== "interactive";
 }
 
 /**

@@ -46,7 +46,15 @@ program
 const devbox = program
   .command("devbox")
   .description("Manage devboxes")
-  .alias("d");
+  .alias("d")
+  .action(async () => {
+    // Open interactive devbox list when no subcommand provided
+    const { runInteractiveCommand } = await import(
+      "./utils/interactiveCommand.js"
+    );
+    const { listDevboxes } = await import("./commands/devbox/list.js");
+    await runInteractiveCommand(() => listDevboxes({ output: "interactive" }));
+  });
 
 devbox
   .command("create")
@@ -65,7 +73,7 @@ devbox
   .option("--user <user:uid>", "Run as this user (format: username:uid)")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(createDevbox);
 
@@ -75,18 +83,10 @@ devbox
   .option("-s, --status <status>", "Filter by status")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: json)",
   )
   .action(async (options) => {
-    // Only use alternate screen for interactive mode
-    if (!options.output) {
-      const { runInteractiveCommand } = await import(
-        "./utils/interactiveCommand.js"
-      );
-      await runInteractiveCommand(() => listDevboxes(options));
-    } else {
-      await listDevboxes(options);
-    }
+    await listDevboxes(options);
   });
 
 devbox
@@ -95,7 +95,7 @@ devbox
   .alias("rm")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(deleteDevbox);
 
@@ -104,7 +104,7 @@ devbox
   .description("Execute a command in a devbox")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, command, options) => {
     await execCommand(id, command, options);
@@ -116,7 +116,7 @@ devbox
   .option("-p, --path <path>", "Target path in devbox")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(uploadFile);
 
@@ -126,7 +126,7 @@ devbox
   .description("Get devbox details")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: json)",
   )
   .action(async (id, options) => {
     const { getDevbox } = await import("./commands/devbox/get.js");
@@ -138,7 +138,7 @@ devbox
   .description("Suspend a devbox")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, options) => {
     const { suspendDevbox } = await import("./commands/devbox/suspend.js");
@@ -150,7 +150,7 @@ devbox
   .description("Resume a suspended devbox")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, options) => {
     const { resumeDevbox } = await import("./commands/devbox/resume.js");
@@ -162,7 +162,7 @@ devbox
   .description("Shutdown a devbox")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, options) => {
     const { shutdownDevbox } = await import("./commands/devbox/shutdown.js");
@@ -186,7 +186,7 @@ devbox
   )
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, options) => {
     const { sshDevbox } = await import("./commands/devbox/ssh.js");
@@ -199,7 +199,7 @@ devbox
   .option("--scp-options <options>", "Additional scp options (quoted)")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, src, dst, options) => {
     const { scpFiles } = await import("./commands/devbox/scp.js");
@@ -212,7 +212,7 @@ devbox
   .option("--rsync-options <options>", "Additional rsync options (quoted)")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, src, dst, options) => {
     const { rsyncFiles } = await import("./commands/devbox/rsync.js");
@@ -224,7 +224,7 @@ devbox
   .description("Create a port-forwarding tunnel to a devbox")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, ports, options) => {
     const { createTunnel } = await import("./commands/devbox/tunnel.js");
@@ -238,7 +238,7 @@ devbox
   .option("--output-path <path>", "Local file path to write the contents to")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, options) => {
     const { readFile } = await import("./commands/devbox/read.js");
@@ -252,7 +252,7 @@ devbox
   .option("--remote <path>", "Remote file path to write to on the devbox")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, options) => {
     const { writeFile } = await import("./commands/devbox/write.js");
@@ -282,7 +282,7 @@ devbox
   .option("--shell-name <name>", "Shell name to use (optional)")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, command, options) => {
     const { execAsync } = await import("./commands/devbox/execAsync.js");
@@ -294,7 +294,7 @@ devbox
   .description("Get status of an async execution")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, executionId, options) => {
     const { getAsync } = await import("./commands/devbox/getAsync.js");
@@ -306,7 +306,7 @@ devbox
   .description("View devbox logs")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, options) => {
     const { getLogs } = await import("./commands/devbox/logs.js");
@@ -317,7 +317,15 @@ devbox
 const snapshot = program
   .command("snapshot")
   .description("Manage devbox snapshots")
-  .alias("snap");
+  .alias("snap")
+  .action(async () => {
+    // Open interactive snapshot list when no subcommand provided
+    const { runInteractiveCommand } = await import(
+      "./utils/interactiveCommand.js"
+    );
+    const { listSnapshots } = await import("./commands/snapshot/list.js");
+    await runInteractiveCommand(() => listSnapshots({ output: "interactive" }));
+  });
 
 snapshot
   .command("list")
@@ -325,18 +333,11 @@ snapshot
   .option("-d, --devbox <id>", "Filter by devbox ID")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: json)",
   )
   .action(async (options) => {
     const { listSnapshots } = await import("./commands/snapshot/list.js");
-    if (!options.output) {
-      const { runInteractiveCommand } = await import(
-        "./utils/interactiveCommand.js"
-      );
-      await runInteractiveCommand(() => listSnapshots(options));
-    } else {
-      await listSnapshots(options);
-    }
+    await listSnapshots(options);
   });
 
 snapshot
@@ -345,7 +346,7 @@ snapshot
   .option("-n, --name <name>", "Snapshot name")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (devboxId, options) => {
     const { createSnapshot } = await import("./commands/snapshot/create.js");
@@ -358,7 +359,7 @@ snapshot
   .alias("rm")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, options) => {
     const { deleteSnapshot } = await import("./commands/snapshot/delete.js");
@@ -370,7 +371,7 @@ snapshot
   .description("Get snapshot operation status")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (snapshotId, options) => {
     const { getSnapshotStatus } = await import("./commands/snapshot/status.js");
@@ -381,25 +382,26 @@ snapshot
 const blueprint = program
   .command("blueprint")
   .description("Manage blueprints")
-  .alias("bp");
+  .alias("bp")
+  .action(async () => {
+    // Open interactive blueprint list when no subcommand provided
+    const { runInteractiveCommand } = await import(
+      "./utils/interactiveCommand.js"
+    );
+    const { listBlueprints } = await import("./commands/blueprint/list.js");
+    await runInteractiveCommand(() => listBlueprints({ output: "interactive" }));
+  });
 
 blueprint
   .command("list")
   .description("List all blueprints")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: json)",
   )
   .action(async (options) => {
     const { listBlueprints } = await import("./commands/blueprint/list.js");
-    if (!options.output) {
-      const { runInteractiveCommand } = await import(
-        "./utils/interactiveCommand.js"
-      );
-      await runInteractiveCommand(() => listBlueprints(options));
-    } else {
-      await listBlueprints(options);
-    }
+    await listBlueprints(options);
   });
 
 blueprint
@@ -418,7 +420,7 @@ blueprint
   .option("--user <user:uid>", "Run as this user (format: username:uid)")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (name, options) => {
     const { createBlueprint } = await import("./commands/blueprint/create.js");
@@ -440,7 +442,7 @@ blueprint
   .option("--user <user:uid>", "Run as this user (format: username:uid)")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (name, options) => {
     const { previewBlueprint } = await import(
@@ -454,7 +456,7 @@ blueprint
   .description("Get blueprint details")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, options) => {
     const { getBlueprint } = await import("./commands/blueprint/get.js");
@@ -466,7 +468,7 @@ blueprint
   .description("Get blueprint build logs")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, options) => {
     const { getBlueprintLogs } = await import("./commands/blueprint/logs.js");
@@ -491,18 +493,11 @@ object
   .option("--public", "List public objects only")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: json)",
   )
   .action(async (options) => {
     const { listObjects } = await import("./commands/object/list.js");
-    if (!options.output) {
-      const { runInteractiveCommand } = await import(
-        "./utils/interactiveCommand.js"
-      );
-      await runInteractiveCommand(() => listObjects(options));
-    } else {
-      await listObjects(options);
-    }
+    await listObjects(options);
   });
 
 object
@@ -510,7 +505,7 @@ object
   .description("Get object details")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, options) => {
     const { getObject } = await import("./commands/object/get.js");
@@ -528,7 +523,7 @@ object
   )
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, path, options) => {
     const { downloadObject } = await import("./commands/object/download.js");
@@ -546,7 +541,7 @@ object
   .option("--public", "Make object publicly accessible")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (path, options) => {
     const { uploadObject } = await import("./commands/object/upload.js");
@@ -565,7 +560,7 @@ object
   .description("Delete an object (irreversible)")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: interactive)",
+    "Output format: text|json|yaml (default: text)",
   )
   .action(async (id, options) => {
     const { deleteObject } = await import("./commands/object/delete.js");
