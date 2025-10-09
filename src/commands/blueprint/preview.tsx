@@ -13,7 +13,7 @@ interface PreviewBlueprintOptions {
   name: string;
   dockerfile?: string;
   systemSetupCommands?: string[];
-  outputFormat?: string;
+  output?: string;
 }
 
 const PreviewBlueprintUI: React.FC<{
@@ -63,7 +63,7 @@ const PreviewBlueprintUI: React.FC<{
 };
 
 export async function previewBlueprint(options: PreviewBlueprintOptions) {
-  const executor = createExecutor({ output: options.outputFormat });
+  const executor = createExecutor({ output: options.output });
 
   await executor.executeAction(
     async () => {

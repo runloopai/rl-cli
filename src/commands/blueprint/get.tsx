@@ -11,7 +11,7 @@ import { colors } from "../../utils/theme.js";
 
 interface GetBlueprintOptions {
   id: string;
-  outputFormat?: string;
+  output?: string;
 }
 
 const GetBlueprintUI: React.FC<{
@@ -55,7 +55,7 @@ const GetBlueprintUI: React.FC<{
 };
 
 export async function getBlueprint(options: GetBlueprintOptions) {
-  const executor = createExecutor({ output: options.outputFormat });
+  const executor = createExecutor({ output: options.output });
 
   await executor.executeAction(
     async () => {

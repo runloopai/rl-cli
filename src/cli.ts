@@ -389,9 +389,8 @@ blueprint
   });
 
 blueprint
-  .command("create")
+  .command("create <name>")
   .description("Create a new blueprint")
-  .option("--name <name>", "Blueprint name")
   .option("--dockerfile <content>", "Dockerfile contents")
   .option("--dockerfile-path <path>", "Dockerfile path")
   .option("--system-setup-commands <commands...>", "System setup commands")
@@ -404,9 +403,9 @@ blueprint
     "-o, --output [format]",
     "Output format: text|json|yaml (default: interactive)",
   )
-  .action(async (options) => {
+  .action(async (name, options) => {
     const { createBlueprint } = await import("./commands/blueprint/create.js");
-    await createBlueprint(options);
+    await createBlueprint({ name, ...options });
   });
 
 blueprint
