@@ -27,24 +27,24 @@ function getClaudeConfigPath(): string {
   }
 }
 
-function getRlnPath(): string {
+function getRliPath(): string {
   try {
-    const cmd = platform() === "win32" ? "where rln" : "which rln";
+    const cmd = platform() === "win32" ? "where rli" : "which rli";
     const path = execSync(cmd, { encoding: "utf-8" }).trim().split("\n")[0];
     return path;
   } catch (error) {
-    // If rln not found in PATH, just use 'rln' and hope it works
-    return "rln";
+    // If rli not found in PATH, just use 'rli' and hope it works
+    return "rli";
   }
 }
 
 export async function installMcpConfig() {
   try {
     const configPath = getClaudeConfigPath();
-    const rlnPath = getRlnPath();
+    const rliPath = getRliPath();
 
     console.log(`\n📍 Claude Desktop config location: ${configPath}`);
-    console.log(`📍 rln command location: ${rlnPath}\n`);
+    console.log(`📍 rli command location: ${rliPath}\n`);
 
     // Read or create config
     let config: any = { mcpServers: {} };
@@ -109,7 +109,7 @@ export async function installMcpConfig() {
 
     // Add runloop MCP server config
     config.mcpServers.runloop = {
-      command: rlnPath,
+      command: rliPath,
       args: ["mcp", "start"],
     };
 
@@ -134,7 +134,7 @@ export async function installMcpConfig() {
       '2. Ask Claude: "List my devboxes" or "What Runloop tools do you have?"',
     );
     console.log(
-      '\n💡 Tip: Make sure you\'ve run "rln auth" to configure your API key first!',
+      '\n💡 Tip: Make sure you\'ve run "rli auth" to configure your API key first!',
     );
   } catch (error: any) {
     console.error("\n❌ Error installing MCP configuration:", error.message);
@@ -148,7 +148,7 @@ export async function installMcpConfig() {
         {
           mcpServers: {
             runloop: {
-              command: "rln",
+              command: "rli",
               args: ["mcp", "start"],
             },
           },

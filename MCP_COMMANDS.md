@@ -9,7 +9,7 @@ Quick reference for all Runloop MCP commands.
 Automatically configure Claude Desktop to use Runloop MCP:
 
 ```bash
-rln mcp install
+rli mcp install
 ```
 
 This command:
@@ -27,7 +27,7 @@ After running this, restart Claude Desktop.
 Start the MCP server in stdio mode:
 
 ```bash
-rln mcp start
+rli mcp start
 ```
 
 This mode is used by Claude Desktop and other local AI assistants. The server communicates via stdin/stdout.
@@ -37,7 +37,7 @@ This mode is used by Claude Desktop and other local AI assistants. The server co
 Start the MCP server in HTTP mode:
 
 ```bash
-rln mcp start --http
+rli mcp start --http
 ```
 
 This starts an HTTP server on port 3000 by default, using Server-Sent Events (SSE) for communication.
@@ -47,18 +47,18 @@ This starts an HTTP server on port 3000 by default, using Server-Sent Events (SS
 Start the HTTP server on a specific port:
 
 ```bash
-rln mcp start --http --port 8080
+rli mcp start --http --port 8080
 ```
 
 ## Configuration File Format
 
-When you run `rln mcp install`, it creates this configuration in your Claude Desktop config:
+When you run `rli mcp install`, it creates this configuration in your Claude Desktop config:
 
 ```json
 {
   "mcpServers": {
     "runloop": {
-      "command": "rln",
+      "command": "rli",
       "args": ["mcp", "start"]
     }
   }
@@ -73,7 +73,7 @@ To use the development environment:
 {
   "mcpServers": {
     "runloop": {
-      "command": "rln",
+      "command": "rli",
       "args": ["mcp", "start"],
       "env": {
         "RUNLOOP_ENV": "dev"
@@ -120,7 +120,7 @@ Once set up, you can ask Claude:
 Test the stdio server manually:
 
 ```bash
-rln mcp start
+rli mcp start
 ```
 
 You should see: `Runloop MCP server running on stdio`
@@ -128,7 +128,7 @@ You should see: `Runloop MCP server running on stdio`
 Test the HTTP server:
 
 ```bash
-rln mcp start --http
+rli mcp start --http
 ```
 
 You should see:
@@ -142,19 +142,19 @@ Message endpoint: http://localhost:3000/message
 
 ### Command not found
 
-If you get "command not found: rln":
+If you get "command not found: rli":
 - Install globally: `npm install -g @runloop/rl-cli`
 - Check your PATH includes npm global bin directory
 
 ### API key not configured
 
-Run `rln auth` before using the MCP server.
+Run `rli auth` before using the MCP server.
 
 ### Port already in use
 
 For HTTP mode, use a different port:
 ```bash
-rln mcp start --http --port 8080
+rli mcp start --http --port 8080
 ```
 
 ## See Also
