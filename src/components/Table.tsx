@@ -160,7 +160,7 @@ export function createTextColumn<T>(
         <Text
           color={isSelected ? colors.text : color}
           bold={bold}
-          dimColor={!isSelected && dimColor}
+          dimColor={dimColor}
           inverse={isSelected}
           wrap="truncate"
         >

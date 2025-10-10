@@ -44,7 +44,7 @@ export RUNLOOP_API_KEY=your_api_key_here
 ### Option 2: Interactive Setup
 
 ```bash
-rln auth
+rli auth
 ```
 
 Get your API key from [https://runloop.ai/settings](https://runloop.ai/settings)
@@ -55,7 +55,7 @@ Get your API key from [https://runloop.ai/settings](https://runloop.ai/settings)
 
 ```bash
 # Interactive setup (stores API key locally)
-rln auth
+rli auth
 
 # Or use environment variable
 export RUNLOOP_API_KEY=your_api_key_here
@@ -67,57 +67,57 @@ The CLI will automatically use `RUNLOOP_API_KEY` if set, otherwise it will use t
 
 ```bash
 # Create devboxes
-rln devbox create                           # Create with auto-generated name
-rln devbox create --name my-devbox          # Create with custom name
-rln devbox create --template nodejs         # Create from template
-rln d create -n my-devbox                   # Short alias
+rli devbox create                           # Create with auto-generated name
+rli devbox create --name my-devbox          # Create with custom name
+rli devbox create --template nodejs         # Create from template
+rli d create -n my-devbox                   # Short alias
 
 # List devboxes (paginated)
-rln devbox list                             # List all devboxes
-rln devbox list --status running            # Filter by status
-rln d list                                  # Short alias
+rli devbox list                             # List all devboxes
+rli devbox list --status running            # Filter by status
+rli d list                                  # Short alias
 
 # Execute commands
-rln devbox exec <devbox-id> echo "Hello"    # Run a command
-rln devbox exec <devbox-id> ls -la          # List files
-rln d exec <id> <command>                   # Short alias
+rli devbox exec <devbox-id> echo "Hello"    # Run a command
+rli devbox exec <devbox-id> ls -la          # List files
+rli d exec <id> <command>                   # Short alias
 
 # Upload files
-rln devbox upload <devbox-id> ./file.txt    # Upload to home
-rln devbox upload <id> ./file.txt -p /path  # Upload to specific path
-rln d upload <id> <file>                    # Short alias
+rli devbox upload <devbox-id> ./file.txt    # Upload to home
+rli devbox upload <id> ./file.txt -p /path  # Upload to specific path
+rli d upload <id> <file>                    # Short alias
 
 # Delete devboxes
-rln devbox delete <devbox-id>               # Shutdown a devbox
-rln devbox rm <devbox-id>                   # Alias
-rln d delete <id>                           # Short alias
+rli devbox delete <devbox-id>               # Shutdown a devbox
+rli devbox rm <devbox-id>                   # Alias
+rli d delete <id>                           # Short alias
 ```
 
 ### Snapshot Commands
 
 ```bash
 # Create snapshots
-rln snapshot create <devbox-id>             # Create snapshot
-rln snapshot create <id> --name backup-1    # Create with name
-rln snap create <id>                        # Short alias
+rli snapshot create <devbox-id>             # Create snapshot
+rli snapshot create <id> --name backup-1    # Create with name
+rli snap create <id>                        # Short alias
 
 # List snapshots (paginated)
-rln snapshot list                           # List all snapshots
-rln snapshot list --devbox <id>             # Filter by devbox
-rln snap list                               # Short alias
+rli snapshot list                           # List all snapshots
+rli snapshot list --devbox <id>             # Filter by devbox
+rli snap list                               # Short alias
 
 # Delete snapshots
-rln snapshot delete <snapshot-id>           # Delete snapshot
-rln snapshot rm <snapshot-id>               # Alias
-rln snap delete <id>                        # Short alias
+rli snapshot delete <snapshot-id>           # Delete snapshot
+rli snapshot rm <snapshot-id>               # Alias
+rli snap delete <id>                        # Short alias
 ```
 
 ### Blueprint Commands
 
 ```bash
 # List blueprints
-rln blueprint list                          # List blueprints (coming soon)
-rln bp list                                 # Short alias
+rli blueprint list                          # List blueprints (coming soon)
+rli bp list                                 # Short alias
 ```
 
 ## Command Structure
@@ -151,7 +151,7 @@ Runloop includes a Model Context Protocol (MCP) server that allows AI assistants
 
 ```bash
 # Install MCP configuration
-rln mcp install
+rli mcp install
 
 # Restart Claude Desktop, then ask Claude:
 # "List my devboxes" or "Create a new devbox"
@@ -161,11 +161,11 @@ rln mcp install
 
 ```bash
 # Stdio mode (for Claude Desktop)
-rln mcp start
+rli mcp start
 
 # HTTP mode (for web/remote access)
-rln mcp start --http
-rln mcp start --http --port 8080
+rli mcp start --http
+rli mcp start --http --port 8080
 ```
 
 **Documentation:**

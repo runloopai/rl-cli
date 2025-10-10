@@ -4,7 +4,7 @@
   "description": "Beautiful CLI for Runloop devbox management",
   "type": "module",
   "bin": {
-    "rln": "./dist/cli.js"
+    "rli": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
@@ -57,7 +57,7 @@
   "dependencies": {
     "@inkjs/ui": "^2.0.0",
     "@modelcontextprotocol/sdk": "^1.19.1",
-    "@runloop/api-client": "^0.55.0",
+    "@runloop/api-client": "^0.58.0",
     "@runloop/rl-cli": "^0.0.1",
     "@types/express": "^5.0.3",
     "chalk": "^5.3.0",

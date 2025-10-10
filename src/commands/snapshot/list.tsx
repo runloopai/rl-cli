@@ -68,7 +68,7 @@ const ListSnapshotsUI: React.FC<{
           createTextColumn("id", "ID", (snapshot: any) => snapshot.id, {
             width: idWidth,
             color: colors.textDim,
-            dimColor: true,
+            dimColor: false,
             bold: false,
           }),
           createTextColumn(
@@ -86,7 +86,7 @@ const ListSnapshotsUI: React.FC<{
             {
               width: devboxWidth,
               color: colors.primary,
-              dimColor: true,
+              dimColor: false,
               bold: false,
               visible: showDevboxId,
             },
@@ -101,7 +101,7 @@ const ListSnapshotsUI: React.FC<{
             {
               width: timeWidth,
               color: colors.textDim,
-              dimColor: true,
+              dimColor: false,
               bold: false,
             },
           ),
@@ -109,7 +109,7 @@ const ListSnapshotsUI: React.FC<{
         keyExtractor: (snapshot: any) => snapshot.id,
         emptyState: {
           message: "No snapshots found. Try:",
-          command: "rln snapshot create <devbox-id>",
+          command: "rli snapshot create <devbox-id>",
         },
         pageSize: PAGE_SIZE,
         maxFetch: MAX_FETCH,

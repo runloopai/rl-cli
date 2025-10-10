@@ -5,15 +5,15 @@ This guide will walk you through connecting the Runloop MCP server to Claude Des
 ## Prerequisites
 
 1. Make sure you have Claude Desktop installed
-2. Authenticate with Runloop: `rln auth`
-3. Make sure `rln` is installed globally and in your PATH
+2. Authenticate with Runloop: `rli auth`
+3. Make sure `rli` is installed globally and in your PATH
 
 ## Quick Setup (Automatic)
 
 The easiest way to set up Runloop with Claude Desktop:
 
 ```bash
-rln mcp install
+rli mcp install
 ```
 
 This command will:
@@ -54,7 +54,7 @@ If the file doesn't exist, create it. Add or update it with this configuration:
 {
   "mcpServers": {
     "runloop": {
-      "command": "rln",
+      "command": "rli",
       "args": ["mcp", "start"]
     }
   }
@@ -71,7 +71,7 @@ If the file doesn't exist, create it. Add or update it with this configuration:
       "args": ["some-args"]
     },
     "runloop": {
-      "command": "rln",
+      "command": "rli",
       "args": ["mcp", "start"]
     }
   }
@@ -98,9 +98,9 @@ Claude will now have access to these Runloop tools and can manage your devboxes!
 
 ## Troubleshooting
 
-### "Command not found: rln"
+### "Command not found: rli"
 
-Make sure `rln` is in your PATH. Test by running `which rln` (macOS/Linux) or `where rln` (Windows) in your terminal.
+Make sure `rli` is in your PATH. Test by running `which rli` (macOS/Linux) or `where rli` (Windows) in your terminal.
 
 If not found:
 - If installed via npm globally: `npm install -g @runloop/rl-cli`
@@ -108,7 +108,7 @@ If not found:
 
 ### "API key not configured"
 
-Run `rln auth` to configure your API key before using the MCP server.
+Run `rli auth` to configure your API key before using the MCP server.
 
 ### Claude doesn't show Runloop tools
 
@@ -123,7 +123,7 @@ Run `rln auth` to configure your API key before using the MCP server.
 You can test if the MCP server is working by running:
 
 ```bash
-rln mcp start
+rli mcp start
 ```
 
 It should output: `Runloop MCP server running on stdio`
@@ -140,7 +140,7 @@ If you want to connect to Runloop's development environment:
 {
   "mcpServers": {
     "runloop": {
-      "command": "rln",
+      "command": "rli",
       "args": ["mcp", "start"],
       "env": {
         "RUNLOOP_ENV": "dev"
@@ -152,20 +152,20 @@ If you want to connect to Runloop's development environment:
 
 ### Using a Specific Path
 
-If `rln` isn't in your PATH, you can specify the full path:
+If `rli` isn't in your PATH, you can specify the full path:
 
 ```json
 {
   "mcpServers": {
     "runloop": {
-      "command": "/full/path/to/rln",
+      "command": "/full/path/to/rli",
       "args": ["mcp", "start"]
     }
   }
 }
 ```
 
-Find the full path with: `which rln` (macOS/Linux) or `where rln` (Windows)
+Find the full path with: `which rli` (macOS/Linux) or `where rli` (Windows)
 
 ## What Can Claude Do Now?
 
