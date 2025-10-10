@@ -106,14 +106,14 @@ const CreateSnapshotUI: React.FC<{
                 <Text color={colors.textDim}>
                   {figures.tick} View snapshots:{" "}
                 </Text>
-                <Text color={colors.primary}>rln snapshot list</Text>
+                <Text color={colors.primary}>rli snapshot list</Text>
               </Box>
               <Box>
                 <Text color={colors.textDim}>
                   {figures.tick} Create devbox from snapshot:{" "}
                 </Text>
                 <Text color={colors.primary}>
-                  rln devbox create -t {result.id}
+                  rli devbox create -t {result.id}
                 </Text>
               </Box>
             </Box>

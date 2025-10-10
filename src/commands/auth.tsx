@@ -27,7 +27,7 @@ const AuthUI: React.FC = () => {
         <Header title="Authentication" />
         <SuccessMessage
           message="API key saved!"
-          details="Try: rln devbox list"
+          details="Try: rli devbox list"
         />
       </>
     );

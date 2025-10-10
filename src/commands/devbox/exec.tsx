@@ -5,6 +5,7 @@ import { Header } from "../../components/Header.js";
 import { SpinnerComponent } from "../../components/Spinner.js";
 import { ErrorMessage } from "../../components/ErrorMessage.js";
 import { colors } from "../../utils/theme.js";
+import { createExecutor } from "../../utils/CommandExecutor.js";
 
 const ExecCommandUI: React.FC<{ id: string; command: string[] }> = ({
   id,
@@ -52,7 +53,28 @@ const ExecCommandUI: React.FC<{ id: string; command: string[] }> = ({
   );
 };
 
-export async function execCommand(id: string, command: string[]) {
-  const { waitUntilExit } = render(<ExecCommandUI id={id} command={command} />);
-  await waitUntilExit();
+interface ExecCommandOptions {
+  output?: string;
+}
+
+export async function execCommand(
+  id: string,
+  command: string[],
+  options: ExecCommandOptions = {},
+) {
+  const executor = createExecutor({ output: options.output });
+
+  await executor.executeAction(
+    async () => {
+      const client = executor.getClient();
+      const result = await client.devboxes.executeSync(id, {
+        command: command.join(" "),
+      });
+      return {
+        result:
+          result.stdout || result.stderr || "Command executed successfully",
+      };
+    },
+    () => <ExecCommandUI id={id} command={command} />,
+  );
 }

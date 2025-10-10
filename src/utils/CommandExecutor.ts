@@ -13,8 +13,13 @@ import {
 } from "./output.js";
 import YAML from "yaml";
 
-export class CommandExecutor<T = any> {
-  constructor(private options: OutputOptions = {}) {}
+export class CommandExecutor<T = unknown> {
+  constructor(private options: OutputOptions = {}) {
+    // Set default output format to json if none specified
+    if (!this.options.output) {
+      this.options.output = "json";
+    }
+  }
 
   /**
    * Execute a list command with automatic format handling

@@ -22,7 +22,7 @@ export function getClient(): Runloop {
   const config = getConfig();
 
   if (!config.apiKey) {
-    throw new Error("API key not configured. Run: rln auth");
+    throw new Error("API key not configured. Run: rli auth");
   }
 
   const baseURL = getBaseUrl();

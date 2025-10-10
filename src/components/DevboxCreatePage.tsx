@@ -14,6 +14,7 @@ import { colors } from "../utils/theme.js";
 interface DevboxCreatePageProps {
   onBack: () => void;
   onCreate?: (devbox: any) => void;
+  initialBlueprintId?: string;
 }
 
 type FormField =
@@ -53,6 +54,7 @@ interface FormData {
 export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({
   onBack,
   onCreate,
+  initialBlueprintId,
 }) => {
   const [currentField, setCurrentField] = React.useState<FormField>("create");
   const [formData, setFormData] = React.useState<FormData>({
@@ -64,7 +66,7 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({
     custom_disk: "",
     keep_alive: "3600",
     metadata: {},
-    blueprint_id: "",
+    blueprint_id: initialBlueprintId || "",
     snapshot_id: "",
   });
   const [metadataKey, setMetadataKey] = React.useState("");

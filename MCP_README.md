@@ -15,7 +15,7 @@ Runloop provides two transport modes for the MCP server:
 For local AI assistants like Claude Desktop:
 
 ```bash
-rln mcp start
+rli mcp start
 ```
 
 The server runs on stdio and communicates using the MCP protocol.
@@ -25,13 +25,13 @@ The server runs on stdio and communicates using the MCP protocol.
 For web-based AI assistants or remote access:
 
 ```bash
-rln mcp start --http
+rli mcp start --http
 ```
 
 Or specify a custom port:
 
 ```bash
-rln mcp start --http --port 8080
+rli mcp start --http --port 8080
 ```
 
 The HTTP server runs on `http://localhost:3000` by default and uses Server-Sent Events (SSE) for communication.
@@ -83,7 +83,7 @@ The MCP server exposes the following tools:
 The easiest way to set up with Claude Desktop:
 
 ```bash
-rln mcp install
+rli mcp install
 ```
 
 This automatically adds the configuration to your Claude Desktop config file and preserves any existing MCP servers.
@@ -100,7 +100,7 @@ If you prefer to configure manually, add this to your Claude configuration file:
 {
   "mcpServers": {
     "runloop": {
-      "command": "rln",
+      "command": "rli",
       "args": ["mcp", "start"],
       "env": {
         "RUNLOOP_ENV": "prod"
@@ -134,7 +134,7 @@ Example for Claude Code or other MCP clients supporting HTTP:
 The MCP server uses the same API key configuration as the CLI. Make sure you've authenticated first:
 
 ```bash
-rln auth
+rli auth
 ```
 
 The server will automatically use your stored API credentials.
@@ -154,7 +154,7 @@ Claude will use the MCP tools to interact with your Runloop account and provide 
 ## Environment Variables
 
 - `RUNLOOP_ENV` - Set to `dev` for development environment, `prod` (or leave unset) for production
-- API key is read from the CLI configuration (~/.config/rln/config.json)
+- API key is read from the CLI configuration (~/.config/rli/config.json)
 
 ## Troubleshooting
 
@@ -162,8 +162,8 @@ Claude will use the MCP tools to interact with your Runloop account and provide 
 
 If the stdio MCP server isn't working:
 
-1. Make sure you've run `rln auth` to configure your API key
-2. Check that the `rln` command is in your PATH
+1. Make sure you've run `rli auth` to configure your API key
+2. Check that the `rli` command is in your PATH
 3. Restart Claude Desktop after updating the configuration
 4. Check Claude's logs for any error messages
 
@@ -171,7 +171,7 @@ If the stdio MCP server isn't working:
 
 If the HTTP MCP server isn't working:
 
-1. Make sure you've run `rln auth` to configure your API key
+1. Make sure you've run `rli auth` to configure your API key
 2. Check that the port isn't already in use
 3. Verify the server is running: `curl http://localhost:3000/sse`
 4. Check your firewall settings if connecting remotely
@@ -179,7 +179,7 @@ If the HTTP MCP server isn't working:
 
 ### Common Issues
 
-- **"API key not configured"**: Run `rln auth` to set up your credentials
+- **"API key not configured"**: Run `rli auth` to set up your credentials
 - **Port already in use**: Stop other services or use a different port with `--port`
 - **Connection refused**: Make sure the server is running and accessible
 

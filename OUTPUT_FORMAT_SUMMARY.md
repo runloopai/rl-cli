@@ -21,62 +21,62 @@ Created `/src/utils/output.ts` with the following functions:
 ## Commands Updated
 
 ### List Commands (with `-o json`)
-- ✅ `rln devbox list [-s <status>] -o json`
-- ✅ `rln blueprint list -o json`
-- ✅ `rln snapshot list [-d <devbox-id>] -o json`
+- ✅ `rli devbox list [-s <status>] -o json`
+- ✅ `rli blueprint list -o json`
+- ✅ `rli snapshot list [-d <devbox-id>] -o json`
 
 ### Create Commands (with `-o json`)
-- ✅ `rln devbox create [-n <name>] [-t <template>] -o json`
-- ✅ `rln snapshot create <devbox-id> [-n <name>] -o json`
+- ✅ `rli devbox create [-n <name>] [-t <template>] -o json`
+- ✅ `rli snapshot create <devbox-id> [-n <name>] -o json`
 
 ### Delete Commands (with `-o json`)
-- ✅ `rln devbox delete <id> -o json`
-- ✅ `rln snapshot delete <id> -o json`
+- ✅ `rli devbox delete <id> -o json`
+- ✅ `rli snapshot delete <id> -o json`
 
 ### Other Commands (NOT YET IMPLEMENTED)
-- ⏸️ `rln devbox exec <id> <command...> -o json`
-- ⏸️ `rln devbox upload <id> <file> -o json`
+- ⏸️ `rli devbox exec <id> <command...> -o json`
+- ⏸️ `rli devbox upload <id> <file> -o json`
 
 ## Usage Examples
 
 ### Interactive Mode (Default)
 ```bash
 # Shows full UI with table, navigation, operations
-rln devbox list
-rln blueprint list
+rli devbox list
+rli blueprint list
 ```
 
 ### JSON Output for Scripting
 ```bash
 # Get all devboxes as JSON
-rln devbox list -o json
+rli devbox list -o json
 
 # Filter and format with jq
-rln devbox list -s running -o json | jq '.[] | {id, name, status}'
+rli devbox list -s running -o json | jq '.[] | {id, name, status}'
 
 # Create devbox and capture ID
-DEVBOX_ID=$(rln devbox create -n my-box -o json | jq -r '.id')
+DEVBOX_ID=$(rli devbox create -n my-box -o json | jq -r '.id')
 
 # List snapshots for specific devbox
-rln snapshot list -d <devbox-id> -o json
+rli snapshot list -d <devbox-id> -o json
 
 # Delete and get confirmation
-rln devbox delete <id> -o json
+rli devbox delete <id> -o json
 ```
 
 ### YAML Output for Readability
 ```bash
 # Get all devboxes as YAML
-rln devbox list -o yaml
+rli devbox list -o yaml
 
 # Create devbox with YAML output
-rln devbox create -n my-box -o yaml
+rli devbox create -n my-box -o yaml
 
 # List blueprints as YAML
-rln blueprint list -o yaml
+rli blueprint list -o yaml
 
 # Output to file for configuration
-rln devbox list -o yaml > devboxes.yaml
+rli devbox list -o yaml > devboxes.yaml
 ```
 
 ### Integration with CI/CD
@@ -85,19 +85,19 @@ rln devbox list -o yaml > devboxes.yaml
 # Create devbox, wait for running status, execute command
 
 # Create
-DEVBOX=$(rln devbox create -n ci-box -o json)
+DEVBOX=$(rli devbox create -n ci-box -o json)
 DEVBOX_ID=$(echo "$DEVBOX" | jq -r '.id')
 
 # Poll until running
-while [ "$(rln devbox list -o json | jq -r ".[] | select(.id==\"$DEVBOX_ID\") | .status")" != "running" ]; do
+while [ "$(rli devbox list -o json | jq -r ".[] | select(.id==\"$DEVBOX_ID\") | .status")" != "running" ]; do
   sleep 5
 done
 
 # Execute commands (needs -o json implementation)
-rln devbox exec "$DEVBOX_ID" npm test
+rli devbox exec "$DEVBOX_ID" npm test
 
 # Cleanup
-rln devbox delete "$DEVBOX_ID" -o json
+rli devbox delete "$DEVBOX_ID" -o json
 ```
 
 ## Implementation Pattern
