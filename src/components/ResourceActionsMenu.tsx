@@ -34,12 +34,17 @@ type DevboxMenuProps = BaseProps & {
 type BlueprintMenuProps = BaseProps & {
   resourceType: "blueprint";
   operations: OperationDef[];
-  onExecute: (opKey: string, args: { input?: string }) => Promise<string | void>;
+  onExecute: (
+    opKey: string,
+    args: { input?: string },
+  ) => Promise<string | void>;
 };
 
 type ResourceActionsMenuProps = DevboxMenuProps | BlueprintMenuProps;
 
-export const ResourceActionsMenu: React.FC<ResourceActionsMenuProps> = (props) => {
+export const ResourceActionsMenu: React.FC<ResourceActionsMenuProps> = (
+  props,
+) => {
   if (props.resourceType === "devbox") {
     const {
       resource,
@@ -82,9 +87,9 @@ export const ResourceActionsMenu: React.FC<ResourceActionsMenuProps> = (props) =
   const [selectedOperation, setSelectedOperation] = React.useState(
     initialOperationIndex,
   );
-  const [executingOperation, setExecutingOperation] = React.useState<string | null>(
-    initialOperation || null,
-  );
+  const [executingOperation, setExecutingOperation] = React.useState<
+    string | null
+  >(initialOperation || null);
   const [operationInput, setOperationInput] = React.useState("");
   const [operationResult, setOperationResult] = React.useState<string | null>(
     null,
@@ -197,7 +202,9 @@ export const ResourceActionsMenu: React.FC<ResourceActionsMenuProps> = (props) =
       <>
         <Breadcrumb items={breadcrumbItems} />
         <Box marginTop={1} flexDirection="column">
-          <Text color={colors.textDim}>{selectedOp.inputPrompt || "Input:"} </Text>
+          <Text color={colors.textDim}>
+            {selectedOp.inputPrompt || "Input:"}{" "}
+          </Text>
           <Text> {operationInput}</Text>
           <Text color={colors.textDim} dimColor>
             Press [Enter] to execute • [q or esc] Cancel
@@ -228,5 +235,3 @@ export const ResourceActionsMenu: React.FC<ResourceActionsMenuProps> = (props) =
     </>
   );
 };
-
-

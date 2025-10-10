@@ -44,7 +44,7 @@ const ListBlueprintsUI: React.FC<{
   );
   const [loading, setLoading] = React.useState(false);
   const [showCreateDevbox, setShowCreateDevbox] = React.useState(false);
-  
+
   // List view state - moved to top to ensure hooks are called in same order
   const [blueprints, setBlueprints] = React.useState<any[]>([]);
   const [listError, setListError] = React.useState<Error | null>(null);
@@ -67,9 +67,13 @@ const ListBlueprintsUI: React.FC<{
   // Helper function to generate operations based on selected blueprint
   const getOperationsForBlueprint = (blueprint: any): Operation[] => {
     const operations: Operation[] = [];
-    
+
     // Only show create devbox option if blueprint is successfully built
-    if (blueprint && (blueprint.status === "build_complete" || blueprint.status === "building_complete")) {
+    if (
+      blueprint &&
+      (blueprint.status === "build_complete" ||
+        blueprint.status === "building_complete")
+    ) {
       operations.push({
         key: "create_devbox",
         label: "Create Devbox from Blueprint",
@@ -77,7 +81,7 @@ const ListBlueprintsUI: React.FC<{
         icon: figures.play,
       });
     }
-    
+
     // Always show delete option
     operations.push({
       key: "delete",
@@ -85,7 +89,7 @@ const ListBlueprintsUI: React.FC<{
       color: colors.error,
       icon: figures.cross,
     });
-    
+
     return operations;
   };
 
@@ -150,7 +154,6 @@ const ListBlueprintsUI: React.FC<{
       return;
     }
 
-
     // Handle create devbox view
     if (showCreateDevbox) {
       return; // Let DevboxCreatePage handle its own input
@@ -160,13 +163,16 @@ const ListBlueprintsUI: React.FC<{
     if (showPopup) {
       if (key.upArrow && selectedOperation > 0) {
         setSelectedOperation(selectedOperation - 1);
-      } else if (key.downArrow && selectedOperation < allOperations.length - 1) {
+      } else if (
+        key.downArrow &&
+        selectedOperation < allOperations.length - 1
+      ) {
         setSelectedOperation(selectedOperation + 1);
       } else if (key.return) {
         console.clear();
         setShowPopup(false);
         const operationKey = allOperations[selectedOperation].key;
-        
+
         if (operationKey === "create_devbox") {
           // Go directly to create devbox screen
           setSelectedBlueprint(selectedBlueprintItem);
@@ -183,8 +189,11 @@ const ListBlueprintsUI: React.FC<{
         setSelectedOperation(0);
       } else if (input === "c") {
         // Create devbox hotkey - only if blueprint is complete
-        if (selectedBlueprintItem && 
-            (selectedBlueprintItem.status === "build_complete" || selectedBlueprintItem.status === "building_complete")) {
+        if (
+          selectedBlueprintItem &&
+          (selectedBlueprintItem.status === "build_complete" ||
+            selectedBlueprintItem.status === "building_complete")
+        ) {
           console.clear();
           setShowPopup(false);
           setSelectedBlueprint(selectedBlueprintItem);
@@ -192,13 +201,15 @@ const ListBlueprintsUI: React.FC<{
         }
       } else if (input === "d") {
         // Delete hotkey
-        const deleteIndex = allOperations.findIndex(op => op.key === "delete");
+        const deleteIndex = allOperations.findIndex(
+          (op) => op.key === "delete",
+        );
         if (deleteIndex >= 0) {
-        console.clear();
-        setShowPopup(false);
-        setSelectedBlueprint(selectedBlueprintItem);
-        setExecutingOperation("delete");
-        executeOperation();
+          console.clear();
+          setShowPopup(false);
+          setSelectedBlueprint(selectedBlueprintItem);
+          setExecutingOperation("delete");
+          executeOperation();
         }
       }
       return; // prevent falling through to list nav
@@ -226,7 +237,10 @@ const ListBlueprintsUI: React.FC<{
       setSelectedIndex(selectedIndex - 1);
     } else if (key.downArrow && selectedIndex < pageBlueprints - 1) {
       setSelectedIndex(selectedIndex + 1);
-    } else if ((input === "n" || key.rightArrow) && currentPage < totalPages - 1) {
+    } else if (
+      (input === "n" || key.rightArrow) &&
+      currentPage < totalPages - 1
+    ) {
       setCurrentPage(currentPage + 1);
       setSelectedIndex(0);
     } else if ((input === "p" || key.leftArrow) && currentPage > 0) {
@@ -271,17 +285,18 @@ const ListBlueprintsUI: React.FC<{
 
   // Ensure selected index is within bounds - place before any returns
   React.useEffect(() => {
-    if (currentBlueprints.length > 0 && selectedIndex >= currentBlueprints.length) {
+    if (
+      currentBlueprints.length > 0 &&
+      selectedIndex >= currentBlueprints.length
+    ) {
       setSelectedIndex(Math.max(0, currentBlueprints.length - 1));
     }
   }, [currentBlueprints.length, selectedIndex]);
 
   const selectedBlueprintItem = currentBlueprints[selectedIndex];
-  
+
   // Generate operations based on selected blueprint status
   const allOperations = getOperationsForBlueprint(selectedBlueprintItem);
-
-
 
   const executeOperation = async () => {
     const client = getClient();
@@ -310,7 +325,6 @@ const ListBlueprintsUI: React.FC<{
       setLoading(false);
     }
   };
-
 
   // Filter operations based on blueprint status
   const operations = selectedBlueprint
@@ -455,7 +469,6 @@ const ListBlueprintsUI: React.FC<{
     );
   }
 
-
   // Loading state
   if (loading) {
     return (
@@ -471,10 +484,7 @@ const ListBlueprintsUI: React.FC<{
     return (
       <>
         <Breadcrumb items={[{ label: "Blueprints", active: true }]} />
-        <ErrorMessage
-          message="Failed to load blueprints"
-          error={listError}
-        />
+        <ErrorMessage message="Failed to load blueprints" error={listError} />
       </>
     );
   }
@@ -503,7 +513,7 @@ const ListBlueprintsUI: React.FC<{
   return (
     <>
       <Breadcrumb items={[{ label: "Blueprints", active: true }]} />
-      
+
       {/* Table */}
       <Table
         data={currentBlueprints}
@@ -525,7 +535,7 @@ const ListBlueprintsUI: React.FC<{
                 <Text
                   color={isSelected ? "white" : statusColor}
                   bold={true}
-                dimColor={false}
+                  dimColor={false}
                   inverse={isSelected}
                   wrap="truncate"
                 >
@@ -572,7 +582,7 @@ const ListBlueprintsUI: React.FC<{
                 <Text
                   color={isSelected ? "white" : statusColor}
                   bold={true}
-                dimColor={false}
+                  dimColor={false}
                   inverse={isSelected}
                   wrap="truncate"
                 >
@@ -661,7 +671,11 @@ const ListBlueprintsUI: React.FC<{
               color: op.color,
               icon: op.icon,
               shortcut:
-                op.key === "create_devbox" ? "c" : op.key === "delete" ? "d" : "",
+                op.key === "create_devbox"
+                  ? "c"
+                  : op.key === "delete"
+                    ? "d"
+                    : "",
             }))}
             selectedOperation={selectedOperation}
             onClose={() => setShowPopup(false)}
