@@ -389,7 +389,9 @@ const blueprint = program
       "./utils/interactiveCommand.js"
     );
     const { listBlueprints } = await import("./commands/blueprint/list.js");
-    await runInteractiveCommand(() => listBlueprints({ output: "interactive" }));
+    await runInteractiveCommand(() =>
+      listBlueprints({ output: "interactive" }),
+    );
   });
 
 blueprint
