@@ -1,7 +1,9 @@
 import Conf from "conf";
 import { homedir } from "os";
 import { join } from "path";
-import { existsSync, statSync, mkdirSync, writeFileSync } from "fs";
+import { existsSync, statSync, mkdirSync, writeFileSync, readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
 
 interface Config {
   apiKey?: string;
@@ -44,6 +46,26 @@ export function getCacheDir(): string {
   return join(homedir(), ".cache", "rl-cli");
 }
 
+function getCurrentVersion(): string {
+  try {
+    // First try environment variable (when installed via npm)
+    if (process.env.npm_package_version) {
+      return process.env.npm_package_version;
+    }
+    
+    // Fall back to reading package.json directly
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    // When running from dist/, we need to go up two levels to find package.json
+    const packageJsonPath = join(__dirname, "../../package.json");
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+    return packageJson.version;
+  } catch (error) {
+    // Ultimate fallback
+    return "0.1.0";
+  }
+}
+
 export function shouldCheckForUpdates(): boolean {
   const cacheDir = getCacheDir();
   const cacheFile = join(cacheDir, "last_update_check");
@@ -53,10 +75,16 @@ export function shouldCheckForUpdates(): boolean {
   }
 
   const stats = statSync(cacheFile);
-  const daysSinceUpdate =
-    (Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60 * 24);
+  const hoursSinceUpdate =
+    (Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60);
 
-  return daysSinceUpdate >= 1;
+  return hoursSinceUpdate >= 6;
+}
+
+export function hasCachedUpdateInfo(): boolean {
+  const cacheDir = getCacheDir();
+  const cacheFile = join(cacheDir, "last_update_check");
+  return existsSync(cacheFile);
 }
 
 export function updateCheckCache(): void {
@@ -70,4 +98,81 @@ export function updateCheckCache(): void {
 
   // Touch the cache file
   writeFileSync(cacheFile, "");
+}
+
+export async function checkForUpdates(force: boolean = false): Promise<void> {
+  const currentVersion = getCurrentVersion();
+  
+  // Always show cached result if available and not forcing
+  if (!force && hasCachedUpdateInfo() && !shouldCheckForUpdates()) {
+    // Show cached update info (we know there's an update available)
+    console.error(
+      `\n🔄 Update available: ${currentVersion} → 0.1.0\n` +
+      `   Run: npm install -g @runloop/rl-cli@latest\n\n`
+    );
+    return;
+  }
+  
+  // Only fetch from npm if cache is expired or forcing
+  if (!force && !shouldCheckForUpdates()) {
+    return;
+  }
+
+  try {
+    const response = await fetch("https://registry.npmjs.org/@runloop/rl-cli/latest");
+    
+    if (!response.ok) {
+      if (force) {
+        console.error("❌ Failed to check for updates\n");
+      }
+      return; // Silently fail if we can't check
+    }
+    
+    const data = await response.json() as { version: string };
+    const latestVersion = data.version;
+    
+    if (force) {
+      console.error(`Current version: ${currentVersion}\n`);
+      console.error(`Latest version: ${latestVersion}\n`);
+    }
+    
+    if (latestVersion && latestVersion !== currentVersion) {
+      // Check if current version is older than latest
+      const isUpdateAvailable = compareVersions(latestVersion, currentVersion) > 0;
+      
+      if (isUpdateAvailable) {
+        console.error(
+          `\n🔄 Update available: ${currentVersion} → ${latestVersion}\n` +
+          `   Run: npm install -g @runloop/rl-cli@latest\n\n`
+        );
+      } else if (force) {
+        console.error("✅ You're running the latest version!\n");
+      }
+    } else if (force) {
+      console.error("✅ You're running the latest version!\n");
+    }
+    
+    // Update the cache to indicate we've checked
+    updateCheckCache();
+  } catch (error) {
+    if (force) {
+      console.error(`❌ Error checking for updates: ${error}\n`);
+    }
+    // Silently fail - don't interrupt the user's workflow
+  }
+}
+
+function compareVersions(version1: string, version2: string): number {
+  const v1parts = version1.split('.').map(Number);
+  const v2parts = version2.split('.').map(Number);
+  
+  for (let i = 0; i < Math.max(v1parts.length, v2parts.length); i++) {
+    const v1part = v1parts[i] || 0;
+    const v2part = v2parts[i] || 0;
+    
+    if (v1part > v2part) return 1;
+    if (v1part < v2part) return -1;
+  }
+  
+  return 0;
 }

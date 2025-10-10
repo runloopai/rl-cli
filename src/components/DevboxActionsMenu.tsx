@@ -1051,7 +1051,7 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
   if (!skipOperationsMenu || !executingOperation) {
     return (
       <>
-        <Breadcrumb items={breadcrumbItems} />
+        <Breadcrumb items={breadcrumbItems} showVersionCheck={true} />
         <Box flexDirection="column">
           <Text color={colors.primary} bold>
             {figures.play} Operations

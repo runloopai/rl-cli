@@ -6,6 +6,7 @@ import { Breadcrumb } from "./Breadcrumb.js";
 import { VERSION } from "../cli.js";
 import { colors } from "../utils/theme.js";
 
+
 interface MenuItem {
   key: string;
   label: string;
@@ -134,7 +135,7 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
 
   return (
     <Box flexDirection="column" height="100%">
-      <Breadcrumb items={[{ label: "Home", active: true }]} />
+      <Breadcrumb items={[{ label: "Home", active: true }]} showVersionCheck={true} />
 
       <Box flexShrink={0}>
         <Banner />

@@ -179,7 +179,7 @@ export const ResourceActionsMenu: React.FC<ResourceActionsMenuProps> = (
     const label = operations.find((o) => o.key === executingOperation)?.label;
     return (
       <>
-        <Breadcrumb items={breadcrumbItems} />
+        <Breadcrumb items={breadcrumbItems} showVersionCheck={true} />
         <Box marginTop={1} flexDirection="column">
           <Text color={operationError ? colors.error : colors.success}>
             {operationError ? `${label} failed` : `${label} completed`}
@@ -200,7 +200,7 @@ export const ResourceActionsMenu: React.FC<ResourceActionsMenuProps> = (
   if (executingOperation && selectedOp?.needsInput) {
     return (
       <>
-        <Breadcrumb items={breadcrumbItems} />
+        <Breadcrumb items={breadcrumbItems} showVersionCheck={true} />
         <Box marginTop={1} flexDirection="column">
           <Text color={colors.textDim}>
             {selectedOp.inputPrompt || "Input:"}{" "}

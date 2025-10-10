@@ -473,7 +473,7 @@ const ListBlueprintsUI: React.FC<{
   if (loading) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Blueprints", active: true }]} />
+        <Breadcrumb items={[{ label: "Blueprints", active: true }]} showVersionCheck={true} />
         <SpinnerComponent message="Loading blueprints..." />
       </>
     );
@@ -483,7 +483,7 @@ const ListBlueprintsUI: React.FC<{
   if (listError) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Blueprints", active: true }]} />
+        <Breadcrumb items={[{ label: "Blueprints", active: true }]} showVersionCheck={true} />
         <ErrorMessage message="Failed to load blueprints" error={listError} />
       </>
     );
@@ -493,7 +493,7 @@ const ListBlueprintsUI: React.FC<{
   if (blueprints.length === 0) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Blueprints", active: true }]} />
+        <Breadcrumb items={[{ label: "Blueprints", active: true }]} showVersionCheck={true} />
         <Box>
           <Text color={colors.warning}>{figures.info}</Text>
           <Text> No blueprints found. Try:</Text>

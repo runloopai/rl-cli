@@ -575,7 +575,7 @@ const ListDevboxesUI: React.FC<{
   if (showPopup && selectedDevbox) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
+        <Breadcrumb items={[{ label: "Devboxes", active: true }]} showVersionCheck={true} />
         {!initialLoading && !error && devboxes.length > 0 && (
           <>
             <Table
@@ -730,7 +730,7 @@ const ListDevboxesUI: React.FC<{
   if (initialLoading) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
+        <Breadcrumb items={[{ label: "Devboxes", active: true }]} showVersionCheck={true} />
         <SpinnerComponent message="Loading..." />
       </>
     );
@@ -739,7 +739,7 @@ const ListDevboxesUI: React.FC<{
   if (error) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
+        <Breadcrumb items={[{ label: "Devboxes", active: true }]} showVersionCheck={true} />
         <ErrorMessage message="Failed to list devboxes" error={error} />
       </>
     );

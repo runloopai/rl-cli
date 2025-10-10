@@ -42,6 +42,15 @@ program
     auth();
   });
 
+program
+  .command("check-updates")
+  .description("Check for CLI updates")
+  .action(async () => {
+    const { checkForUpdates } = await import("./utils/config.js");
+    console.log("Checking for updates...");
+    await checkForUpdates(true);
+  });
+
 // Devbox commands
 const devbox = program
   .command("devbox")
@@ -639,11 +648,14 @@ program
     }
   }
 
-  // If no command provided, show main menu
+  // If no command provided, show main menu (version check handled in UI)
   if (args.length === 0) {
     const { runMainMenu } = await import("./commands/menu.js");
     runMainMenu();
   } else {
+    // Check for updates for non-interactive commands (stderr output)
+    const { checkForUpdates } = await import("./utils/config.js");
+    await checkForUpdates();
     program.parse();
   }
 })();
