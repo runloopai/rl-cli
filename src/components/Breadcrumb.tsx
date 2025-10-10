@@ -21,35 +21,31 @@ const VersionCheck: React.FC = () => {
   React.useEffect(() => {
     const checkForUpdates = async () => {
       try {
-        const currentVersion = process.env.npm_package_version || "0.0.1";
-        const response = await fetch("https://registry.npmjs.org/@runloop/rl-cli/latest");
+        // Import the utility functions from config
+        const { checkForUpdates: checkForUpdatesUtil } = await import("../utils/config.js");
         
-        if (response.ok) {
-          const data = await response.json() as { version: string };
-          const latestVersion = data.version;
-          
-          if (latestVersion && latestVersion !== currentVersion) {
-            // Check if current version is older than latest
-            const compareVersions = (version1: string, version2: string): number => {
-              const v1parts = version1.split('.').map(Number);
-              const v2parts = version2.split('.').map(Number);
-              
-              for (let i = 0; i < Math.max(v1parts.length, v2parts.length); i++) {
-                const v1part = v1parts[i] || 0;
-                const v2part = v2parts[i] || 0;
-                
-                if (v1part > v2part) return 1;
-                if (v1part < v2part) return -1;
-              }
-              
-              return 0;
-            };
-            
-            const isUpdateAvailable = compareVersions(latestVersion, currentVersion) > 0;
-            
-            if (isUpdateAvailable) {
-              setUpdateAvailable(latestVersion);
-            }
+        // Use the same logic as the non-interactive version
+        // We'll call the utility function and capture its output
+        const originalConsoleError = console.error;
+        let updateMessage = "";
+        
+        // Capture the console.error output
+        console.error = (...args: any[]) => {
+          updateMessage = args.join(' ');
+          originalConsoleError(...args);
+        };
+        
+        // Call the update check utility
+        await checkForUpdatesUtil(false);
+        
+        // Restore original console.error
+        console.error = originalConsoleError;
+        
+        // Parse the update message to extract the latest version
+        if (updateMessage.includes("Update available:")) {
+          const match = updateMessage.match(/Update available: .+ → (.+)/);
+          if (match && match[1]) {
+            setUpdateAvailable(match[1]);
           }
         }
       } catch (error) {

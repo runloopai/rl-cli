@@ -46,7 +46,7 @@ export function getCacheDir(): string {
   return join(homedir(), ".cache", "rl-cli");
 }
 
-function getCurrentVersion(): string {
+export function getCurrentVersion(): string {
   try {
     // First try environment variable (when installed via npm)
     if (process.env.npm_package_version) {
@@ -87,7 +87,7 @@ export function hasCachedUpdateInfo(): boolean {
   return existsSync(cacheFile);
 }
 
-export function updateCheckCache(): void {
+export function updateCheckCache(latestVersion: string): void {
   const cacheDir = getCacheDir();
   const cacheFile = join(cacheDir, "last_update_check");
 
@@ -96,8 +96,23 @@ export function updateCheckCache(): void {
     mkdirSync(cacheDir, { recursive: true });
   }
 
-  // Touch the cache file
-  writeFileSync(cacheFile, "");
+  // Store the latest version in the cache file
+  writeFileSync(cacheFile, latestVersion);
+}
+
+export function getCachedLatestVersion(): string | null {
+  const cacheDir = getCacheDir();
+  const cacheFile = join(cacheDir, "last_update_check");
+  
+  if (!existsSync(cacheFile)) {
+    return null;
+  }
+  
+  try {
+    return readFileSync(cacheFile, 'utf-8').trim();
+  } catch {
+    return null;
+  }
 }
 
 export async function checkForUpdates(force: boolean = false): Promise<void> {
@@ -105,11 +120,18 @@ export async function checkForUpdates(force: boolean = false): Promise<void> {
   
   // Always show cached result if available and not forcing
   if (!force && hasCachedUpdateInfo() && !shouldCheckForUpdates()) {
-    // Show cached update info (we know there's an update available)
-    console.error(
-      `\n🔄 Update available: ${currentVersion} → 0.1.0\n` +
-      `   Run: npm install -g @runloop/rl-cli@latest\n\n`
-    );
+    const cachedLatestVersion = getCachedLatestVersion();
+    if (cachedLatestVersion && cachedLatestVersion !== currentVersion) {
+      // Check if current version is older than cached latest
+      const isUpdateAvailable = compareVersions(cachedLatestVersion, currentVersion) > 0;
+      
+      if (isUpdateAvailable) {
+        console.error(
+          `\n🔄 Update available: ${currentVersion} → ${cachedLatestVersion}\n` +
+          `   Run: npm install -g @runloop/rl-cli@latest\n\n`
+        );
+      }
+    }
     return;
   }
   
@@ -152,8 +174,8 @@ export async function checkForUpdates(force: boolean = false): Promise<void> {
       console.error("✅ You're running the latest version!\n");
     }
     
-    // Update the cache to indicate we've checked
-    updateCheckCache();
+    // Update the cache with the latest version
+    updateCheckCache(latestVersion);
   } catch (error) {
     if (force) {
       console.error(`❌ Error checking for updates: ${error}\n`);
