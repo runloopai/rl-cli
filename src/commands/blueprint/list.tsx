@@ -7,19 +7,16 @@ import { Header } from "../../components/Header.js";
 import { SpinnerComponent } from "../../components/Spinner.js";
 import { ErrorMessage } from "../../components/ErrorMessage.js";
 import { SuccessMessage } from "../../components/SuccessMessage.js";
-import { StatusBadge } from "../../components/StatusBadge.js";
 import { Breadcrumb } from "../../components/Breadcrumb.js";
-import { MetadataDisplay } from "../../components/MetadataDisplay.js";
-import { createTextColumn } from "../../components/Table.js";
-import { OperationsMenu, Operation } from "../../components/OperationsMenu.js";
-import {
-  ResourceListView,
-  formatTimeAgo,
-} from "../../components/ResourceListView.js";
+import { createTextColumn, Table } from "../../components/Table.js";
+import { Operation } from "../../components/OperationsMenu.js";
+import { ActionsPopup } from "../../components/ActionsPopup.js";
+import { formatTimeAgo } from "../../components/ResourceListView.js";
 import { createExecutor } from "../../utils/CommandExecutor.js";
 import { getBlueprintUrl } from "../../utils/url.js";
 import { colors } from "../../utils/theme.js";
 import { getStatusDisplay } from "../../components/StatusBadge.js";
+import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
 
 const PAGE_SIZE = 10;
 const MAX_FETCH = 100;
@@ -31,7 +28,6 @@ const ListBlueprintsUI: React.FC<{
   onExit?: () => void;
 }> = ({ onBack, onExit }) => {
   const { stdout } = useStdout();
-  const [showDetails, setShowDetails] = React.useState(false);
   const [selectedBlueprint, setSelectedBlueprint] = React.useState<
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     any | null
@@ -47,6 +43,15 @@ const ListBlueprintsUI: React.FC<{
     null,
   );
   const [loading, setLoading] = React.useState(false);
+  const [showCreateDevbox, setShowCreateDevbox] = React.useState(false);
+  
+  // List view state - moved to top to ensure hooks are called in same order
+  const [blueprints, setBlueprints] = React.useState<any[]>([]);
+  const [listError, setListError] = React.useState<Error | null>(null);
+  const [currentPage, setCurrentPage] = React.useState(0);
+  const [selectedIndex, setSelectedIndex] = React.useState(0);
+  const [showActions, setShowActions] = React.useState(false);
+  const [showPopup, setShowPopup] = React.useState(false);
 
   // Calculate responsive column widths
   const terminalWidth = stdout?.columns || 120;
@@ -59,76 +64,63 @@ const ListBlueprintsUI: React.FC<{
   const descriptionWidth = 40;
   const timeWidth = 20;
 
-  const allOperations: Operation[] = [
-    {
-      key: "create_devbox",
-      label: "Create Devbox from Blueprint",
-      color: colors.success,
-      icon: figures.play,
-      needsInput: true,
-      inputPrompt: "Devbox name (optional):",
-      inputPlaceholder: "my-devbox",
-    },
-    {
+  // Helper function to generate operations based on selected blueprint
+  const getOperationsForBlueprint = (blueprint: any): Operation[] => {
+    const operations: Operation[] = [];
+    
+    // Only show create devbox option if blueprint is successfully built
+    if (blueprint && (blueprint.status === "build_complete" || blueprint.status === "building_complete")) {
+      operations.push({
+        key: "create_devbox",
+        label: "Create Devbox from Blueprint",
+        color: colors.success,
+        icon: figures.play,
+      });
+    }
+    
+    // Always show delete option
+    operations.push({
       key: "delete",
       label: "Delete Blueprint",
       color: colors.error,
       icon: figures.cross,
-    },
-  ];
-
-  // Clear console when transitioning to detail view
-  const prevShowDetailsRef = React.useRef(showDetails);
-  React.useEffect(() => {
-    if (showDetails && !prevShowDetailsRef.current) {
-      console.clear();
-    }
-    prevShowDetailsRef.current = showDetails;
-  }, [showDetails]);
-
-  // Auto-execute operations that don't need input
-  React.useEffect(() => {
-    if (executingOperation === "delete" && !loading && selectedBlueprint) {
-      executeOperation();
-    }
-  }, [executingOperation, loading, selectedBlueprint]);
-
-  const executeOperation = async () => {
-    const client = getClient();
-    const blueprint = selectedBlueprint;
-
-    if (!blueprint) return;
-
-    try {
-      setLoading(true);
-      switch (executingOperation) {
-        case "create_devbox":
-          const devbox = await client.devboxes.create({
-            blueprint_id: blueprint.id,
-            name: operationInput || undefined,
-          });
-          setOperationResult(
-            `Devbox created successfully!\n\n` +
-              `ID: ${devbox.id}\n` +
-              `Name: ${devbox.name || "(none)"}\n` +
-              `Status: ${devbox.status}\n\n` +
-              `Use 'rln devbox list' to view all devboxes.`,
-          );
-          break;
-
-        case "delete":
-          await client.blueprints.delete(blueprint.id);
-          setOperationResult(`Blueprint ${blueprint.id} deleted successfully`);
-          break;
-      }
-    } catch (err) {
-      setOperationError(err as Error);
-    } finally {
-      setLoading(false);
-    }
+    });
+    
+    return operations;
   };
 
+  // Fetch blueprints - moved to top to ensure hooks are called in same order
+  React.useEffect(() => {
+    const fetchBlueprints = async () => {
+      try {
+        setLoading(true);
+        const client = getClient();
+        const allBlueprints: any[] = [];
+        let count = 0;
+        for await (const blueprint of client.blueprints.list()) {
+          allBlueprints.push(blueprint);
+          count++;
+          if (count >= MAX_FETCH) break;
+        }
+        setBlueprints(allBlueprints);
+      } catch (err) {
+        setListError(err as Error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBlueprints();
+  }, []);
+
+  // Handle input for all views - combined into single hook
   useInput((input, key) => {
+    // Handle Ctrl+C to force exit
+    if (key.ctrl && input === "c") {
+      process.stdout.write("\x1b[?1049l"); // Exit alternate screen
+      process.exit(130);
+    }
+
     // Handle operation input mode
     if (executingOperation && !operationResult && !operationError) {
       const currentOp = allOperations.find(
@@ -158,43 +150,167 @@ const ListBlueprintsUI: React.FC<{
       return;
     }
 
-    // Handle details view
-    if (showDetails) {
-      if (input === "q" || key.escape) {
-        console.clear();
-        setShowDetails(false);
-        setSelectedOperation(0);
-      } else if (input === "o" && selectedBlueprint) {
-        // Open in browser
-        const url = getBlueprintUrl(selectedBlueprint.id);
-        const openBrowser = async () => {
-          const { exec } = await import("child_process");
-          const platform = process.platform;
 
-          let openCommand: string;
-          if (platform === "darwin") {
-            openCommand = `open "${url}"`;
-          } else if (platform === "win32") {
-            openCommand = `start "${url}"`;
-          } else {
-            openCommand = `xdg-open "${url}"`;
-          }
+    // Handle create devbox view
+    if (showCreateDevbox) {
+      return; // Let DevboxCreatePage handle its own input
+    }
 
-          exec(openCommand);
-        };
-        openBrowser();
-      } else if (key.upArrow && selectedOperation > 0) {
+    // Handle actions popup overlay: consume keys and prevent table nav
+    if (showPopup) {
+      if (key.upArrow && selectedOperation > 0) {
         setSelectedOperation(selectedOperation - 1);
-      } else if (key.downArrow && selectedOperation < operations.length - 1) {
+      } else if (key.downArrow && selectedOperation < allOperations.length - 1) {
         setSelectedOperation(selectedOperation + 1);
       } else if (key.return) {
         console.clear();
-        const op = operations[selectedOperation].key as OperationType;
-        setExecutingOperation(op);
+        setShowPopup(false);
+        const operationKey = allOperations[selectedOperation].key;
+        
+        if (operationKey === "create_devbox") {
+          // Go directly to create devbox screen
+          setSelectedBlueprint(selectedBlueprintItem);
+          setShowCreateDevbox(true);
+        } else {
+          // Execute other operations normally
+          setSelectedBlueprint(selectedBlueprintItem);
+          setExecutingOperation(operationKey as OperationType);
+          executeOperation();
+        }
+      } else if (key.escape || input === "q") {
+        console.clear();
+        setShowPopup(false);
+        setSelectedOperation(0);
+      } else if (input === "c") {
+        // Create devbox hotkey - only if blueprint is complete
+        if (selectedBlueprintItem && 
+            (selectedBlueprintItem.status === "build_complete" || selectedBlueprintItem.status === "building_complete")) {
+          console.clear();
+          setShowPopup(false);
+          setSelectedBlueprint(selectedBlueprintItem);
+          setShowCreateDevbox(true);
+        }
+      } else if (input === "d") {
+        // Delete hotkey
+        const deleteIndex = allOperations.findIndex(op => op.key === "delete");
+        if (deleteIndex >= 0) {
+        console.clear();
+        setShowPopup(false);
+        setSelectedBlueprint(selectedBlueprintItem);
+        setExecutingOperation("delete");
+        executeOperation();
+        }
+      }
+      return; // prevent falling through to list nav
+    }
+
+    // Handle actions view
+    if (showActions) {
+      if (input === "q" || key.escape) {
+        console.clear();
+        setShowActions(false);
+        setSelectedOperation(0);
       }
       return;
     }
+
+    // Handle list navigation (default view)
+    const pageSize = PAGE_SIZE;
+    const totalPages = Math.ceil(blueprints.length / pageSize);
+    const startIndex = currentPage * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, blueprints.length);
+    const currentBlueprints = blueprints.slice(startIndex, endIndex);
+    const pageBlueprints = currentBlueprints.length;
+
+    if (key.upArrow && selectedIndex > 0) {
+      setSelectedIndex(selectedIndex - 1);
+    } else if (key.downArrow && selectedIndex < pageBlueprints - 1) {
+      setSelectedIndex(selectedIndex + 1);
+    } else if ((input === "n" || key.rightArrow) && currentPage < totalPages - 1) {
+      setCurrentPage(currentPage + 1);
+      setSelectedIndex(0);
+    } else if ((input === "p" || key.leftArrow) && currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+      setSelectedIndex(0);
+    } else if (input === "a") {
+      console.clear();
+      setShowPopup(true);
+      setSelectedOperation(0);
+    } else if (input === "o" && currentBlueprints[selectedIndex]) {
+      // Open in browser
+      const url = getBlueprintUrl(currentBlueprints[selectedIndex].id);
+      const openBrowser = async () => {
+        const { exec } = await import("child_process");
+        const platform = process.platform;
+        let openCommand: string;
+        if (platform === "darwin") {
+          openCommand = `open "${url}"`;
+        } else if (platform === "win32") {
+          openCommand = `start "${url}"`;
+        } else {
+          openCommand = `xdg-open "${url}"`;
+        }
+        exec(openCommand);
+      };
+      openBrowser();
+    } else if (key.escape) {
+      if (onBack) {
+        onBack();
+      } else if (onExit) {
+        onExit();
+      }
+    }
   });
+
+  // Pagination computed early to allow hooks before any returns
+  const pageSize = PAGE_SIZE;
+  const totalPages = Math.ceil(blueprints.length / pageSize);
+  const startIndex = currentPage * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, blueprints.length);
+  const currentBlueprints = blueprints.slice(startIndex, endIndex);
+
+  // Ensure selected index is within bounds - place before any returns
+  React.useEffect(() => {
+    if (currentBlueprints.length > 0 && selectedIndex >= currentBlueprints.length) {
+      setSelectedIndex(Math.max(0, currentBlueprints.length - 1));
+    }
+  }, [currentBlueprints.length, selectedIndex]);
+
+  const selectedBlueprintItem = currentBlueprints[selectedIndex];
+  
+  // Generate operations based on selected blueprint status
+  const allOperations = getOperationsForBlueprint(selectedBlueprintItem);
+
+
+
+  const executeOperation = async () => {
+    const client = getClient();
+    const blueprint = selectedBlueprint;
+
+    if (!blueprint) return;
+
+    try {
+      setLoading(true);
+      switch (executingOperation) {
+        case "create_devbox":
+          // Navigate to create devbox screen with blueprint pre-filled
+          setShowCreateDevbox(true);
+          setExecutingOperation(null);
+          setLoading(false);
+          return;
+
+        case "delete":
+          await client.blueprints.delete(blueprint.id);
+          setOperationResult(`Blueprint ${blueprint.id} deleted successfully`);
+          break;
+      }
+    } catch (err) {
+      setOperationError(err as Error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   // Filter operations based on blueprint status
   const operations = selectedBlueprint
@@ -321,185 +437,95 @@ const ListBlueprintsUI: React.FC<{
     );
   }
 
-  // Details view with operation selection
-  if (showDetails && selectedBlueprint) {
-    const ds = selectedBlueprint.dockerfile_setup;
+  // Create devbox screen
+  if (showCreateDevbox && selectedBlueprint) {
+    return (
+      <DevboxCreatePage
+        onBack={() => {
+          setShowCreateDevbox(false);
+          setSelectedBlueprint(null);
+        }}
+        onCreate={(devbox) => {
+          // Return to blueprint list after creation
+          setShowCreateDevbox(false);
+          setSelectedBlueprint(null);
+        }}
+        initialBlueprintId={selectedBlueprint.id}
+      />
+    );
+  }
 
+
+  // Loading state
+  if (loading) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "Blueprints" },
-            {
-              label: selectedBlueprint.name || selectedBlueprint.id,
-              active: true,
-            },
-          ]}
-        />
-        <Header title="Blueprint Details" />
+        <Breadcrumb items={[{ label: "Blueprints", active: true }]} />
+        <SpinnerComponent message="Loading blueprints..." />
+      </>
+    );
+  }
 
-        {/* Compact info section */}
-        <Box
-          flexDirection="column"
-          borderStyle="round"
-          borderColor={colors.primary}
-          paddingX={1}
-          paddingY={0}
-        >
-          <Box>
-            <Text color={colors.primary} bold>
-              {selectedBlueprint.name || selectedBlueprint.id}
-            </Text>
-            <Text> </Text>
-            <StatusBadge status={selectedBlueprint.status} />
-            <Text color={colors.textDim} dimColor>
-              {" "}
-              • {selectedBlueprint.id}
-            </Text>
-          </Box>
-          <Box>
-            <Text color={colors.textDim} dimColor>
-              {selectedBlueprint.create_time_ms
-                ? new Date(selectedBlueprint.create_time_ms).toLocaleString()
-                : ""}
-            </Text>
-            <Text color={colors.textDim} dimColor>
-              {" "}
-              (
-              {selectedBlueprint.create_time_ms
-                ? formatTimeAgo(selectedBlueprint.create_time_ms)
-                : ""}
-              )
-            </Text>
-          </Box>
-          {ds?.description && (
-            <Box>
-              <Text color={colors.textDim} dimColor>
-                {ds.description}
-              </Text>
-            </Box>
-          )}
-        </Box>
-
-        {/* Dockerfile setup details */}
-        {ds && (
-          <Box
-            flexDirection="column"
-            borderStyle="round"
-            borderColor={colors.warning}
-            paddingX={1}
-            paddingY={0}
-          >
-            <Text color={colors.warning} bold>
-              {figures.squareSmallFilled} Dockerfile Setup
-            </Text>
-            {ds.base_image && <Text dimColor>Base Image: {ds.base_image}</Text>}
-            {ds.entrypoint && <Text dimColor>Entrypoint: {ds.entrypoint}</Text>}
-            {ds.system_packages && ds.system_packages.length > 0 && (
-              <Text dimColor>
-                System Packages: {ds.system_packages.join(", ")}
-              </Text>
-            )}
-            {ds.python_packages && ds.python_packages.length > 0 && (
-              <Text dimColor>
-                Python Packages: {ds.python_packages.join(", ")}
-              </Text>
-            )}
-          </Box>
-        )}
-
-        {/* Metadata */}
-        {selectedBlueprint.metadata &&
-          Object.keys(selectedBlueprint.metadata).length > 0 && (
-            <Box
-              borderStyle="round"
-              borderColor={colors.success}
-              paddingX={1}
-              paddingY={0}
-            >
-              <MetadataDisplay
-                metadata={selectedBlueprint.metadata}
-                showBorder={false}
-              />
-            </Box>
-          )}
-
-        {/* Failure reason */}
-        {selectedBlueprint.build_error && (
-          <Box
-            borderStyle="round"
-            borderColor={colors.error}
-            paddingX={1}
-            paddingY={0}
-          >
-            <Text color={colors.error} bold>
-              {figures.cross}{" "}
-            </Text>
-            <Text color={colors.error} dimColor>
-              {selectedBlueprint.build_error}
-            </Text>
-          </Box>
-        )}
-
-        {/* Operations */}
-        <OperationsMenu
-          operations={operations}
-          selectedIndex={selectedOperation}
-          onNavigate={(direction) => {
-            if (direction === "up" && selectedOperation > 0) {
-              setSelectedOperation(selectedOperation - 1);
-            } else if (
-              direction === "down" &&
-              selectedOperation < operations.length - 1
-            ) {
-              setSelectedOperation(selectedOperation + 1);
-            }
-          }}
-          onSelect={(op) => {
-            console.clear();
-            setExecutingOperation(op.key as OperationType);
-          }}
-          onBack={() => {
-            console.clear();
-            setShowDetails(false);
-            setSelectedOperation(0);
-          }}
-          additionalActions={[
-            { key: "o", label: "Browser", handler: () => {} },
-          ]}
+  // Error state
+  if (listError) {
+    return (
+      <>
+        <Breadcrumb items={[{ label: "Blueprints", active: true }]} />
+        <ErrorMessage
+          message="Failed to load blueprints"
+          error={listError}
         />
       </>
     );
   }
 
-  // List view using ResourceListView
+  // Empty state
+  if (blueprints.length === 0) {
+    return (
+      <>
+        <Breadcrumb items={[{ label: "Blueprints", active: true }]} />
+        <Box>
+          <Text color={colors.warning}>{figures.info}</Text>
+          <Text> No blueprints found. Try:</Text>
+          <Text color={colors.primary} bold>
+            rli blueprint create
+          </Text>
+        </Box>
+      </>
+    );
+  }
+
+  // Pagination moved earlier
+
+  // Overlay: draw quick actions popup over the table (keep table visible)
+
+  // List view
   return (
-    <ResourceListView
-      config={{
-        resourceName: "Blueprint",
-        resourceNamePlural: "Blueprints",
-        fetchResources: async () => {
-          const client = getClient();
-          const allBlueprints: any[] = [];
-          let count = 0;
-          for await (const blueprint of client.blueprints.list()) {
-            allBlueprints.push(blueprint);
-            count++;
-            if (count >= MAX_FETCH) break;
-          }
-          return allBlueprints;
-        },
-        columns: [
+    <>
+      <Breadcrumb items={[{ label: "Blueprints", active: true }]} />
+      
+      {/* Table */}
+      <Table
+        data={currentBlueprints}
+        keyExtractor={(blueprint: any) => blueprint.id}
+        selectedIndex={selectedIndex}
+        title={`blueprints[${blueprints.length}]`}
+        columns={[
           {
             key: "statusIcon",
             label: "",
             width: statusIconWidth,
             render: (blueprint: any, index: number, isSelected: boolean) => {
               const statusDisplay = getStatusDisplay(blueprint.status);
+              const statusColor =
+                statusDisplay.color === colors.textDim
+                  ? colors.info
+                  : statusDisplay.color;
               return (
                 <Text
-                  color={isSelected ? "white" : statusDisplay.color}
+                  color={isSelected ? "white" : statusColor}
                   bold={true}
+                dimColor={false}
                   inverse={isSelected}
                   wrap="truncate"
                 >
@@ -521,7 +547,7 @@ const ListBlueprintsUI: React.FC<{
                 <Text
                   color={isSelected ? "white" : colors.textDim}
                   bold={false}
-                  dimColor={!isSelected}
+                  dimColor={false}
                   inverse={isSelected}
                   wrap="truncate"
                 >
@@ -536,12 +562,17 @@ const ListBlueprintsUI: React.FC<{
             width: statusTextWidth,
             render: (blueprint: any, index: number, isSelected: boolean) => {
               const statusDisplay = getStatusDisplay(blueprint.status);
+              const statusColor =
+                statusDisplay.color === colors.textDim
+                  ? colors.info
+                  : statusDisplay.color;
               const truncated = statusDisplay.text.slice(0, statusTextWidth);
               const padded = truncated.padEnd(statusTextWidth, " ");
               return (
                 <Text
-                  color={isSelected ? "white" : statusDisplay.color}
+                  color={isSelected ? "white" : statusColor}
                   bold={true}
+                dimColor={false}
                   inverse={isSelected}
                   wrap="truncate"
                 >
@@ -565,7 +596,7 @@ const ListBlueprintsUI: React.FC<{
             {
               width: descriptionWidth,
               color: colors.textDim,
-              dimColor: true,
+              dimColor: false,
               bold: false,
               visible: showDescription,
             },
@@ -580,52 +611,91 @@ const ListBlueprintsUI: React.FC<{
             {
               width: timeWidth,
               color: colors.textDim,
-              dimColor: true,
+              dimColor: false,
               bold: false,
             },
           ),
-        ],
-        keyExtractor: (blueprint: any) => blueprint.id,
-        getStatus: (blueprint: any) => blueprint.status,
-        statusConfig: {
-          success: ["build_complete"],
-          warning: ["provisioning", "building"],
-          error: ["build_failed"],
-        },
-        emptyState: {
-          message: "No blueprints found. Try:",
-          command: "rln blueprint create",
-        },
-        pageSize: PAGE_SIZE,
-        maxFetch: MAX_FETCH,
-        onBack: onBack,
-        onExit: onExit,
-        additionalShortcuts: [
-          {
-            key: "o",
-            label: "Browser",
-            handler: (blueprint: any) => {
-              const url = getBlueprintUrl(blueprint.id);
-              const openBrowser = async () => {
-                const { exec } = await import("child_process");
-                const platform = process.platform;
-                let openCommand: string;
-                if (platform === "darwin") {
-                  openCommand = `open "${url}"`;
-                } else if (platform === "win32") {
-                  openCommand = `start "${url}"`;
-                } else {
-                  openCommand = `xdg-open "${url}"`;
-                }
-                exec(openCommand);
-              };
-              openBrowser();
-            },
-          },
-        ],
-        breadcrumbItems: [{ label: "Blueprints", active: true }],
-      }}
-    />
+        ]}
+      />
+
+      {/* Statistics Bar */}
+      <Box marginTop={1} paddingX={1}>
+        <Text color={colors.primary} bold>
+          {figures.hamburger} {blueprints.length}
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          total
+        </Text>
+        {totalPages > 1 && (
+          <>
+            <Text color={colors.textDim} dimColor>
+              {" "}
+              •{" "}
+            </Text>
+            <Text color={colors.textDim} dimColor>
+              Page {currentPage + 1} of {totalPages}
+            </Text>
+          </>
+        )}
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          •{" "}
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          Showing {startIndex + 1}-{endIndex} of {blueprints.length}
+        </Text>
+      </Box>
+
+      {/* Popup overlaying - use negative margin to pull it up over the table */}
+      {showPopup && selectedBlueprintItem && (
+        <Box
+          marginTop={-Math.min(allOperations.length + 10, PAGE_SIZE + 5)}
+          justifyContent="center"
+        >
+          <ActionsPopup
+            devbox={selectedBlueprintItem}
+            operations={allOperations.map((op) => ({
+              key: op.key,
+              label: op.label,
+              color: op.color,
+              icon: op.icon,
+              shortcut:
+                op.key === "create_devbox" ? "c" : op.key === "delete" ? "d" : "",
+            }))}
+            selectedOperation={selectedOperation}
+            onClose={() => setShowPopup(false)}
+          />
+        </Box>
+      )}
+
+      {/* Help Bar */}
+      <Box marginTop={1} paddingX={1}>
+        <Text color={colors.textDim} dimColor>
+          {figures.arrowUp}
+          {figures.arrowDown} Navigate
+        </Text>
+        {totalPages > 1 && (
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            • {figures.arrowLeft}
+            {figures.arrowRight} Page
+          </Text>
+        )}
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          • [a] Actions
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          • [o] Browser
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          • [Esc] Back
+        </Text>
+      </Box>
+    </>
   );
 };
 

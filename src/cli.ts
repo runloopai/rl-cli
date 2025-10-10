@@ -30,7 +30,7 @@ process.on("SIGINT", () => {
 const program = new Command();
 
 program
-  .name("rln")
+  .name("rli")
   .description("Beautiful CLI for Runloop devbox management")
   .version(VERSION);
 
@@ -599,7 +599,7 @@ mcp
     await installMcpConfig();
   });
 
-// Hidden command: 'rln mcp' without subcommand starts the server (for Claude Desktop config compatibility)
+// Hidden command: 'rli mcp' without subcommand starts the server (for Claude Desktop config compatibility)
 program
   .command("mcp-server", { hidden: true })
   .option("--http", "Use HTTP/SSE transport instead of stdio")
@@ -632,7 +632,7 @@ program
   ) {
     const config = getConfig();
     if (!config.apiKey) {
-      console.error("\n❌ API key not configured. Run: rln auth\n");
+      console.error("\n❌ API key not configured. Run: rli auth\n");
       process.exit(1);
     }
   }

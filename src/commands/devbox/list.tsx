@@ -13,6 +13,7 @@ import { createExecutor } from "../../utils/CommandExecutor.js";
 import { DevboxDetailPage } from "../../components/DevboxDetailPage.js";
 import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
 import { DevboxActionsMenu } from "../../components/DevboxActionsMenu.js";
+import { ResourceActionsMenu } from "../../components/ResourceActionsMenu.js";
 import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { getDevboxUrl } from "../../utils/url.js";
 import {
@@ -70,14 +71,14 @@ const ListDevboxesUI: React.FC<{
   const statusTextWidth = 10;
   const timeWidth = 20;
   const capabilitiesWidth = 18;
-  const tagWidth = 6;
+  const sourceWidth = 26;
 
   // ID is always full width (25 chars for dbx_31CYd5LLFbBxst8mqnUjO format)
   const idWidth = 26;
 
   // Responsive layout based on terminal width
-  const showCapabilities = terminalWidth >= 120;
-  const showTags = terminalWidth >= 110;
+  const showCapabilities = terminalWidth >= 140;
+  const showSource = terminalWidth >= 120;
 
   // Name width is flexible and uses remaining space
   let nameWidth = 15;
@@ -90,7 +91,7 @@ const ListDevboxesUI: React.FC<{
       statusTextWidth -
       timeWidth -
       capabilitiesWidth -
-      tagWidth -
+      sourceWidth -
       12;
     nameWidth = Math.max(15, remainingWidth);
   } else if (terminalWidth >= 110) {
@@ -101,7 +102,7 @@ const ListDevboxesUI: React.FC<{
       idWidth -
       statusTextWidth -
       timeWidth -
-      tagWidth -
+      sourceWidth -
       10;
     nameWidth = Math.max(12, remainingWidth);
   } else {
@@ -541,8 +542,9 @@ const ListDevboxesUI: React.FC<{
   if (showActions && selectedDevbox) {
     const selectedOp = operations[selectedOperation];
     return (
-      <DevboxActionsMenu
-        devbox={selectedDevbox}
+      <ResourceActionsMenu
+        resourceType="devbox"
+        resource={selectedDevbox}
         onBack={() => {
           setShowActions(false);
           setSelectedOperation(0);
@@ -604,7 +606,7 @@ const ListDevboxesUI: React.FC<{
                 createTextColumn("id", "ID", (devbox: any) => devbox.id, {
                   width: idWidth,
                   color: colors.textDim,
-                  dimColor: true,
+                  dimColor: false,
                   bold: false,
                 }),
                 {
@@ -638,7 +640,7 @@ const ListDevboxesUI: React.FC<{
                   (devbox: any) => devbox.name || "",
                   {
                     width: nameWidth,
-                    dimColor: true,
+                    dimColor: false,
                   },
                 ),
                 createTextColumn(
@@ -667,26 +669,26 @@ const ListDevboxesUI: React.FC<{
                   {
                     width: capabilitiesWidth,
                     color: colors.info,
-                    dimColor: true,
+                    dimColor: false,
                     bold: false,
                     visible: showCapabilities,
                   },
                 ),
                 createTextColumn(
-                  "tags",
-                  "Tags",
+                  "source",
+                  "Source",
                   (devbox: any) =>
                     devbox.blueprint_id
-                      ? "[bp]"
+                      ? devbox.blueprint_id
                       : devbox.snapshot_id
-                        ? "[snap]"
+                        ? devbox.snapshot_id
                         : "",
                   {
-                    width: tagWidth,
-                    color: colors.warning,
-                    dimColor: true,
+                    width: sourceWidth,
+                    color: colors.info,
+                    dimColor: false,
                     bold: false,
-                    visible: showTags,
+                    visible: showSource,
                   },
                 ),
                 createTextColumn(
@@ -699,7 +701,7 @@ const ListDevboxesUI: React.FC<{
                   {
                     width: timeWidth,
                     color: colors.textDim,
-                    dimColor: true,
+                    dimColor: false,
                     bold: false,
                   },
                 ),
@@ -811,7 +813,7 @@ const ListDevboxesUI: React.FC<{
               createTextColumn("id", "ID", (devbox: any) => devbox.id, {
                 width: idWidth,
                 color: colors.textDim,
-                dimColor: true,
+                dimColor: false,
                 bold: false,
               }),
               {
@@ -873,26 +875,26 @@ const ListDevboxesUI: React.FC<{
                 {
                   width: capabilitiesWidth,
                   color: colors.info,
-                  dimColor: true,
+                  dimColor: false,
                   bold: false,
                   visible: showCapabilities,
                 },
               ),
               createTextColumn(
-                "tags",
-                "Tags",
+                "source",
+                "Source",
                 (devbox: any) =>
                   devbox.blueprint_id
-                    ? "[bp]"
+                    ? devbox.blueprint_id
                     : devbox.snapshot_id
-                      ? "[snap]"
+                      ? devbox.snapshot_id
                       : "",
                 {
-                  width: tagWidth,
-                  color: colors.warning,
-                  dimColor: true,
+                  width: sourceWidth,
+                  color: colors.info,
+                  dimColor: false,
                   bold: false,
-                  visible: showTags,
+                  visible: showSource,
                 },
               ),
               createTextColumn(
@@ -905,7 +907,7 @@ const ListDevboxesUI: React.FC<{
                 {
                   width: timeWidth,
                   color: colors.textDim,
-                  dimColor: true,
+                  dimColor: false,
                   bold: false,
                 },
               ),

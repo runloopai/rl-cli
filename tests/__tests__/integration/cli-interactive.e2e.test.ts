@@ -8,7 +8,7 @@ describe("CLI Interactive Mode", () => {
   const CLI_PATH = "dist/cli.js";
   
   describe("Top-Level Commands Use Interactive Mode", () => {
-    it("should trigger interactive mode for 'rln devbox'", async () => {
+    it("should trigger interactive mode for 'rli devbox'", async () => {
       const process = spawn("node", [CLI_PATH, "devbox"], {
         stdio: ["pipe", "pipe", "pipe"],
         timeout: 5000, // 5 second timeout
@@ -60,7 +60,7 @@ describe("CLI Interactive Mode", () => {
       });
     }, 10000);
 
-    it("should trigger interactive mode for 'rln snapshot'", async () => {
+    it("should trigger interactive mode for 'rli snapshot'", async () => {
       const process = spawn("node", [CLI_PATH, "snapshot"], {
         stdio: ["pipe", "pipe", "pipe"],
         timeout: 5000,
@@ -102,7 +102,7 @@ describe("CLI Interactive Mode", () => {
       });
     }, 10000);
 
-    it("should trigger interactive mode for 'rln blueprint'", async () => {
+    it("should trigger interactive mode for 'rli blueprint'", async () => {
       const process = spawn("node", [CLI_PATH, "blueprint"], {
         stdio: ["pipe", "pipe", "pipe"],
         timeout: 5000,
@@ -146,21 +146,21 @@ describe("CLI Interactive Mode", () => {
   });
 
   describe("Subcommands Use Non-Interactive Mode", () => {
-    it("should use non-interactive mode for 'rln devbox list'", async () => {
+    it("should use non-interactive mode for 'rli devbox list'", async () => {
       const { stdout } = await execAsync(`node ${CLI_PATH} devbox list`);
       
       // Should output JSON, not trigger interactive mode
       expect(() => JSON.parse(stdout)).not.toThrow();
     }, 10000);
 
-    it("should use non-interactive mode for 'rln snapshot list'", async () => {
+    it("should use non-interactive mode for 'rli snapshot list'", async () => {
       const { stdout } = await execAsync(`node ${CLI_PATH} snapshot list`);
       
       // Should output JSON, not trigger interactive mode
       expect(() => JSON.parse(stdout)).not.toThrow();
     }, 10000);
 
-    it("should use non-interactive mode for 'rln blueprint list'", async () => {
+    it("should use non-interactive mode for 'rli blueprint list'", async () => {
       const { stdout } = await execAsync(`node ${CLI_PATH} blueprint list`);
       
       // Should output JSON, not trigger interactive mode
