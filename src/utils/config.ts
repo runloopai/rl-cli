@@ -1,7 +1,7 @@
 import Conf from "conf";
 import { homedir } from "os";
 import { join } from "path";
-import { existsSync, statSync } from "fs";
+import { existsSync, statSync, mkdirSync, writeFileSync } from "fs";
 
 interface Config {
   apiKey?: string;
@@ -65,9 +65,9 @@ export function updateCheckCache(): void {
 
   // Create cache directory if it doesn't exist
   if (!existsSync(cacheDir)) {
-    require("fs").mkdirSync(cacheDir, { recursive: true });
+    mkdirSync(cacheDir, { recursive: true });
   }
 
   // Touch the cache file
-  require("fs").writeFileSync(cacheFile, "");
+  writeFileSync(cacheFile, "");
 }
