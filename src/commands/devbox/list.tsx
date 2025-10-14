@@ -48,8 +48,6 @@ const ListDevboxesUI: React.FC<{
   const [showActions, setShowActions] = React.useState(false);
   const [showPopup, setShowPopup] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(0);
-  const [refreshing, setRefreshing] = React.useState(false);
-  const [refreshIcon, setRefreshIcon] = React.useState(0);
   const isNavigating = React.useRef(false);
   const [searchMode, setSearchMode] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -214,11 +212,6 @@ const ListDevboxesUI: React.FC<{
           isNavigating.current = true;
         }
 
-        // Only show refreshing indicator on initial load
-        if (isInitialLoad) {
-          setRefreshing(true);
-        }
-
         // Check if we have cached data for this page
         if (
           !isInitialLoad &&
@@ -307,7 +300,6 @@ const ListDevboxesUI: React.FC<{
         // Only set initialLoading to false after first successful load
         if (isInitialLoad) {
           setInitialLoading(false);
-          setTimeout(() => setRefreshing(false), 300);
         }
       }
     };
@@ -332,17 +324,7 @@ const ListDevboxesUI: React.FC<{
     return () => clearInterval(interval);
   }, [showDetails, showCreate, showActions, currentPage, searchQuery]);
 
-  // Animate refresh icon only when in list view
-  React.useEffect(() => {
-    if (showDetails || showCreate || showActions) {
-      return; // Don't animate when not in list view
-    }
-
-    const interval = setInterval(() => {
-      setRefreshIcon((prev) => (prev + 1) % 10);
-    }, 80);
-    return () => clearInterval(interval);
-  }, [showDetails, showCreate, showActions]);
+  // Removed refresh icon animation to prevent constant re-renders and flashing
 
   useInput((input, key) => {
     // Handle Ctrl+C to force exit
@@ -948,17 +930,7 @@ const ListDevboxesUI: React.FC<{
               </Text>
             )}
             <Text> </Text>
-            {refreshing ? (
-              <Text color={colors.primary}>
-                {
-                  ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"][
-                    refreshIcon % 10
-                  ]
-                }
-              </Text>
-            ) : (
-              <Text color={colors.success}>{figures.circleFilled}</Text>
-            )}
+            <Text color={colors.success}>{figures.circleFilled}</Text>
           </Box>
 
           {/* Help Bar */}

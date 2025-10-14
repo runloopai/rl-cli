@@ -22,7 +22,6 @@ export async function runSSHSession(
   // This ensures the terminal is in a proper state after exiting Ink
   spawnSync("reset", [], { stdio: "inherit" });
 
-  console.clear();
   console.log(`\nConnecting to devbox ${config.devboxName}...\n`);
 
   // Spawn SSH in foreground with proper terminal settings

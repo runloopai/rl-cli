@@ -42,6 +42,35 @@ program
     auth();
   });
 
+// Config commands
+const config = program
+  .command("config")
+  .description("Configure CLI settings")
+  .action(async () => {
+    const { showThemeConfig } = await import("./commands/config.js");
+    showThemeConfig();
+  });
+
+config
+  .command("theme [mode]")
+  .description("Get or set theme mode (auto|light|dark)")
+  .action(async (mode?: string) => {
+    const { showThemeConfig, setThemeConfig } = await import(
+      "./commands/config.js"
+    );
+
+    if (!mode) {
+      showThemeConfig();
+    } else if (mode === "auto" || mode === "light" || mode === "dark") {
+      setThemeConfig(mode);
+    } else {
+      console.error(
+        `\n❌ Invalid theme mode: ${mode}\nValid options: auto, light, dark\n`,
+      );
+      process.exit(1);
+    }
+  });
+
 // Devbox commands
 const devbox = program
   .command("devbox")
@@ -622,10 +651,15 @@ program
 
 // Main CLI entry point
 (async () => {
-  // Check if API key is configured (except for auth and mcp commands)
+  // Initialize theme system early (before any UI rendering)
+  const { initializeTheme } = await import("./utils/theme.js");
+  await initializeTheme();
+
+  // Check if API key is configured (except for auth, config, and mcp commands)
   const args = process.argv.slice(2);
   if (
     args[0] !== "auth" &&
+    args[0] !== "config" &&
     args[0] !== "mcp" &&
     args[0] !== "mcp-server" &&
     args[0] !== "--help" &&

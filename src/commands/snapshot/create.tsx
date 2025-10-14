@@ -129,7 +129,6 @@ const CreateSnapshotUI: React.FC<{
 };
 
 export async function createSnapshot(devboxId: string, options: CreateOptions) {
-  console.clear();
   const { waitUntilExit } = render(
     <CreateSnapshotUI devboxId={devboxId} name={options.name} />,
   );
