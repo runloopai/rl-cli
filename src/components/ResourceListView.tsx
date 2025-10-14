@@ -109,8 +109,6 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [searchMode, setSearchMode] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [refreshing, setRefreshing] = React.useState(false);
-  const [refreshIcon, setRefreshIcon] = React.useState(0);
 
   const pageSize = config.pageSize || 10;
   const maxFetch = config.maxFetch || 100;
@@ -123,19 +121,12 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   const fetchData = React.useCallback(
     async (isInitialLoad: boolean = false) => {
       try {
-        if (isInitialLoad) {
-          setRefreshing(true);
-        }
-
         const data = await config.fetchResources();
         setResources(data);
       } catch (err) {
         setError(err as Error);
       } finally {
         setLoading(false);
-        if (isInitialLoad) {
-          setTimeout(() => setRefreshing(false), 300);
-        }
       }
     },
     [config.fetchResources],
@@ -156,13 +147,7 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
     }
   }, [config.autoRefresh, fetchData]);
 
-  // Animate refresh icon
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      setRefreshIcon((prev) => (prev + 1) % 10);
-    }, 80);
-    return () => clearInterval(interval);
-  }, []);
+  // Removed refresh icon animation to prevent constant re-renders and flashing
 
   // Filter resources based on search query
   const filteredResources = React.useMemo(() => {
@@ -430,17 +415,7 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
           Showing {startIndex + 1}-{endIndex} of {filteredResources.length}
         </Text>
         <Text> </Text>
-        {refreshing ? (
-          <Text color={colors.primary}>
-            {
-              ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"][
-                refreshIcon % 10
-              ]
-            }
-          </Text>
-        ) : (
-          <Text color={colors.success}>{figures.circleFilled}</Text>
-        )}
+        <Text color={colors.success}>{figures.circleFilled}</Text>
       </Box>
 
       {/* Help Bar */}

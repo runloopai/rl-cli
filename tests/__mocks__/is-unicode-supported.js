@@ -2,3 +2,4 @@
 module.exports = function isUnicodeSupported() {
   return true;
 };
+

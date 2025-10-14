@@ -33,13 +33,43 @@ export const ActionsPopup: React.FC<ActionsPopupProps> = ({
   const bgLine = (content: string) => {
     const cleanLength = stripAnsi(content).length;
     const padding = Math.max(0, contentWidth - cleanLength);
-    return chalk.bgBlack(content + " ".repeat(padding));
+    // Use theme-aware background color
+    const bgColor = colors.background as
+      | "black"
+      | "white"
+      | "gray"
+      | "red"
+      | "green"
+      | "yellow"
+      | "blue"
+      | "magenta"
+      | "cyan";
+    const bgFn = chalk[`bg${bgColor.charAt(0).toUpperCase()}${bgColor.slice(1)}` as "bgBlack"];
+    return typeof bgFn === "function"
+      ? bgFn(content + " ".repeat(padding))
+      : chalk.bgBlack(content + " ".repeat(padding));
   };
 
   // Render all lines with background
+  const bgColor = colors.background as
+    | "black"
+    | "white"
+    | "gray"
+    | "red"
+    | "green"
+    | "yellow"
+    | "blue"
+    | "magenta"
+    | "cyan";
+  const bgFn = chalk[`bg${bgColor.charAt(0).toUpperCase()}${bgColor.slice(1)}` as "bgBlack"];
+  const bgEmpty =
+    typeof bgFn === "function"
+      ? bgFn(" ".repeat(contentWidth))
+      : chalk.bgBlack(" ".repeat(contentWidth));
+
   const lines = [
-    bgLine(chalk.cyan.bold(` ${figures.play} Quick Actions`)),
-    chalk.bgBlack(" ".repeat(contentWidth)),
+    bgLine(chalk[colors.primary as "cyan"].bold(` ${figures.play} Quick Actions`)),
+    bgEmpty,
     ...operations.map((op, index) => {
       const isSelected = index === selectedOperation;
       const pointer = isSelected ? figures.pointer : " ";
@@ -54,23 +84,29 @@ export const ActionsPopup: React.FC<ActionsPopupProps> = ({
         styled =
           typeof colorFn === "function"
             ? colorFn.bold(content)
-            : chalk.white.bold(content);
+            : chalk[colors.text as "white"].bold(content);
       } else {
-        styled = chalk.gray(content);
+        styled = chalk[colors.textDim as "gray"](content);
       }
 
       return bgLine(styled);
     }),
-    chalk.bgBlack(" ".repeat(contentWidth)),
+    bgEmpty,
     bgLine(
-      chalk.gray.dim(` ${figures.arrowUp}${figures.arrowDown} Nav • [Enter]`),
+      chalk[colors.textDim as "gray"].dim(
+        ` ${figures.arrowUp}${figures.arrowDown} Nav • [Enter]`,
+      ),
     ),
-    bgLine(chalk.gray.dim(` [Esc] Close`)),
+    bgLine(chalk[colors.textDim as "gray"].dim(` [Esc] Close`)),
   ];
 
   // Draw custom border with background to fill gaps
-  const borderTop = chalk.cyan("╭" + "─".repeat(contentWidth) + "╮");
-  const borderBottom = chalk.cyan("╰" + "─".repeat(contentWidth) + "╯");
+  const borderTop = chalk[colors.primary as "cyan"](
+    "╭" + "─".repeat(contentWidth) + "╮",
+  );
+  const borderBottom = chalk[colors.primary as "cyan"](
+    "╰" + "─".repeat(contentWidth) + "╯",
+  );
 
   return (
     <Box flexDirection="column" alignItems="center">
@@ -78,9 +114,9 @@ export const ActionsPopup: React.FC<ActionsPopupProps> = ({
         <Text>{borderTop}</Text>
         {lines.map((line, i) => (
           <Text key={i}>
-            {chalk.cyan("│")}
+            {chalk[colors.primary as "cyan"]("│")}
             {line}
-            {chalk.cyan("│")}
+            {chalk[colors.primary as "cyan"]("│")}
           </Text>
         ))}
         <Text>{borderBottom}</Text>

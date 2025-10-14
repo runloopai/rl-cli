@@ -60,6 +60,5 @@ const AuthUI: React.FC = () => {
 };
 
 export default function auth() {
-  console.clear();
   render(<AuthUI />);
 }

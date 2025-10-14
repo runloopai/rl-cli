@@ -18,39 +18,36 @@ interface MainMenuProps {
   onSelect: (key: string) => void;
 }
 
-export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
+export const MainMenu: React.FC<MainMenuProps> = ({ onSelect }) => {
   const { exit } = useApp();
   const [selectedIndex, setSelectedIndex] = React.useState(0);
 
   // Calculate terminal height once at mount and memoize
   const terminalHeight = React.useMemo(() => process.stdout.rows || 24, []);
 
-  const menuItems: MenuItem[] = React.useMemo(
-    () => [
-      {
-        key: "devboxes",
-        label: "Devboxes",
-        description: "Manage cloud development environments",
-        icon: "◉",
-        color: colors.accent1,
-      },
-      {
-        key: "blueprints",
-        label: "Blueprints",
-        description: "Create and manage devbox templates",
-        icon: "▣",
-        color: colors.accent2,
-      },
-      {
-        key: "snapshots",
-        label: "Snapshots",
-        description: "Save and restore devbox states",
-        icon: "◈",
-        color: colors.accent3,
-      },
-    ],
-    [],
-  );
+  const menuItems: MenuItem[] = [
+    {
+      key: "devboxes",
+      label: "Devboxes",
+      description: "Manage cloud development environments",
+      icon: "◉",
+      color: colors.accent1,
+    },
+    {
+      key: "blueprints",
+      label: "Blueprints",
+      description: "Create and manage devbox templates",
+      icon: "▣",
+      color: colors.accent2,
+    },
+    {
+      key: "snapshots",
+      label: "Snapshots",
+      description: "Save and restore devbox states",
+      icon: "◈",
+      color: colors.accent3,
+    },
+  ];
 
   useInput((input, key) => {
     if (key.upArrow && selectedIndex > 0) {
@@ -201,4 +198,4 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
       </Box>
     </Box>
   );
-});
+};

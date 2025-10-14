@@ -42,9 +42,8 @@ export class CommandExecutor<T = unknown> {
     }
 
     // Interactive mode
-    // Enter alternate screen buffer
+    // Enter alternate screen buffer (this automatically clears the screen)
     process.stdout.write("\x1b[?1049h");
-    console.clear();
     const { waitUntilExit } = render(renderUI());
     await waitUntilExit();
     // Exit alternate screen buffer
@@ -69,9 +68,8 @@ export class CommandExecutor<T = unknown> {
     }
 
     // Interactive mode
-    // Enter alternate screen buffer
+    // Enter alternate screen buffer (this automatically clears the screen)
     process.stdout.write("\x1b[?1049h");
-    console.clear();
     const { waitUntilExit } = render(renderUI());
     await waitUntilExit();
     // Exit alternate screen buffer
