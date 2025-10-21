@@ -6,7 +6,73 @@ import {
   ListToolsRequestSchema,
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-import { getClient } from "../utils/client.js";
+import Runloop from "@runloop/api-client";
+import Conf from "conf";
+
+// Client configuration
+interface Config {
+  apiKey?: string;
+}
+
+let configInstance: Conf<Config> | null = null;
+
+function getConfigInstance(): Conf<Config> {
+  if (!configInstance) {
+    configInstance = new Conf<Config>({
+      projectName: "runloop-cli",
+    });
+  }
+  return configInstance;
+}
+
+function getConfig(): Config {
+  // Check environment variable first
+  const envApiKey = process.env.RUNLOOP_API_KEY;
+  if (envApiKey) {
+    return { apiKey: envApiKey };
+  }
+
+  // Fall back to stored config
+  try {
+    const config = getConfigInstance();
+    const apiKey = config.get("apiKey");
+    return { apiKey };
+  } catch (error) {
+    console.error("Warning: Failed to load config:", error);
+    return {};
+  }
+}
+
+function getBaseUrl(): string {
+  const env = process.env.RUNLOOP_ENV?.toLowerCase();
+
+  switch (env) {
+    case "dev":
+      return "https://api.runloop.pro";
+    case "prod":
+    default:
+      return "https://api.runloop.ai";
+  }
+}
+
+function getClient(): Runloop {
+  const config = getConfig();
+
+  if (!config.apiKey) {
+    throw new Error(
+      "API key not configured. Please set RUNLOOP_API_KEY environment variable or run: rli auth"
+    );
+  }
+
+  const baseURL = getBaseUrl();
+
+  return new Runloop({
+    bearerToken: config.apiKey,
+    baseURL,
+    timeout: 10000, // 10 seconds instead of default 30 seconds
+    maxRetries: 2, // 2 retries instead of default 5 (only for retryable errors)
+  });
+}
 
 // Define available tools for the MCP server
 const TOOLS: Tool[] = [
@@ -417,14 +483,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 // Start the server
 async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  try {
+    console.error("[MCP] Starting Runloop MCP server...");
+    const transport = new StdioServerTransport();
+    console.error("[MCP] Created stdio transport");
 
-  // Log to stderr so it doesn't interfere with MCP protocol on stdout
-  console.error("Runloop MCP server running on stdio");
+    await server.connect(transport);
+    console.error("[MCP] Server connected to transport");
+
+    // Log to stderr so it doesn't interfere with MCP protocol on stdout
+    console.error("[MCP] Runloop MCP server running on stdio");
+
+    // Keep the process alive - the stdio transport should keep it running
+    console.error("[MCP] Server initialization complete, waiting for requests...");
+  } catch (error) {
+    console.error("[MCP] Error in main():", error);
+    throw error;
+  }
 }
 
 main().catch((error) => {
-  console.error("Fatal error in main():", error);
+  console.error("[MCP] Fatal error in main():", error);
+  console.error("[MCP] Stack trace:", error instanceof Error ? error.stack : "N/A");
   process.exit(1);
 });
