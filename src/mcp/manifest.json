@@ -1,0 +1,60 @@
+{
+  "manifest_version": "0.2",
+  "name": "runloop-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Runloop devbox management - create, manage, and interact with cloud development environments",
+  "author": {
+    "name": "Runloop",
+    "email": "support@runloop.com"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "dist/server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["dist/server/index.js"]
+    }
+  },
+  "tools": [
+    {
+      "name": "list_devboxes",
+      "description": "List all devboxes with optional filtering by status"
+    },
+    {
+      "name": "get_devbox",
+      "description": "Get detailed information about a specific devbox by ID"
+    },
+    {
+      "name": "create_devbox",
+      "description": "Create a new devbox with specified configuration"
+    },
+    {
+      "name": "execute_command",
+      "description": "Execute a command on a devbox and get the result"
+    },
+    {
+      "name": "shutdown_devbox",
+      "description": "Shutdown a devbox by ID"
+    },
+    {
+      "name": "suspend_devbox",
+      "description": "Suspend a devbox by ID"
+    },
+    {
+      "name": "resume_devbox",
+      "description": "Resume a suspended devbox by ID"
+    },
+    {
+      "name": "list_blueprints",
+      "description": "List all available blueprints"
+    },
+    {
+      "name": "list_snapshots",
+      "description": "List all snapshots"
+    },
+    {
+      "name": "create_snapshot",
+      "description": "Create a snapshot of a devbox"
+    }
+  ]
+}

@@ -8,7 +8,7 @@ const __dirname = dirname(__filename);
 
 export async function startMcpServer() {
   // Get the path to the compiled MCP server
-  const serverPath = join(__dirname, "../mcp/server.js");
+  const serverPath = join(__dirname, "../mcp/server/index.js");
 
   // Start the MCP server as a child process
   // The server uses stdio transport, so it communicates via stdin/stdout

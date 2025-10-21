@@ -1,0 +1,23 @@
+{
+  "name": "runloop-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Runloop devbox management",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node server/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.19.1",
+    "@runloop/api-client": "^0.58.0",
+    "conf": "^13.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.9",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
