@@ -9,10 +9,10 @@
   },
   "server": {
     "type": "node",
-    "entry_point": "dist/server/index.js",
+    "entry_point": "server.js",
     "mcp_config": {
       "command": "node",
-      "args": ["dist/server/index.js"]
+      "args": ["server.js"]
     }
   },
   "tools": [

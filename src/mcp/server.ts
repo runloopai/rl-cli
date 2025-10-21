@@ -6,7 +6,7 @@ import {
   ListToolsRequestSchema,
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-import { getClient } from "../utils/client.js";
+import { getClient } from "./utils/client.js";
 
 // Define available tools for the MCP server
 const TOOLS: Tool[] = [

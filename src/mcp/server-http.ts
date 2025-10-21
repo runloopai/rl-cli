@@ -6,7 +6,7 @@ import {
   ListToolsRequestSchema,
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-import { getClient } from "../utils/client.js";
+import { getClient } from "./utils/client.js";
 import express from "express";
 
 // Define available tools for the MCP server
