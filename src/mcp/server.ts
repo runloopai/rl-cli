@@ -60,7 +60,7 @@ function getClient(): Runloop {
 
   if (!config.apiKey) {
     throw new Error(
-      "API key not configured. Please set RUNLOOP_API_KEY environment variable or run: rli auth"
+      "API key not configured. Please set RUNLOOP_API_KEY environment variable or run: rli auth",
     );
   }
 
@@ -495,7 +495,9 @@ async function main() {
     console.error("[MCP] Runloop MCP server running on stdio");
 
     // Keep the process alive - the stdio transport should keep it running
-    console.error("[MCP] Server initialization complete, waiting for requests...");
+    console.error(
+      "[MCP] Server initialization complete, waiting for requests...",
+    );
   } catch (error) {
     console.error("[MCP] Error in main():", error);
     throw error;
@@ -504,6 +506,9 @@ async function main() {
 
 main().catch((error) => {
   console.error("[MCP] Fatal error in main():", error);
-  console.error("[MCP] Stack trace:", error instanceof Error ? error.stack : "N/A");
+  console.error(
+    "[MCP] Stack trace:",
+    error instanceof Error ? error.stack : "N/A",
+  );
   process.exit(1);
 });
