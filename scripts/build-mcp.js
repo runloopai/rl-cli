@@ -5,6 +5,7 @@ import { dirname, join } from 'path';
 import { mkdir, writeFile, rm, readFile } from 'fs/promises';
 import { createWriteStream } from 'fs';
 import { createRequire } from 'module';
+import { packExtension } from '@anthropic-ai/mcpb';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -34,25 +35,19 @@ async function bundleMCPServer() {
 
   console.log('✅ Bundle created at src/mcp/index.js');
 
-  // Create .mcpb archive
+  // Create .mcpb archive using official Anthropic package
   const outputPath = join(rootDir, 'runloop-mcp-server.mcpb');
-  await createMCPBArchive(mcpBuildDir, outputPath);
+  await packExtension({
+    extensionPath: mcpBuildDir,
+    outputPath: outputPath,
+    silent: false
+  });
 
   const { stat } = await import('fs/promises');
   const stats = await stat(outputPath);
   const sizeMB = (stats.size / 1024 / 1024).toFixed(2);
 
   console.log(`✅ MCPB archive created at ${outputPath} (${sizeMB} MB)`);
-}
-
-async function createMCPBArchive(sourceDir, outputPath) {
-  const { exec } = await import('child_process');
-  const { promisify } = await import('util');
-  const execAsync = promisify(exec);
-
-  // Use native zip command
-  const cwd = sourceDir;
-  await execAsync(`zip -9 "${outputPath}" index.js manifest.json`, { cwd });
 }
 
 bundleMCPServer().catch((error) => {
