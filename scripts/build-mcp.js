@@ -2,17 +2,12 @@
 import { build } from 'esbuild';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { mkdir, writeFile, rm, readFile } from 'fs/promises';
-import { createWriteStream } from 'fs';
-import { createRequire } from 'module';
 import { packExtension } from '@anthropic-ai/mcpb';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, '..');
 const mcpBuildDir = join(rootDir, 'src', 'mcp');
-
-const require = createRequire(import.meta.url);
 
 async function bundleMCPServer() {
   console.log('🔨 Building MCP server bundle...');
