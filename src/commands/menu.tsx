@@ -2,6 +2,7 @@ import React from "react";
 import { render, useApp } from "ink";
 import { MainMenu } from "../components/MainMenu.js";
 import { runSSHSession, type SSHSessionConfig } from "../utils/sshSession.js";
+import { enableSynchronousUpdates, disableSynchronousUpdates } from "../utils/terminalSync.js";
 
 // Import list components dynamically to avoid circular deps
 type Screen = "menu" | "devboxes" | "blueprints" | "snapshots";
@@ -27,48 +28,51 @@ const App: React.FC<AppProps> = ({
   const { exit } = useApp();
   const [currentScreen, setCurrentScreen] =
     React.useState<Screen>(initialScreen);
-  const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
 
-  const handleMenuSelect = (key: string) => {
+  const handleMenuSelect = React.useCallback((key: string) => {
     setCurrentScreen(key as Screen);
-  };
+  }, []);
 
-  const handleBack = () => {
+  const handleBack = React.useCallback(() => {
     setCurrentScreen("menu");
-  };
+  }, []);
 
-  const handleExit = () => {
+  const handleExit = React.useCallback(() => {
     exit();
-  };
+  }, [exit]);
 
-  // Wrap everything in a full-height container
-  return (
-    <Box flexDirection="column" minHeight={process.stdout.rows || 24}>
-      {currentScreen === "menu" && <MainMenu onSelect={handleMenuSelect} />}
-      {currentScreen === "devboxes" && (
-        <ListDevboxesUI
-          onBack={handleBack}
-          onExit={handleExit}
-          onSSHRequest={onSSHRequest}
-          focusDevboxId={focusDevboxId}
-        />
-      )}
-      {currentScreen === "blueprints" && (
-        <ListBlueprintsUI onBack={handleBack} onExit={handleExit} />
-      )}
-      {currentScreen === "snapshots" && (
-        <ListSnapshotsUI onBack={handleBack} onExit={handleExit} />
-      )}
-    </Box>
-  );
+  // Return components directly without wrapper Box (test for flashing)
+  if (currentScreen === "menu") {
+    return <MainMenu onSelect={handleMenuSelect} />;
+  }
+  if (currentScreen === "devboxes") {
+    return (
+      <ListDevboxesUI
+        onBack={handleBack}
+        onExit={handleExit}
+        onSSHRequest={onSSHRequest}
+        focusDevboxId={focusDevboxId}
+      />
+    );
+  }
+  if (currentScreen === "blueprints") {
+    return <ListBlueprintsUI onBack={handleBack} onExit={handleExit} />;
+  }
+  if (currentScreen === "snapshots") {
+    return <ListSnapshotsUI onBack={handleBack} onExit={handleExit} />;
+  }
+  return null;
 };
 
 export async function runMainMenu(
   initialScreen: Screen = "menu",
   focusDevboxId?: string,
 ) {
-  // Enter alternate screen buffer once at the start
-  process.stdout.write("\x1b[?1049h");
+  // DON'T use alternate screen buffer - it causes flashing in some terminals
+  // process.stdout.write("\x1b[?1049h");
+  
+  // DISABLED: Testing if terminal doesn't support synchronous updates properly
+  // enableSynchronousUpdates();
 
   let sshSessionConfig: SSHSessionConfig | null = null;
   let shouldContinue = true;
@@ -87,6 +91,10 @@ export async function runMainMenu(
           initialScreen={currentInitialScreen}
           focusDevboxId={currentFocusDevboxId}
         />,
+        {
+          patchConsole: false,
+          exitOnCtrlC: false,
+        },
       );
       await waitUntilExit();
       shouldContinue = false;
@@ -97,18 +105,12 @@ export async function runMainMenu(
 
     // If SSH was requested, handle it now after Ink has exited
     if (sshSessionConfig) {
-      // Exit alternate screen buffer for SSH
-      process.stdout.write("\x1b[?1049l");
-
       const result = await runSSHSession(sshSessionConfig);
 
       if (result.shouldRestart) {
-        console.clear();
         console.log(`\nSSH session ended. Returning to menu...\n`);
         await new Promise((resolve) => setTimeout(resolve, 500));
 
-        // Re-enter alternate screen buffer and return to devboxes list
-        process.stdout.write("\x1b[?1049h");
         currentInitialScreen = "devboxes";
         currentFocusDevboxId = result.returnToDevboxId;
         shouldContinue = true;
@@ -118,8 +120,8 @@ export async function runMainMenu(
     }
   }
 
-  // Exit alternate screen buffer once at the end
-  process.stdout.write("\x1b[?1049l");
+  // Disable synchronous updates
+  // disableSynchronousUpdates();
 
   process.exit(0);
 }

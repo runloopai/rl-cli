@@ -54,6 +54,10 @@ const InteractiveThemeSelector: React.FC<InteractiveThemeSelectorProps> = ({
   const [detectedTheme] = React.useState<"light" | "dark">(
     getCurrentTheme(),
   );
+  const [currentTheme, setCurrentTheme] = React.useState<"light" | "dark">(
+    getCurrentTheme(),
+  );
+  
   // Update theme preview when selection changes
   React.useEffect(() => {
     const newTheme = themeOptions[selectedIndex].value;
@@ -69,6 +73,7 @@ const InteractiveThemeSelector: React.FC<InteractiveThemeSelectorProps> = ({
 
     // Apply theme change for preview
     setThemeMode(targetTheme);
+    setCurrentTheme(targetTheme);
   }, [selectedIndex, detectedTheme]);
 
   useInput((input, key) => {
@@ -123,7 +128,7 @@ const InteractiveThemeSelector: React.FC<InteractiveThemeSelectorProps> = ({
 
       <Box marginBottom={1} flexDirection="column">
         <Box>
-          <Text color={colors.textDim}>Current preview: </Text>
+          <Text color={colors.textDim}>Current preference: </Text>
           <Text color={colors.primary} bold>
             {themeOptions[selectedIndex].label}
           </Text>
@@ -162,73 +167,42 @@ const InteractiveThemeSelector: React.FC<InteractiveThemeSelectorProps> = ({
         <Text color={colors.text} bold>
           {figures.play} Live Preview:
         </Text>
-        <Box marginTop={1} marginLeft={2} flexDirection="column">
-          {/* Create preview with actual background colors */}
-          {(() => {
-            // Helper to get chalk function by color name
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const getColor = (colorName: string): any => {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const fn = (chalk as any)[colorName];
-              return typeof fn === "function" ? fn : chalk.white;
-            };
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const getBgColor = (colorName: string): any => {
-              const bgName = `bg${colorName.charAt(0).toUpperCase()}${colorName.slice(1)}`;
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const fn = (chalk as any)[bgName];
-              return typeof fn === "function" ? fn : chalk.bgBlack;
-            };
-
-            const bg = getBgColor(colors.background);
-            const border = getColor(colors.primary);
-
-            const contentWidth = 60;
-            const borderTop = border("╭" + "─".repeat(contentWidth) + "╮");
-            const borderBottom = border("╰" + "─".repeat(contentWidth) + "╯");
-
-            const line1 = bg(
-              getColor(colors.primary).bold(` ${figures.tick} Primary  `) +
-                getColor(colors.secondary).bold(`${figures.star} Secondary`) +
-                " ".repeat(contentWidth - 30),
-            );
-
-            const line2 = bg(
-              getColor(colors.success)(` ${figures.tick} Success  `) +
-                getColor(colors.warning)(`${figures.warning} Warning  `) +
-                getColor(colors.error)(`${figures.cross} Error`) +
-                " ".repeat(contentWidth - 35),
-            );
-
-            const line3 = bg(
-              getColor(colors.text)(" Normal text  ") +
-                getColor(colors.textDim).dim("Dim text") +
-                " ".repeat(contentWidth - 24),
-            );
-
-            return (
-              <>
-                <Text>{borderTop}</Text>
-                <Text>
-                  {border("│")}
-                  {line1}
-                  {border("│")}
-                </Text>
-                <Text>
-                  {border("│")}
-                  {line2}
-                  {border("│")}
-                </Text>
-                <Text>
-                  {border("│")}
-                  {line3}
-                  {border("│")}
-                </Text>
-                <Text>{borderBottom}</Text>
-              </>
-            );
-          })()}
+        <Box 
+          marginTop={1} 
+          marginLeft={2} 
+          paddingX={2}
+          paddingY={1}
+          borderStyle="round"
+          borderColor={colors.primary}
+          flexDirection="column"
+        >
+          <Box>
+            <Text color={colors.primary} bold>
+              {figures.tick} Primary
+            </Text>
+            <Text>  </Text>
+            <Text color={colors.secondary} bold>
+              {figures.star} Secondary
+            </Text>
+          </Box>
+          <Box>
+            <Text color={colors.success}>
+              {figures.tick} Success
+            </Text>
+            <Text>  </Text>
+            <Text color={colors.warning}>
+              {figures.warning} Warning
+            </Text>
+            <Text>  </Text>
+            <Text color={colors.error}>
+              {figures.cross} Error
+            </Text>
+          </Box>
+          <Box>
+            <Text color={colors.text}>Normal text</Text>
+            <Text>  </Text>
+            <Text color={colors.textDim}>Dim text</Text>
+          </Box>
         </Box>
       </Box>
 

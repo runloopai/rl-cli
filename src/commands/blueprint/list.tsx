@@ -53,9 +53,9 @@ const ListBlueprintsUI: React.FC<{
   const [showActions, setShowActions] = React.useState(false);
   const [showPopup, setShowPopup] = React.useState(false);
 
-  // Calculate responsive column widths
-  const terminalWidth = stdout?.columns || 120;
-  const showDescription = terminalWidth >= 120;
+  // Calculate responsive column widths ONCE on mount
+  const terminalWidth = React.useMemo(() => stdout?.columns || 120, []);
+  const showDescription = React.useMemo(() => terminalWidth >= 120, [terminalWidth]);
 
   const statusIconWidth = 2;
   const statusTextWidth = 10;
@@ -99,14 +99,10 @@ const ListBlueprintsUI: React.FC<{
       try {
         setLoading(true);
         const client = getClient();
-        const allBlueprints: any[] = [];
-        let count = 0;
-        for await (const blueprint of client.blueprints.list()) {
-          allBlueprints.push(blueprint);
-          count++;
-          if (count >= MAX_FETCH) break;
-        }
-        setBlueprints(allBlueprints);
+        // Fetch blueprints - access page data directly to avoid auto-pagination memory issues
+        const page = await client.blueprints.list({ limit: MAX_FETCH });
+        const allBlueprints = (page as any).data || (page as any).items || [];
+        setBlueprints(allBlueprints.slice(0, MAX_FETCH));
       } catch (err) {
         setListError(err as Error);
       } finally {
@@ -134,7 +130,6 @@ const ListBlueprintsUI: React.FC<{
         if (key.return) {
           executeOperation();
         } else if (input === "q" || key.escape) {
-          console.clear();
           setExecutingOperation(null);
           setOperationInput("");
         }
@@ -145,7 +140,6 @@ const ListBlueprintsUI: React.FC<{
     // Handle operation result display
     if (operationResult || operationError) {
       if (input === "q" || key.escape || key.return) {
-        console.clear();
         setOperationResult(null);
         setOperationError(null);
         setExecutingOperation(null);
@@ -169,7 +163,6 @@ const ListBlueprintsUI: React.FC<{
       ) {
         setSelectedOperation(selectedOperation + 1);
       } else if (key.return) {
-        console.clear();
         setShowPopup(false);
         const operationKey = allOperations[selectedOperation].key;
 
@@ -184,7 +177,6 @@ const ListBlueprintsUI: React.FC<{
           executeOperation();
         }
       } else if (key.escape || input === "q") {
-        console.clear();
         setShowPopup(false);
         setSelectedOperation(0);
       } else if (input === "c") {
@@ -194,7 +186,6 @@ const ListBlueprintsUI: React.FC<{
           (selectedBlueprintItem.status === "build_complete" ||
             selectedBlueprintItem.status === "building_complete")
         ) {
-          console.clear();
           setShowPopup(false);
           setSelectedBlueprint(selectedBlueprintItem);
           setShowCreateDevbox(true);
@@ -205,7 +196,6 @@ const ListBlueprintsUI: React.FC<{
           (op) => op.key === "delete",
         );
         if (deleteIndex >= 0) {
-          console.clear();
           setShowPopup(false);
           setSelectedBlueprint(selectedBlueprintItem);
           setExecutingOperation("delete");
@@ -218,7 +208,6 @@ const ListBlueprintsUI: React.FC<{
     // Handle actions view
     if (showActions) {
       if (input === "q" || key.escape) {
-        console.clear();
         setShowActions(false);
         setSelectedOperation(0);
       }
@@ -247,7 +236,6 @@ const ListBlueprintsUI: React.FC<{
       setCurrentPage(currentPage - 1);
       setSelectedIndex(0);
     } else if (input === "a") {
-      console.clear();
       setShowPopup(true);
       setSelectedOperation(0);
     } else if (input === "o" && currentBlueprints[selectedIndex]) {
@@ -515,12 +503,13 @@ const ListBlueprintsUI: React.FC<{
       <Breadcrumb items={[{ label: "Blueprints", active: true }]} />
 
       {/* Table */}
-      <Table
-        data={currentBlueprints}
-        keyExtractor={(blueprint: any) => blueprint.id}
-        selectedIndex={selectedIndex}
-        title={`blueprints[${blueprints.length}]`}
-        columns={[
+      {!showPopup && (
+        <Table
+          data={currentBlueprints}
+          keyExtractor={(blueprint: any) => blueprint.id}
+          selectedIndex={selectedIndex}
+          title={`blueprints[${blueprints.length}]`}
+          columns={[
           {
             key: "statusIcon",
             label: "",
@@ -625,11 +614,13 @@ const ListBlueprintsUI: React.FC<{
               bold: false,
             },
           ),
-        ]}
-      />
+          ]}
+        />
+      )}
 
       {/* Statistics Bar */}
-      <Box marginTop={1} paddingX={1}>
+      {!showPopup && (
+        <Box marginTop={1} paddingX={1}>
         <Text color={colors.primary} bold>
           {figures.hamburger} {blueprints.length}
         </Text>
@@ -655,14 +646,12 @@ const ListBlueprintsUI: React.FC<{
         <Text color={colors.textDim} dimColor>
           Showing {startIndex + 1}-{endIndex} of {blueprints.length}
         </Text>
-      </Box>
+        </Box>
+      )}
 
-      {/* Popup overlaying - use negative margin to pull it up over the table */}
+      {/* Actions Popup - replaces table when shown */}
       {showPopup && selectedBlueprintItem && (
-        <Box
-          marginTop={-Math.min(allOperations.length + 10, PAGE_SIZE + 5)}
-          justifyContent="center"
-        >
+        <Box marginTop={2} justifyContent="center">
           <ActionsPopup
             devbox={selectedBlueprintItem}
             operations={allOperations.map((op) => ({

@@ -180,7 +180,6 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
       if (key.return && operationInput.trim()) {
         executeOperation();
       } else if (input === "q" || key.escape) {
-        console.clear();
         setExecutingOperation(null);
         setOperationInput("");
       }
@@ -190,7 +189,6 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
     // Handle operation result display
     if (operationResult || operationError) {
       if (input === "q" || key.escape || key.return) {
-        console.clear();
         // If skipOperationsMenu is true, go back to parent instead of operations menu
         if (skipOperationsMenu) {
           onBack();
@@ -424,7 +422,6 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
 
     // Operations selection mode
     if (input === "q" || key.escape) {
-      console.clear();
       onBack();
       setSelectedOperation(0);
     } else if (key.upArrow && selectedOperation > 0) {
@@ -432,14 +429,12 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
     } else if (key.downArrow && selectedOperation < operations.length - 1) {
       setSelectedOperation(selectedOperation + 1);
     } else if (key.return) {
-      console.clear();
       const op = operations[selectedOperation].key as Operation;
       setExecutingOperation(op);
     } else if (input) {
       // Check if input matches any operation shortcut
       const matchedOp = operations.find((op) => op.shortcut === input);
       if (matchedOp) {
-        console.clear();
         setExecutingOperation(matchedOp.key as Operation);
       }
     }

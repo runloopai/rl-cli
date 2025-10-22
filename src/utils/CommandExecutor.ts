@@ -11,6 +11,7 @@ import {
   outputResult,
   OutputOptions,
 } from "./output.js";
+import { enableSynchronousUpdates, disableSynchronousUpdates } from "./terminalSync.js";
 import YAML from "yaml";
 
 export class CommandExecutor<T = unknown> {
@@ -44,9 +45,16 @@ export class CommandExecutor<T = unknown> {
     // Interactive mode
     // Enter alternate screen buffer (this automatically clears the screen)
     process.stdout.write("\x1b[?1049h");
-    const { waitUntilExit } = render(renderUI());
+    enableSynchronousUpdates();
+    
+    const { waitUntilExit } = render(renderUI(), {
+      patchConsole: false,
+      exitOnCtrlC: false,
+    });
     await waitUntilExit();
+    
     // Exit alternate screen buffer
+    disableSynchronousUpdates();
     process.stdout.write("\x1b[?1049l");
   }
 
@@ -70,9 +78,16 @@ export class CommandExecutor<T = unknown> {
     // Interactive mode
     // Enter alternate screen buffer (this automatically clears the screen)
     process.stdout.write("\x1b[?1049h");
-    const { waitUntilExit } = render(renderUI());
+    enableSynchronousUpdates();
+    
+    const { waitUntilExit } = render(renderUI(), {
+      patchConsole: false,
+      exitOnCtrlC: false,
+    });
     await waitUntilExit();
+    
     // Exit alternate screen buffer
+    disableSynchronousUpdates();
     process.stdout.write("\x1b[?1049l");
   }
 
@@ -97,14 +112,23 @@ export class CommandExecutor<T = unknown> {
     // Interactive mode
     // Enter alternate screen buffer
     process.stdout.write("\x1b[?1049h");
-    const { waitUntilExit } = render(renderUI());
+    enableSynchronousUpdates();
+    
+    const { waitUntilExit } = render(renderUI(), {
+      patchConsole: false,
+      exitOnCtrlC: false,
+    });
     await waitUntilExit();
+    
     // Exit alternate screen buffer
+    disableSynchronousUpdates();
     process.stdout.write("\x1b[?1049l");
   }
 
   /**
    * Fetch items from an async iterator with optional filtering and limits
+   * IMPORTANT: This method tries to access the page data directly first to avoid
+   * auto-pagination issues that can cause memory errors with large datasets.
    */
   async fetchFromIterator<Item>(
     iterator: AsyncIterable<Item>,
@@ -114,21 +138,34 @@ export class CommandExecutor<T = unknown> {
     } = {},
   ): Promise<Item[]> {
     const { filter, limit = 100 } = options;
-    const items: Item[] = [];
-    let count = 0;
+    let items: Item[] = [];
 
-    for await (const item of iterator) {
-      if (filter && !filter(item)) {
-        continue;
-      }
-      items.push(item);
-      count++;
-      if (count >= limit) {
-        break;
+    // Try to access page data directly to avoid auto-pagination
+    const pageData = (iterator as any).data || (iterator as any).items;
+    if (pageData && Array.isArray(pageData)) {
+      items = pageData;
+    } else {
+      // Fall back to iteration with limit
+      let count = 0;
+      for await (const item of iterator) {
+        if (filter && !filter(item)) {
+          continue;
+        }
+        items.push(item);
+        count++;
+        if (count >= limit) {
+          break;
+        }
       }
     }
 
-    return items;
+    // Apply filter if provided
+    if (filter) {
+      items = items.filter(filter);
+    }
+
+    // Apply limit
+    return items.slice(0, limit);
   }
 
   /**

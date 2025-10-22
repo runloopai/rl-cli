@@ -33,10 +33,10 @@ const ListSnapshotsUI: React.FC<{
 }> = ({ devboxId, onBack, onExit }) => {
   const { stdout } = useStdout();
 
-  // Calculate responsive column widths
-  const terminalWidth = stdout?.columns || 120;
-  const showDevboxId = terminalWidth >= 100 && !devboxId; // Hide devbox column if filtering by devbox
-  const showFullId = terminalWidth >= 80;
+  // Calculate responsive column widths ONCE on mount
+  const terminalWidth = React.useMemo(() => stdout?.columns || 120, []);
+  const showDevboxId = React.useMemo(() => terminalWidth >= 100 && !devboxId, [terminalWidth, devboxId]); // Hide devbox column if filtering by devbox
+  const showFullId = React.useMemo(() => terminalWidth >= 80, [terminalWidth]);
 
   const statusIconWidth = 2;
   const statusTextWidth = 10;
@@ -52,17 +52,11 @@ const ListSnapshotsUI: React.FC<{
         resourceNamePlural: "Snapshots",
         fetchResources: async () => {
           const client = getClient();
-          const allSnapshots: any[] = [];
-          let count = 0;
-          const params = devboxId ? { devbox_id: devboxId } : {};
-          for await (const snapshot of client.devboxes.listDiskSnapshots(
-            params,
-          )) {
-            allSnapshots.push(snapshot);
-            count++;
-            if (count >= MAX_FETCH) break;
-          }
-          return allSnapshots;
+          // Access page data directly to avoid auto-pagination memory issues
+          const params = devboxId ? { devbox_id: devboxId, limit: MAX_FETCH } : { limit: MAX_FETCH };
+          const page = await client.devboxes.listDiskSnapshots(params);
+          const allSnapshots = (page as any).data || (page as any).items || [];
+          return allSnapshots.slice(0, MAX_FETCH);
         },
         columns: [
           createTextColumn("id", "ID", (snapshot: any) => snapshot.id, {
