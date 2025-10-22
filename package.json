@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "build:mcp": "npm run build && node scripts/build-mcp.js",
     "dev": "tsc --watch",
     "start": "node dist/cli.js",
     "prepublishOnly": "npm run build",
@@ -77,11 +78,13 @@
     "yaml": "^2.8.1"
   },
   "devDependencies": {
+    "@anthropic-ai/mcpb": "^1.1.1",
     "@types/jest": "^29.5.0",
     "@types/node": "^22.7.9",
     "@types/react": "^18.3.11",
     "@typescript-eslint/eslint-plugin": "^8.46.0",
     "@typescript-eslint/parser": "^8.46.0",
+    "esbuild": "^0.25.11",
     "eslint": "^9.37.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^6.1.1",
