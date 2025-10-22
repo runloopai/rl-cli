@@ -487,7 +487,7 @@ async function main() {
     console.error("[MCP] Starting Runloop MCP server...");
     const transport = new StdioServerTransport();
     console.error("[MCP] Created stdio transport");
-    
+
     await server.connect(transport);
     // Log to stderr so it doesn't interfere with MCP protocol on stdout
     console.error(
