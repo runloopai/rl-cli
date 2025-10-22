@@ -47,6 +47,10 @@ function parseRGBResponse(response: string): {
 /**
  * Detect terminal theme by querying background color
  * Returns 'light' or 'dark' based on background luminance, or null if detection fails
+ * 
+ * NOTE: This is disabled by default to prevent flashing. Theme detection writes
+ * escape sequences to stdout which can cause visible flashing on the terminal.
+ * Users can explicitly enable it with RUNLOOP_ENABLE_THEME_DETECTION=1
  */
 export async function detectTerminalTheme(): Promise<ThemeMode | null> {
   // Skip detection in non-TTY environments
@@ -54,14 +58,15 @@ export async function detectTerminalTheme(): Promise<ThemeMode | null> {
     return null;
   }
 
-  // Allow users to disable detection if it causes flashing
-  if (process.env.RUNLOOP_DISABLE_THEME_DETECTION === "1") {
+  // Theme detection is now OPT-IN instead of OPT-OUT to prevent flashing
+  // Users need to explicitly enable it
+  if (process.env.RUNLOOP_ENABLE_THEME_DETECTION !== "1") {
     return null;
   }
 
   return new Promise((resolve) => {
     let response = "";
-    let timeout: NodeJS.Timeout;
+    let timeout: ReturnType<typeof setTimeout>;
 
     const cleanup = () => {
       stdin.setRawMode(false);
@@ -103,7 +108,7 @@ export async function detectTerminalTheme(): Promise<ThemeMode | null> {
       // Query background color using OSC 11 sequence
       // Format: ESC ] 11 ; ? ESC \
       stdout.write("\x1b]11;?\x1b\\");
-    } catch (error) {
+    } catch {
       cleanup();
       resolve(null);
     }

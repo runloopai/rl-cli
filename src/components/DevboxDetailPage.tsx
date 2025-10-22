@@ -192,7 +192,6 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
 
     // Main view input handling
     if (input === "q" || key.escape) {
-      console.clear();
       onBack();
     } else if (input === "i") {
       setShowDetailedInfo(true);
@@ -202,7 +201,6 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
     } else if (key.downArrow && selectedOperation < operations.length - 1) {
       setSelectedOperation(selectedOperation + 1);
     } else if (key.return || input === "a") {
-      console.clear();
       setShowActions(true);
     } else if (input) {
       // Check if input matches any operation shortcut
@@ -211,7 +209,6 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
       );
       if (matchedOpIndex !== -1) {
         setSelectedOperation(matchedOpIndex);
-        console.clear();
         setShowActions(true);
       }
     }

@@ -166,7 +166,6 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({
 
     // Back to list
     if (input === "q" || key.escape) {
-      console.clear();
       onBack();
       return;
     }

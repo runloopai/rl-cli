@@ -81,25 +81,32 @@ export RUNLOOP_THEME=light
 ```
 
 **Interactive Mode:**
+
 - When you run `rli config theme` without arguments, you get an interactive selector
 - Use arrow keys to navigate between auto/light/dark options
 - See live preview of colors as you navigate
 - Press Enter to save, Esc to cancel
 
 **How it works:**
-- **auto** (default): Automatically detects your terminal's background color and adjusts colors accordingly
+
+- **auto** (default): Uses dark mode by default (theme detection is disabled to prevent terminal flashing)
 - **light**: Optimized for light-themed terminals (uses dark text colors)
 - **dark**: Optimized for dark-themed terminals (uses light text colors)
 
 **Terminal Compatibility:**
-- Auto-detection works with most modern terminals (iTerm2, Terminal.app, VS Code integrated terminal, tmux)
-- If detection fails, the CLI defaults to dark mode
-- You can always override with manual settings if auto-detection doesn't work properly
 
-**Note on Detection:**
-- Theme detection **only runs once** the first time you use the CLI
+- Works with all modern terminals (iTerm2, Terminal.app, VS Code integrated terminal, tmux)
+- The CLI defaults to dark mode for the best experience
+- You can manually set light or dark mode based on your terminal theme
+
+**Note on Auto-Detection:**
+
+- Auto theme detection is **disabled by default** to prevent screen flashing
+- To enable it, set `RUNLOOP_ENABLE_THEME_DETECTION=1`
+- If you use a light terminal, we recommend setting: `rli config theme light`
 - The result is cached, so subsequent runs are instant (no flashing!)
 - If you change your terminal theme, you can re-detect by running:
+
   ```bash
   rli config theme auto
   ```

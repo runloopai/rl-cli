@@ -113,9 +113,9 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   const pageSize = config.pageSize || 10;
   const maxFetch = config.maxFetch || 100;
 
-  // Calculate responsive dimensions
-  const terminalWidth = stdout?.columns || 120;
-  const terminalHeight = stdout?.rows || 30;
+  // Calculate responsive dimensions ONCE on mount
+  const terminalWidth = React.useMemo(() => stdout?.columns || 120, []);
+  const terminalHeight = React.useMemo(() => stdout?.rows || 30, []);
 
   // Fetch resources
   const fetchData = React.useCallback(
@@ -214,7 +214,6 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
       setCurrentPage(currentPage - 1);
       setSelectedIndex(0);
     } else if (key.return && selectedResource && config.onSelect) {
-      console.clear();
       config.onSelect(selectedResource);
     } else if (input === "/" && config.searchConfig?.enabled) {
       setSearchMode(true);

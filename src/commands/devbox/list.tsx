@@ -56,13 +56,22 @@ const ListDevboxesUI: React.FC<{
   const pageCache = React.useRef<Map<number, any[]>>(new Map());
   const lastIdCache = React.useRef<Map<number, string>>(new Map());
 
-  // Calculate responsive dimensions
+  // Calculate responsive dimensions (simplified like blueprint list)
   const terminalWidth = stdout?.columns || 120;
   const terminalHeight = stdout?.rows || 30;
 
   // Calculate dynamic page size based on terminal height
-  // Account for: Banner (3-4 lines) + Breadcrumb (1) + Header (1) + Stats (2) + Help text (2) + Margins (2) + Header row (1) = ~12 lines
-  const PAGE_SIZE = Math.max(5, terminalHeight - 12);
+  // Exact line count:
+  // - Breadcrumb with border and margin: 4 lines (border top + content + border bottom + marginBottom)
+  // - Table title: 1 line
+  // - Table border top: 1 line
+  // - Table header: 1 line
+  // - Table data rows: PAGE_SIZE lines
+  // - Table border bottom: 1 line
+  // - Stats bar: 2 lines (marginTop + content)
+  // - Help bar: 2-3 lines (marginTop + content, may wrap)
+  // Total overhead: 4 + 1 + 1 + 1 + 1 + 2 + 3 = 13 lines
+  const PAGE_SIZE = Math.max(5, terminalHeight - 13);
 
   const fixedWidth = 4; // pointer + spaces
   const statusIconWidth = 2;
@@ -74,7 +83,7 @@ const ListDevboxesUI: React.FC<{
   // ID is always full width (25 chars for dbx_31CYd5LLFbBxst8mqnUjO format)
   const idWidth = 26;
 
-  // Responsive layout based on terminal width
+  // Responsive layout based on terminal width (simplified like blueprint list)
   const showCapabilities = terminalWidth >= 140;
   const showSource = terminalWidth >= 120;
 
@@ -113,6 +122,64 @@ const ListDevboxesUI: React.FC<{
       timeWidth -
       10;
     nameWidth = Math.max(8, remainingWidth);
+  }
+
+  // Build responsive column list
+  const tableColumns = [
+    createTextColumn("name", "Name", (devbox: any) => devbox.name || devbox.id.slice(0, 30), {
+      width: nameWidth,
+      dimColor: false,
+    }),
+    createTextColumn("id", "ID", (devbox: any) => devbox.id, {
+      width: idWidth,
+      color: colors.textDim,
+      dimColor: false,
+      bold: false,
+    }),
+    createTextColumn("status", "Status", (devbox: any) => {
+      const statusDisplay = getStatusDisplay(devbox.status);
+      return statusDisplay.text;
+    }, {
+      width: statusTextWidth,
+      dimColor: false,
+    }),
+    createTextColumn("created", "Created", (devbox: any) => 
+      formatTimeAgo(devbox.create_time_ms || Date.now()), {
+      width: timeWidth,
+      color: colors.textDim,
+      dimColor: false,
+    }),
+  ];
+
+  // Add optional columns based on terminal width
+  if (showSource) {
+    tableColumns.push(
+      createTextColumn("source", "Source", (devbox: any) => {
+        if (devbox.blueprint_id) {
+          return `blueprint:${devbox.blueprint_id.slice(0, 10)}`;
+        }
+        return "scratch";
+      }, {
+        width: sourceWidth,
+        color: colors.textDim,
+        dimColor: false,
+      })
+    );
+  }
+
+  if (showCapabilities) {
+    tableColumns.push(
+      createTextColumn("capabilities", "Capabilities", (devbox: any) => {
+        const caps = [];
+        if (devbox.entitlements?.network_enabled) caps.push("net");
+        if (devbox.entitlements?.gpu_enabled) caps.push("gpu");
+        return caps.length > 0 ? caps.join(",") : "-";
+      }, {
+        width: capabilitiesWidth,
+        color: colors.textDim,
+        dimColor: false,
+      })
+    );
   }
 
   // Define allOperations
@@ -255,23 +322,32 @@ const ListDevboxesUI: React.FC<{
         }
 
         // Fetch only the current page
-        const page = await client.devboxes.list(queryParams);
+        const pageResponse = client.devboxes.list(queryParams);
 
-        // Collect items from the page - only get PAGE_SIZE items, don't auto-paginate
-        let count = 0;
-        for await (const devbox of page) {
-          pageDevboxes.push(devbox);
-          count++;
-          // Break after getting PAGE_SIZE items to prevent auto-pagination
-          if (count >= PAGE_SIZE) {
-            break;
+        // Try to get the page data without triggering full iteration
+        // First, try to access the response property directly
+        const page = await pageResponse;
+        
+        // Check if page has a response or _response property with data
+        const responseData = (page as any).response || (page as any)._response;
+        if (responseData && responseData.data) {
+          // Direct access to avoid iteration
+          pageDevboxes.push(...responseData.data);
+        } else {
+          // Fall back to limited iteration
+          let count = 0;
+          for await (const devbox of page) {
+            pageDevboxes.push(devbox);
+            count++;
+            if (count >= PAGE_SIZE) {
+              break;
+            }
           }
         }
 
         // Update pagination metadata from the page object
-        // These properties are on the page object itself
-        const total = (page as any).total_count || pageDevboxes.length;
-        const more = (page as any).has_more || false;
+        const total = (page as any).total_count || (page as any).response?.total_count || pageDevboxes.length;
+        const more = (page as any).has_more || (page as any).response?.has_more || false;
 
         setTotalCount(total);
         setHasMore(more);
@@ -308,20 +384,19 @@ const ListDevboxesUI: React.FC<{
     const isFirstMount = initialLoading;
     list(isFirstMount, false);
 
-    // Poll every 3 seconds (increased from 2), but only when in list view and not navigating
-    const interval = setInterval(() => {
-      if (
-        !showDetails &&
-        !showCreate &&
-        !showActions &&
-        !isNavigating.current
-      ) {
-        // Don't clear cache on background refresh - just update the current page
-        list(false, true);
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
+    // DISABLED: Polling causes flashing in non-tmux terminals
+    // Users can manually refresh by navigating away and back
+    // const interval = setInterval(() => {
+    //   if (
+    //     !showDetails &&
+    //     !showCreate &&
+    //     !showActions &&
+    //     !isNavigating.current
+    //   ) {
+    //     list(false, true);
+    //   }
+    // }, 3000);
+    // return () => clearInterval(interval);
   }, [showDetails, showCreate, showActions, currentPage, searchQuery]);
 
   // Removed refresh icon animation to prevent constant re-renders and flashing
@@ -362,7 +437,6 @@ const ListDevboxesUI: React.FC<{
     // Handle popup navigation
     if (showPopup) {
       if (key.escape || input === "q") {
-        console.clear();
         setShowPopup(false);
         setSelectedOperation(0);
       } else if (key.upArrow && selectedOperation > 0) {
@@ -371,7 +445,6 @@ const ListDevboxesUI: React.FC<{
         setSelectedOperation(selectedOperation + 1);
       } else if (key.return) {
         // Execute the selected operation
-        console.clear();
         setShowPopup(false);
         setShowActions(true);
       } else if (input) {
@@ -379,11 +452,10 @@ const ListDevboxesUI: React.FC<{
         const matchedOpIndex = operations.findIndex(
           (op) => op.shortcut === input,
         );
-        if (matchedOpIndex !== -1) {
-          setSelectedOperation(matchedOpIndex);
-          console.clear();
-          setShowPopup(false);
-          setShowActions(true);
+          if (matchedOpIndex !== -1) {
+            setSelectedOperation(matchedOpIndex);
+            setShowPopup(false);
+            setShowActions(true);
         }
       }
       return;
@@ -408,16 +480,13 @@ const ListDevboxesUI: React.FC<{
     ) {
       setCurrentPage(currentPage - 1);
       setSelectedIndex(0);
-    } else if (key.return) {
-      console.clear();
-      setShowDetails(true);
-    } else if (input === "a") {
-      console.clear();
-      setShowPopup(true);
-      setSelectedOperation(0);
-    } else if (input === "c") {
-      console.clear();
-      setShowCreate(true);
+      } else if (key.return) {
+        setShowDetails(true);
+      } else if (input === "a") {
+        setShowPopup(true);
+        setSelectedOperation(0);
+      } else if (input === "c") {
+        setShowCreate(true);
     } else if (input === "o" && selectedDevbox) {
       // Open in browser
       const url = getDevboxUrl(selectedDevbox.id);
@@ -475,7 +544,7 @@ const ListDevboxesUI: React.FC<{
   const startIndex = currentPage * PAGE_SIZE;
   const endIndex = startIndex + currentDevboxes.length;
 
-  // Filter operations based on devbox status
+  // Filter operations based on devbox status (inline like blueprints)
   const operations = selectedDevbox
     ? allOperations.filter((op) => {
         const status = selectedDevbox.status;
@@ -553,146 +622,11 @@ const ListDevboxesUI: React.FC<{
     );
   }
 
-  // Show popup with table in background
+  // Show popup (without background table to prevent flashing)
   if (showPopup && selectedDevbox) {
     return (
       <>
         <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
-        {!initialLoading && !error && devboxes.length > 0 && (
-          <>
-            <Table
-              data={currentDevboxes}
-              keyExtractor={(devbox: any) => devbox.id}
-              selectedIndex={selectedIndex}
-              title={`devboxes[${totalCount}]`}
-              columns={[
-                {
-                  key: "statusIcon",
-                  label: "",
-                  width: statusIconWidth,
-                  render: (devbox: any, index: number, isSelected: boolean) => {
-                    const statusDisplay = getStatusDisplay(devbox.status);
-
-                    return (
-                      <Text
-                        color={isSelected ? "white" : statusDisplay.color}
-                        bold={true}
-                        inverse={isSelected}
-                        wrap="truncate"
-                      >
-                        {statusDisplay.icon}{" "}
-                      </Text>
-                    );
-                  },
-                },
-                createTextColumn("id", "ID", (devbox: any) => devbox.id, {
-                  width: idWidth,
-                  color: colors.textDim,
-                  dimColor: false,
-                  bold: false,
-                }),
-                {
-                  key: "statusText",
-                  label: "Status",
-                  width: statusTextWidth,
-                  render: (devbox: any, index: number, isSelected: boolean) => {
-                    const statusDisplay = getStatusDisplay(devbox.status);
-
-                    const truncated = statusDisplay.text.slice(
-                      0,
-                      statusTextWidth,
-                    );
-                    const padded = truncated.padEnd(statusTextWidth, " ");
-
-                    return (
-                      <Text
-                        color={isSelected ? "white" : statusDisplay.color}
-                        bold={true}
-                        inverse={isSelected}
-                        wrap="truncate"
-                      >
-                        {padded}
-                      </Text>
-                    );
-                  },
-                },
-                createTextColumn(
-                  "name",
-                  "Name",
-                  (devbox: any) => devbox.name || "",
-                  {
-                    width: nameWidth,
-                    dimColor: false,
-                  },
-                ),
-                createTextColumn(
-                  "capabilities",
-                  "Capabilities",
-                  (devbox: any) => {
-                    const hasCapabilities =
-                      devbox.capabilities &&
-                      devbox.capabilities.filter((c: string) => c !== "unknown")
-                        .length > 0;
-                    return hasCapabilities
-                      ? `[${devbox.capabilities
-                          .filter((c: string) => c !== "unknown")
-                          .map((c: string) =>
-                            c === "computer_usage"
-                              ? "comp"
-                              : c === "browser_usage"
-                                ? "browser"
-                                : c === "docker_in_docker"
-                                  ? "docker"
-                                  : c,
-                          )
-                          .join(",")}]`
-                      : "";
-                  },
-                  {
-                    width: capabilitiesWidth,
-                    color: colors.info,
-                    dimColor: false,
-                    bold: false,
-                    visible: showCapabilities,
-                  },
-                ),
-                createTextColumn(
-                  "source",
-                  "Source",
-                  (devbox: any) =>
-                    devbox.blueprint_id
-                      ? devbox.blueprint_id
-                      : devbox.snapshot_id
-                        ? devbox.snapshot_id
-                        : "",
-                  {
-                    width: sourceWidth,
-                    color: colors.info,
-                    dimColor: false,
-                    bold: false,
-                    visible: showSource,
-                  },
-                ),
-                createTextColumn(
-                  "created",
-                  "Created",
-                  (devbox: any) =>
-                    devbox.create_time_ms
-                      ? formatTimeAgo(devbox.create_time_ms)
-                      : "",
-                  {
-                    width: timeWidth,
-                    color: colors.textDim,
-                    dimColor: false,
-                    bold: false,
-                  },
-                ),
-              ]}
-            />
-          </>
-        )}
-
-        {/* Popup overlaying - use negative margin to pull it up over the table */}
         <Box
           marginTop={-Math.min(operations.length + 10, PAGE_SIZE + 5)}
           justifyContent="center"
@@ -727,233 +661,99 @@ const ListDevboxesUI: React.FC<{
     );
   }
 
-  // List view with data (always show, even if empty)
+  // Main list view
   return (
     <>
       <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
-      {currentDevboxes && currentDevboxes.length >= 0 && (
-        <>
-          {searchMode && (
-            <Box marginBottom={1}>
-              <Text color={colors.primary}>
-                {figures.pointerSmall} Search:{" "}
-              </Text>
-              <TextInput
-                value={searchQuery}
-                onChange={setSearchQuery}
-                placeholder="Type to search (name, id, status)..."
-                onSubmit={() => {
-                  setSearchMode(false);
-                  setCurrentPage(0);
-                  setSelectedIndex(0);
-                }}
-              />
-              <Text color={colors.textDim} dimColor>
-                {" "}
-                [Esc to cancel]
-              </Text>
-            </Box>
-          )}
-          {!searchMode && searchQuery && (
-            <Box marginBottom={1}>
-              <Text color={colors.primary}>{figures.info} Searching for: </Text>
-              <Text color={colors.warning} bold>
-                {searchQuery}
-              </Text>
-              <Text color={colors.textDim} dimColor>
-                {" "}
-                ({totalCount} results) [/ to edit, Esc to clear]
-              </Text>
-            </Box>
-          )}
-          <Table
-            key={`table-${searchQuery}-${currentPage}`}
-            data={currentDevboxes}
-            keyExtractor={(devbox: any) => devbox.id}
-            selectedIndex={selectedIndex}
-            title={`devboxes[${totalCount}]`}
-            columns={[
-              {
-                key: "statusIcon",
-                label: "",
-                width: statusIconWidth,
-                render: (devbox: any, index: number, isSelected: boolean) => {
-                  const statusDisplay = getStatusDisplay(devbox.status);
+      
+      <Table
+        data={currentDevboxes}
+        keyExtractor={(devbox: any) => devbox.id}
+        selectedIndex={selectedIndex}
+        title="devboxes"
+        columns={tableColumns}
+      />
 
-                  return (
-                    <Text
-                      color={isSelected ? "white" : statusDisplay.color}
-                      bold={true}
-                      inverse={isSelected}
-                      wrap="truncate"
-                    >
-                      {statusDisplay.icon}{" "}
-                    </Text>
-                  );
-                },
-              },
-              createTextColumn("id", "ID", (devbox: any) => devbox.id, {
-                width: idWidth,
-                color: colors.textDim,
-                dimColor: false,
-                bold: false,
-              }),
-              {
-                key: "statusText",
-                label: "Status",
-                width: statusTextWidth,
-                render: (devbox: any, index: number, isSelected: boolean) => {
-                  const statusDisplay = getStatusDisplay(devbox.status);
-
-                  const truncated = statusDisplay.text.slice(
-                    0,
-                    statusTextWidth,
-                  );
-                  const padded = truncated.padEnd(statusTextWidth, " ");
-
-                  return (
-                    <Text
-                      color={isSelected ? "white" : statusDisplay.color}
-                      bold={true}
-                      inverse={isSelected}
-                      wrap="truncate"
-                    >
-                      {padded}
-                    </Text>
-                  );
-                },
-              },
-              createTextColumn(
-                "name",
-                "Name",
-                (devbox: any) => devbox.name || "",
-                {
-                  width: nameWidth,
-                },
-              ),
-              createTextColumn(
-                "capabilities",
-                "Capabilities",
-                (devbox: any) => {
-                  const hasCapabilities =
-                    devbox.capabilities &&
-                    devbox.capabilities.filter((c: string) => c !== "unknown")
-                      .length > 0;
-                  return hasCapabilities
-                    ? `[${devbox.capabilities
-                        .filter((c: string) => c !== "unknown")
-                        .map((c: string) =>
-                          c === "computer_usage"
-                            ? "comp"
-                            : c === "browser_usage"
-                              ? "browser"
-                              : c === "docker_in_docker"
-                                ? "docker"
-                                : c,
-                        )
-                        .join(",")}]`
-                    : "";
-                },
-                {
-                  width: capabilitiesWidth,
-                  color: colors.info,
-                  dimColor: false,
-                  bold: false,
-                  visible: showCapabilities,
-                },
-              ),
-              createTextColumn(
-                "source",
-                "Source",
-                (devbox: any) =>
-                  devbox.blueprint_id
-                    ? devbox.blueprint_id
-                    : devbox.snapshot_id
-                      ? devbox.snapshot_id
-                      : "",
-                {
-                  width: sourceWidth,
-                  color: colors.info,
-                  dimColor: false,
-                  bold: false,
-                  visible: showSource,
-                },
-              ),
-              createTextColumn(
-                "created",
-                "Created",
-                (devbox: any) =>
-                  devbox.create_time_ms
-                    ? formatTimeAgo(devbox.create_time_ms)
-                    : "",
-                {
-                  width: timeWidth,
-                  color: colors.textDim,
-                  dimColor: false,
-                  bold: false,
-                },
-              ),
-            ]}
-          />
-
-          {/* Statistics Bar */}
-          <Box marginTop={1} paddingX={1}>
-            <Text color={colors.primary} bold>
-              {figures.hamburger} {totalCount}
-            </Text>
-            <Text color={colors.textDim} dimColor>
-              {" "}
-              total
-            </Text>
-            {totalPages > 1 && (
-              <>
-                <Text color={colors.textDim} dimColor>
-                  {" "}
-                  •{" "}
-                </Text>
-                <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of {totalPages}
-                </Text>
-              </>
-            )}
+      {/* Statistics Bar */}
+      <Box marginTop={1} paddingX={1}>
+        <Text color={colors.primary} bold>
+          {figures.hamburger} {totalCount}
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          total
+        </Text>
+        {totalPages > 1 && (
+          <>
             <Text color={colors.textDim} dimColor>
               {" "}
               •{" "}
             </Text>
             <Text color={colors.textDim} dimColor>
-              Showing {startIndex + 1}-{endIndex} of {totalCount}
+              Page {currentPage + 1} of {totalPages}
             </Text>
-            {hasMore && (
-              <Text color={colors.textDim} dimColor>
-                {" "}
-                (more available)
-              </Text>
-            )}
-            <Text> </Text>
-            <Text color={colors.success}>{figures.circleFilled}</Text>
-          </Box>
-
-          {/* Help Bar */}
-          <Box marginTop={1} paddingX={1}>
-            <Text color={colors.textDim} dimColor>
-              {figures.arrowUp}
-              {figures.arrowDown} Navigate
-            </Text>
-            {totalPages > 1 && (
-              <Text color={colors.textDim} dimColor>
-                {" "}
-                • {figures.arrowLeft}
-                {figures.arrowRight} Page
-              </Text>
-            )}
+          </>
+        )}
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          •{" "}
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          Showing {startIndex + 1}-{endIndex} of {totalCount}
+        </Text>
+        {searchQuery && (
+          <>
             <Text color={colors.textDim} dimColor>
               {" "}
-              • [Enter] Details • [a] Actions • [c] Create • [/] Search • [o]
-              Browser • [Esc] Back
+              •{" "}
             </Text>
-          </Box>
-        </>
-      )}
+            <Text color={colors.warning}>
+              Filtered: &quot;{searchQuery}&quot;
+            </Text>
+          </>
+        )}
+      </Box>
+
+      {/* Help Bar */}
+      <Box marginTop={1} paddingX={1}>
+        <Text color={colors.textDim} dimColor>
+          {figures.arrowUp}
+          {figures.arrowDown} Navigate
+        </Text>
+        {totalPages > 1 && (
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            • {figures.arrowLeft}
+            {figures.arrowRight} Page
+          </Text>
+        )}
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          • [Enter] Details
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          • [a] Actions
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          • [c] Create
+        </Text>
+        {selectedDevbox && (
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            • [o] Open in Browser
+          </Text>
+        )}
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          • [/] Search
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          • [Esc] Back
+        </Text>
+      </Box>
     </>
   );
 };
@@ -996,7 +796,6 @@ export async function listDevboxes(
     const result = await runSSHSession(sshSessionConfig);
 
     if (result.shouldRestart) {
-      console.clear();
       console.log(`\nSSH session ended. Returning to CLI...\n`);
       await new Promise((resolve) => setTimeout(resolve, 500));
 

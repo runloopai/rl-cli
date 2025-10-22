@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text, useInput, useApp } from "ink";
+import { Box, Text, useInput, useApp, Static } from "ink";
 import figures from "figures";
 import { Banner } from "./Banner.js";
 import { Breadcrumb } from "./Breadcrumb.js";
@@ -25,29 +25,32 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onSelect }) => {
   // Calculate terminal height once at mount and memoize
   const terminalHeight = React.useMemo(() => process.stdout.rows || 24, []);
 
-  const menuItems: MenuItem[] = [
-    {
-      key: "devboxes",
-      label: "Devboxes",
-      description: "Manage cloud development environments",
-      icon: "◉",
-      color: colors.accent1,
-    },
-    {
-      key: "blueprints",
-      label: "Blueprints",
-      description: "Create and manage devbox templates",
-      icon: "▣",
-      color: colors.accent2,
-    },
-    {
-      key: "snapshots",
-      label: "Snapshots",
-      description: "Save and restore devbox states",
-      icon: "◈",
-      color: colors.accent3,
-    },
-  ];
+  const menuItems: MenuItem[] = React.useMemo(
+    () => [
+      {
+        key: "devboxes",
+        label: "Devboxes",
+        description: "Manage cloud development environments",
+        icon: "◉",
+        color: colors.accent1,
+      },
+      {
+        key: "blueprints",
+        label: "Blueprints",
+        description: "Create and manage devbox templates",
+        icon: "▣",
+        color: colors.accent2,
+      },
+      {
+        key: "snapshots",
+        label: "Snapshots",
+        description: "Save and restore devbox states",
+        icon: "◈",
+        color: colors.accent3,
+      },
+    ],
+    [],
+  );
 
   useInput((input, key) => {
     if (key.upArrow && selectedIndex > 0) {
@@ -75,7 +78,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onSelect }) => {
 
   if (useCompactLayout) {
     return (
-      <Box flexDirection="column" height="100%">
+      <Box flexDirection="column">
         <Box paddingX={2} marginBottom={1}>
           <Text color={colors.primary} bold>
             RUNLOOP.ai
@@ -130,12 +133,17 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onSelect }) => {
   }
 
   return (
-    <Box flexDirection="column" height="100%">
+    <Box flexDirection="column">
       <Breadcrumb items={[{ label: "Home", active: true }]} />
 
-      <Box flexShrink={0}>
-        <Banner />
-      </Box>
+      {/* Wrap Banner in Static so it only renders once */}
+      <Static items={[{ key: 'banner' }]}>
+        {(item) => (
+          <Box key={item.key} flexShrink={0}>
+            <Banner />
+          </Box>
+        )}
+      </Static>
 
       <Box flexDirection="column" paddingX={2} flexShrink={0}>
         <Box paddingX={1}>
@@ -159,11 +167,19 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onSelect }) => {
               key={item.key}
               paddingX={2}
               paddingY={0}
-              borderStyle={isSelected ? "round" : "single"}
+              borderStyle="single"
               borderColor={isSelected ? item.color : colors.border}
               marginTop={index === 0 ? 1 : 0}
               flexShrink={0}
             >
+              {isSelected && (
+                <>
+                  <Text color={item.color} bold>
+                    {figures.pointer}
+                  </Text>
+                  <Text> </Text>
+                </>
+              )}
               <Text color={item.color} bold>
                 {item.icon}
               </Text>
