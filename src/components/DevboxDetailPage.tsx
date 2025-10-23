@@ -443,7 +443,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
         lines.push(
           <Text key="source-bp" dimColor>
             {" "}
-            Blueprint: {selectedDevbox.blueprint_id}
+            {selectedDevbox.blueprint_id}
           </Text>,
         );
       }
@@ -451,7 +451,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
         lines.push(
           <Text key="source-snap" dimColor>
             {" "}
-            Snapshot: {selectedDevbox.snapshot_id}
+            {selectedDevbox.snapshot_id}
           </Text>,
         );
       }

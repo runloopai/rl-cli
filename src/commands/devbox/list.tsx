@@ -158,7 +158,7 @@ const ListDevboxesUI: React.FC<{
         if (devbox.blueprint_id) {
           return `blueprint:${devbox.blueprint_id.slice(0, 10)}`;
         }
-        return "scratch";
+        return "";
       }, {
         width: sourceWidth,
         color: colors.textDim,
