@@ -1,10 +1,10 @@
 /**
  * Terminal synchronous update mode utilities
- * 
+ *
  * Uses ANSI escape sequences to prevent screen flicker by batching terminal updates.
  * This tells the terminal to buffer all output between BEGIN and END markers
  * and only display it atomically, preventing the visible flashing during redraws.
- * 
+ *
  * Supported by most modern terminals (iTerm2, Terminal.app, Alacritty, etc.)
  * When not supported, these sequences are simply ignored.
  */
@@ -40,7 +40,3 @@ export function withSynchronousUpdate(fn: () => void): void {
   fn();
   process.stdout.write(END_SYNC);
 }
-
-
-
-
