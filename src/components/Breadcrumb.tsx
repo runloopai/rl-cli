@@ -32,23 +32,26 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({ items }) => {
             (dev)
           </Text>
         )}
-        <Text color={colors.textDim}>
-          {" "}
-          ›{" "}
-        </Text>
-        {items.map((item, index) => (
-          <React.Fragment key={index}>
-            <Text color={item.active ? colors.primary : colors.textDim}>
-              {item.label}
-            </Text>
-            {index < items.length - 1 && (
-              <Text color={colors.textDim}>
-                {" "}
-                ›{" "}
+        <Text color={colors.textDim}> › </Text>
+        {items.map((item, index) => {
+          // Limit label length to prevent Yoga layout engine errors
+          const MAX_LABEL_LENGTH = 80;
+          const truncatedLabel =
+            item.label.length > MAX_LABEL_LENGTH
+              ? item.label.substring(0, MAX_LABEL_LENGTH) + "..."
+              : item.label;
+
+          return (
+            <React.Fragment key={index}>
+              <Text color={item.active ? colors.primary : colors.textDim}>
+                {truncatedLabel}
               </Text>
-            )}
-          </React.Fragment>
-        ))}
+              {index < items.length - 1 && (
+                <Text color={colors.textDim}> › </Text>
+              )}
+            </React.Fragment>
+          );
+        })}
       </Box>
     </Box>
   );

@@ -12,20 +12,33 @@ export const SuccessMessage: React.FC<SuccessMessageProps> = ({
   message,
   details,
 }) => {
+  // Limit message length to prevent Yoga layout engine errors
+  const MAX_LENGTH = 500;
+  const truncatedMessage =
+    message.length > MAX_LENGTH
+      ? message.substring(0, MAX_LENGTH) + "..."
+      : message;
+
   return (
     <Box flexDirection="column" marginY={1}>
       <Box>
         <Text color={colors.success} bold>
-          {figures.tick} {message}
+          {figures.tick} {truncatedMessage}
         </Text>
       </Box>
       {details && (
         <Box marginLeft={2} flexDirection="column">
-          {details.split("\n").map((line, i) => (
-            <Text key={i} color={colors.textDim} dimColor>
-              {line}
-            </Text>
-          ))}
+          {details.split("\n").map((line, i) => {
+            const truncatedLine =
+              line.length > MAX_LENGTH
+                ? line.substring(0, MAX_LENGTH) + "..."
+                : line;
+            return (
+              <Text key={i} color={colors.textDim} dimColor>
+                {truncatedLine}
+              </Text>
+            );
+          })}
         </Box>
       )}
     </Box>
