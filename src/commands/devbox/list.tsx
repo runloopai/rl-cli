@@ -622,26 +622,6 @@ const ListDevboxesUI: React.FC<{
     );
   }
 
-  // Show popup (without background table to prevent flashing)
-  if (showPopup && selectedDevbox) {
-    return (
-      <>
-        <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
-        <Box
-          marginTop={-Math.min(operations.length + 10, PAGE_SIZE + 5)}
-          justifyContent="center"
-        >
-          <ActionsPopup
-            devbox={selectedDevbox}
-            operations={operations}
-            selectedOperation={selectedOperation}
-            onClose={() => setShowPopup(false)}
-          />
-        </Box>
-      </>
-    );
-  }
-
   // If initial loading or error, show that first
   if (initialLoading) {
     return (
@@ -666,53 +646,70 @@ const ListDevboxesUI: React.FC<{
     <>
       <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
       
-      <Table
-        data={currentDevboxes}
-        keyExtractor={(devbox: any) => devbox.id}
-        selectedIndex={selectedIndex}
-        title="devboxes"
-        columns={tableColumns}
-      />
+      {/* Table - hide when popup is shown */}
+      {!showPopup && (
+        <Table
+          data={currentDevboxes}
+          keyExtractor={(devbox: any) => devbox.id}
+          selectedIndex={selectedIndex}
+          title="devboxes"
+          columns={tableColumns}
+        />
+      )}
 
-      {/* Statistics Bar */}
-      <Box marginTop={1} paddingX={1}>
-        <Text color={colors.primary} bold>
-          {figures.hamburger} {totalCount}
-        </Text>
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          total
-        </Text>
-        {totalPages > 1 && (
-          <>
-            <Text color={colors.textDim} dimColor>
-              {" "}
-              •{" "}
-            </Text>
-            <Text color={colors.textDim} dimColor>
-              Page {currentPage + 1} of {totalPages}
-            </Text>
-          </>
-        )}
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          •{" "}
-        </Text>
-        <Text color={colors.textDim} dimColor>
-          Showing {startIndex + 1}-{endIndex} of {totalCount}
-        </Text>
-        {searchQuery && (
-          <>
-            <Text color={colors.textDim} dimColor>
-              {" "}
-              •{" "}
-            </Text>
-            <Text color={colors.warning}>
-              Filtered: &quot;{searchQuery}&quot;
-            </Text>
-          </>
-        )}
-      </Box>
+      {/* Statistics Bar - hide when popup is shown */}
+      {!showPopup && (
+        <Box marginTop={1} paddingX={1}>
+          <Text color={colors.primary} bold>
+            {figures.hamburger} {totalCount}
+          </Text>
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            total
+          </Text>
+          {totalPages > 1 && (
+            <>
+              <Text color={colors.textDim} dimColor>
+                {" "}
+                •{" "}
+              </Text>
+              <Text color={colors.textDim} dimColor>
+                Page {currentPage + 1} of {totalPages}
+              </Text>
+            </>
+          )}
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            •{" "}
+          </Text>
+          <Text color={colors.textDim} dimColor>
+            Showing {startIndex + 1}-{endIndex} of {totalCount}
+          </Text>
+          {searchQuery && (
+            <>
+              <Text color={colors.textDim} dimColor>
+                {" "}
+                •{" "}
+              </Text>
+              <Text color={colors.warning}>
+                Filtered: &quot;{searchQuery}&quot;
+              </Text>
+            </>
+          )}
+        </Box>
+      )}
+
+      {/* Actions Popup - show inline when triggered */}
+      {showPopup && selectedDevbox && (
+        <Box marginTop={2} justifyContent="center">
+          <ActionsPopup
+            devbox={selectedDevbox}
+            operations={operations}
+            selectedOperation={selectedOperation}
+            onClose={() => setShowPopup(false)}
+          />
+        </Box>
+      )}
 
       {/* Help Bar */}
       <Box marginTop={1} paddingX={1}>
