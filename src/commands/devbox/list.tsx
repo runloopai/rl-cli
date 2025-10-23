@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Text, useInput, useApp, useStdout } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
+import type { DevboxesCursorIDPage } from "@runloop/api-client/pagination";
 import { getClient } from "../../utils/client.js";
 import { SpinnerComponent } from "../../components/Spinner.js";
 import { ErrorMessage } from "../../components/ErrorMessage.js";
@@ -28,6 +29,7 @@ interface ListOptions {
 }
 
 const DEFAULT_PAGE_SIZE = 10;
+const MAX_CACHE_SIZE = 10; // Limit cache to 10 pages to prevent memory leaks
 
 const ListDevboxesUI: React.FC<{
   status?: string;
@@ -39,6 +41,7 @@ const ListDevboxesUI: React.FC<{
   const { exit: inkExit } = useApp();
   const { stdout } = useStdout();
   const [initialLoading, setInitialLoading] = React.useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [devboxes, setDevboxes] = React.useState<any[]>([]);
   const [error, setError] = React.useState<Error | null>(null);
   const [currentPage, setCurrentPage] = React.useState(0);
@@ -53,6 +56,7 @@ const ListDevboxesUI: React.FC<{
   const [searchQuery, setSearchQuery] = React.useState("");
   const [totalCount, setTotalCount] = React.useState(0);
   const [hasMore, setHasMore] = React.useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pageCache = React.useRef<Map<number, any[]>>(new Map());
   const lastIdCache = React.useRef<Map<number, string>>(new Map());
 
@@ -60,9 +64,10 @@ const ListDevboxesUI: React.FC<{
   const terminalWidth = stdout?.columns || 120;
   const terminalHeight = stdout?.rows || 30;
 
-  // Calculate dynamic page size based on terminal height
+  // Calculate dynamic page size based on terminal height and search UI visibility
   // Exact line count:
   // - Breadcrumb with border and margin: 4 lines (border top + content + border bottom + marginBottom)
+  // - Search bar (if visible): 3 lines (marginBottom + content)
   // - Table title: 1 line
   // - Table border top: 1 line
   // - Table header: 1 line
@@ -70,8 +75,14 @@ const ListDevboxesUI: React.FC<{
   // - Table border bottom: 1 line
   // - Stats bar: 2 lines (marginTop + content)
   // - Help bar: 2-3 lines (marginTop + content, may wrap)
-  // Total overhead: 4 + 1 + 1 + 1 + 1 + 2 + 3 = 13 lines
-  const PAGE_SIZE = Math.max(5, terminalHeight - 13);
+  // Total overhead: 4 + 1 + 1 + 1 + 1 + 2 + 3 = 13 lines (no search)
+  // Total overhead with search: 4 + 3 + 1 + 1 + 1 + 1 + 2 + 3 = 16 lines
+  const PAGE_SIZE = React.useMemo(() => {
+    const baseOverhead = 13;
+    const searchOverhead = searchMode || searchQuery ? 3 : 0;
+    const totalOverhead = baseOverhead + searchOverhead;
+    return Math.max(5, terminalHeight - totalOverhead);
+  }, [terminalHeight, searchMode, searchQuery]);
 
   const fixedWidth = 4; // pointer + spaces
   const statusIconWidth = 2;
@@ -124,130 +135,170 @@ const ListDevboxesUI: React.FC<{
     nameWidth = Math.max(8, remainingWidth);
   }
 
-  // Build responsive column list
-  const tableColumns = [
-    createTextColumn("name", "Name", (devbox: any) => devbox.name || devbox.id.slice(0, 30), {
-      width: nameWidth,
-      dimColor: false,
-    }),
-    createTextColumn("id", "ID", (devbox: any) => devbox.id, {
-      width: idWidth,
-      color: colors.textDim,
-      dimColor: false,
-      bold: false,
-    }),
-    createTextColumn("status", "Status", (devbox: any) => {
-      const statusDisplay = getStatusDisplay(devbox.status);
-      return statusDisplay.text;
-    }, {
-      width: statusTextWidth,
-      dimColor: false,
-    }),
-    createTextColumn("created", "Created", (devbox: any) => 
-      formatTimeAgo(devbox.create_time_ms || Date.now()), {
-      width: timeWidth,
-      color: colors.textDim,
-      dimColor: false,
-    }),
-  ];
-
-  // Add optional columns based on terminal width
-  if (showSource) {
-    tableColumns.push(
-      createTextColumn("source", "Source", (devbox: any) => {
-        if (devbox.blueprint_id) {
-          return `blueprint:${devbox.blueprint_id.slice(0, 10)}`;
-        }
-        return "";
-      }, {
-        width: sourceWidth,
+  // Build responsive column list (memoized to prevent recreating on every render)
+  const tableColumns = React.useMemo(() => {
+    const columns = [
+      createTextColumn(
+        "name",
+        "Name",
+        (devbox: any) => devbox.name || devbox.id.slice(0, 30),
+        {
+          width: nameWidth,
+          dimColor: false,
+        },
+      ),
+      createTextColumn("id", "ID", (devbox: any) => devbox.id, {
+        width: idWidth,
         color: colors.textDim,
         dimColor: false,
-      })
-    );
-  }
+        bold: false,
+      }),
+      createTextColumn(
+        "status",
+        "Status",
+        (devbox: any) => {
+          const statusDisplay = getStatusDisplay(devbox.status);
+          return statusDisplay.text;
+        },
+        {
+          width: statusTextWidth,
+          dimColor: false,
+        },
+      ),
+      createTextColumn(
+        "created",
+        "Created",
+        (devbox: any) => formatTimeAgo(devbox.create_time_ms || Date.now()),
+        {
+          width: timeWidth,
+          color: colors.textDim,
+          dimColor: false,
+        },
+      ),
+    ];
 
-  if (showCapabilities) {
-    tableColumns.push(
-      createTextColumn("capabilities", "Capabilities", (devbox: any) => {
-        const caps = [];
-        if (devbox.entitlements?.network_enabled) caps.push("net");
-        if (devbox.entitlements?.gpu_enabled) caps.push("gpu");
-        return caps.length > 0 ? caps.join(",") : "-";
-      }, {
-        width: capabilitiesWidth,
-        color: colors.textDim,
-        dimColor: false,
-      })
-    );
-  }
+    // Add optional columns based on terminal width
+    if (showSource) {
+      columns.push(
+        createTextColumn(
+          "source",
+          "Source",
+          (devbox: any) => {
+            if (devbox.blueprint_id) {
+              return `blueprint:${devbox.blueprint_id.slice(0, 10)}`;
+            }
+            return "";
+          },
+          {
+            width: sourceWidth,
+            color: colors.textDim,
+            dimColor: false,
+          },
+        ),
+      );
+    }
 
-  // Define allOperations
-  const allOperations = [
-    {
-      key: "logs",
-      label: "View Logs",
-      color: colors.info,
-      icon: figures.info,
-      shortcut: "l",
-    },
-    {
-      key: "exec",
-      label: "Execute Command",
-      color: colors.success,
-      icon: figures.play,
-      shortcut: "e",
-    },
-    {
-      key: "upload",
-      label: "Upload File",
-      color: colors.success,
-      icon: figures.arrowUp,
-      shortcut: "u",
-    },
-    {
-      key: "snapshot",
-      label: "Create Snapshot",
-      color: colors.warning,
-      icon: figures.circleFilled,
-      shortcut: "n",
-    },
-    {
-      key: "ssh",
-      label: "SSH onto the box",
-      color: colors.primary,
-      icon: figures.arrowRight,
-      shortcut: "s",
-    },
-    {
-      key: "tunnel",
-      label: "Open Tunnel",
-      color: colors.secondary,
-      icon: figures.pointerSmall,
-      shortcut: "t",
-    },
-    {
-      key: "suspend",
-      label: "Suspend Devbox",
-      color: colors.warning,
-      icon: figures.squareSmallFilled,
-      shortcut: "p",
-    },
-    {
-      key: "resume",
-      label: "Resume Devbox",
-      color: colors.success,
-      icon: figures.play,
-      shortcut: "r",
-    },
-    {
-      key: "delete",
-      label: "Shutdown Devbox",
-      color: colors.error,
-      icon: figures.cross,
-      shortcut: "d",
-    },
-  ];
+    if (showCapabilities) {
+      columns.push(
+        createTextColumn(
+          "capabilities",
+          "Capabilities",
+          (devbox: any) => {
+            const caps = [];
+            if (devbox.entitlements?.network_enabled) caps.push("net");
+            if (devbox.entitlements?.gpu_enabled) caps.push("gpu");
+            return caps.length > 0 ? caps.join(",") : "-";
+          },
+          {
+            width: capabilitiesWidth,
+            color: colors.textDim,
+            dimColor: false,
+          },
+        ),
+      );
+    }
+
+    return columns;
+  }, [
+    nameWidth,
+    idWidth,
+    statusTextWidth,
+    timeWidth,
+    showSource,
+    sourceWidth,
+    showCapabilities,
+    capabilitiesWidth,
+  ]);
+
+  // Define allOperations (memoized to prevent recreating on every render)
+  const allOperations = React.useMemo(
+    () => [
+      {
+        key: "logs",
+        label: "View Logs",
+        color: colors.info,
+        icon: figures.info,
+        shortcut: "l",
+      },
+      {
+        key: "exec",
+        label: "Execute Command",
+        color: colors.success,
+        icon: figures.play,
+        shortcut: "e",
+      },
+      {
+        key: "upload",
+        label: "Upload File",
+        color: colors.success,
+        icon: figures.arrowUp,
+        shortcut: "u",
+      },
+      {
+        key: "snapshot",
+        label: "Create Snapshot",
+        color: colors.warning,
+        icon: figures.circleFilled,
+        shortcut: "n",
+      },
+      {
+        key: "ssh",
+        label: "SSH onto the box",
+        color: colors.primary,
+        icon: figures.arrowRight,
+        shortcut: "s",
+      },
+      {
+        key: "tunnel",
+        label: "Open Tunnel",
+        color: colors.secondary,
+        icon: figures.pointerSmall,
+        shortcut: "t",
+      },
+      {
+        key: "suspend",
+        label: "Suspend Devbox",
+        color: colors.warning,
+        icon: figures.squareSmallFilled,
+        shortcut: "p",
+      },
+      {
+        key: "resume",
+        label: "Resume Devbox",
+        color: colors.success,
+        icon: figures.play,
+        shortcut: "r",
+      },
+      {
+        key: "delete",
+        label: "Shutdown Devbox",
+        color: colors.error,
+        icon: figures.cross,
+        shortcut: "d",
+      },
+    ],
+    [],
+  );
 
   // Check if we need to focus on a specific devbox after returning from SSH
   React.useEffect(() => {
@@ -267,6 +318,26 @@ const ListDevboxesUI: React.FC<{
     lastIdCache.current.clear();
     setCurrentPage(0);
   }, [searchQuery]);
+
+  // Track previous PAGE_SIZE to detect changes
+  const prevPageSize = React.useRef<number | undefined>(undefined);
+
+  // Clear cache when PAGE_SIZE changes (e.g., when search UI appears/disappears)
+  React.useEffect(() => {
+    // Only clear cache if PAGE_SIZE actually changed and not initial mount
+    if (
+      prevPageSize.current !== undefined &&
+      prevPageSize.current !== PAGE_SIZE &&
+      !initialLoading
+    ) {
+      pageCache.current.clear();
+      lastIdCache.current.clear();
+      // Reset to page 0 to avoid out of bounds
+      setCurrentPage(0);
+      setSelectedIndex(0);
+    }
+    prevPageSize.current = PAGE_SIZE;
+  }, [PAGE_SIZE, initialLoading]);
 
   React.useEffect(() => {
     const list = async (
@@ -291,6 +362,7 @@ const ListDevboxesUI: React.FC<{
         }
 
         const client = getClient();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const pageDevboxes: any[] = [];
 
         // Get starting_after cursor from previous page's last ID
@@ -299,7 +371,8 @@ const ListDevboxesUI: React.FC<{
             ? lastIdCache.current.get(currentPage - 1)
             : undefined;
 
-        // Build query params
+        // Build query params (using any to avoid complex type imports)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const queryParams: any = {
           limit: PAGE_SIZE,
         };
@@ -307,53 +380,62 @@ const ListDevboxesUI: React.FC<{
           queryParams.starting_after = startingAfter;
         }
         if (status) {
-          queryParams.status = status as
-            | "provisioning"
-            | "initializing"
-            | "running"
-            | "suspending"
-            | "suspended"
-            | "resuming"
-            | "failure"
-            | "shutdown";
+          queryParams.status = status;
         }
         if (searchQuery) {
           queryParams.search = searchQuery;
         }
 
-        // Fetch only the current page
+        // Fetch only ONE page at a time using the cursor-based pagination
+        // The limit parameter ensures we only request PAGE_SIZE items
         const pageResponse = client.devboxes.list(queryParams);
 
-        // Try to get the page data without triggering full iteration
-        // First, try to access the response property directly
-        const page = await pageResponse;
-        
-        // Check if page has a response or _response property with data
-        const responseData = (page as any).response || (page as any)._response;
-        if (responseData && responseData.data) {
-          // Direct access to avoid iteration
-          pageDevboxes.push(...responseData.data);
+        // CRITICAL: We must NOT use async iteration as it triggers auto-pagination
+        // Access the page object directly which contains the data
+        const page = (await pageResponse) as DevboxesCursorIDPage<{
+          id: string;
+        }>;
+
+        // Access the devboxes array directly from the typed page object
+        if (page.devboxes && Array.isArray(page.devboxes)) {
+          // CRITICAL: Create defensive copies to break reference chains
+          // The SDK's page object might hold references to HTTP responses
+          pageDevboxes.push(
+            ...page.devboxes.map((d: any) => ({
+              id: d.id,
+              name: d.name,
+              status: d.status,
+              create_time_ms: d.create_time_ms,
+              blueprint_id: d.blueprint_id,
+              entitlements: d.entitlements,
+              // Copy only the fields we need, don't hold entire object
+            })),
+          );
         } else {
-          // Fall back to limited iteration
-          let count = 0;
-          for await (const devbox of page) {
-            pageDevboxes.push(devbox);
-            count++;
-            if (count >= PAGE_SIZE) {
-              break;
-            }
-          }
+          console.error(
+            "Unable to access devboxes from page. Available keys:",
+            Object.keys(page || {}),
+          );
         }
 
-        // Update pagination metadata from the page object
-        const total = (page as any).total_count || (page as any).response?.total_count || pageDevboxes.length;
-        const more = (page as any).has_more || (page as any).response?.has_more || false;
+        // Extract metadata and release page object reference
+        const totalCount = page.total_count || pageDevboxes.length;
+        const hasMore = page.has_more || false;
 
-        setTotalCount(total);
-        setHasMore(more);
+        // Update pagination metadata
+        setTotalCount(totalCount);
+        setHasMore(hasMore);
 
         // Cache the page data and last ID
         if (pageDevboxes.length > 0) {
+          // Implement LRU cache eviction: if cache is full, remove oldest entry
+          if (pageCache.current.size >= MAX_CACHE_SIZE) {
+            const firstKey = pageCache.current.keys().next().value;
+            if (firstKey !== undefined) {
+              pageCache.current.delete(firstKey);
+              lastIdCache.current.delete(firstKey);
+            }
+          }
           pageCache.current.set(currentPage, pageDevboxes);
           lastIdCache.current.set(
             currentPage,
@@ -362,11 +444,8 @@ const ListDevboxesUI: React.FC<{
         }
 
         // Update devboxes for current page
-        setDevboxes((prev) => {
-          const hasChanged =
-            JSON.stringify(prev) !== JSON.stringify(pageDevboxes);
-          return hasChanged ? pageDevboxes : prev;
-        });
+        // React will handle efficient re-rendering - no need for manual comparison
+        setDevboxes(pageDevboxes);
       } catch (err) {
         setError(err as Error);
       } finally {
@@ -397,7 +476,15 @@ const ListDevboxesUI: React.FC<{
     //   }
     // }, 3000);
     // return () => clearInterval(interval);
-  }, [showDetails, showCreate, showActions, currentPage, searchQuery]);
+  }, [
+    showDetails,
+    showCreate,
+    showActions,
+    currentPage,
+    searchQuery,
+    PAGE_SIZE,
+    status,
+  ]);
 
   // Removed refresh icon animation to prevent constant re-renders and flashing
 
@@ -414,7 +501,14 @@ const ListDevboxesUI: React.FC<{
     if (searchMode) {
       if (key.escape) {
         setSearchMode(false);
-        setSearchQuery("");
+        if (searchQuery) {
+          // If there was a query, clear it and refresh
+          setSearchQuery("");
+          setCurrentPage(0);
+          setSelectedIndex(0);
+          pageCache.current.clear();
+          lastIdCache.current.clear();
+        }
       }
       return;
     }
@@ -452,10 +546,10 @@ const ListDevboxesUI: React.FC<{
         const matchedOpIndex = operations.findIndex(
           (op) => op.shortcut === input,
         );
-          if (matchedOpIndex !== -1) {
-            setSelectedOperation(matchedOpIndex);
-            setShowPopup(false);
-            setShowActions(true);
+        if (matchedOpIndex !== -1) {
+          setSelectedOperation(matchedOpIndex);
+          setShowPopup(false);
+          setShowActions(true);
         }
       }
       return;
@@ -480,13 +574,13 @@ const ListDevboxesUI: React.FC<{
     ) {
       setCurrentPage(currentPage - 1);
       setSelectedIndex(0);
-      } else if (key.return) {
-        setShowDetails(true);
-      } else if (input === "a") {
-        setShowPopup(true);
-        setSelectedOperation(0);
-      } else if (input === "c") {
-        setShowCreate(true);
+    } else if (key.return) {
+      setShowDetails(true);
+    } else if (input === "a") {
+      setShowPopup(true);
+      setSelectedOperation(0);
+    } else if (input === "c") {
+      setShowCreate(true);
     } else if (input === "o" && selectedDevbox) {
       // Open in browser
       const url = getDevboxUrl(selectedDevbox.id);
@@ -514,6 +608,8 @@ const ListDevboxesUI: React.FC<{
         setSearchQuery("");
         setCurrentPage(0);
         setSelectedIndex(0);
+        pageCache.current.clear();
+        lastIdCache.current.clear();
       } else {
         // Go back to home
         if (onBack) {
@@ -645,7 +741,42 @@ const ListDevboxesUI: React.FC<{
   return (
     <>
       <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
-      
+
+      {/* Search bar */}
+      {searchMode && (
+        <Box marginBottom={1}>
+          <Text color={colors.primary}>{figures.pointerSmall} Search: </Text>
+          <TextInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Type to search..."
+            onSubmit={() => {
+              setSearchMode(false);
+              setCurrentPage(0);
+              setSelectedIndex(0);
+              pageCache.current.clear();
+              lastIdCache.current.clear();
+            }}
+          />
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            [Enter to search, Esc to cancel]
+          </Text>
+        </Box>
+      )}
+      {!searchMode && searchQuery && (
+        <Box marginBottom={1}>
+          <Text color={colors.primary}>{figures.info} Searching for: </Text>
+          <Text color={colors.warning} bold>
+            {searchQuery}
+          </Text>
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            ({totalCount} results) [/ to edit, Esc to clear]
+          </Text>
+        </Box>
+      )}
+
       {/* Table - hide when popup is shown */}
       {!showPopup && (
         <Table
