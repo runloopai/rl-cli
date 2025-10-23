@@ -99,10 +99,22 @@ const ListBlueprintsUI: React.FC<{
       try {
         setLoading(true);
         const client = getClient();
-        // Fetch blueprints - access page data directly to avoid auto-pagination memory issues
-        const page = await client.blueprints.list({ limit: MAX_FETCH });
-        const allBlueprints = (page as any).data || (page as any).items || [];
-        setBlueprints(allBlueprints.slice(0, MAX_FETCH));
+        const allBlueprints: any[] = [];
+        
+        // Fetch blueprints with limited iteration to avoid memory issues
+        const pageResponse = client.blueprints.list({ limit: MAX_FETCH });
+        
+        // Iterate through the response but limit to MAX_FETCH items
+        let count = 0;
+        for await (const blueprint of pageResponse) {
+          allBlueprints.push(blueprint);
+          count++;
+          if (count >= MAX_FETCH) {
+            break;
+          }
+        }
+        
+        setBlueprints(allBlueprints);
       } catch (err) {
         setListError(err as Error);
       } finally {

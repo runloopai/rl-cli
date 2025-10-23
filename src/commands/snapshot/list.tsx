@@ -52,11 +52,23 @@ const ListSnapshotsUI: React.FC<{
         resourceNamePlural: "Snapshots",
         fetchResources: async () => {
           const client = getClient();
-          // Access page data directly to avoid auto-pagination memory issues
+          const allSnapshots: any[] = [];
+          
+          // Fetch snapshots with limited iteration to avoid memory issues
           const params = devboxId ? { devbox_id: devboxId, limit: MAX_FETCH } : { limit: MAX_FETCH };
-          const page = await client.devboxes.listDiskSnapshots(params);
-          const allSnapshots = (page as any).data || (page as any).items || [];
-          return allSnapshots.slice(0, MAX_FETCH);
+          const pageResponse = client.devboxes.listDiskSnapshots(params);
+          
+          // Iterate through the response but limit to MAX_FETCH items
+          let count = 0;
+          for await (const snapshot of pageResponse) {
+            allSnapshots.push(snapshot);
+            count++;
+            if (count >= MAX_FETCH) {
+              break;
+            }
+          }
+          
+          return allSnapshots;
         },
         columns: [
           createTextColumn("id", "ID", (snapshot: any) => snapshot.id, {
