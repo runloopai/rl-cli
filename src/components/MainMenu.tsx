@@ -5,6 +5,7 @@ import { Banner } from "./Banner.js";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { VERSION } from "../cli.js";
 import { colors } from "../utils/theme.js";
+import { useViewportHeight } from "../hooks/useViewportHeight.js";
 
 interface MenuItem {
   key: string;
@@ -22,8 +23,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onSelect }) => {
   const { exit } = useApp();
   const [selectedIndex, setSelectedIndex] = React.useState(0);
 
-  // Calculate terminal height once at mount and memoize
-  const terminalHeight = React.useMemo(() => process.stdout.rows || 24, []);
+  // Use centralized viewport hook for consistent layout
+  const { terminalHeight } = useViewportHeight({ overhead: 0 });
 
   const menuItems: MenuItem[] = React.useMemo(
     () => [
@@ -137,7 +138,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onSelect }) => {
       <Breadcrumb items={[{ label: "Home", active: true }]} />
 
       {/* Wrap Banner in Static so it only renders once */}
-      <Static items={[{ key: 'banner' }]}>
+      <Static items={[{ key: "banner" }]}>
         {(item) => (
           <Box key={item.key} flexShrink={0}>
             <Banner />

@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text, useInput, useApp, useStdout } from "ink";
+import { Box, Text, useInput, useApp } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
 import { getClient } from "../utils/client.js";
@@ -10,6 +10,7 @@ import { SuccessMessage } from "./SuccessMessage.js";
 import { Breadcrumb } from "./Breadcrumb.js";
 import type { SSHSessionConfig } from "../utils/sshSession.js";
 import { colors } from "../utils/theme.js";
+import { useViewportHeight } from "../hooks/useViewportHeight.js";
 
 type Operation =
   | "exec"
@@ -46,7 +47,6 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
   onSSHRequest,
 }) => {
   const { exit } = useApp();
-  const { stdout } = useStdout();
   const [loading, setLoading] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(
     initialOperationIndex,
@@ -65,6 +65,25 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
   const [logsScroll, setLogsScroll] = React.useState(0);
   const [execScroll, setExecScroll] = React.useState(0);
   const [copyStatus, setCopyStatus] = React.useState<string | null>(null);
+
+  // Calculate viewport for exec output:
+  // - Breadcrumb (3 lines + marginBottom): 4 lines
+  // - Command header (border + 2 content + border + marginBottom): 5 lines
+  // - Output box borders: 2 lines
+  // - Stats bar (marginTop + content): 2 lines
+  // - Help bar (marginTop + content): 2 lines
+  // - Safety buffer: 1 line
+  // Total: 16 lines
+  const execViewport = useViewportHeight({ overhead: 16, minHeight: 10 });
+
+  // Calculate viewport for logs output:
+  // - Breadcrumb (3 lines + marginBottom): 4 lines
+  // - Log box borders: 2 lines
+  // - Stats bar (marginTop + content): 2 lines
+  // - Help bar (marginTop + content): 2 lines
+  // - Safety buffer: 1 line
+  // Total: 11 lines
+  const logsViewport = useViewportHeight({ overhead: 11, minHeight: 10 });
 
   const allOperations = [
     {
@@ -247,9 +266,10 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
           ...((operationResult as any).stdout || "").split("\n"),
           ...((operationResult as any).stderr || "").split("\n"),
         ];
-        const terminalHeight = stdout?.rows || 30;
-        const viewportHeight = Math.max(10, terminalHeight - 15);
-        const maxScroll = Math.max(0, lines.length - viewportHeight);
+        const maxScroll = Math.max(
+          0,
+          lines.length - execViewport.viewportHeight,
+        );
         setExecScroll(maxScroll);
       } else if (
         input === "c" &&
@@ -343,9 +363,10 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
         (operationResult as any).__customRender === "logs"
       ) {
         const logs = (operationResult as any).__logs || [];
-        const terminalHeight = stdout?.rows || 30;
-        const viewportHeight = Math.max(10, terminalHeight - 10);
-        const maxScroll = Math.max(0, logs.length - viewportHeight);
+        const maxScroll = Math.max(
+          0,
+          logs.length - logsViewport.viewportHeight,
+        );
         setLogsScroll(maxScroll);
       } else if (
         input === "w" &&
@@ -599,8 +620,7 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
         (line) => line !== "",
       );
 
-      const terminalHeight = stdout?.rows || 30;
-      const viewportHeight = Math.max(10, terminalHeight - 15);
+      const viewportHeight = execViewport.viewportHeight;
       const maxScroll = Math.max(0, allLines.length - viewportHeight);
       const actualScroll = Math.min(execScroll, maxScroll);
       const visibleLines = allLines.slice(
@@ -634,7 +654,11 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
                 {figures.play} Command:
               </Text>
               <Text> </Text>
-              <Text color={colors.text}>{command}</Text>
+              <Text color={colors.text}>
+                {command.length > 500
+                  ? command.substring(0, 500) + "..."
+                  : command}
+              </Text>
             </Box>
             <Box>
               <Text color={colors.textDim} dimColor>
@@ -669,19 +693,6 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
                 </Box>
               );
             })}
-
-            {hasLess && (
-              <Box marginTop={1}>
-                <Text color={colors.primary}>{figures.arrowUp} More above</Text>
-              </Box>
-            )}
-            {hasMore && (
-              <Box marginTop={hasLess ? 0 : 1}>
-                <Text color={colors.primary}>
-                  {figures.arrowDown} More below
-                </Text>
-              </Box>
-            )}
           </Box>
 
           {/* Statistics bar */}
@@ -704,6 +715,12 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
                   {Math.min(actualScroll + viewportHeight, allLines.length)} of{" "}
                   {allLines.length}
                 </Text>
+                {hasLess && (
+                  <Text color={colors.primary}> {figures.arrowUp}</Text>
+                )}
+                {hasMore && (
+                  <Text color={colors.primary}> {figures.arrowDown}</Text>
+                )}
               </>
             )}
             {stdout && (
@@ -762,9 +779,8 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
       const logs = (operationResult as any).__logs || [];
       const totalCount = (operationResult as any).__totalCount || 0;
 
-      const terminalHeight = stdout?.rows || 30;
-      const terminalWidth = stdout?.columns || 120;
-      const viewportHeight = Math.max(10, terminalHeight - 10);
+      const viewportHeight = logsViewport.viewportHeight;
+      const terminalWidth = logsViewport.terminalWidth;
       const maxScroll = Math.max(0, logs.length - viewportHeight);
       const actualScroll = Math.min(logsScroll, maxScroll);
       const visibleLogs = logs.slice(
@@ -790,7 +806,19 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
               const time = new Date(log.timestamp_ms).toLocaleTimeString();
               const level = log.level ? log.level[0].toUpperCase() : "I";
               const source = log.source ? log.source.substring(0, 8) : "exec";
-              const fullMessage = log.message || "";
+              // Sanitize message: escape special chars to prevent layout breaks while preserving visibility
+              const rawMessage = log.message || "";
+              const escapedMessage = rawMessage
+                .replace(/\r\n/g, "\\n") // Windows line endings
+                .replace(/\n/g, "\\n") // Unix line endings
+                .replace(/\r/g, "\\r") // Old Mac line endings
+                .replace(/\t/g, "\\t"); // Tabs
+              // Limit message length to prevent Yoga layout engine errors
+              const MAX_MESSAGE_LENGTH = 1000;
+              const fullMessage =
+                escapedMessage.length > MAX_MESSAGE_LENGTH
+                  ? escapedMessage.substring(0, MAX_MESSAGE_LENGTH) + "..."
+                  : escapedMessage;
               const cmd = log.cmd
                 ? `[${log.cmd.substring(0, 40)}${log.cmd.length > 40 ? "..." : ""}] `
                 : "";
@@ -863,19 +891,6 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
                 );
               }
             })}
-
-            {hasLess && (
-              <Box>
-                <Text color={colors.primary}>{figures.arrowUp} More above</Text>
-              </Box>
-            )}
-            {hasMore && (
-              <Box>
-                <Text color={colors.primary}>
-                  {figures.arrowDown} More below
-                </Text>
-              </Box>
-            )}
           </Box>
 
           <Box marginTop={1} paddingX={1}>
@@ -895,6 +910,10 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
               {Math.min(actualScroll + viewportHeight, logs.length)} of{" "}
               {logs.length}
             </Text>
+            {hasLess && <Text color={colors.primary}> {figures.arrowUp}</Text>}
+            {hasMore && (
+              <Text color={colors.primary}> {figures.arrowDown}</Text>
+            )}
             <Text color={colors.textDim} dimColor>
               {" "}
               •{" "}
@@ -1011,7 +1030,12 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
         <Box flexDirection="column" marginBottom={1}>
           <Box marginBottom={1}>
             <Text color={colors.primary} bold>
-              {devbox.name || devbox.id}
+              {(() => {
+                const name = devbox.name || devbox.id;
+                return name.length > 100
+                  ? name.substring(0, 100) + "..."
+                  : name;
+              })()}
             </Text>
           </Box>
           <Box>

@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text, useInput, useStdout } from "ink";
+import { Box, Text, useInput } from "ink";
 import figures from "figures";
 import { Header } from "./Header.js";
 import { StatusBadge } from "./StatusBadge.js";
@@ -9,6 +9,7 @@ import { DevboxActionsMenu } from "./DevboxActionsMenu.js";
 import { getDevboxUrl } from "../utils/url.js";
 import type { SSHSessionConfig } from "../utils/sshSession.js";
 import { colors } from "../utils/theme.js";
+import { useViewportHeight } from "../hooks/useViewportHeight.js";
 
 interface DevboxDetailPageProps {
   devbox: any;
@@ -43,11 +44,20 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
   onBack,
   onSSHRequest,
 }) => {
-  const { stdout } = useStdout();
   const [showDetailedInfo, setShowDetailedInfo] = React.useState(false);
   const [detailScroll, setDetailScroll] = React.useState(0);
   const [showActions, setShowActions] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(0);
+
+  // Calculate viewport for detailed info view:
+  // - Breadcrumb (3 lines + marginBottom): 4 lines
+  // - Header (title + underline + marginBottom): 3 lines
+  // - Status box (content + marginBottom): 2 lines
+  // - Content box (marginTop + border + paddingY top/bottom + border + marginBottom): 6 lines
+  // - Help bar (marginTop + content): 2 lines
+  // - Safety buffer: 1 line
+  // Total: 18 lines
+  const detailViewport = useViewportHeight({ overhead: 18, minHeight: 10 });
 
   const selectedDevbox = initialDevbox;
 
@@ -596,8 +606,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
   // Detailed info mode - full screen
   if (showDetailedInfo) {
     const detailLines = buildDetailLines();
-    const terminalHeight = stdout?.rows || 30;
-    const viewportHeight = Math.max(10, terminalHeight - 12); // Reserve space for header/footer
+    const viewportHeight = detailViewport.viewportHeight;
     const maxScroll = Math.max(0, detailLines.length - viewportHeight);
     const actualScroll = Math.min(detailScroll, maxScroll);
     const visibleLines = detailLines.slice(
@@ -639,25 +648,20 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
           paddingY={1}
         >
           <Box flexDirection="column">{visibleLines}</Box>
-          {hasLess && (
-            <Box marginTop={1}>
-              <Text color={colors.primary}>{figures.arrowUp} More above</Text>
-            </Box>
-          )}
-          {hasMore && (
-            <Box marginTop={hasLess ? 0 : 1}>
-              <Text color={colors.primary}>{figures.arrowDown} More below</Text>
-            </Box>
-          )}
         </Box>
 
         <Box marginTop={1}>
           <Text color={colors.textDim} dimColor>
             {figures.arrowUp}
-            {figures.arrowDown} Scroll • [q or esc] Back to Details • Line{" "}
-            {actualScroll + 1}-
+            {figures.arrowDown} Scroll • Line {actualScroll + 1}-
             {Math.min(actualScroll + viewportHeight, detailLines.length)} of{" "}
             {detailLines.length}
+          </Text>
+          {hasLess && <Text color={colors.primary}> {figures.arrowUp}</Text>}
+          {hasMore && <Text color={colors.primary}> {figures.arrowDown}</Text>}
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            • [q or esc] Back to Details
           </Text>
         </Box>
       </>

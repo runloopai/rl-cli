@@ -7,6 +7,7 @@ import { SpinnerComponent } from "./Spinner.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { Table, Column } from "./Table.js";
 import { colors } from "../utils/theme.js";
+import { useViewportHeight } from "../hooks/useViewportHeight.js";
 
 // Format time ago in a succinct way
 export const formatTimeAgo = (timestamp: number): string => {
@@ -100,7 +101,6 @@ interface ResourceListViewProps<T> {
 }
 
 export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
-  const { stdout } = useStdout();
   const { exit: inkExit } = useApp();
   const [loading, setLoading] = React.useState(true);
   const [resources, setResources] = React.useState<T[]>([]);
@@ -110,12 +110,24 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   const [searchMode, setSearchMode] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
 
-  const pageSize = config.pageSize || 10;
   const maxFetch = config.maxFetch || 100;
 
-  // Calculate responsive dimensions ONCE on mount
-  const terminalWidth = React.useMemo(() => stdout?.columns || 120, []);
-  const terminalHeight = React.useMemo(() => stdout?.rows || 30, []);
+  // Calculate overhead for viewport height:
+  // - Breadcrumb (3 lines + marginBottom): 4 lines
+  // - Search bar (if visible, 1 line + marginBottom): 2 lines
+  // - Table (title + top border + header + bottom border): 4 lines
+  // - Stats bar (marginTop + content): 2 lines
+  // - Help bar (marginTop + content): 2 lines
+  // - Safety buffer for edge cases: 1 line
+  // Total: 13 lines base + 2 if searching
+  const overhead = 13 + (searchMode || searchQuery ? 2 : 0);
+  const { viewportHeight, terminalWidth } = useViewportHeight({
+    overhead,
+    minHeight: 5,
+  });
+
+  // Use viewport height for dynamic page size, or fall back to config
+  const pageSize = config.pageSize || viewportHeight;
 
   // Fetch resources
   const fetchData = React.useCallback(

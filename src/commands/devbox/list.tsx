@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text, useInput, useApp, useStdout } from "ink";
+import { Box, Text, useInput, useApp } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
 import type { DevboxesCursorIDPage } from "@runloop/api-client/pagination";
@@ -17,6 +17,7 @@ import { DevboxActionsMenu } from "../../components/DevboxActionsMenu.js";
 import { ResourceActionsMenu } from "../../components/ResourceActionsMenu.js";
 import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { getDevboxUrl } from "../../utils/url.js";
+import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import {
   runSSHSession,
   type SSHSessionConfig,
@@ -39,7 +40,6 @@ const ListDevboxesUI: React.FC<{
   onExit?: () => void;
 }> = ({ status, onSSHRequest, focusDevboxId, onBack, onExit }) => {
   const { exit: inkExit } = useApp();
-  const { stdout } = useStdout();
   const [initialLoading, setInitialLoading] = React.useState(true);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [devboxes, setDevboxes] = React.useState<any[]>([]);
@@ -60,29 +60,21 @@ const ListDevboxesUI: React.FC<{
   const pageCache = React.useRef<Map<number, any[]>>(new Map());
   const lastIdCache = React.useRef<Map<number, string>>(new Map());
 
-  // Calculate responsive dimensions (simplified like blueprint list)
-  const terminalWidth = stdout?.columns || 120;
-  const terminalHeight = stdout?.rows || 30;
+  // Calculate overhead for viewport height:
+  // - Breadcrumb (3 lines + marginBottom): 4 lines
+  // - Search bar (if visible, 1 line + marginBottom): 2 lines
+  // - Table (title + top border + header + bottom border): 4 lines
+  // - Stats bar (marginTop + content): 2 lines
+  // - Help bar (marginTop + content): 2 lines
+  // - Safety buffer for edge cases: 1 line
+  // Total: 13 lines base + 2 if searching
+  const overhead = 13 + (searchMode || searchQuery ? 2 : 0);
+  const { viewportHeight, terminalWidth } = useViewportHeight({
+    overhead,
+    minHeight: 5,
+  });
 
-  // Calculate dynamic page size based on terminal height and search UI visibility
-  // Exact line count:
-  // - Breadcrumb with border and margin: 4 lines (border top + content + border bottom + marginBottom)
-  // - Search bar (if visible): 3 lines (marginBottom + content)
-  // - Table title: 1 line
-  // - Table border top: 1 line
-  // - Table header: 1 line
-  // - Table data rows: PAGE_SIZE lines
-  // - Table border bottom: 1 line
-  // - Stats bar: 2 lines (marginTop + content)
-  // - Help bar: 2-3 lines (marginTop + content, may wrap)
-  // Total overhead: 4 + 1 + 1 + 1 + 1 + 2 + 3 = 13 lines (no search)
-  // Total overhead with search: 4 + 3 + 1 + 1 + 1 + 1 + 2 + 3 = 16 lines
-  const PAGE_SIZE = React.useMemo(() => {
-    const baseOverhead = 13;
-    const searchOverhead = searchMode || searchQuery ? 3 : 0;
-    const totalOverhead = baseOverhead + searchOverhead;
-    return Math.max(5, terminalHeight - totalOverhead);
-  }, [terminalHeight, searchMode, searchQuery]);
+  const PAGE_SIZE = viewportHeight;
 
   const fixedWidth = 4; // pointer + spaces
   const statusIconWidth = 2;
