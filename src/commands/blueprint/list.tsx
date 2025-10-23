@@ -226,36 +226,39 @@ const ListBlueprintsUI: React.FC<{
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const pageBlueprints: any[] = [];
 
-        // Fetch only ONE page at a time (MAX_FETCH = 100 items)
-        // This is not paginated like devboxes - we just fetch all blueprints up to the limit
-        const pageResponse = client.blueprints.list({ limit: MAX_FETCH });
+        // CRITICAL: Fetch ONLY ONE page with limit, never auto-paginate
+        // DO NOT iterate or use for-await - that fetches ALL pages
+        const pagePromise = client.blueprints.list({ limit: MAX_FETCH });
 
-        // CRITICAL: We must NOT use async iteration as it triggers auto-pagination
-        // Access the page object directly which contains the data
-        const page = (await pageResponse) as BlueprintsCursorIDPage<{
+        // Await to get the Page object (NOT async iteration)
+        let page = (await pagePromise) as BlueprintsCursorIDPage<{
           id: string;
         }>;
 
-        // Access the blueprints array directly from the typed page object
+        // Extract data immediately and create defensive copies
         if (page.blueprints && Array.isArray(page.blueprints)) {
-          // CRITICAL: Create defensive copies to break reference chains
-          // The SDK's page object might hold references to HTTP responses
-          pageBlueprints.push(
-            ...page.blueprints.map((b: any) => ({
+          // Copy ONLY the fields we need - don't hold entire SDK objects
+          page.blueprints.forEach((b: any) => {
+            pageBlueprints.push({
               id: b.id,
               name: b.name,
               status: b.status,
               create_time_ms: b.create_time_ms,
-              dockerfile_setup: b.dockerfile_setup,
-              // Copy only the fields we need, don't hold entire object
-            })),
-          );
+              dockerfile_setup: b.dockerfile_setup
+                ? { ...b.dockerfile_setup }
+                : undefined,
+            });
+          });
         } else {
           console.error(
             "Unable to access blueprints from page. Available keys:",
             Object.keys(page || {}),
           );
         }
+
+        // CRITICAL: Explicitly null out page reference to help GC
+        // The Page object holds references to client, response, and options
+        page = null as any;
 
         setBlueprints(pageBlueprints);
       } catch (err) {

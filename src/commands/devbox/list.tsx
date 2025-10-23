@@ -386,31 +386,31 @@ const ListDevboxesUI: React.FC<{
           queryParams.search = searchQuery;
         }
 
-        // Fetch only ONE page at a time using the cursor-based pagination
+        // CRITICAL: Fetch ONLY ONE page, never auto-paginate
+        // The SDK will return a Page object, but we MUST NOT iterate it
         // The limit parameter ensures we only request PAGE_SIZE items
-        const pageResponse = client.devboxes.list(queryParams);
+        const pagePromise = client.devboxes.list(queryParams);
 
-        // CRITICAL: We must NOT use async iteration as it triggers auto-pagination
-        // Access the page object directly which contains the data
-        const page = (await pageResponse) as DevboxesCursorIDPage<{
+        // Await the promise to get the Page object
+        // DO NOT use for-await or iterate - that triggers auto-pagination
+        let page = (await pagePromise) as DevboxesCursorIDPage<{
           id: string;
         }>;
 
-        // Access the devboxes array directly from the typed page object
+        // Extract data immediately and create defensive copies
+        // This breaks all reference chains to the SDK's internal objects
         if (page.devboxes && Array.isArray(page.devboxes)) {
-          // CRITICAL: Create defensive copies to break reference chains
-          // The SDK's page object might hold references to HTTP responses
-          pageDevboxes.push(
-            ...page.devboxes.map((d: any) => ({
+          // Copy ONLY the fields we need - don't hold entire SDK objects
+          page.devboxes.forEach((d: any) => {
+            pageDevboxes.push({
               id: d.id,
               name: d.name,
               status: d.status,
               create_time_ms: d.create_time_ms,
               blueprint_id: d.blueprint_id,
-              entitlements: d.entitlements,
-              // Copy only the fields we need, don't hold entire object
-            })),
-          );
+              entitlements: d.entitlements ? { ...d.entitlements } : undefined,
+            });
+          });
         } else {
           console.error(
             "Unable to access devboxes from page. Available keys:",
@@ -418,9 +418,13 @@ const ListDevboxesUI: React.FC<{
           );
         }
 
-        // Extract metadata and release page object reference
+        // Extract metadata before releasing page reference
         const totalCount = page.total_count || pageDevboxes.length;
         const hasMore = page.has_more || false;
+
+        // CRITICAL: Explicitly null out page reference to help GC
+        // The Page object holds references to client, response, and options
+        page = null as any;
 
         // Update pagination metadata
         setTotalCount(totalCount);
