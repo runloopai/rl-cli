@@ -2,7 +2,10 @@ import React from "react";
 import { render, useApp } from "ink";
 import { MainMenu } from "../components/MainMenu.js";
 import { runSSHSession, type SSHSessionConfig } from "../utils/sshSession.js";
-import { enableSynchronousUpdates, disableSynchronousUpdates } from "../utils/terminalSync.js";
+import {
+  enableSynchronousUpdates,
+  disableSynchronousUpdates,
+} from "../utils/terminalSync.js";
 
 // Import list components dynamically to avoid circular deps
 type Screen = "menu" | "devboxes" | "blueprints" | "snapshots";
@@ -68,9 +71,9 @@ export async function runMainMenu(
   initialScreen: Screen = "menu",
   focusDevboxId?: string,
 ) {
-  // DON'T use alternate screen buffer - it causes flashing in some terminals
-  // process.stdout.write("\x1b[?1049h");
-  
+  // Enter alternate screen buffer for fullscreen experience (like top/vim)
+  process.stdout.write("\x1b[?1049h");
+
   // DISABLED: Testing if terminal doesn't support synchronous updates properly
   // enableSynchronousUpdates();
 
@@ -122,6 +125,9 @@ export async function runMainMenu(
 
   // Disable synchronous updates
   // disableSynchronousUpdates();
+
+  // Exit alternate screen buffer
+  process.stdout.write("\x1b[?1049l");
 
   process.exit(0);
 }
