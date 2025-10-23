@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Text, useInput, useStdout } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
+import type { BlueprintsCursorIDPage } from "@runloop/api-client/pagination";
 import { getClient } from "../../utils/client.js";
 import { Header } from "../../components/Header.js";
 import { SpinnerComponent } from "../../components/Spinner.js";
@@ -28,10 +29,10 @@ const ListBlueprintsUI: React.FC<{
   onExit?: () => void;
 }> = ({ onBack, onExit }) => {
   const { stdout } = useStdout();
-  const [selectedBlueprint, setSelectedBlueprint] = React.useState<
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    any | null
-  >(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selectedBlueprint, setSelectedBlueprint] = React.useState<any | null>(
+    null,
+  );
   const [selectedOperation, setSelectedOperation] = React.useState(0);
   const [executingOperation, setExecutingOperation] =
     React.useState<OperationType>(null);
@@ -46,6 +47,7 @@ const ListBlueprintsUI: React.FC<{
   const [showCreateDevbox, setShowCreateDevbox] = React.useState(false);
 
   // List view state - moved to top to ensure hooks are called in same order
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [blueprints, setBlueprints] = React.useState<any[]>([]);
   const [listError, setListError] = React.useState<Error | null>(null);
   const [currentPage, setCurrentPage] = React.useState(0);
@@ -55,7 +57,10 @@ const ListBlueprintsUI: React.FC<{
 
   // Calculate responsive column widths ONCE on mount
   const terminalWidth = React.useMemo(() => stdout?.columns || 120, []);
-  const showDescription = React.useMemo(() => terminalWidth >= 120, [terminalWidth]);
+  const showDescription = React.useMemo(
+    () => terminalWidth >= 120,
+    [terminalWidth],
+  );
 
   const statusIconWidth = 2;
   const statusTextWidth = 10;
@@ -63,6 +68,125 @@ const ListBlueprintsUI: React.FC<{
   const nameWidth = terminalWidth >= 120 ? 30 : 25;
   const descriptionWidth = 40;
   const timeWidth = 20;
+
+  // Memoize columns array to prevent recreating on every render (memory leak fix)
+  const blueprintColumns = React.useMemo(
+    () => [
+      {
+        key: "statusIcon",
+        label: "",
+        width: statusIconWidth,
+        render: (blueprint: any, index: number, isSelected: boolean) => {
+          const statusDisplay = getStatusDisplay(blueprint.status);
+          const statusColor =
+            statusDisplay.color === colors.textDim
+              ? colors.info
+              : statusDisplay.color;
+          return (
+            <Text
+              color={isSelected ? "white" : statusColor}
+              bold={true}
+              dimColor={false}
+              inverse={isSelected}
+              wrap="truncate"
+            >
+              {statusDisplay.icon}{" "}
+            </Text>
+          );
+        },
+      },
+      {
+        key: "id",
+        label: "ID",
+        width: idWidth + 1,
+        render: (blueprint: any, index: number, isSelected: boolean) => {
+          const value = blueprint.id;
+          const width = idWidth + 1;
+          const truncated = value.slice(0, width - 1);
+          const padded = truncated.padEnd(width, " ");
+          return (
+            <Text
+              color={isSelected ? "white" : colors.textDim}
+              bold={false}
+              dimColor={false}
+              inverse={isSelected}
+              wrap="truncate"
+            >
+              {padded}
+            </Text>
+          );
+        },
+      },
+      {
+        key: "statusText",
+        label: "Status",
+        width: statusTextWidth,
+        render: (blueprint: any, index: number, isSelected: boolean) => {
+          const statusDisplay = getStatusDisplay(blueprint.status);
+          const statusColor =
+            statusDisplay.color === colors.textDim
+              ? colors.info
+              : statusDisplay.color;
+          const truncated = statusDisplay.text.slice(0, statusTextWidth);
+          const padded = truncated.padEnd(statusTextWidth, " ");
+          return (
+            <Text
+              color={isSelected ? "white" : statusColor}
+              bold={true}
+              dimColor={false}
+              inverse={isSelected}
+              wrap="truncate"
+            >
+              {padded}
+            </Text>
+          );
+        },
+      },
+      createTextColumn(
+        "name",
+        "Name",
+        (blueprint: any) => blueprint.name || "(unnamed)",
+        {
+          width: nameWidth,
+        },
+      ),
+      createTextColumn(
+        "description",
+        "Description",
+        (blueprint: any) => blueprint.dockerfile_setup?.description || "",
+        {
+          width: descriptionWidth,
+          color: colors.textDim,
+          dimColor: false,
+          bold: false,
+          visible: showDescription,
+        },
+      ),
+      createTextColumn(
+        "created",
+        "Created",
+        (blueprint: any) =>
+          blueprint.create_time_ms
+            ? formatTimeAgo(blueprint.create_time_ms)
+            : "",
+        {
+          width: timeWidth,
+          color: colors.textDim,
+          dimColor: false,
+          bold: false,
+        },
+      ),
+    ],
+    [
+      statusIconWidth,
+      statusTextWidth,
+      idWidth,
+      nameWidth,
+      descriptionWidth,
+      timeWidth,
+      showDescription,
+    ],
+  );
 
   // Helper function to generate operations based on selected blueprint
   const getOperationsForBlueprint = (blueprint: any): Operation[] => {
@@ -99,22 +223,41 @@ const ListBlueprintsUI: React.FC<{
       try {
         setLoading(true);
         const client = getClient();
-        const allBlueprints: any[] = [];
-        
-        // Fetch blueprints with limited iteration to avoid memory issues
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pageBlueprints: any[] = [];
+
+        // Fetch only ONE page at a time (MAX_FETCH = 100 items)
+        // This is not paginated like devboxes - we just fetch all blueprints up to the limit
         const pageResponse = client.blueprints.list({ limit: MAX_FETCH });
-        
-        // Iterate through the response but limit to MAX_FETCH items
-        let count = 0;
-        for await (const blueprint of pageResponse) {
-          allBlueprints.push(blueprint);
-          count++;
-          if (count >= MAX_FETCH) {
-            break;
-          }
+
+        // CRITICAL: We must NOT use async iteration as it triggers auto-pagination
+        // Access the page object directly which contains the data
+        const page = (await pageResponse) as BlueprintsCursorIDPage<{
+          id: string;
+        }>;
+
+        // Access the blueprints array directly from the typed page object
+        if (page.blueprints && Array.isArray(page.blueprints)) {
+          // CRITICAL: Create defensive copies to break reference chains
+          // The SDK's page object might hold references to HTTP responses
+          pageBlueprints.push(
+            ...page.blueprints.map((b: any) => ({
+              id: b.id,
+              name: b.name,
+              status: b.status,
+              create_time_ms: b.create_time_ms,
+              dockerfile_setup: b.dockerfile_setup,
+              // Copy only the fields we need, don't hold entire object
+            })),
+          );
+        } else {
+          console.error(
+            "Unable to access blueprints from page. Available keys:",
+            Object.keys(page || {}),
+          );
         }
-        
-        setBlueprints(allBlueprints);
+
+        setBlueprints(pageBlueprints);
       } catch (err) {
         setListError(err as Error);
       } finally {
@@ -521,143 +664,38 @@ const ListBlueprintsUI: React.FC<{
           keyExtractor={(blueprint: any) => blueprint.id}
           selectedIndex={selectedIndex}
           title={`blueprints[${blueprints.length}]`}
-          columns={[
-          {
-            key: "statusIcon",
-            label: "",
-            width: statusIconWidth,
-            render: (blueprint: any, index: number, isSelected: boolean) => {
-              const statusDisplay = getStatusDisplay(blueprint.status);
-              const statusColor =
-                statusDisplay.color === colors.textDim
-                  ? colors.info
-                  : statusDisplay.color;
-              return (
-                <Text
-                  color={isSelected ? "white" : statusColor}
-                  bold={true}
-                  dimColor={false}
-                  inverse={isSelected}
-                  wrap="truncate"
-                >
-                  {statusDisplay.icon}{" "}
-                </Text>
-              );
-            },
-          },
-          {
-            key: "id",
-            label: "ID",
-            width: idWidth + 1,
-            render: (blueprint: any, index: number, isSelected: boolean) => {
-              const value = blueprint.id;
-              const width = idWidth + 1;
-              const truncated = value.slice(0, width - 1);
-              const padded = truncated.padEnd(width, " ");
-              return (
-                <Text
-                  color={isSelected ? "white" : colors.textDim}
-                  bold={false}
-                  dimColor={false}
-                  inverse={isSelected}
-                  wrap="truncate"
-                >
-                  {padded}
-                </Text>
-              );
-            },
-          },
-          {
-            key: "statusText",
-            label: "Status",
-            width: statusTextWidth,
-            render: (blueprint: any, index: number, isSelected: boolean) => {
-              const statusDisplay = getStatusDisplay(blueprint.status);
-              const statusColor =
-                statusDisplay.color === colors.textDim
-                  ? colors.info
-                  : statusDisplay.color;
-              const truncated = statusDisplay.text.slice(0, statusTextWidth);
-              const padded = truncated.padEnd(statusTextWidth, " ");
-              return (
-                <Text
-                  color={isSelected ? "white" : statusColor}
-                  bold={true}
-                  dimColor={false}
-                  inverse={isSelected}
-                  wrap="truncate"
-                >
-                  {padded}
-                </Text>
-              );
-            },
-          },
-          createTextColumn(
-            "name",
-            "Name",
-            (blueprint: any) => blueprint.name || "(unnamed)",
-            {
-              width: nameWidth,
-            },
-          ),
-          createTextColumn(
-            "description",
-            "Description",
-            (blueprint: any) => blueprint.dockerfile_setup?.description || "",
-            {
-              width: descriptionWidth,
-              color: colors.textDim,
-              dimColor: false,
-              bold: false,
-              visible: showDescription,
-            },
-          ),
-          createTextColumn(
-            "created",
-            "Created",
-            (blueprint: any) =>
-              blueprint.create_time_ms
-                ? formatTimeAgo(blueprint.create_time_ms)
-                : "",
-            {
-              width: timeWidth,
-              color: colors.textDim,
-              dimColor: false,
-              bold: false,
-            },
-          ),
-          ]}
+          columns={blueprintColumns}
         />
       )}
 
       {/* Statistics Bar */}
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
-        <Text color={colors.primary} bold>
-          {figures.hamburger} {blueprints.length}
-        </Text>
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          total
-        </Text>
-        {totalPages > 1 && (
-          <>
-            <Text color={colors.textDim} dimColor>
-              {" "}
-              •{" "}
-            </Text>
-            <Text color={colors.textDim} dimColor>
-              Page {currentPage + 1} of {totalPages}
-            </Text>
-          </>
-        )}
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          •{" "}
-        </Text>
-        <Text color={colors.textDim} dimColor>
-          Showing {startIndex + 1}-{endIndex} of {blueprints.length}
-        </Text>
+          <Text color={colors.primary} bold>
+            {figures.hamburger} {blueprints.length}
+          </Text>
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            total
+          </Text>
+          {totalPages > 1 && (
+            <>
+              <Text color={colors.textDim} dimColor>
+                {" "}
+                •{" "}
+              </Text>
+              <Text color={colors.textDim} dimColor>
+                Page {currentPage + 1} of {totalPages}
+              </Text>
+            </>
+          )}
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            •{" "}
+          </Text>
+          <Text color={colors.textDim} dimColor>
+            Showing {startIndex + 1}-{endIndex} of {blueprints.length}
+          </Text>
         </Box>
       )}
 

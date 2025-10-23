@@ -1,6 +1,7 @@
 import React from "react";
 import { render, Box, Text, useInput, useStdout, useApp } from "ink";
 import figures from "figures";
+import type { DiskSnapshotsCursorIDPage } from "@runloop/api-client/pagination";
 import { getClient } from "../../utils/client.js";
 import { SpinnerComponent } from "../../components/Spinner.js";
 import { ErrorMessage } from "../../components/ErrorMessage.js";
@@ -35,7 +36,10 @@ const ListSnapshotsUI: React.FC<{
 
   // Calculate responsive column widths ONCE on mount
   const terminalWidth = React.useMemo(() => stdout?.columns || 120, []);
-  const showDevboxId = React.useMemo(() => terminalWidth >= 100 && !devboxId, [terminalWidth, devboxId]); // Hide devbox column if filtering by devbox
+  const showDevboxId = React.useMemo(
+    () => terminalWidth >= 100 && !devboxId,
+    [terminalWidth, devboxId],
+  ); // Hide devbox column if filtering by devbox
   const showFullId = React.useMemo(() => terminalWidth >= 80, [terminalWidth]);
 
   const statusIconWidth = 2;
@@ -52,23 +56,44 @@ const ListSnapshotsUI: React.FC<{
         resourceNamePlural: "Snapshots",
         fetchResources: async () => {
           const client = getClient();
-          const allSnapshots: any[] = [];
-          
-          // Fetch snapshots with limited iteration to avoid memory issues
-          const params = devboxId ? { devbox_id: devboxId, limit: MAX_FETCH } : { limit: MAX_FETCH };
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const pageSnapshots: any[] = [];
+
+          // Fetch only ONE page at a time (MAX_FETCH = 100 items)
+          // Can be filtered by devbox_id if provided
+          const params = devboxId
+            ? { devbox_id: devboxId, limit: MAX_FETCH }
+            : { limit: MAX_FETCH };
           const pageResponse = client.devboxes.listDiskSnapshots(params);
-          
-          // Iterate through the response but limit to MAX_FETCH items
-          let count = 0;
-          for await (const snapshot of pageResponse) {
-            allSnapshots.push(snapshot);
-            count++;
-            if (count >= MAX_FETCH) {
-              break;
-            }
+
+          // CRITICAL: We must NOT use async iteration as it triggers auto-pagination
+          // Access the page object directly which contains the data
+          const page = (await pageResponse) as DiskSnapshotsCursorIDPage<{
+            id: string;
+          }>;
+
+          // Access the snapshots array directly from the typed page object
+          if (page.snapshots && Array.isArray(page.snapshots)) {
+            // CRITICAL: Create defensive copies to break reference chains
+            // The SDK's page object might hold references to HTTP responses
+            pageSnapshots.push(
+              ...page.snapshots.map((s: any) => ({
+                id: s.id,
+                name: s.name,
+                status: s.status,
+                create_time_ms: s.create_time_ms,
+                source_devbox_id: s.source_devbox_id,
+                // Copy only the fields we need, don't hold entire object
+              })),
+            );
+          } else {
+            console.error(
+              "Unable to access snapshots from page. Available keys:",
+              Object.keys(page || {}),
+            );
           }
-          
-          return allSnapshots;
+
+          return pageSnapshots;
         },
         columns: [
           createTextColumn("id", "ID", (snapshot: any) => snapshot.id, {
