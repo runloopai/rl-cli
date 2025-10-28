@@ -90,6 +90,10 @@ const ListDevboxesUI: React.FC<{
   const showCapabilities = terminalWidth >= 140;
   const showSource = terminalWidth >= 120;
 
+  // CRITICAL: Absolute maximum column widths to prevent Yoga crashes
+  // These caps apply regardless of terminal size to prevent padEnd() from creating massive strings
+  const ABSOLUTE_MAX_NAME_WIDTH = 80;
+
   // Name width is flexible and uses remaining space
   let nameWidth = 15;
   if (terminalWidth >= 120) {
@@ -103,7 +107,7 @@ const ListDevboxesUI: React.FC<{
       capabilitiesWidth -
       sourceWidth -
       12;
-    nameWidth = Math.max(15, remainingWidth);
+    nameWidth = Math.min(ABSOLUTE_MAX_NAME_WIDTH, Math.max(15, remainingWidth));
   } else if (terminalWidth >= 110) {
     const remainingWidth =
       terminalWidth -
@@ -114,7 +118,7 @@ const ListDevboxesUI: React.FC<{
       timeWidth -
       sourceWidth -
       10;
-    nameWidth = Math.max(12, remainingWidth);
+    nameWidth = Math.min(ABSOLUTE_MAX_NAME_WIDTH, Math.max(12, remainingWidth));
   } else {
     const remainingWidth =
       terminalWidth -
@@ -124,33 +128,59 @@ const ListDevboxesUI: React.FC<{
       statusTextWidth -
       timeWidth -
       10;
-    nameWidth = Math.max(8, remainingWidth);
+    nameWidth = Math.min(ABSOLUTE_MAX_NAME_WIDTH, Math.max(8, remainingWidth));
   }
 
   // Build responsive column list (memoized to prevent recreating on every render)
   const tableColumns = React.useMemo(() => {
+    // CRITICAL: Absolute max lengths to prevent Yoga crashes on repeated mounts
+    // Yoga layout engine cannot handle strings longer than ~100 chars reliably
+    const ABSOLUTE_MAX_NAME = 80;
+    const ABSOLUTE_MAX_ID = 50;
+
     const columns = [
       createTextColumn(
         "name",
         "Name",
-        (devbox: any) => devbox.name || devbox.id.slice(0, 30),
+        (devbox: any) => {
+          const name = String(devbox?.name || devbox?.id || "");
+          // Use absolute minimum to prevent Yoga crashes
+          const safeMax = Math.min(nameWidth || 15, ABSOLUTE_MAX_NAME);
+          return name.length > safeMax
+            ? name.substring(0, Math.max(1, safeMax - 3)) + "..."
+            : name;
+        },
         {
-          width: nameWidth,
+          width: Math.min(nameWidth || 15, ABSOLUTE_MAX_NAME),
           dimColor: false,
         },
       ),
-      createTextColumn("id", "ID", (devbox: any) => devbox.id, {
-        width: idWidth,
-        color: colors.textDim,
-        dimColor: false,
-        bold: false,
-      }),
+      createTextColumn(
+        "id",
+        "ID",
+        (devbox: any) => {
+          const id = String(devbox?.id || "");
+          // Use absolute minimum to prevent Yoga crashes
+          const safeMax = Math.min(idWidth || 26, ABSOLUTE_MAX_ID);
+          return id.length > safeMax
+            ? id.substring(0, Math.max(1, safeMax - 3)) + "..."
+            : id;
+        },
+        {
+          width: Math.min(idWidth || 26, ABSOLUTE_MAX_ID),
+          color: colors.textDim,
+          dimColor: false,
+          bold: false,
+        },
+      ),
       createTextColumn(
         "status",
         "Status",
         (devbox: any) => {
-          const statusDisplay = getStatusDisplay(devbox.status);
-          return statusDisplay.text;
+          const statusDisplay = getStatusDisplay(devbox?.status);
+          const text = String(statusDisplay?.text || "-");
+          // Cap status text to absolute maximum
+          return text.length > 20 ? text.substring(0, 17) + "..." : text;
         },
         {
           width: statusTextWidth,
@@ -160,7 +190,12 @@ const ListDevboxesUI: React.FC<{
       createTextColumn(
         "created",
         "Created",
-        (devbox: any) => formatTimeAgo(devbox.create_time_ms || Date.now()),
+        (devbox: any) => {
+          const time = formatTimeAgo(devbox?.create_time_ms || Date.now());
+          const text = String(time || "-");
+          // Cap time text to absolute maximum
+          return text.length > 25 ? text.substring(0, 22) + "..." : text;
+        },
         {
           width: timeWidth,
           color: colors.textDim,
@@ -176,10 +211,14 @@ const ListDevboxesUI: React.FC<{
           "source",
           "Source",
           (devbox: any) => {
-            if (devbox.blueprint_id) {
-              return `blueprint:${devbox.blueprint_id.slice(0, 10)}`;
+            if (devbox?.blueprint_id) {
+              const bpId = String(devbox.blueprint_id);
+              const truncated = bpId.slice(0, 10);
+              const text = `blueprint:${truncated}`;
+              // Cap source text to absolute maximum
+              return text.length > 30 ? text.substring(0, 27) + "..." : text;
             }
-            return "";
+            return "-";
           },
           {
             width: sourceWidth,
@@ -197,9 +236,11 @@ const ListDevboxesUI: React.FC<{
           "Capabilities",
           (devbox: any) => {
             const caps = [];
-            if (devbox.entitlements?.network_enabled) caps.push("net");
-            if (devbox.entitlements?.gpu_enabled) caps.push("gpu");
-            return caps.length > 0 ? caps.join(",") : "-";
+            if (devbox?.entitlements?.network_enabled) caps.push("net");
+            if (devbox?.entitlements?.gpu_enabled) caps.push("gpu");
+            const text = caps.length > 0 ? caps.join(",") : "-";
+            // Cap capabilities text to absolute maximum
+            return text.length > 20 ? text.substring(0, 17) + "..." : text;
           },
           {
             width: capabilitiesWidth,
@@ -331,7 +372,17 @@ const ListDevboxesUI: React.FC<{
     prevPageSize.current = PAGE_SIZE;
   }, [PAGE_SIZE, initialLoading]);
 
+  // Cleanup: Clear cache on unmount to prevent memory leaks
   React.useEffect(() => {
+    return () => {
+      pageCache.current.clear();
+      lastIdCache.current.clear();
+    };
+  }, []);
+
+  React.useEffect(() => {
+    let isMounted = true; // Track if component is still mounted
+
     const list = async (
       isInitialLoad: boolean = false,
       isBackgroundRefresh: boolean = false,
@@ -348,7 +399,9 @@ const ListDevboxesUI: React.FC<{
           !isBackgroundRefresh &&
           pageCache.current.has(currentPage)
         ) {
-          setDevboxes(pageCache.current.get(currentPage) || []);
+          if (isMounted) {
+            setDevboxes(pageCache.current.get(currentPage) || []);
+          }
           isNavigating.current = false;
           return;
         }
@@ -418,6 +471,9 @@ const ListDevboxesUI: React.FC<{
         // The Page object holds references to client, response, and options
         page = null as any;
 
+        // Only update state if component is still mounted
+        if (!isMounted) return;
+
         // Update pagination metadata
         setTotalCount(totalCount);
         setHasMore(hasMore);
@@ -443,13 +499,15 @@ const ListDevboxesUI: React.FC<{
         // React will handle efficient re-rendering - no need for manual comparison
         setDevboxes(pageDevboxes);
       } catch (err) {
-        setError(err as Error);
+        if (isMounted) {
+          setError(err as Error);
+        }
       } finally {
         if (!isBackgroundRefresh) {
           isNavigating.current = false;
         }
         // Only set initialLoading to false after first successful load
-        if (isInitialLoad) {
+        if (isInitialLoad && isMounted) {
           setInitialLoading(false);
         }
       }
@@ -458,6 +516,11 @@ const ListDevboxesUI: React.FC<{
     // Only treat as initial load on first mount
     const isFirstMount = initialLoading;
     list(isFirstMount, false);
+
+    // Cleanup: Cancel any pending state updates when component unmounts
+    return () => {
+      isMounted = false;
+    };
 
     // DISABLED: Polling causes flashing in non-tmux terminals
     // Users can manually refresh by navigating away and back
@@ -665,6 +728,14 @@ const ListDevboxesUI: React.FC<{
       })
     : allOperations;
 
+  // CRITICAL: Aggressive memory cleanup when switching views to prevent heap exhaustion
+  React.useEffect(() => {
+    if (showDetails || showActions || showCreate) {
+      // Immediately clear list data when navigating away to free memory
+      setDevboxes([]);
+    }
+  }, [showDetails, showActions, showCreate]);
+
   // Create view
   if (showCreate) {
     return (
@@ -764,7 +835,9 @@ const ListDevboxesUI: React.FC<{
         <Box marginBottom={1}>
           <Text color={colors.primary}>{figures.info} Searching for: </Text>
           <Text color={colors.warning} bold>
-            {searchQuery}
+            {searchQuery.length > 50
+              ? searchQuery.substring(0, 50) + "..."
+              : searchQuery}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}

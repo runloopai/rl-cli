@@ -44,6 +44,16 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
   onBack,
   onSSHRequest,
 }) => {
+  const isMounted = React.useRef(true);
+
+  // Track mounted state
+  React.useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const [showDetailedInfo, setShowDetailedInfo] = React.useState(false);
   const [detailScroll, setDetailScroll] = React.useState(0);
   const [showActions, setShowActions] = React.useState(false);
@@ -174,6 +184,9 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
   );
 
   useInput((input, key) => {
+    // Don't process input if unmounting
+    if (!isMounted.current) return;
+
     // Skip input handling when in actions view
     if (showActions) {
       return;

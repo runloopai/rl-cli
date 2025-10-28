@@ -102,6 +102,16 @@ interface ResourceListViewProps<T> {
 
 export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   const { exit: inkExit } = useApp();
+  const isMounted = React.useRef(true);
+
+  // Track mounted state
+  React.useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const [loading, setLoading] = React.useState(true);
   const [resources, setResources] = React.useState<T[]>([]);
   const [error, setError] = React.useState<Error | null>(null);
@@ -132,13 +142,21 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   // Fetch resources
   const fetchData = React.useCallback(
     async (isInitialLoad: boolean = false) => {
+      if (!isMounted.current) return;
+
       try {
         const data = await config.fetchResources();
-        setResources(data);
+        if (isMounted.current) {
+          setResources(data);
+        }
       } catch (err) {
-        setError(err as Error);
+        if (isMounted.current) {
+          setError(err as Error);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted.current) {
+          setLoading(false);
+        }
       }
     },
     [config.fetchResources],
@@ -194,6 +212,9 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
 
   // Input handling
   useInput((input, key) => {
+    // Don't process input if unmounting
+    if (!isMounted.current) return;
+
     // Handle Ctrl+C to force exit
     if (key.ctrl && input === "c") {
       process.stdout.write("\x1b[?1049l"); // Exit alternate screen

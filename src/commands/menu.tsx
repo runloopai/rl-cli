@@ -1,25 +1,26 @@
 import React from "react";
 import { render, useApp } from "ink";
-import { MainMenu } from "../components/MainMenu.js";
 import { runSSHSession, type SSHSessionConfig } from "../utils/sshSession.js";
 import {
   enableSynchronousUpdates,
   disableSynchronousUpdates,
 } from "../utils/terminalSync.js";
+import { Router } from "../router/Router.js";
+import { useNavigationStore } from "../store/navigationStore.js";
+import type { ScreenName } from "../store/navigationStore.js";
 
-// Import list components dynamically to avoid circular deps
-type Screen = "menu" | "devboxes" | "blueprints" | "snapshots";
-
-// Import the UI components directly
-import { ListDevboxesUI } from "./devbox/list.js";
-import { ListBlueprintsUI } from "./blueprint/list.js";
-import { ListSnapshotsUI } from "./snapshot/list.js";
-
-import { Box } from "ink";
+// Import screen components
+import { MenuScreen } from "../screens/MenuScreen.js";
+import { DevboxListScreen } from "../screens/DevboxListScreen.js";
+import { DevboxDetailScreen } from "../screens/DevboxDetailScreen.js";
+import { DevboxActionsScreen } from "../screens/DevboxActionsScreen.js";
+import { DevboxCreateScreen } from "../screens/DevboxCreateScreen.js";
+import { BlueprintListScreen } from "../screens/BlueprintListScreen.js";
+import { SnapshotListScreen } from "../screens/SnapshotListScreen.js";
 
 interface AppProps {
   onSSHRequest: (config: SSHSessionConfig) => void;
-  initialScreen?: Screen;
+  initialScreen?: ScreenName;
   focusDevboxId?: string;
 }
 
@@ -29,46 +30,42 @@ const App: React.FC<AppProps> = ({
   focusDevboxId,
 }) => {
   const { exit } = useApp();
-  const [currentScreen, setCurrentScreen] =
-    React.useState<Screen>(initialScreen);
+  const navigate = useNavigationStore((state) => state.navigate);
 
-  const handleMenuSelect = React.useCallback((key: string) => {
-    setCurrentScreen(key as Screen);
+  // Set initial screen on mount
+  React.useEffect(() => {
+    if (initialScreen !== "menu") {
+      navigate(initialScreen, { focusDevboxId });
+    }
   }, []);
 
-  const handleBack = React.useCallback(() => {
-    setCurrentScreen("menu");
-  }, []);
+  // Define all screen components
+  const screens = React.useMemo(
+    () => ({
+      menu: MenuScreen,
+      "devbox-list": (props: any) => (
+        <DevboxListScreen {...props} onSSHRequest={onSSHRequest} />
+      ),
+      "devbox-detail": (props: any) => (
+        <DevboxDetailScreen {...props} onSSHRequest={onSSHRequest} />
+      ),
+      "devbox-actions": (props: any) => (
+        <DevboxActionsScreen {...props} onSSHRequest={onSSHRequest} />
+      ),
+      "devbox-create": DevboxCreateScreen,
+      "blueprint-list": BlueprintListScreen,
+      "blueprint-detail": BlueprintListScreen, // TODO: Create proper detail screen
+      "snapshot-list": SnapshotListScreen,
+      "snapshot-detail": SnapshotListScreen, // TODO: Create proper detail screen
+    }),
+    [onSSHRequest],
+  );
 
-  const handleExit = React.useCallback(() => {
-    exit();
-  }, [exit]);
-
-  // Return components directly without wrapper Box (test for flashing)
-  if (currentScreen === "menu") {
-    return <MainMenu onSelect={handleMenuSelect} />;
-  }
-  if (currentScreen === "devboxes") {
-    return (
-      <ListDevboxesUI
-        onBack={handleBack}
-        onExit={handleExit}
-        onSSHRequest={onSSHRequest}
-        focusDevboxId={focusDevboxId}
-      />
-    );
-  }
-  if (currentScreen === "blueprints") {
-    return <ListBlueprintsUI onBack={handleBack} onExit={handleExit} />;
-  }
-  if (currentScreen === "snapshots") {
-    return <ListSnapshotsUI onBack={handleBack} onExit={handleExit} />;
-  }
-  return null;
+  return <Router screens={screens} />;
 };
 
 export async function runMainMenu(
-  initialScreen: Screen = "menu",
+  initialScreen: ScreenName = "menu",
   focusDevboxId?: string,
 ) {
   // Enter alternate screen buffer for fullscreen experience (like top/vim)
@@ -114,7 +111,7 @@ export async function runMainMenu(
         console.log(`\nSSH session ended. Returning to menu...\n`);
         await new Promise((resolve) => setTimeout(resolve, 500));
 
-        currentInitialScreen = "devboxes";
+        currentInitialScreen = "devbox-list";
         currentFocusDevboxId = result.returnToDevboxId;
         shouldContinue = true;
       } else {
