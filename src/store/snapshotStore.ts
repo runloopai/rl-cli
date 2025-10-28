@@ -89,26 +89,32 @@ export const useSnapshotStore = create<SnapshotState>((set, get) => ({
   setSelectedIndex: (index) => set({ selectedIndex: index }),
 
   cachePageData: (page, data, lastId) => {
-    set((state) => {
-      const newPageCache = new Map(state.pageCache);
-      const newLastIdCache = new Map(state.lastIdCache);
+    const state = get();
+    const pageCache = state.pageCache;
+    const lastIdCache = state.lastIdCache;
 
-      if (newPageCache.size >= MAX_CACHE_SIZE) {
-        const firstKey = newPageCache.keys().next().value;
-        if (firstKey !== undefined) {
-          newPageCache.delete(firstKey);
-          newLastIdCache.delete(firstKey);
-        }
+    // Aggressive LRU eviction
+    if (pageCache.size >= MAX_CACHE_SIZE) {
+      const oldestKey = pageCache.keys().next().value;
+      if (oldestKey !== undefined) {
+        pageCache.delete(oldestKey);
+        lastIdCache.delete(oldestKey);
       }
+    }
 
-      newPageCache.set(page, data);
-      newLastIdCache.set(page, lastId);
+    // Create plain data objects to avoid SDK references
+    const plainData = data.map((s) => ({
+      id: s.id,
+      name: s.name,
+      devbox_id: s.devbox_id,
+      status: s.status,
+      create_time_ms: s.create_time_ms,
+    }));
 
-      return {
-        pageCache: newPageCache,
-        lastIdCache: newLastIdCache,
-      };
-    });
+    pageCache.set(page, plainData);
+    lastIdCache.set(page, lastId);
+
+    set({});
   },
 
   getCachedPage: (page) => {
@@ -116,6 +122,10 @@ export const useSnapshotStore = create<SnapshotState>((set, get) => ({
   },
 
   clearCache: () => {
+    const state = get();
+    state.pageCache.clear();
+    state.lastIdCache.clear();
+
     set({
       pageCache: new Map(),
       lastIdCache: new Map(),
@@ -123,6 +133,10 @@ export const useSnapshotStore = create<SnapshotState>((set, get) => ({
   },
 
   clearAll: () => {
+    const state = get();
+    state.pageCache.clear();
+    state.lastIdCache.clear();
+
     set({
       snapshots: [],
       loading: false,
