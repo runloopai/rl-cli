@@ -108,29 +108,36 @@ export const useDevboxStore = create<DevboxState>((set, get) => ({
 
   setSelectedIndex: (index) => set({ selectedIndex: index }),
 
-  // Cache management with LRU eviction
+  // Cache management with LRU eviction - FIXED: No shallow copies
   cachePageData: (page, data, lastId) => {
-    set((state) => {
-      const newPageCache = new Map(state.pageCache);
-      const newLastIdCache = new Map(state.lastIdCache);
+    const state = get();
+    const pageCache = state.pageCache;
+    const lastIdCache = state.lastIdCache;
 
-      // LRU eviction: if cache is full, remove oldest entry
-      if (newPageCache.size >= MAX_CACHE_SIZE) {
-        const firstKey = newPageCache.keys().next().value;
-        if (firstKey !== undefined) {
-          newPageCache.delete(firstKey);
-          newLastIdCache.delete(firstKey);
-        }
+    // Aggressive LRU eviction: Remove oldest entries if at limit
+    if (pageCache.size >= MAX_CACHE_SIZE) {
+      const oldestKey = pageCache.keys().next().value;
+      if (oldestKey !== undefined) {
+        pageCache.delete(oldestKey);
+        lastIdCache.delete(oldestKey);
       }
+    }
 
-      newPageCache.set(page, data);
-      newLastIdCache.set(page, lastId);
+    // Direct mutation - create plain data objects to avoid SDK references
+    const plainData = data.map((d) => ({
+      id: d.id,
+      name: d.name,
+      status: d.status,
+      create_time_ms: d.create_time_ms,
+      blueprint_id: d.blueprint_id,
+      entitlements: d.entitlements ? { ...d.entitlements } : undefined,
+    }));
 
-      return {
-        pageCache: newPageCache,
-        lastIdCache: newLastIdCache,
-      };
-    });
+    pageCache.set(page, plainData);
+    lastIdCache.set(page, lastId);
+
+    // Trigger update without creating new Map
+    set({});
   },
 
   getCachedPage: (page) => {
@@ -138,6 +145,11 @@ export const useDevboxStore = create<DevboxState>((set, get) => ({
   },
 
   clearCache: () => {
+    const state = get();
+    // Explicitly clear all entries before reassigning
+    state.pageCache.clear();
+    state.lastIdCache.clear();
+
     set({
       pageCache: new Map(),
       lastIdCache: new Map(),
@@ -146,6 +158,11 @@ export const useDevboxStore = create<DevboxState>((set, get) => ({
 
   // Aggressive memory cleanup
   clearAll: () => {
+    const state = get();
+    // Clear existing structures first to release references
+    state.pageCache.clear();
+    state.lastIdCache.clear();
+
     set({
       devboxes: [],
       loading: false,

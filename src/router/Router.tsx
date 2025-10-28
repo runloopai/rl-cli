@@ -7,7 +7,7 @@ import { useNavigationStore } from "../store/navigationStore.js";
 import { useDevboxStore } from "../store/devboxStore.js";
 import { useBlueprintStore } from "../store/blueprintStore.js";
 import { useSnapshotStore } from "../store/snapshotStore.js";
-import { logMemoryUsage } from "../utils/memoryMonitor.js";
+import { logMemoryUsage, checkMemoryPressure } from "../utils/memoryMonitor.js";
 import { ErrorBoundary } from "../components/ErrorBoundary.js";
 import type { ScreenName } from "../router/types.js";
 
@@ -64,6 +64,13 @@ export const Router: React.FC<RouterProps> = ({ screens }) => {
           }
           break;
       }
+
+      // Check memory pressure and trigger GC if needed
+      // Small delay to allow cleanup to complete
+      setTimeout(() => {
+        checkMemoryPressure();
+        logMemoryUsage(`After cleanup: ${currentScreen}`);
+      }, 50);
     }
 
     prevScreenRef.current = currentScreen;
