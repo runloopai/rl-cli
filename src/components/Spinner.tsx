@@ -10,12 +10,19 @@ interface SpinnerComponentProps {
 export const SpinnerComponent: React.FC<SpinnerComponentProps> = ({
   message,
 }) => {
+  // Limit message length to prevent Yoga layout engine errors
+  const MAX_LENGTH = 200;
+  const truncatedMessage =
+    message.length > MAX_LENGTH
+      ? message.substring(0, MAX_LENGTH) + "..."
+      : message;
+
   return (
     <Box marginBottom={1}>
       <Text color={colors.primary}>
         <Spinner type="dots" />
       </Text>
-      <Text> {message}</Text>
+      <Text> {truncatedMessage}</Text>
     </Box>
   );
 };

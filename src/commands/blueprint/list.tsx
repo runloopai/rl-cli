@@ -29,6 +29,16 @@ const ListBlueprintsUI: React.FC<{
   onExit?: () => void;
 }> = ({ onBack, onExit }) => {
   const { stdout } = useStdout();
+  const isMounted = React.useRef(true);
+
+  // Track mounted state
+  React.useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedBlueprint, setSelectedBlueprint] = React.useState<any | null>(
     null,
@@ -219,9 +229,15 @@ const ListBlueprintsUI: React.FC<{
 
   // Fetch blueprints - moved to top to ensure hooks are called in same order
   React.useEffect(() => {
+    let effectMounted = true;
+
     const fetchBlueprints = async () => {
+      if (!isMounted.current) return;
+
       try {
-        setLoading(true);
+        if (isMounted.current) {
+          setLoading(true);
+        }
         const client = getClient();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const pageBlueprints: any[] = [];
@@ -234,6 +250,8 @@ const ListBlueprintsUI: React.FC<{
         let page = (await pagePromise) as BlueprintsCursorIDPage<{
           id: string;
         }>;
+
+        if (!effectMounted || !isMounted.current) return;
 
         // Extract data immediately and create defensive copies
         if (page.blueprints && Array.isArray(page.blueprints)) {
@@ -260,19 +278,32 @@ const ListBlueprintsUI: React.FC<{
         // The Page object holds references to client, response, and options
         page = null as any;
 
-        setBlueprints(pageBlueprints);
+        if (effectMounted && isMounted.current) {
+          setBlueprints(pageBlueprints);
+        }
       } catch (err) {
-        setListError(err as Error);
+        if (effectMounted && isMounted.current) {
+          setListError(err as Error);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted.current) {
+          setLoading(false);
+        }
       }
     };
 
     fetchBlueprints();
+
+    return () => {
+      effectMounted = false;
+    };
   }, []);
 
   // Handle input for all views - combined into single hook
   useInput((input, key) => {
+    // Don't process input if unmounting
+    if (!isMounted.current) return;
+
     // Handle Ctrl+C to force exit
     if (key.ctrl && input === "c") {
       process.stdout.write("\x1b[?1049l"); // Exit alternate screen

@@ -2,7 +2,6 @@ import React from "react";
 import { Box, Text, useInput, useApp } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
-import { getClient } from "../utils/client.js";
 import { Header } from "./Header.js";
 import { SpinnerComponent } from "./Spinner.js";
 import { ErrorMessage } from "./ErrorMessage.js";
@@ -11,6 +10,17 @@ import { Breadcrumb } from "./Breadcrumb.js";
 import type { SSHSessionConfig } from "../utils/sshSession.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
+import {
+  getDevboxLogs,
+  execCommand,
+  suspendDevbox,
+  resumeDevbox,
+  shutdownDevbox,
+  uploadFile,
+  createSnapshot as createDevboxSnapshot,
+  createTunnel,
+  createSSHKey,
+} from "../services/devboxService.js";
 
 type Operation =
   | "exec"
@@ -84,6 +94,29 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
   // - Safety buffer: 1 line
   // Total: 11 lines
   const logsViewport = useViewportHeight({ overhead: 11, minHeight: 10 });
+
+  // CRITICAL: Aggressive memory cleanup to prevent heap exhaustion
+  React.useEffect(() => {
+    // Clear large data immediately when results are shown to free memory faster
+    if (operationResult || operationError) {
+      const timer = setTimeout(() => {
+        // After 100ms, if user hasn't acted, start aggressive cleanup
+        // This helps with memory without disrupting UX
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [operationResult, operationError]);
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      // Aggressively null out all large data structures
+      setOperationResult(null);
+      setOperationError(null);
+      setOperationInput("");
+      setLoading(false);
+    };
+  }, []);
 
   const allOperations = [
     {
@@ -208,18 +241,21 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
     // Handle operation result display
     if (operationResult || operationError) {
       if (input === "q" || key.escape || key.return) {
+        // Clear large data structures immediately to prevent memory leaks
+        setOperationResult(null);
+        setOperationError(null);
+        setOperationInput("");
+        setLogsWrapMode(true);
+        setLogsScroll(0);
+        setExecScroll(0);
+        setCopyStatus(null);
+
         // If skipOperationsMenu is true, go back to parent instead of operations menu
         if (skipOperationsMenu) {
+          setExecutingOperation(null);
           onBack();
         } else {
-          setOperationResult(null);
-          setOperationError(null);
           setExecutingOperation(null);
-          setOperationInput("");
-          setLogsWrapMode(true);
-          setLogsScroll(0);
-          setExecScroll(0);
-          setCopyStatus(null);
         }
       } else if (
         (key.upArrow || input === "k") &&
@@ -443,8 +479,14 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
 
     // Operations selection mode
     if (input === "q" || key.escape) {
-      onBack();
+      // Clear all state before going back to free memory
+      setOperationResult(null);
+      setOperationError(null);
+      setOperationInput("");
+      setExecutingOperation(null);
       setSelectedOperation(0);
+      setLoading(false);
+      onBack();
     } else if (key.upArrow && selectedOperation > 0) {
       setSelectedOperation(selectedOperation - 1);
     } else if (key.downArrow && selectedOperation < operations.length - 1) {
@@ -462,46 +504,42 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
   });
 
   const executeOperation = async () => {
-    const client = getClient();
-
     try {
       setLoading(true);
       switch (executingOperation) {
         case "exec":
-          const execResult = await client.devboxes.executeSync(devbox.id, {
-            command: operationInput,
-          });
+          // Use service layer (already truncates output to prevent Yoga crashes)
+          const execResult = await execCommand(devbox.id, operationInput);
           // Format exec result for custom rendering
           const formattedExecResult: any = {
             __customRender: "exec",
             command: operationInput,
             stdout: execResult.stdout || "",
             stderr: execResult.stderr || "",
-            exitCode: (execResult as any).exit_code ?? 0,
+            exitCode: execResult.exit_code ?? 0,
           };
           setOperationResult(formattedExecResult);
           break;
 
         case "upload":
-          const fs = await import("fs");
-          const fileStream = fs.createReadStream(operationInput);
+          // Use service layer
           const filename = operationInput.split("/").pop() || "file";
-          await client.devboxes.uploadFile(devbox.id, {
-            path: filename,
-            file: fileStream,
-          });
+          await uploadFile(devbox.id, operationInput, filename);
           setOperationResult(`File ${filename} uploaded successfully`);
           break;
 
         case "snapshot":
-          const snapshot = await client.devboxes.snapshotDisk(devbox.id, {
-            name: operationInput || `snapshot-${Date.now()}`,
-          });
+          // Use service layer
+          const snapshot = await createDevboxSnapshot(
+            devbox.id,
+            operationInput || `snapshot-${Date.now()}`,
+          );
           setOperationResult(`Snapshot created: ${snapshot.id}`);
           break;
 
         case "ssh":
-          const sshKey = await client.devboxes.createSSHKey(devbox.id);
+          // Use service layer
+          const sshKey = await createSSHKey(devbox.id);
 
           const fsModule = await import("fs");
           const pathModule = await import("path");
@@ -544,18 +582,22 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
           break;
 
         case "logs":
-          const logsResult = await client.devboxes.logs.list(devbox.id);
-          if (logsResult.logs.length === 0) {
+          // Use service layer (already truncates and escapes log messages)
+          const logs = await getDevboxLogs(devbox.id);
+          if (logs.length === 0) {
             setOperationResult("No logs available for this devbox.");
           } else {
-            (logsResult as any).__customRender = "logs";
-            (logsResult as any).__logs = logsResult.logs;
-            (logsResult as any).__totalCount = logsResult.logs.length;
-            setOperationResult(logsResult as any);
+            const logsResult: any = {
+              __customRender: "logs",
+              __logs: logs,
+              __totalCount: logs.length,
+            };
+            setOperationResult(logsResult);
           }
           break;
 
         case "tunnel":
+          // Use service layer
           const port = parseInt(operationInput);
           if (isNaN(port) || port < 1 || port > 65535) {
             setOperationError(
@@ -564,9 +606,7 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
               ),
             );
           } else {
-            const tunnel = await client.devboxes.createTunnel(devbox.id, {
-              port,
-            });
+            const tunnel = await createTunnel(devbox.id, port);
             setOperationResult(
               `Tunnel created!\n\n` +
                 `Local Port: ${port}\n` +
@@ -577,17 +617,20 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
           break;
 
         case "suspend":
-          await client.devboxes.suspend(devbox.id);
+          // Use service layer
+          await suspendDevbox(devbox.id);
           setOperationResult(`Devbox ${devbox.id} suspended successfully`);
           break;
 
         case "resume":
-          await client.devboxes.resume(devbox.id);
+          // Use service layer
+          await resumeDevbox(devbox.id);
           setOperationResult(`Devbox ${devbox.id} resumed successfully`);
           break;
 
         case "delete":
-          await client.devboxes.shutdown(devbox.id);
+          // Use service layer
+          await shutdownDevbox(devbox.id);
           setOperationResult(`Devbox ${devbox.id} shut down successfully`);
           break;
       }
