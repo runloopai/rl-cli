@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import figures from "figures";
-import { colors } from "../utils/theme.js";
+import { colors, sanitizeWidth } from "../utils/theme.js";
 
 export interface Column<T> {
   /** Column key for identification */
@@ -65,7 +65,7 @@ export function Table<T>({
         <Box paddingX={1} marginBottom={0}>
           <Text color={colors.primary} bold>
             ╭─ {title.length > 50 ? title.substring(0, 50) + "..." : title}{" "}
-            {"─".repeat(Math.min(10, Math.max(0, 10)))}╮
+            {"─".repeat(10)}╮
           </Text>
         </Box>
       )}
@@ -89,7 +89,7 @@ export function Table<T>({
           {/* Column headers */}
           {visibleColumns.map((column) => {
             // Cap column width to prevent Yoga crashes from padEnd creating massive strings
-            const safeWidth = Math.min(column.width, 100);
+            const safeWidth = sanitizeWidth(column.width, 1, 100);
             return (
               <Text key={`header-${column.key}`} bold dimColor>
                 {column.label.slice(0, safeWidth).padEnd(safeWidth, " ")}
@@ -152,8 +152,8 @@ export function createTextColumn<T>(
     render: (row, index, isSelected) => {
       const value = String(getValue(row) || "");
       const rawWidth = options?.width || 20;
-      // CRITICAL: Cap width to prevent padEnd from creating massive strings that crash Yoga
-      const width = Math.min(rawWidth, 100);
+      // CRITICAL: Sanitize width to prevent padEnd from creating invalid strings that crash Yoga
+      const width = sanitizeWidth(rawWidth, 1, 100);
       const color = options?.color || (isSelected ? colors.text : colors.text);
       const bold = options?.bold !== undefined ? options.bold : isSelected;
       const dimColor = options?.dimColor || false;

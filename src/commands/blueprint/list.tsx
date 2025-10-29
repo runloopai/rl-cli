@@ -65,19 +65,24 @@ const ListBlueprintsUI: React.FC<{
   const [showActions, setShowActions] = React.useState(false);
   const [showPopup, setShowPopup] = React.useState(false);
 
-  // Calculate responsive column widths ONCE on mount
-  const terminalWidth = React.useMemo(() => stdout?.columns || 120, []);
-  const showDescription = React.useMemo(
-    () => terminalWidth >= 120,
-    [terminalWidth],
-  );
+  // Sample terminal width ONCE for fixed layout - no reactive dependencies to avoid re-renders
+  // CRITICAL: Initialize with fallback value to prevent any possibility of null/undefined
+  const terminalWidth = React.useRef<number>(120);
+  if (terminalWidth.current === 120) {
+    // Only sample on first render if stdout has valid width
+    const sampledWidth = (stdout?.columns && stdout.columns > 0) ? stdout.columns : 120;
+    terminalWidth.current = Math.max(80, Math.min(200, sampledWidth));
+  }
+  const fixedWidth = terminalWidth.current;
 
+  // All width constants - guaranteed to be valid positive integers
   const statusIconWidth = 2;
   const statusTextWidth = 10;
   const idWidth = 25;
-  const nameWidth = terminalWidth >= 120 ? 30 : 25;
+  const nameWidth = Math.max(15, fixedWidth >= 120 ? 30 : 25);
   const descriptionWidth = 40;
   const timeWidth = 20;
+  const showDescription = fixedWidth >= 120;
 
   // Memoize columns array to prevent recreating on every render (memory leak fix)
   const blueprintColumns = React.useMemo(
@@ -111,8 +116,8 @@ const ListBlueprintsUI: React.FC<{
         width: idWidth + 1,
         render: (blueprint: any, index: number, isSelected: boolean) => {
           const value = blueprint.id;
-          const width = idWidth + 1;
-          const truncated = value.slice(0, width - 1);
+          const width = Math.max(1, idWidth + 1);
+          const truncated = value.slice(0, Math.max(1, width - 1));
           const padded = truncated.padEnd(width, " ");
           return (
             <Text
@@ -137,8 +142,9 @@ const ListBlueprintsUI: React.FC<{
             statusDisplay.color === colors.textDim
               ? colors.info
               : statusDisplay.color;
-          const truncated = statusDisplay.text.slice(0, statusTextWidth);
-          const padded = truncated.padEnd(statusTextWidth, " ");
+          const safeWidth = Math.max(1, statusTextWidth);
+          const truncated = statusDisplay.text.slice(0, safeWidth);
+          const padded = truncated.padEnd(safeWidth, " ");
           return (
             <Text
               color={isSelected ? "white" : statusColor}

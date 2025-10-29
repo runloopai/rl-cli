@@ -263,8 +263,8 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
     : null;
 
   // Build detailed info lines for scrolling
-  const buildDetailLines = (): JSX.Element[] => {
-    const lines: JSX.Element[] = [];
+  const buildDetailLines = (): React.ReactElement[] => {
+    const lines: React.ReactElement[] = [];
 
     const capitalize = (str: string) =>
       str.charAt(0).toUpperCase() + str.slice(1);

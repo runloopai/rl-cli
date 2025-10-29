@@ -899,15 +899,19 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
                   </Box>
                 );
               } else {
-                const metadataWidth =
-                  11 + 1 + 1 + 1 + 8 + 1 + exitCode.length + cmd.length + 6;
+                // CRITICAL: Validate all lengths and ensure positive values for Yoga
+                const exitCodeLen = typeof exitCode === 'string' ? exitCode.length : 0;
+                const cmdLen = typeof cmd === 'string' ? cmd.length : 0;
+                const metadataWidth = 11 + 1 + 1 + 1 + 8 + 1 + exitCodeLen + cmdLen + 6;
+                // Ensure terminalWidth is valid and availableMessageWidth is always positive
+                const safeTerminalWidth = Math.max(80, terminalWidth);
                 const availableMessageWidth = Math.max(
                   20,
-                  terminalWidth - metadataWidth,
+                  Math.floor(safeTerminalWidth - metadataWidth),
                 );
                 const truncatedMessage =
                   fullMessage.length > availableMessageWidth
-                    ? fullMessage.substring(0, availableMessageWidth - 3) +
+                    ? fullMessage.substring(0, Math.max(1, availableMessageWidth - 3)) +
                       "..."
                     : fullMessage;
                 return (
