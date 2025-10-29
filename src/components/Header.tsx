@@ -40,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
       <Box marginLeft={1}>
         <Text color={colors.accent3}>
           {"─".repeat(
-            Math.min(truncatedTitle.length + 1, MAX_TITLE_LENGTH + 1),
+            Math.max(0, Math.floor(Math.min(truncatedTitle.length + 1, MAX_TITLE_LENGTH + 1))),
           )}
         </Text>
       </Box>

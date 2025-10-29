@@ -27,10 +27,12 @@ export const ActionsPopup: React.FC<ActionsPopupProps> = ({
   const stripAnsi = (str: string) => str.replace(/\u001b\[[0-9;]*m/g, "");
 
   // Calculate max width needed for content (visible characters only)
+  // CRITICAL: Ensure all values are valid numbers to prevent Yoga crashes
   const maxContentWidth = Math.max(
     ...operations.map((op) => {
       const lineText = `${figures.pointer} ${op.icon} ${op.label} [${op.shortcut}]`;
-      return lineText.length;
+      const len = lineText.length;
+      return Number.isFinite(len) && len > 0 ? len : 0;
     }),
     `${figures.play} Quick Actions`.length,
     `${figures.arrowUp}${figures.arrowDown} Nav • [Enter] • [Esc] Close`.length,
@@ -39,8 +41,9 @@ export const ActionsPopup: React.FC<ActionsPopupProps> = ({
 
   // Add horizontal padding to width (2 spaces on each side = 4 total)
   // Plus 2 for border characters = 6 total extra
-  const contentWidth = maxContentWidth + 4;
-  const totalWidth = contentWidth + 2; // +2 for border characters
+  // CRITICAL: Validate all computed widths are positive integers
+  const contentWidth = Math.max(10, maxContentWidth + 4);
+  const totalWidth = Math.max(12, contentWidth + 2); // +2 for border characters
 
   // Get background color chalk function - inverted for contrast
   // In light mode (light terminal), use black background for popup
@@ -51,13 +54,16 @@ export const ActionsPopup: React.FC<ActionsPopupProps> = ({
   // Helper to create background lines with proper padding including left/right margins
   const createBgLine = (styledContent: string, plainContent: string) => {
     const visibleLength = plainContent.length;
-    const rightPadding = " ".repeat(Math.max(0, maxContentWidth - visibleLength));
+    // CRITICAL: Validate repeat count is non-negative integer
+    const repeatCount = Math.max(0, Math.floor(maxContentWidth - visibleLength));
+    const rightPadding = " ".repeat(repeatCount);
     // Apply background to left padding + content + right padding
     return bgColor("  " + styledContent + rightPadding + "  ");
   };
 
   // Create empty line with full background
-  const emptyLine = bgColor(" ".repeat(contentWidth));
+  // CRITICAL: Validate repeat count is positive integer
+  const emptyLine = bgColor(" ".repeat(Math.max(1, Math.floor(contentWidth))));
 
   // Create border lines with background and integrated title
   const title = `${figures.play} Quick Actions`;
@@ -67,7 +73,8 @@ export const ActionsPopup: React.FC<ActionsPopupProps> = ({
   // Format: "─ title ─────"
   const titleWithSpaces = ` ${title} `;
   const titleTotalLength = titleWithSpaces.length + 1; // +1 for leading dash
-  const remainingDashes = Math.max(0, contentWidth - titleTotalLength);
+  // CRITICAL: Validate repeat counts are non-negative integers
+  const remainingDashes = Math.max(0, Math.floor(contentWidth - titleTotalLength));
   
   // Use theme primary color for borders to match theme
   const borderColorFn = isLightMode() ? chalk.cyan : chalk.blue;
@@ -75,7 +82,8 @@ export const ActionsPopup: React.FC<ActionsPopupProps> = ({
   const borderTop = bgColor(
     borderColorFn("╭─" + titleWithSpaces + "─".repeat(remainingDashes) + "╮")
   );
-  const borderBottom = bgColor(borderColorFn("╰" + "─".repeat(contentWidth) + "╯"));
+  // CRITICAL: Validate contentWidth is a positive integer
+  const borderBottom = bgColor(borderColorFn("╰" + "─".repeat(Math.max(1, Math.floor(contentWidth))) + "╯"));
   const borderSide = (content: string) => {
     return bgColor(borderColorFn("│") + content + borderColorFn("│"));
   };

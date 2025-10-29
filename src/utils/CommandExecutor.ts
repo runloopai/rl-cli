@@ -3,6 +3,7 @@
  * Reduces code duplication across all command files
  */
 
+import React from "react";
 import { render } from "ink";
 import { getClient } from "./client.js";
 import {
@@ -27,7 +28,7 @@ export class CommandExecutor<T = unknown> {
    */
   async executeList(
     fetchData: () => Promise<T[]>,
-    renderUI: () => JSX.Element,
+    renderUI: () => React.ReactElement,
     limit: number = 10,
   ): Promise<void> {
     if (shouldUseNonInteractiveOutput(this.options)) {
@@ -63,7 +64,7 @@ export class CommandExecutor<T = unknown> {
    */
   async executeAction(
     performAction: () => Promise<T>,
-    renderUI: () => JSX.Element,
+    renderUI: () => React.ReactElement,
   ): Promise<void> {
     if (shouldUseNonInteractiveOutput(this.options)) {
       try {
@@ -97,7 +98,7 @@ export class CommandExecutor<T = unknown> {
   async executeDelete(
     performDelete: () => Promise<void>,
     id: string,
-    renderUI: () => JSX.Element,
+    renderUI: () => React.ReactElement,
   ): Promise<void> {
     if (shouldUseNonInteractiveOutput(this.options)) {
       try {

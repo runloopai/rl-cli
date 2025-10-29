@@ -38,22 +38,35 @@ export function useViewportHeight(
   const { overhead = 0, minHeight = 5, maxHeight = 100 } = options;
   const { stdout } = useStdout();
 
-  // Memoize terminal dimensions to prevent unnecessary re-renders
-  const terminalHeight = React.useMemo(
-    () => stdout?.rows || 30,
-    [stdout?.rows],
-  );
+  // Sample terminal dimensions ONCE and use fixed values - no reactive dependencies
+  // This prevents re-renders and Yoga WASM crashes from dynamic resizing
+  // CRITICAL: Initialize with safe fallback values to prevent null/undefined
+  const dimensions = React.useRef<{ width: number; height: number }>({
+    width: 120,
+    height: 30,
+  });
 
-  const terminalWidth = React.useMemo(
-    () => stdout?.columns || 120,
-    [stdout?.columns],
-  );
+  // Only sample on first call when still at default values
+  if (dimensions.current.width === 120 && dimensions.current.height === 30) {
+    // Only sample if stdout has valid dimensions
+    const sampledWidth = (stdout?.columns && stdout.columns > 0) ? stdout.columns : 120;
+    const sampledHeight = (stdout?.rows && stdout.rows > 0) ? stdout.rows : 30;
+
+    // Always enforce safe bounds to prevent Yoga crashes
+    dimensions.current = {
+      width: Math.max(80, Math.min(200, sampledWidth)),
+      height: Math.max(20, Math.min(100, sampledHeight)),
+    };
+  }
+
+  const terminalHeight = dimensions.current.height;
+  const terminalWidth = dimensions.current.width;
 
   // Calculate viewport height with bounds
-  const viewportHeight = React.useMemo(() => {
-    const available = terminalHeight - overhead;
-    return Math.max(minHeight, Math.min(maxHeight, available));
-  }, [terminalHeight, overhead, minHeight, maxHeight]);
+  const viewportHeight = Math.max(
+    minHeight,
+    Math.min(maxHeight, terminalHeight - overhead),
+  );
 
   return {
     viewportHeight,

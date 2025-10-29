@@ -34,20 +34,25 @@ const ListSnapshotsUI: React.FC<{
 }> = ({ devboxId, onBack, onExit }) => {
   const { stdout } = useStdout();
 
-  // Calculate responsive column widths ONCE on mount
-  const terminalWidth = React.useMemo(() => stdout?.columns || 120, []);
-  const showDevboxId = React.useMemo(
-    () => terminalWidth >= 100 && !devboxId,
-    [terminalWidth, devboxId],
-  ); // Hide devbox column if filtering by devbox
-  const showFullId = React.useMemo(() => terminalWidth >= 80, [terminalWidth]);
+  // Sample terminal width ONCE for fixed layout - no reactive dependencies to avoid re-renders
+  // CRITICAL: Initialize with fallback value to prevent any possibility of null/undefined
+  const terminalWidth = React.useRef<number>(120);
+  if (terminalWidth.current === 120) {
+    // Only sample on first render if stdout has valid width
+    const sampledWidth = (stdout?.columns && stdout.columns > 0) ? stdout.columns : 120;
+    terminalWidth.current = Math.max(80, Math.min(200, sampledWidth));
+  }
+  const fixedWidth = terminalWidth.current;
 
+  // All width constants - guaranteed to be valid positive integers
   const statusIconWidth = 2;
   const statusTextWidth = 10;
   const idWidth = 25;
-  const nameWidth = terminalWidth >= 120 ? 30 : 25;
+  const nameWidth = Math.max(15, fixedWidth >= 120 ? 30 : 25);
   const devboxWidth = 15;
   const timeWidth = 20;
+  const showDevboxId = fixedWidth >= 100 && !devboxId; // Hide devbox column if filtering by devbox
+  const showFullId = fixedWidth >= 80;
 
   return (
     <ResourceListView

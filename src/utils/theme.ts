@@ -102,7 +102,7 @@ export async function initializeTheme(): Promise<void> {
   if (preference === "auto") {
     // Check cache first - only detect if we haven't cached a result
     const cachedTheme = getDetectedTheme();
-    
+
     if (cachedTheme) {
       // Use cached detection result (no flashing!)
       detectedTheme = cachedTheme;
@@ -172,4 +172,21 @@ export function isLightMode(): boolean {
 export function setThemeMode(mode: ThemeMode): void {
   currentTheme = mode;
   activeColors = mode === "light" ? lightColors : darkColors;
+}
+
+/**
+ * Sanitize width values to prevent Yoga WASM crashes
+ * Ensures width is a valid, finite number within safe bounds
+ *
+ * @param width - The width value to sanitize
+ * @param min - Minimum allowed width (default: 1)
+ * @param max - Maximum allowed width (default: 100)
+ * @returns A safe width value guaranteed to be within [min, max]
+ */
+export function sanitizeWidth(width: number, min = 1, max = 100): number {
+  // Check for NaN, Infinity, or other invalid numbers
+  if (!Number.isFinite(width) || width < min) {
+    return min;
+  }
+  return Math.min(width, max);
 }
