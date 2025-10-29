@@ -1,22 +1,13 @@
 import React from "react";
-import { render, useApp } from "ink";
+import { render } from "ink";
 import { runSSHSession, type SSHSessionConfig } from "../utils/sshSession.js";
-import {
-  enableSynchronousUpdates,
-  disableSynchronousUpdates,
-} from "../utils/terminalSync.js";
-import { Router } from "../router/Router.js";
-import { useNavigationStore } from "../store/navigationStore.js";
-import type { ScreenName } from "../store/navigationStore.js";
 
-// Import screen components
-import { MenuScreen } from "../screens/MenuScreen.js";
-import { DevboxListScreen } from "../screens/DevboxListScreen.js";
-import { DevboxDetailScreen } from "../screens/DevboxDetailScreen.js";
-import { DevboxActionsScreen } from "../screens/DevboxActionsScreen.js";
-import { DevboxCreateScreen } from "../screens/DevboxCreateScreen.js";
-import { BlueprintListScreen } from "../screens/BlueprintListScreen.js";
-import { SnapshotListScreen } from "../screens/SnapshotListScreen.js";
+import { Router } from "../router/Router.js";
+import {
+  NavigationProvider,
+  useNavigation,
+} from "../store/navigationStore.js";
+import type { ScreenName } from "../store/navigationStore.js";
 
 interface AppProps {
   onSSHRequest: (config: SSHSessionConfig) => void;
@@ -24,55 +15,37 @@ interface AppProps {
   focusDevboxId?: string;
 }
 
-const App: React.FC<AppProps> = ({
+function AppInner({
+  onSSHRequest,
+}: {
+  onSSHRequest: (config: SSHSessionConfig) => void;
+}) {
+  // NavigationProvider already handles initialScreen and initialParams
+  // No need for useEffect here - provider sets state on mount
+  return <Router onSSHRequest={onSSHRequest} />;
+}
+
+function App({
   onSSHRequest,
   initialScreen = "menu",
   focusDevboxId,
-}) => {
-  const { exit } = useApp();
-  const navigate = useNavigationStore((state) => state.navigate);
-
-  // Set initial screen on mount
-  React.useEffect(() => {
-    if (initialScreen !== "menu") {
-      navigate(initialScreen, { focusDevboxId });
-    }
-  }, []);
-
-  // Define all screen components
-  const screens = React.useMemo(
-    () => ({
-      menu: MenuScreen,
-      "devbox-list": (props: any) => (
-        <DevboxListScreen {...props} onSSHRequest={onSSHRequest} />
-      ),
-      "devbox-detail": (props: any) => (
-        <DevboxDetailScreen {...props} onSSHRequest={onSSHRequest} />
-      ),
-      "devbox-actions": (props: any) => (
-        <DevboxActionsScreen {...props} onSSHRequest={onSSHRequest} />
-      ),
-      "devbox-create": DevboxCreateScreen,
-      "blueprint-list": BlueprintListScreen,
-      "blueprint-detail": BlueprintListScreen, // TODO: Create proper detail screen
-      "snapshot-list": SnapshotListScreen,
-      "snapshot-detail": SnapshotListScreen, // TODO: Create proper detail screen
-    }),
-    [onSSHRequest],
+}: AppProps) {
+  return (
+    <NavigationProvider
+      initialScreen={initialScreen}
+      initialParams={focusDevboxId ? { focusDevboxId } : {}}
+    >
+      <AppInner onSSHRequest={onSSHRequest} />
+    </NavigationProvider>
   );
-
-  return <Router screens={screens} />;
-};
+}
 
 export async function runMainMenu(
   initialScreen: ScreenName = "menu",
   focusDevboxId?: string,
 ) {
   // Enter alternate screen buffer for fullscreen experience (like top/vim)
-  process.stdout.write("\x1b[?1049h");
-
-  // DISABLED: Testing if terminal doesn't support synchronous updates properly
-  // enableSynchronousUpdates();
+  //process.stdout.write("\x1b[?1049h");
 
   let sshSessionConfig: SSHSessionConfig | null = null;
   let shouldContinue = true;
@@ -85,6 +58,7 @@ export async function runMainMenu(
     try {
       const { waitUntilExit } = render(
         <App
+          key={`app-${currentInitialScreen}-${currentFocusDevboxId}`}
           onSSHRequest={(config) => {
             sshSessionConfig = config;
           }}
@@ -94,6 +68,14 @@ export async function runMainMenu(
         {
           patchConsole: false,
           exitOnCtrlC: false,
+          //debug: true,
+          // onRender: (metrics) => {
+          //   console.log(
+          //     "==== onRender ====",
+          //     new Date().toISOString(),
+          //     metrics,
+          //   );
+          // },
         },
       );
       await waitUntilExit();
@@ -124,7 +106,7 @@ export async function runMainMenu(
   // disableSynchronousUpdates();
 
   // Exit alternate screen buffer
-  process.stdout.write("\x1b[?1049l");
+  //process.stdout.write("\x1b[?1049l");
 
   process.exit(0);
 }

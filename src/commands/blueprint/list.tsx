@@ -70,7 +70,8 @@ const ListBlueprintsUI: React.FC<{
   const terminalWidth = React.useRef<number>(120);
   if (terminalWidth.current === 120) {
     // Only sample on first render if stdout has valid width
-    const sampledWidth = (stdout?.columns && stdout.columns > 0) ? stdout.columns : 120;
+    const sampledWidth =
+      stdout?.columns && stdout.columns > 0 ? stdout.columns : 120;
     terminalWidth.current = Math.max(80, Math.min(200, sampledWidth));
   }
   const fixedWidth = terminalWidth.current;

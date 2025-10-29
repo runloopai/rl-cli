@@ -45,7 +45,7 @@ export class CommandExecutor<T = unknown> {
 
     // Interactive mode
     // Enter alternate screen buffer (this automatically clears the screen)
-    process.stdout.write("\x1b[?1049h");
+    
     enableSynchronousUpdates();
     
     const { waitUntilExit } = render(renderUI(), {

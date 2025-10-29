@@ -1,15 +1,14 @@
 /**
- * MenuScreen - Main menu using navigationStore
+ * MenuScreen - Main menu using navigation context
  */
 import React from "react";
-import { useNavigationStore } from "../store/navigationStore.js";
+import { useNavigation } from "../store/navigationStore.js";
 import { MainMenu } from "../components/MainMenu.js";
 
-export const MenuScreen: React.FC = React.memo(() => {
-  const navigate = useNavigationStore((state) => state.navigate);
+export function MenuScreen() {
+  const { navigate } = useNavigation();
 
-  const handleSelect = React.useCallback(
-    (key: string) => {
+  const handleSelect = (key: string) => {
       switch (key) {
         case "devboxes":
           navigate("devbox-list");
@@ -23,9 +22,7 @@ export const MenuScreen: React.FC = React.memo(() => {
         default:
           navigate(key as any);
       }
-    },
-    [navigate],
-  );
+  };
 
   return <MainMenu onSelect={handleSelect} />;
-});
+}

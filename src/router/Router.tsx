@@ -3,16 +3,25 @@
  * Replaces conditional rendering pattern from menu.tsx
  */
 import React from "react";
-import { useNavigationStore } from "../store/navigationStore.js";
+import { useNavigation } from "../store/navigationStore.js";
 import { useDevboxStore } from "../store/devboxStore.js";
 import { useBlueprintStore } from "../store/blueprintStore.js";
 import { useSnapshotStore } from "../store/snapshotStore.js";
-import { logMemoryUsage, checkMemoryPressure } from "../utils/memoryMonitor.js";
 import { ErrorBoundary } from "../components/ErrorBoundary.js";
 import type { ScreenName } from "../router/types.js";
+import type { SSHSessionConfig } from "../utils/sshSession.js";
+
+// Import screen components
+import { MenuScreen } from "../screens/MenuScreen.js";
+import { DevboxListScreen } from "../screens/DevboxListScreen.js";
+import { DevboxDetailScreen } from "../screens/DevboxDetailScreen.js";
+import { DevboxActionsScreen } from "../screens/DevboxActionsScreen.js";
+import { DevboxCreateScreen } from "../screens/DevboxCreateScreen.js";
+import { BlueprintListScreen } from "../screens/BlueprintListScreen.js";
+import { SnapshotListScreen } from "../screens/SnapshotListScreen.js";
 
 interface RouterProps {
-  screens: Record<ScreenName, React.ComponentType<any>>;
+  onSSHRequest: (config: SSHSessionConfig) => void;
 }
 
 /**
@@ -22,9 +31,8 @@ interface RouterProps {
  * Uses React key prop to force complete unmount/remount on screen changes,
  * which prevents Yoga WASM errors during transitions.
  */
-export const Router: React.FC<RouterProps> = ({ screens }) => {
-  const currentScreen = useNavigationStore((state) => state.currentScreen);
-  const params = useNavigationStore((state) => state.params);
+export function Router({ onSSHRequest }: RouterProps) {
+  const { currentScreen, params } = useNavigation();
   const prevScreenRef = React.useRef<ScreenName | null>(null);
 
   // Memory cleanup on route changes
@@ -32,8 +40,6 @@ export const Router: React.FC<RouterProps> = ({ screens }) => {
     const prevScreen = prevScreenRef.current;
 
     if (prevScreen && prevScreen !== currentScreen) {
-      logMemoryUsage(`Route change: ${prevScreen} → ${currentScreen}`);
-
       // Immediate cleanup without delay - React's key-based remount handles timing
       switch (prevScreen) {
         case "devbox-list":
@@ -44,7 +50,6 @@ export const Router: React.FC<RouterProps> = ({ screens }) => {
           // Keep cache if we're still in devbox context
           if (!currentScreen.startsWith("devbox")) {
             useDevboxStore.getState().clearAll();
-            logMemoryUsage("Cleared devbox store");
           }
           break;
 
@@ -52,7 +57,6 @@ export const Router: React.FC<RouterProps> = ({ screens }) => {
         case "blueprint-detail":
           if (!currentScreen.startsWith("blueprint")) {
             useBlueprintStore.getState().clearAll();
-            logMemoryUsage("Cleared blueprint store");
           }
           break;
 
@@ -60,28 +64,14 @@ export const Router: React.FC<RouterProps> = ({ screens }) => {
         case "snapshot-detail":
           if (!currentScreen.startsWith("snapshot")) {
             useSnapshotStore.getState().clearAll();
-            logMemoryUsage("Cleared snapshot store");
           }
           break;
       }
-
-      // Check memory pressure and trigger GC if needed
-      // Small delay to allow cleanup to complete
-      setTimeout(() => {
-        checkMemoryPressure();
-        logMemoryUsage(`After cleanup: ${currentScreen}`);
-      }, 50);
     }
 
     prevScreenRef.current = currentScreen;
   }, [currentScreen]);
 
-  const ScreenComponent = screens[currentScreen];
-
-  if (!ScreenComponent) {
-    console.error(`No screen registered for: ${currentScreen}`);
-    return null;
-  }
 
   // CRITICAL: Use key prop to force React to completely unmount old component
   // and mount new component, preventing race conditions during screen transitions.
@@ -89,7 +79,45 @@ export const Router: React.FC<RouterProps> = ({ screens }) => {
   // Wrap in ErrorBoundary to catch any Yoga WASM errors gracefully.
   return (
     <ErrorBoundary key={`boundary-${currentScreen}`}>
-      <ScreenComponent key={currentScreen} {...params} />
+      {currentScreen === "menu" && (
+        <MenuScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "devbox-list" && (
+        <DevboxListScreen
+          key={currentScreen}
+          {...params}
+          onSSHRequest={onSSHRequest}
+        />
+      )}
+      {currentScreen === "devbox-detail" && (
+        <DevboxDetailScreen
+          key={currentScreen}
+          {...params}
+          onSSHRequest={onSSHRequest}
+        />
+      )}
+      {currentScreen === "devbox-actions" && (
+        <DevboxActionsScreen
+          key={currentScreen}
+          {...params}
+          onSSHRequest={onSSHRequest}
+        />
+      )}
+      {currentScreen === "devbox-create" && (
+        <DevboxCreateScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "blueprint-list" && (
+        <BlueprintListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "blueprint-detail" && (
+        <BlueprintListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "snapshot-list" && (
+        <SnapshotListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "snapshot-detail" && (
+        <SnapshotListScreen key={currentScreen} {...params} />
+      )}
     </ErrorBoundary>
   );
-};
+}

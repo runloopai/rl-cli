@@ -93,7 +93,12 @@ export const useDevboxStore = create<DevboxState>((set, get) => ({
   selectedIndex: 0,
 
   // Actions
-  setDevboxes: (devboxes) => set({ devboxes }),
+  setDevboxes: (devboxes) => {
+    const state = get();
+    const maxIndex = devboxes.length > 0 ? devboxes.length - 1 : 0;
+    const clampedIndex = Math.max(0, Math.min(state.selectedIndex, maxIndex));
+    set({ devboxes, selectedIndex: clampedIndex });
+  },
   setLoading: (loading) => set({ loading }),
   setInitialLoading: (loading) => set({ initialLoading: loading }),
   setError: (error) => set({ error }),
@@ -106,7 +111,12 @@ export const useDevboxStore = create<DevboxState>((set, get) => ({
   setSearchQuery: (query) => set({ searchQuery: query }),
   setStatusFilter: (status) => set({ statusFilter: status }),
 
-  setSelectedIndex: (index) => set({ selectedIndex: index }),
+  setSelectedIndex: (index) => {
+    const state = get();
+    const maxIndex = state.devboxes.length > 0 ? state.devboxes.length - 1 : 0;
+    const clampedIndex = Math.max(0, Math.min(index, maxIndex));
+    set({ selectedIndex: clampedIndex });
+  },
 
   // Cache management with LRU eviction - FIXED: No shallow copies
   cachePageData: (page, data, lastId) => {

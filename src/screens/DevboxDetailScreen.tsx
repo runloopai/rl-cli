@@ -3,7 +3,7 @@
  * Refactored from components/DevboxDetailPage.tsx
  */
 import React from "react";
-import { useNavigationStore } from "../store/navigationStore.js";
+import { useNavigation } from "../store/navigationStore.js";
 import { useDevboxStore } from "../store/devboxStore.js";
 import { DevboxDetailPage } from "../components/DevboxDetailPage.js";
 import type { SSHSessionConfig } from "../utils/sshSession.js";
@@ -13,27 +13,26 @@ interface DevboxDetailScreenProps {
   onSSHRequest?: (config: SSHSessionConfig) => void;
 }
 
-export const DevboxDetailScreen: React.FC<DevboxDetailScreenProps> = React.memo(
-  ({ devboxId, onSSHRequest }) => {
-    const goBack = useNavigationStore((state) => state.goBack);
-    const devboxes = useDevboxStore((state) => state.devboxes);
+export function DevboxDetailScreen({
+  devboxId,
+  onSSHRequest,
+}: DevboxDetailScreenProps) {
+  const { goBack } = useNavigation();
+  const devboxes = useDevboxStore((state) => state.devboxes);
 
-    // Find devbox in store first, otherwise we'd need to fetch it
-    const devbox = React.useMemo(() => {
-      return devboxes.find((d) => d.id === devboxId);
-    }, [devboxes, devboxId]);
+  // Find devbox in store first, otherwise we'd need to fetch it
+  const devbox = devboxes.find((d) => d.id === devboxId);
 
-    if (!devbox) {
-      goBack();
-      return null;
-    }
+  if (!devbox) {
+    goBack();
+    return null;
+  }
 
-    return (
-      <DevboxDetailPage
-        devbox={devbox}
-        onBack={goBack}
-        onSSHRequest={onSSHRequest}
-      />
-    );
-  },
-);
+  return (
+    <DevboxDetailPage
+      devbox={devbox}
+      onBack={goBack}
+      onSSHRequest={onSSHRequest}
+    />
+  );
+}

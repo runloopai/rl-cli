@@ -20,7 +20,8 @@ export const END_SYNC = "\x1b[?2026l";
  * Call this once at application startup
  */
 export function enableSynchronousUpdates(): void {
-  process.stdout.write(BEGIN_SYNC);
+  return;
+  //process.stdout.write(BEGIN_SYNC);
 }
 
 /**
@@ -28,7 +29,8 @@ export function enableSynchronousUpdates(): void {
  * Call this at application shutdown
  */
 export function disableSynchronousUpdates(): void {
-  process.stdout.write(END_SYNC);
+  return;
+  //process.stdout.write(END_SYNC);
 }
 
 /**
@@ -36,7 +38,7 @@ export function disableSynchronousUpdates(): void {
  * This ensures the output is displayed atomically without flicker
  */
 export function withSynchronousUpdate(fn: () => void): void {
-  process.stdout.write(BEGIN_SYNC);
+  //process.stdout.write(BEGIN_SYNC);
   fn();
-  process.stdout.write(END_SYNC);
+  //process.stdout.write(END_SYNC);
 }
