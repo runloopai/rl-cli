@@ -3,16 +3,16 @@
  * Refactored from components/DevboxCreatePage.tsx
  */
 import React from "react";
-import { useNavigationStore } from "../store/navigationStore.js";
+import { useNavigation } from "../store/navigationStore.js";
 import { DevboxCreatePage } from "../components/DevboxCreatePage.js";
 
-export const DevboxCreateScreen: React.FC = React.memo(() => {
-  const goBack = useNavigationStore((state) => state.goBack);
+export function DevboxCreateScreen() {
+  const { goBack } = useNavigation();
 
-  const handleCreate = React.useCallback(() => {
+  const handleCreate = () => {
     // After creation, go back to list (which will refresh)
     goBack();
-  }, [goBack]);
+  };
 
   return <DevboxCreatePage onBack={goBack} onCreate={handleCreate} />;
-});
+}

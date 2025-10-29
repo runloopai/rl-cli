@@ -3,7 +3,7 @@
  * Refactored from components/DevboxActionsMenu.tsx
  */
 import React from "react";
-import { useNavigationStore } from "../store/navigationStore.js";
+import { useNavigation } from "../store/navigationStore.js";
 import { useDevboxStore } from "../store/devboxStore.js";
 import { DevboxActionsMenu } from "../components/DevboxActionsMenu.js";
 import type { SSHSessionConfig } from "../utils/sshSession.js";
@@ -14,27 +14,28 @@ interface DevboxActionsScreenProps {
   onSSHRequest?: (config: SSHSessionConfig) => void;
 }
 
-export const DevboxActionsScreen: React.FC<DevboxActionsScreenProps> =
-  React.memo(({ devboxId, operation, onSSHRequest }) => {
-    const goBack = useNavigationStore((state) => state.goBack);
-    const devboxes = useDevboxStore((state) => state.devboxes);
+export function DevboxActionsScreen({
+  devboxId,
+  operation,
+  onSSHRequest,
+}: DevboxActionsScreenProps) {
+  const { goBack } = useNavigation();
+  const devboxes = useDevboxStore((state) => state.devboxes);
 
-    // Find devbox in store
-    const devbox = React.useMemo(() => {
-      return devboxes.find((d) => d.id === devboxId);
-    }, [devboxes, devboxId]);
+  // Find devbox in store
+  const devbox = devboxes.find((d) => d.id === devboxId);
 
-    if (!devbox) {
-      goBack();
-      return null;
-    }
+  if (!devbox) {
+    goBack();
+    return null;
+  }
 
-    return (
-      <DevboxActionsMenu
-        devbox={devbox}
-        onBack={goBack}
-        initialOperation={operation}
-        onSSHRequest={onSSHRequest}
-      />
-    );
-  });
+  return (
+    <DevboxActionsMenu
+      devbox={devbox}
+      onBack={goBack}
+      initialOperation={operation}
+      onSSHRequest={onSSHRequest}
+    />
+  );
+}

@@ -56,7 +56,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@inkjs/ui": "^2.0.0",
     "@modelcontextprotocol/sdk": "^1.19.1",
     "@runloop/api-client": "^0.59.1",
     "@runloop/rl-cli": "^0.1.2",
@@ -82,7 +81,7 @@
     "@anthropic-ai/mcpb": "^1.1.1",
     "@types/jest": "^29.5.0",
     "@types/node": "^22.7.9",
-    "@types/react": "^18.3.11",
+    "@types/react": "^19.2.2",
     "@typescript-eslint/eslint-plugin": "^8.46.0",
     "@typescript-eslint/parser": "^8.46.0",
     "esbuild": "^0.25.11",

@@ -24,7 +24,7 @@ function truncateStrings(obj: any, maxLength: number = 200): any {
   if (typeof obj === "object") {
     const result: any = {};
     for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
+      if (Object.hasOwn(obj, key)) {
         result[key] = truncateStrings(obj[key], maxLength);
       }
     }
@@ -39,6 +39,7 @@ export interface ListDevboxesOptions {
   startingAfter?: string;
   status?: string;
   search?: string;
+  signal?: AbortSignal;
 }
 
 export interface ListDevboxesResult {
@@ -54,6 +55,11 @@ export interface ListDevboxesResult {
 export async function listDevboxes(
   options: ListDevboxesOptions,
 ): Promise<ListDevboxesResult> {
+  // Check if aborted before making request
+  if (options.signal?.aborted) {
+    throw new DOMException("Aborted", "AbortError");
+  }
+
   const client = getClient();
 
   const queryParams: any = {
@@ -72,7 +78,35 @@ export async function listDevboxes(
 
   // Fetch ONE page only - never iterate
   const pagePromise = client.devboxes.list(queryParams);
-  let page = (await pagePromise) as DevboxesCursorIDPage<{ id: string }>;
+
+  // Wrap in Promise.race to support abort
+  let page: DevboxesCursorIDPage<{ id: string }>;
+  if (options.signal) {
+    const abortPromise = new Promise<never>((_, reject) => {
+      options.signal!.addEventListener("abort", () => {
+        reject(new DOMException("Aborted", "AbortError"));
+      });
+    });
+    try {
+      page = (await Promise.race([
+        pagePromise,
+        abortPromise,
+      ])) as DevboxesCursorIDPage<{ id: string }>;
+    } catch (err) {
+      // Re-throw abort errors, convert others
+      if ((err as Error)?.name === "AbortError") {
+        throw err;
+      }
+      throw err;
+    }
+  } else {
+    page = (await pagePromise) as DevboxesCursorIDPage<{ id: string }>;
+  }
+
+  // Check again after await (in case abort happened during request)
+  if (options.signal?.aborted) {
+    throw new DOMException("Aborted", "AbortError");
+  }
 
   // Extract data and create defensive copies immediately
   const devboxes: Devbox[] = [];

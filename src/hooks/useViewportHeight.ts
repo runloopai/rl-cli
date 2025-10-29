@@ -49,8 +49,9 @@ export function useViewportHeight(
   // Only sample on first call when still at default values
   if (dimensions.current.width === 120 && dimensions.current.height === 30) {
     // Only sample if stdout has valid dimensions
-    const sampledWidth = (stdout?.columns && stdout.columns > 0) ? stdout.columns : 120;
-    const sampledHeight = (stdout?.rows && stdout.rows > 0) ? stdout.rows : 30;
+    const sampledWidth =
+      stdout?.columns && stdout.columns > 0 ? stdout.columns : 120;
+    const sampledHeight = stdout?.rows && stdout.rows > 0 ? stdout.rows : 30;
 
     // Always enforce safe bounds to prevent Yoga crashes
     dimensions.current = {
@@ -67,6 +68,7 @@ export function useViewportHeight(
     minHeight,
     Math.min(maxHeight, terminalHeight - overhead),
   );
+  // Removed console.logs to prevent rendering interference
 
   return {
     viewportHeight,
