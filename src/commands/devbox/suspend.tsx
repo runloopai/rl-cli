@@ -13,9 +13,7 @@ interface SuspendOptions {
   output?: string;
 }
 
-const SuspendDevboxUI: React.FC<{
-  devboxId: string;
-}> = ({ devboxId }) => {
+const SuspendDevboxUI = ({ devboxId }: { devboxId: string }) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

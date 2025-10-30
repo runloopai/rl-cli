@@ -16,11 +16,15 @@ interface DownloadOptions {
   outputFormat?: string;
 }
 
-const DownloadFileUI: React.FC<{
+const DownloadFileUI = ({
+  devboxId,
+  filePath,
+  outputPath,
+}: {
   devboxId: string;
   filePath: string;
   outputPath: string;
-}> = ({ devboxId, filePath, outputPath }) => {
+}) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

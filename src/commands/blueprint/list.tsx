@@ -24,10 +24,13 @@ const MAX_FETCH = 100;
 
 type OperationType = "create_devbox" | "delete" | null;
 
-const ListBlueprintsUI: React.FC<{
+const ListBlueprintsUI = ({
+  onBack,
+  onExit,
+}: {
   onBack?: () => void;
   onExit?: () => void;
-}> = ({ onBack, onExit }) => {
+}) => {
   const { stdout } = useStdout();
   const isMounted = React.useRef(true);
 

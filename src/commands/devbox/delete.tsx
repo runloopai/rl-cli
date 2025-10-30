@@ -8,7 +8,7 @@ import { ErrorMessage } from "../../components/ErrorMessage.js";
 import { createExecutor } from "../../utils/CommandExecutor.js";
 import { OutputOptions } from "../../utils/output.js";
 
-const DeleteDevboxUI: React.FC<{ id: string }> = ({ id }) => {
+const DeleteDevboxUI = ({ id }: { id: string }) => {
   const [loading, setLoading] = React.useState(true);
   const [success, setSuccess] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);

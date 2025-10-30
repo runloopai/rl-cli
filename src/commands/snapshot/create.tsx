@@ -14,10 +14,13 @@ interface CreateOptions {
   name?: string;
 }
 
-const CreateSnapshotUI: React.FC<{
+const CreateSnapshotUI = ({
+  devboxId,
+  name,
+}: {
   devboxId: string;
   name?: string;
-}> = ({ devboxId, name }) => {
+}) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

@@ -16,11 +16,15 @@ interface ReadOptions {
   output?: string;
 }
 
-const ReadFileUI: React.FC<{
+const ReadFileUI = ({
+  devboxId,
+  remotePath,
+  outputPath,
+}: {
   devboxId: string;
   remotePath: string;
   outputPath: string;
-}> = ({ devboxId, remotePath, outputPath }) => {
+}) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

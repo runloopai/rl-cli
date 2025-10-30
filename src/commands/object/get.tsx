@@ -14,9 +14,7 @@ interface GetObjectOptions {
   outputFormat?: string;
 }
 
-const GetObjectUI: React.FC<{
-  objectId: string;
-}> = ({ objectId }) => {
+const GetObjectUI = ({ objectId }: { objectId: string }) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

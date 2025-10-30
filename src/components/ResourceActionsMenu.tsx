@@ -42,8 +42,8 @@ type BlueprintMenuProps = BaseProps & {
 
 type ResourceActionsMenuProps = DevboxMenuProps | BlueprintMenuProps;
 
-export const ResourceActionsMenu: React.FC<ResourceActionsMenuProps> = (
-  props,
+export const ResourceActionsMenu = (
+  props: ResourceActionsMenuProps,
 ) => {
   if (props.resourceType === "devbox") {
     const {

@@ -33,12 +33,12 @@ const getColorForKey = (key: string, index: number): string => {
   return colorList[index % colorList.length];
 };
 
-export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
+export const MetadataDisplay = ({
   metadata,
   title = "Metadata",
   showBorder = false,
   selectedKey,
-}) => {
+}: MetadataDisplayProps) => {
   const entries = Object.entries(metadata);
 
   if (entries.length === 0) {

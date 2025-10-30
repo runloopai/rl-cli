@@ -7,10 +7,10 @@ import { ErrorMessage } from "../../components/ErrorMessage.js";
 import { colors } from "../../utils/theme.js";
 import { createExecutor } from "../../utils/CommandExecutor.js";
 
-const ExecCommandUI: React.FC<{ id: string; command: string[] }> = ({
+const ExecCommandUI = ({
   id,
   command,
-}) => {
+}: { id: string; command: string[] }) => {
   const [loading, setLoading] = React.useState(true);
   const [output, setOutput] = React.useState<string>("");
   const [error, setError] = React.useState<Error | null>(null);

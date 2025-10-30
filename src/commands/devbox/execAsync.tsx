@@ -15,11 +15,15 @@ interface ExecAsyncOptions {
   output?: string;
 }
 
-const ExecAsyncUI: React.FC<{
+const ExecAsyncUI = ({
+  devboxId,
+  command,
+  shellName,
+}: {
   devboxId: string;
   command: string;
   shellName?: string;
-}> = ({ devboxId, command, shellName }) => {
+}) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

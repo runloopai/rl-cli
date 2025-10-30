@@ -44,7 +44,7 @@ interface DevboxActionsMenuProps {
   onSSHRequest?: (config: SSHSessionConfig) => void; // Callback when SSH is requested
 }
 
-export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
+export const DevboxActionsMenu = ({
   devbox,
   onBack,
   breadcrumbItems = [
@@ -55,7 +55,7 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
   initialOperationIndex = 0,
   skipOperationsMenu = false,
   onSSHRequest,
-}) => {
+}: DevboxActionsMenuProps) => {
   const { exit } = useApp();
   const [loading, setLoading] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(

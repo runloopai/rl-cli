@@ -43,9 +43,9 @@ interface InteractiveThemeSelectorProps {
   initialTheme: "auto" | "light" | "dark";
 }
 
-const InteractiveThemeSelector: React.FC<InteractiveThemeSelectorProps> = ({
+const InteractiveThemeSelector = ({
   initialTheme,
-}) => {
+}: InteractiveThemeSelectorProps) => {
   const { exit } = useApp();
   const [selectedIndex, setSelectedIndex] = React.useState(() =>
     themeOptions.findIndex((opt) => opt.value === initialTheme),
@@ -221,7 +221,7 @@ interface StaticConfigUIProps {
   value?: "auto" | "light" | "dark";
 }
 
-const StaticConfigUI: React.FC<StaticConfigUIProps> = ({ action, value }) => {
+const StaticConfigUI = ({ action, value }: StaticConfigUIProps) => {
   const [saved, setSaved] = React.useState(false);
 
   React.useEffect(() => {

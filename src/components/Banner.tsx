@@ -3,7 +3,7 @@ import { Box } from "ink";
 import BigText from "ink-big-text";
 import Gradient from "ink-gradient";
 
-export const Banner: React.FC = React.memo(() => {
+export const Banner = React.memo(() => {
   return (
     <Box flexDirection="column" alignItems="flex-start">
       <Gradient name="vice">

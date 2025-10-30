@@ -117,7 +117,7 @@ export function Table<T>({
 
               {/* Render each column */}
               {visibleColumns.map((column, colIndex) => (
-                <React.Fragment key={`${rowKey}-${column.key}`}>
+                <React.Fragment key={`${rowKey}-${column.key}-${colIndex}`}>
                   {column.render(row, index, isSelected)}
                 </React.Fragment>
               ))}

@@ -20,7 +20,7 @@ interface DetailViewProps {
  * Reusable detail view component for displaying entity information
  * Organizes data into sections with labeled items
  */
-export const DetailView: React.FC<DetailViewProps> = ({ sections }) => {
+export const DetailView = ({ sections }: DetailViewProps) => {
   return (
     <Box flexDirection="column" gap={1}>
       {sections.map((section, sectionIndex) => (

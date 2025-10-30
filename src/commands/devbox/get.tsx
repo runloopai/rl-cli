@@ -13,9 +13,7 @@ interface GetOptions {
   output?: string;
 }
 
-const GetDevboxUI: React.FC<{
-  devboxId: string;
-}> = ({ devboxId }) => {
+const GetDevboxUI = ({ devboxId }: { devboxId: string }) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

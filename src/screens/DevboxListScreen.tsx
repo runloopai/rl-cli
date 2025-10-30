@@ -70,11 +70,11 @@ export function DevboxListScreen({ onSSHRequest }: DevboxListScreenProps) {
   });
 
   // Update page size based on viewport
-  React.useEffect(() => {
-    if (viewportHeight !== pageSize) {
-      setPageSize(viewportHeight);
-    }
-  }, [viewportHeight, pageSize, setPageSize]);
+  // React.useEffect(() => {
+  //   if (viewportHeight !== pageSize) {
+  //     setPageSize(viewportHeight);
+  //   }
+  // }, [viewportHeight, pageSize, setPageSize]);
 
   // Fetch data from service
   React.useEffect(() => {

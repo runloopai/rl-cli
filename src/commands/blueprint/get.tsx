@@ -14,9 +14,7 @@ interface GetBlueprintOptions {
   output?: string;
 }
 
-const GetBlueprintUI: React.FC<{
-  blueprintId: string;
-}> = ({ blueprintId }) => {
+const GetBlueprintUI = ({ blueprintId }: { blueprintId: string }) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

@@ -13,9 +13,7 @@ interface LogsOptions {
   output?: string;
 }
 
-const LogsUI: React.FC<{
-  devboxId: string;
-}> = ({ devboxId }) => {
+const LogsUI = ({ devboxId }: { devboxId: string }) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

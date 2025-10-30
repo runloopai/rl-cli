@@ -11,11 +11,15 @@ interface UploadOptions {
   path?: string;
 }
 
-const UploadFileUI: React.FC<{
+const UploadFileUI = ({
+  id,
+  file,
+  targetPath,
+}: {
   id: string;
   file: string;
   targetPath?: string;
-}> = ({ id, file, targetPath }) => {
+}) => {
   const [loading, setLoading] = React.useState(true);
   const [success, setSuccess] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);

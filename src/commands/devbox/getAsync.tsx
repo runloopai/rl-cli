@@ -14,10 +14,13 @@ interface GetAsyncOptions {
   output?: string;
 }
 
-const GetAsyncUI: React.FC<{
+const GetAsyncUI = ({
+  devboxId,
+  executionId,
+}: {
   devboxId: string;
   executionId: string;
-}> = ({ devboxId, executionId }) => {
+}) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

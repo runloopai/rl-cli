@@ -23,10 +23,13 @@ interface SSHOptions {
   output?: string;
 }
 
-const SSHDevboxUI: React.FC<{
+const SSHDevboxUI = ({
+  devboxId,
+  options,
+}: {
   devboxId: string;
   options: SSHOptions;
-}> = ({ devboxId, options }) => {
+}) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

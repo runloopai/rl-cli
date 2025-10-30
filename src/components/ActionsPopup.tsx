@@ -17,12 +17,12 @@ interface ActionsPopupProps {
   onClose: () => void;
 }
 
-export const ActionsPopup: React.FC<ActionsPopupProps> = ({
+export const ActionsPopup = ({
   devbox,
   operations,
   selectedOperation,
   onClose,
-}) => {
+}: ActionsPopupProps) => {
   // Strip ANSI codes to get actual visible length
   const stripAnsi = (str: string) => str.replace(/\u001b\[[0-9;]*m/g, "");
 

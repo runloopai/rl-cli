@@ -51,11 +51,11 @@ interface FormData {
   snapshot_id: string;
 }
 
-export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({
+export const DevboxCreatePage = ({
   onBack,
   onCreate,
   initialBlueprintId,
-}) => {
+}: DevboxCreatePageProps) => {
   const [currentField, setCurrentField] = React.useState<FormField>("create");
   const [formData, setFormData] = React.useState<FormData>({
     name: "",

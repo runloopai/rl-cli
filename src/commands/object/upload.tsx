@@ -18,11 +18,15 @@ interface UploadObjectOptions {
   output?: string;
 }
 
-const UploadObjectUI: React.FC<{
+const UploadObjectUI = ({
+  path,
+  name,
+  contentType,
+}: {
   path: string;
   name: string;
   contentType?: string;
-}> = ({ path, name, contentType }) => {
+}) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

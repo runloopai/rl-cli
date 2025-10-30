@@ -7,7 +7,7 @@ interface HeaderProps {
   subtitle?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
+export const Header = ({ title, subtitle }: HeaderProps) => {
   // Limit lengths to prevent Yoga layout engine errors
   const MAX_TITLE_LENGTH = 100;
   const MAX_SUBTITLE_LENGTH = 150;

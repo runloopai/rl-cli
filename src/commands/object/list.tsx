@@ -21,9 +21,7 @@ interface ListObjectsOptions {
   output?: string;
 }
 
-const ListObjectsUI: React.FC<{
-  options: ListObjectsOptions;
-}> = ({ options }) => {
+const ListObjectsUI = ({ options }: { options: ListObjectsOptions }) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

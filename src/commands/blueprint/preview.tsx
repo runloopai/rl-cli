@@ -16,11 +16,15 @@ interface PreviewBlueprintOptions {
   output?: string;
 }
 
-const PreviewBlueprintUI: React.FC<{
+const PreviewBlueprintUI = ({
+  name,
+  dockerfile,
+  systemSetupCommands,
+}: {
   name: string;
   dockerfile?: string;
   systemSetupCommands?: string[];
-}> = ({ name, dockerfile, systemSetupCommands }) => {
+}) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

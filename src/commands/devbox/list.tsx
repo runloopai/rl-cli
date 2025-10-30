@@ -32,13 +32,19 @@ interface ListOptions {
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_CACHE_SIZE = 10; // Limit cache to 10 pages to prevent memory leaks
 
-const ListDevboxesUI: React.FC<{
+const ListDevboxesUI = ({
+  status,
+  onSSHRequest,
+  focusDevboxId,
+  onBack,
+  onExit,
+}: {
   status?: string;
   onSSHRequest?: (config: SSHSessionConfig) => void;
   focusDevboxId?: string;
   onBack?: () => void;
   onExit?: () => void;
-}> = ({ status, onSSHRequest, focusDevboxId, onBack, onExit }) => {
+}) => {
   const { exit: inkExit } = useApp();
   const [initialLoading, setInitialLoading] = React.useState(true);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

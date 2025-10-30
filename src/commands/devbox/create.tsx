@@ -15,10 +15,13 @@ interface CreateOptions {
   output?: string;
 }
 
-const CreateDevboxUI: React.FC<{
+const CreateDevboxUI = ({
+  name,
+  template,
+}: {
   name?: string;
   template?: string;
-}> = ({ name, template }) => {
+}) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

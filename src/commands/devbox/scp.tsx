@@ -21,12 +21,17 @@ interface SCPOptions {
   outputFormat?: string;
 }
 
-const SCPUI: React.FC<{
+const SCPUI = ({
+  devboxId,
+  src,
+  dst,
+  scpOptions,
+}: {
   devboxId: string;
   src: string;
   dst: string;
   scpOptions?: string;
-}> = ({ devboxId, src, dst, scpOptions }) => {
+}) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

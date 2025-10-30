@@ -21,12 +21,17 @@ interface RsyncOptions {
   outputFormat?: string;
 }
 
-const RsyncUI: React.FC<{
+const RsyncUI = ({
+  devboxId,
+  src,
+  dst,
+  rsyncOptions,
+}: {
   devboxId: string;
   src: string;
   dst: string;
   rsyncOptions?: string;
-}> = ({ devboxId, src, dst, rsyncOptions }) => {
+}) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);
