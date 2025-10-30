@@ -16,11 +16,15 @@ interface WriteOptions {
   output?: string;
 }
 
-const WriteFileUI: React.FC<{
+const WriteFileUI = ({
+  devboxId,
+  inputPath,
+  remotePath,
+}: {
   devboxId: string;
   inputPath: string;
   remotePath: string;
-}> = ({ devboxId, inputPath, remotePath }) => {
+}) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

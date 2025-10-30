@@ -39,11 +39,11 @@ const formatTimeAgo = (timestamp: number): string => {
   return `${years}y ago`;
 };
 
-export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
+export const DevboxDetailPage = ({
   devbox: initialDevbox,
   onBack,
   onSSHRequest,
-}) => {
+}: DevboxDetailPageProps) => {
   const isMounted = React.useRef(true);
 
   // Track mounted state
@@ -166,22 +166,13 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
       })
     : allOperations;
 
-  // Memoize time-based values to prevent re-rendering on every tick
-  const formattedCreateTime = React.useMemo(
-    () =>
-      selectedDevbox.create_time_ms
-        ? new Date(selectedDevbox.create_time_ms).toLocaleString()
-        : "",
-    [selectedDevbox.create_time_ms],
-  );
+  const formattedCreateTime = selectedDevbox.create_time_ms
+    ? new Date(selectedDevbox.create_time_ms).toLocaleString()
+    : "";
 
-  const createTimeAgo = React.useMemo(
-    () =>
-      selectedDevbox.create_time_ms
-        ? formatTimeAgo(selectedDevbox.create_time_ms)
-        : "",
-    [selectedDevbox.create_time_ms],
-  );
+  const createTimeAgo = selectedDevbox.create_time_ms
+    ? formatTimeAgo(selectedDevbox.create_time_ms)
+    : "";
 
   useInput((input, key) => {
     // Don't process input if unmounting
@@ -411,14 +402,14 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
             Launch Commands:
           </Text>,
         );
-        lp.launch_commands.forEach((cmd: string, idx: number) => {
-          lines.push(
-            <Text key={`launch-cmd-${idx}`} dimColor>
-              {" "}
-              {figures.pointer} {cmd}
-            </Text>,
-          );
-        });
+        // lp.launch_commands.forEach((cmd: string, idx: number) => {
+        //   lines.push(
+        //     <Text key={`launch-cmd-${idx}`} dimColor>
+        //       {" "}
+        //       {figures.pointer} {cmd}
+        //     </Text>,
+        //   );
+        // });
       }
       if (lp.required_services && lp.required_services.length > 0) {
         lines.push(
@@ -618,7 +609,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
 
   // Detailed info mode - full screen
   if (showDetailedInfo) {
-    const detailLines = buildDetailLines();
+    const detailLines = [<></>]; //buildDetailLines()]];
     const viewportHeight = detailViewport.viewportHeight;
     const maxScroll = Math.max(0, detailLines.length - viewportHeight);
     const actualScroll = Math.min(detailScroll, maxScroll);

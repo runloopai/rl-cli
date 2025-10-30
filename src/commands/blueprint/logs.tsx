@@ -14,9 +14,7 @@ interface BlueprintLogsOptions {
   output?: string;
 }
 
-const BlueprintLogsUI: React.FC<{
-  blueprintId: string;
-}> = ({ blueprintId }) => {
+const BlueprintLogsUI = ({ blueprintId }: { blueprintId: string }) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

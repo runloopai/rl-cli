@@ -7,9 +7,9 @@ interface SpinnerComponentProps {
   message: string;
 }
 
-export const SpinnerComponent: React.FC<SpinnerComponentProps> = ({
+export const SpinnerComponent = ({
   message,
-}) => {
+}: SpinnerComponentProps) => {
   // Limit message length to prevent Yoga layout engine errors
   const MAX_LENGTH = 200;
   const truncatedMessage =

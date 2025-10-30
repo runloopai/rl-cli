@@ -78,129 +78,170 @@ export function useCursorPagination<T>(
   const pageCache = React.useRef<Map<number, T[]>>(new Map());
   const lastIdCache = React.useRef<Map<number, string>>(new Map());
 
-  const fetchData = React.useCallback(
-    async (isInitialLoad: boolean = false) => {
-      try {
-        if (isInitialLoad) {
-          setRefreshing(true);
-        }
-        setLoading(true);
+  // Store config and state in refs to avoid dependency issues
+  const configRef = React.useRef(config);
+  const loadingRef = React.useRef(loading);
+  const hasMoreRef = React.useRef(hasMore);
+  const currentPageRef = React.useRef(currentPage);
 
-        // Check cache first (skip on refresh)
-        if (!isInitialLoad && pageCache.current.has(currentPage)) {
-          setItems(pageCache.current.get(currentPage) || []);
-          setLoading(false);
-          return;
-        }
+  // Keep refs in sync with state
+  React.useEffect(() => {
+    configRef.current = config;
+  }, [config]);
 
-        const pageItems: T[] = [];
+  React.useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
 
-        // Get starting_at cursor from previous page's last ID
-        const startingAt =
-          currentPage > 0
-            ? lastIdCache.current.get(currentPage - 1)
-            : undefined;
+  React.useEffect(() => {
+    hasMoreRef.current = hasMore;
+  }, [hasMore]);
 
-        // Build query params
-        const queryParams: any = {
-          limit: config.pageSize,
-          ...config.queryParams,
-        };
-        if (startingAt) {
-          queryParams.starting_at = startingAt;
-        }
+  React.useEffect(() => {
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
 
-        // Fetch the page
-        const result = await config.fetchPage(queryParams);
+  // Fetch function ref - defined once, uses refs for all dependencies
+  const fetchDataRef = React.useRef<
+    (page: number, isInitialLoad: boolean) => Promise<void>
+  >(async () => {
+    // Placeholder - will be replaced immediately
+  });
 
-        // Extract items (handle both array response and paginated response)
-        const fetchedItems = Array.isArray(result) ? result : result.items;
-        pageItems.push(...fetchedItems.slice(0, config.pageSize));
-
-        // Update pagination metadata
-        if (!Array.isArray(result)) {
-          setTotalCount(result.total_count || pageItems.length);
-          setHasMore(result.has_more || false);
-        } else {
-          setTotalCount(pageItems.length);
-          setHasMore(false);
-        }
-
-        // Cache the page data and last ID
-        if (pageItems.length > 0) {
-          pageCache.current.set(currentPage, pageItems);
-          lastIdCache.current.set(
-            currentPage,
-            config.getItemId(pageItems[pageItems.length - 1]),
-          );
-        }
-
-        // Update items for current page
-        setItems(pageItems);
-      } catch (err) {
-        setError(err as Error);
-      } finally {
-        setLoading(false);
-        if (isInitialLoad) {
-          setTimeout(() => setRefreshing(false), 300);
-        }
+  // Initialize fetchData function
+  fetchDataRef.current = async (
+    page: number,
+    isInitialLoad: boolean = false,
+  ) => {
+    try {
+      if (isInitialLoad) {
+        setRefreshing(true);
       }
-    },
-    [currentPage, config],
-  );
+      setLoading(true);
+      loadingRef.current = true;
+
+      // Check cache first (skip on refresh)
+      if (!isInitialLoad && pageCache.current.has(page)) {
+        const cachedItems = pageCache.current.get(page) || [];
+        setItems(cachedItems);
+        setLoading(false);
+        loadingRef.current = false;
+        return;
+      }
+
+      const pageItems: T[] = [];
+      const config = configRef.current;
+
+      // Get starting_at cursor from previous page's last ID
+      const startingAt =
+        page > 0 ? lastIdCache.current.get(page - 1) : undefined;
+
+      // Build query params
+      const queryParams: any = {
+        limit: config.pageSize,
+        ...config.queryParams,
+      };
+      if (startingAt) {
+        queryParams.starting_at = startingAt;
+      }
+
+      // Fetch the page
+      const result = await config.fetchPage(queryParams);
+
+      // Extract items (handle both array response and paginated response)
+      const fetchedItems = Array.isArray(result) ? result : result.items;
+      pageItems.push(...fetchedItems.slice(0, config.pageSize));
+
+      // Update pagination metadata
+      if (!Array.isArray(result)) {
+        setTotalCount(result.total_count || pageItems.length);
+        const hasMoreValue = result.has_more || false;
+        setHasMore(hasMoreValue);
+        hasMoreRef.current = hasMoreValue;
+      } else {
+        setTotalCount(pageItems.length);
+        setHasMore(false);
+        hasMoreRef.current = false;
+      }
+
+      // Cache the page data and last ID
+      if (pageItems.length > 0) {
+        pageCache.current.set(page, pageItems);
+        lastIdCache.current.set(
+          page,
+          config.getItemId(pageItems[pageItems.length - 1]),
+        );
+      }
+
+      // Update items for current page
+      setItems(pageItems);
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setLoading(false);
+      loadingRef.current = false;
+      if (isInitialLoad) {
+        setTimeout(() => setRefreshing(false), 300);
+      }
+    }
+  };
 
   // Initial load and page changes
   React.useEffect(() => {
-    fetchData(true);
-  }, [fetchData, currentPage]);
+    if (fetchDataRef.current) {
+      fetchDataRef.current(currentPage, true);
+    }
+  }, [currentPage]);
 
-  // Auto-refresh
+  // Auto-refresh - recreate interval when refreshInterval changes
   React.useEffect(() => {
-    if (!config.refreshInterval || config.refreshInterval <= 0) {
+    const interval = config.refreshInterval;
+    if (!interval || interval <= 0) {
       return;
     }
 
-    const interval = setInterval(() => {
+    const refreshTimer = setInterval(() => {
       // Clear cache on refresh
       pageCache.current.clear();
       lastIdCache.current.clear();
-      fetchData(false);
-    }, config.refreshInterval);
+      if (fetchDataRef.current) {
+        fetchDataRef.current(currentPageRef.current, false);
+      }
+    }, interval);
 
-    return () => clearInterval(interval);
-  }, [config.refreshInterval, fetchData]);
+    return () => clearInterval(refreshTimer);
+  }, [config.refreshInterval]); // Only recreate when refreshInterval changes
 
-  const nextPage = React.useCallback(() => {
-    if (!loading && hasMore) {
+  const nextPage = () => {
+    if (!loadingRef.current && hasMoreRef.current) {
       setCurrentPage((prev) => prev + 1);
     }
-  }, [loading, hasMore]);
+  };
 
-  const prevPage = React.useCallback(() => {
-    if (!loading && currentPage > 0) {
+  const prevPage = () => {
+    if (!loadingRef.current && currentPageRef.current > 0) {
       setCurrentPage((prev) => prev - 1);
     }
-  }, [loading, currentPage]);
+  };
 
-  const goToPage = React.useCallback(
-    (page: number) => {
-      if (!loading && page >= 0) {
-        setCurrentPage(page);
-      }
-    },
-    [loading],
-  );
+  const goToPage = (page: number) => {
+    if (!loadingRef.current && page >= 0) {
+      setCurrentPage(page);
+    }
+  };
 
-  const refresh = React.useCallback(() => {
+  const refresh = () => {
     pageCache.current.clear();
     lastIdCache.current.clear();
-    fetchData(true);
-  }, [fetchData]);
+    if (fetchDataRef.current) {
+      fetchDataRef.current(currentPageRef.current, true);
+    }
+  };
 
-  const clearCache = React.useCallback(() => {
+  const clearCache = () => {
     pageCache.current.clear();
     lastIdCache.current.clear();
-  }, []);
+  };
 
   return {
     items,

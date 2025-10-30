@@ -23,17 +23,7 @@ interface CreateBlueprintOptions {
   output?: string;
 }
 
-const CreateBlueprintUI: React.FC<{
-  name: string;
-  dockerfile?: string;
-  dockerfilePath?: string;
-  systemSetupCommands?: string[];
-  resources?: string;
-  architecture?: string;
-  availablePorts?: string[];
-  root?: boolean;
-  user?: string;
-}> = ({
+const CreateBlueprintUI = ({
   name,
   dockerfile,
   dockerfilePath,
@@ -43,6 +33,16 @@ const CreateBlueprintUI: React.FC<{
   availablePorts,
   root,
   user,
+}: {
+  name: string;
+  dockerfile?: string;
+  dockerfilePath?: string;
+  systemSetupCommands?: string[];
+  resources?: string;
+  architecture?: string;
+  availablePorts?: string[];
+  root?: boolean;
+  user?: string;
 }) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);

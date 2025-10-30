@@ -27,11 +27,15 @@ interface ListOptions {
 const PAGE_SIZE = 10;
 const MAX_FETCH = 100;
 
-const ListSnapshotsUI: React.FC<{
+const ListSnapshotsUI = ({
+  devboxId,
+  onBack,
+  onExit,
+}: {
   devboxId?: string;
   onBack?: () => void;
   onExit?: () => void;
-}> = ({ devboxId, onBack, onExit }) => {
+}) => {
   const { stdout } = useStdout();
 
   // Sample terminal width ONCE for fixed layout - no reactive dependencies to avoid re-renders

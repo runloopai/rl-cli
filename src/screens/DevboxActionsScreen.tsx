@@ -25,8 +25,14 @@ export function DevboxActionsScreen({
   // Find devbox in store
   const devbox = devboxes.find((d) => d.id === devboxId);
 
+  // Navigate back if devbox not found - must be in useEffect, not during render
+  React.useEffect(() => {
+    if (!devbox) {
+      goBack();
+    }
+  }, [devbox, goBack]);
+
   if (!devbox) {
-    goBack();
     return null;
   }
 

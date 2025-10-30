@@ -15,43 +15,40 @@ interface MenuItem {
   color: string;
 }
 
+const menuItems: MenuItem[] = [
+  {
+    key: "devboxes",
+    label: "Devboxes",
+    description: "Manage cloud development environments",
+    icon: "◉",
+    color: colors.accent1,
+  },
+  {
+    key: "blueprints",
+    label: "Blueprints",
+    description: "Create and manage devbox templates",
+    icon: "▣",
+    color: colors.accent2,
+  },
+  {
+    key: "snapshots",
+    label: "Snapshots",
+    description: "Save and restore devbox states",
+    icon: "◈",
+    color: colors.accent3,
+  },
+];
+
 interface MainMenuProps {
   onSelect: (key: string) => void;
 }
 
-export const MainMenu: React.FC<MainMenuProps> = ({ onSelect }) => {
+export const MainMenu = ({ onSelect }: MainMenuProps) => {
   const { exit } = useApp();
   const [selectedIndex, setSelectedIndex] = React.useState(0);
 
   // Use centralized viewport hook for consistent layout
   const { terminalHeight } = useViewportHeight({ overhead: 0 });
-
-  const menuItems: MenuItem[] = React.useMemo(
-    () => [
-      {
-        key: "devboxes",
-        label: "Devboxes",
-        description: "Manage cloud development environments",
-        icon: "◉",
-        color: colors.accent1,
-      },
-      {
-        key: "blueprints",
-        label: "Blueprints",
-        description: "Create and manage devbox templates",
-        icon: "▣",
-        color: colors.accent2,
-      },
-      {
-        key: "snapshots",
-        label: "Snapshots",
-        description: "Save and restore devbox states",
-        icon: "◈",
-        color: colors.accent3,
-      },
-    ],
-    [],
-  );
 
   useInput((input, key) => {
     if (key.upArrow && selectedIndex > 0) {
@@ -72,10 +69,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onSelect }) => {
   });
 
   // Use compact layout if terminal height is less than 20 lines (memoized)
-  const useCompactLayout = React.useMemo(
-    () => terminalHeight < 20,
-    [terminalHeight],
-  );
+  const useCompactLayout = terminalHeight < 20;
 
   if (useCompactLayout) {
     return (

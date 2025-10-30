@@ -11,7 +11,7 @@ interface BreadcrumbProps {
   items: BreadcrumbItem[];
 }
 
-export const Breadcrumb: React.FC<BreadcrumbProps> = ({ items }) => {
+export const Breadcrumb = ({ items }: BreadcrumbProps) => {
   const env = process.env.RUNLOOP_ENV?.toLowerCase();
   const isDevEnvironment = env === "dev";
 

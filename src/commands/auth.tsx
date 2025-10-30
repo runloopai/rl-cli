@@ -8,7 +8,7 @@ import { SuccessMessage } from "../components/SuccessMessage.js";
 import { getSettingsUrl } from "../utils/url.js";
 import { colors } from "../utils/theme.js";
 
-const AuthUI: React.FC = () => {
+const AuthUI = () => {
   const [apiKey, setApiKeyInput] = React.useState("");
   const [saved, setSaved] = React.useState(false);
 

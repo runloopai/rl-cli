@@ -17,12 +17,17 @@ interface DownloadObjectOptions {
   outputFormat?: string;
 }
 
-const DownloadObjectUI: React.FC<{
+const DownloadObjectUI = ({
+  objectId,
+  path,
+  extract,
+  durationSeconds,
+}: {
   objectId: string;
   path: string;
   extract?: boolean;
   durationSeconds?: number;
-}> = ({ objectId, path, extract, durationSeconds }) => {
+}) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

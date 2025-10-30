@@ -13,9 +13,7 @@ interface ResumeOptions {
   output?: string;
 }
 
-const ResumeDevboxUI: React.FC<{
-  devboxId: string;
-}> = ({ devboxId }) => {
+const ResumeDevboxUI = ({ devboxId }: { devboxId: string }) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

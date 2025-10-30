@@ -19,10 +19,13 @@ interface TunnelOptions {
   outputFormat?: string;
 }
 
-const TunnelUI: React.FC<{
+const TunnelUI = ({
+  devboxId,
+  ports,
+}: {
   devboxId: string;
   ports: string;
-}> = ({ devboxId, ports }) => {
+}) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

@@ -14,9 +14,7 @@ interface SnapshotStatusOptions {
   outputFormat?: string;
 }
 
-const SnapshotStatusUI: React.FC<{
-  snapshotId: string;
-}> = ({ snapshotId }) => {
+const SnapshotStatusUI = ({ snapshotId }: { snapshotId: string }) => {
   const [loading, setLoading] = React.useState(true);
   const [result, setResult] = React.useState<any>(null);
   const [error, setError] = React.useState<Error | null>(null);

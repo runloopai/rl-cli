@@ -10,7 +10,6 @@ export {
 export type {
   ScreenName,
   RouteParams,
-  Route,
   NavigationProviderProps,
 } from "./navigationStore.js";
 
