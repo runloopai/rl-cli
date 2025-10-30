@@ -131,14 +131,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
     <Box flexDirection="column">
       <Breadcrumb items={[{ label: "Home", active: true }]} />
 
-      {/* Wrap Banner in Static so it only renders once */}
-      <Static items={[{ key: "banner" }]}>
-        {(item) => (
-          <Box key={item.key} flexShrink={0}>
-            <Banner />
-          </Box>
-        )}
-      </Static>
+      <Banner />
 
       <Box flexDirection="column" paddingX={2} flexShrink={0}>
         <Box paddingX={1}>
