@@ -5,7 +5,10 @@
  */
 import React from "react";
 import { spawn, ChildProcess } from "child_process";
-import { exitAlternateScreen, enterAlternateScreen } from "../utils/screen.js";
+import {
+  exitAlternateScreenBuffer,
+  enterAlternateScreenBuffer,
+} from "../utils/screen.js";
 
 interface InteractiveSpawnProps {
   command: string;
@@ -34,7 +37,7 @@ export const InteractiveSpawn: React.FC<InteractiveSpawnProps> = ({
     hasSpawnedRef.current = true;
 
     // Exit alternate screen so SSH gets a clean terminal
-    exitAlternateScreen();
+    exitAlternateScreenBuffer();
 
     // Small delay to ensure terminal state is clean
     setTimeout(() => {
@@ -52,7 +55,7 @@ export const InteractiveSpawn: React.FC<InteractiveSpawnProps> = ({
         hasSpawnedRef.current = false;
 
         // Re-enter alternate screen after process exits
-        enterAlternateScreen();
+        enterAlternateScreenBuffer();
 
         if (onExit) {
           onExit(code);
@@ -65,7 +68,7 @@ export const InteractiveSpawn: React.FC<InteractiveSpawnProps> = ({
         hasSpawnedRef.current = false;
 
         // Re-enter alternate screen on error
-        enterAlternateScreen();
+        enterAlternateScreenBuffer();
 
         if (onError) {
           onError(error);
@@ -86,4 +89,3 @@ export const InteractiveSpawn: React.FC<InteractiveSpawnProps> = ({
   // The subprocess output goes directly to the terminal via stdio: "inherit"
   return null;
 };
-

@@ -1,6 +1,9 @@
 import React from "react";
 import { render } from "ink";
-import { enterAlternateScreen, exitAlternateScreen } from "../utils/screen.js";
+import {
+  enterAlternateScreenBuffer,
+  exitAlternateScreenBuffer,
+} from "../utils/screen.js";
 
 import { Router } from "../router/Router.js";
 import { NavigationProvider } from "../store/navigationStore.js";
@@ -33,8 +36,7 @@ export async function runMainMenu(
   initialScreen: ScreenName = "menu",
   focusDevboxId?: string,
 ) {
-  // Enter alternate screen buffer for fullscreen experience (like top/vim)
-  //enterAlternateScreen();
+  enterAlternateScreenBuffer();
 
   try {
     const { waitUntilExit } = render(
@@ -53,8 +55,7 @@ export async function runMainMenu(
     console.error("Error in menu:", error);
   }
 
-  // Exit alternate screen buffer
-  //exitAlternateScreen();
+  exitAlternateScreenBuffer();
 
   process.exit(0);
 }

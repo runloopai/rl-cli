@@ -8,7 +8,7 @@ import { ErrorMessage } from "./ErrorMessage.js";
 import { Table, Column } from "./Table.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
-import { exitAlternateScreen } from "../utils/screen.js";
+import { exitAlternateScreenBuffer } from "../utils/screen.js";
 
 // Format time ago in a succinct way
 export const formatTimeAgo = (timestamp: number): string => {
@@ -218,7 +218,7 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
 
     // Handle Ctrl+C to force exit
     if (key.ctrl && input === "c") {
-      exitAlternateScreen(); // Exit alternate screen
+      exitAlternateScreenBuffer(); // Exit alternate screen
       process.exit(130);
     }
 
