@@ -18,6 +18,7 @@ import { ResourceActionsMenu } from "../../components/ResourceActionsMenu.js";
 import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { getDevboxUrl } from "../../utils/url.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
+import { exitAlternateScreen } from "../../utils/screen.js";
 import {
   runSSHSession,
   type SSHSessionConfig,
@@ -556,7 +557,7 @@ const ListDevboxesUI = ({
   useInput((input, key) => {
     // Handle Ctrl+C to force exit
     if (key.ctrl && input === "c") {
-      process.stdout.write("\x1b[?1049l"); // Exit alternate screen
+      exitAlternateScreen(); // Exit alternate screen
       process.exit(130);
     }
 

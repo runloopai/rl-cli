@@ -1,12 +1,10 @@
 import React from "react";
 import { render } from "ink";
 import { runSSHSession, type SSHSessionConfig } from "../utils/sshSession.js";
+import { enterAlternateScreen, exitAlternateScreen } from "../utils/screen.js";
 
 import { Router } from "../router/Router.js";
-import {
-  NavigationProvider,
-  useNavigation,
-} from "../store/navigationStore.js";
+import { NavigationProvider } from "../store/navigationStore.js";
 import type { ScreenName } from "../store/navigationStore.js";
 
 interface AppProps {
@@ -45,7 +43,7 @@ export async function runMainMenu(
   focusDevboxId?: string,
 ) {
   // Enter alternate screen buffer for fullscreen experience (like top/vim)
-  //process.stdout.write("\x1b[?1049h");
+  enterAlternateScreen();
 
   let sshSessionConfig: SSHSessionConfig | null = null;
   let shouldContinue = true;
@@ -68,14 +66,6 @@ export async function runMainMenu(
         {
           patchConsole: false,
           exitOnCtrlC: false,
-          //debug: true,
-          // onRender: (metrics) => {
-          //   console.log(
-          //     "==== onRender ====",
-          //     new Date().toISOString(),
-          //     metrics,
-          //   );
-          // },
         },
       );
       await waitUntilExit();
@@ -106,7 +96,7 @@ export async function runMainMenu(
   // disableSynchronousUpdates();
 
   // Exit alternate screen buffer
-  //process.stdout.write("\x1b[?1049l");
+  exitAlternateScreen();
 
   process.exit(0);
 }

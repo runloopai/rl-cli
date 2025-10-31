@@ -13,6 +13,7 @@ import {
   OutputOptions,
 } from "./output.js";
 import { enableSynchronousUpdates, disableSynchronousUpdates } from "./terminalSync.js";
+import { exitAlternateScreen, enterAlternateScreen } from "./screen.js";
 import YAML from "yaml";
 
 export class CommandExecutor<T = unknown> {
@@ -56,7 +57,7 @@ export class CommandExecutor<T = unknown> {
     
     // Exit alternate screen buffer
     disableSynchronousUpdates();
-    process.stdout.write("\x1b[?1049l");
+    exitAlternateScreen();
   }
 
   /**
@@ -78,7 +79,7 @@ export class CommandExecutor<T = unknown> {
 
     // Interactive mode
     // Enter alternate screen buffer (this automatically clears the screen)
-    process.stdout.write("\x1b[?1049h");
+    enterAlternateScreen();
     enableSynchronousUpdates();
     
     const { waitUntilExit } = render(renderUI(), {
@@ -89,7 +90,7 @@ export class CommandExecutor<T = unknown> {
     
     // Exit alternate screen buffer
     disableSynchronousUpdates();
-    process.stdout.write("\x1b[?1049l");
+    exitAlternateScreen();
   }
 
   /**
@@ -112,7 +113,7 @@ export class CommandExecutor<T = unknown> {
 
     // Interactive mode
     // Enter alternate screen buffer
-    process.stdout.write("\x1b[?1049h");
+    enterAlternateScreen();
     enableSynchronousUpdates();
     
     const { waitUntilExit } = render(renderUI(), {
@@ -123,7 +124,7 @@ export class CommandExecutor<T = unknown> {
     
     // Exit alternate screen buffer
     disableSynchronousUpdates();
-    process.stdout.write("\x1b[?1049l");
+    exitAlternateScreen();
   }
 
   /**
