@@ -12,8 +12,14 @@ import {
   outputResult,
   OutputOptions,
 } from "./output.js";
-import { enableSynchronousUpdates, disableSynchronousUpdates } from "./terminalSync.js";
-import { exitAlternateScreen, enterAlternateScreen } from "./screen.js";
+import {
+  enableSynchronousUpdates,
+  disableSynchronousUpdates,
+} from "./terminalSync.js";
+import {
+  exitAlternateScreenBuffer,
+  enterAlternateScreenBuffer,
+} from "./screen.js";
 import YAML from "yaml";
 
 export class CommandExecutor<T = unknown> {
@@ -46,18 +52,18 @@ export class CommandExecutor<T = unknown> {
 
     // Interactive mode
     // Enter alternate screen buffer (this automatically clears the screen)
-    
+
     enableSynchronousUpdates();
-    
+
     const { waitUntilExit } = render(renderUI(), {
       patchConsole: false,
       exitOnCtrlC: false,
     });
     await waitUntilExit();
-    
+
     // Exit alternate screen buffer
     disableSynchronousUpdates();
-    exitAlternateScreen();
+    exitAlternateScreenBuffer();
   }
 
   /**
@@ -79,18 +85,18 @@ export class CommandExecutor<T = unknown> {
 
     // Interactive mode
     // Enter alternate screen buffer (this automatically clears the screen)
-    enterAlternateScreen();
+    enterAlternateScreenBuffer();
     enableSynchronousUpdates();
-    
+
     const { waitUntilExit } = render(renderUI(), {
       patchConsole: false,
       exitOnCtrlC: false,
     });
     await waitUntilExit();
-    
+
     // Exit alternate screen buffer
     disableSynchronousUpdates();
-    exitAlternateScreen();
+    exitAlternateScreenBuffer();
   }
 
   /**
@@ -113,18 +119,18 @@ export class CommandExecutor<T = unknown> {
 
     // Interactive mode
     // Enter alternate screen buffer
-    enterAlternateScreen();
+    enterAlternateScreenBuffer();
     enableSynchronousUpdates();
-    
+
     const { waitUntilExit } = render(renderUI(), {
       patchConsole: false,
       exitOnCtrlC: false,
     });
     await waitUntilExit();
-    
+
     // Exit alternate screen buffer
     disableSynchronousUpdates();
-    exitAlternateScreen();
+    exitAlternateScreenBuffer();
   }
 
   /**

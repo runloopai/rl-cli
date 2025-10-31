@@ -18,7 +18,7 @@ import { ResourceActionsMenu } from "../../components/ResourceActionsMenu.js";
 import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { getDevboxUrl } from "../../utils/url.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
-import { exitAlternateScreen } from "../../utils/screen.js";
+import { exitAlternateScreenBuffer } from "../../utils/screen.js";
 import { colors } from "../../utils/theme.js";
 
 interface ListOptions {
@@ -551,7 +551,7 @@ const ListDevboxesUI = ({
   useInput((input, key) => {
     // Handle Ctrl+C to force exit
     if (key.ctrl && input === "c") {
-      exitAlternateScreen(); // Exit alternate screen
+      exitAlternateScreenBuffer(); // Exit alternate screen
       process.exit(130);
     }
 
