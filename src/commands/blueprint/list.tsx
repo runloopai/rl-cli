@@ -18,6 +18,7 @@ import { getBlueprintUrl } from "../../utils/url.js";
 import { colors } from "../../utils/theme.js";
 import { getStatusDisplay } from "../../components/StatusBadge.js";
 import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
+import { exitAlternateScreen } from "../../utils/screen.js";
 
 const PAGE_SIZE = 10;
 const MAX_FETCH = 100;
@@ -316,7 +317,7 @@ const ListBlueprintsUI = ({
 
     // Handle Ctrl+C to force exit
     if (key.ctrl && input === "c") {
-      process.stdout.write("\x1b[?1049l"); // Exit alternate screen
+      exitAlternateScreen(); // Exit alternate screen
       process.exit(130);
     }
 

@@ -19,10 +19,12 @@ const packageJson = JSON.parse(
 );
 export const VERSION = packageJson.version;
 
+import { exitAlternateScreen } from "./utils/screen.js";
+
 // Global Ctrl+C handler to ensure it always exits
 process.on("SIGINT", () => {
   // Force exit immediately, clearing alternate screen buffer
-  process.stdout.write("\x1b[?1049l");
+  exitAlternateScreen();
   process.stdout.write("\n");
   process.exit(130); // Standard exit code for SIGINT
 });

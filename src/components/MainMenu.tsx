@@ -6,6 +6,7 @@ import { Breadcrumb } from "./Breadcrumb.js";
 import { VERSION } from "../cli.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
+import { exitAlternateScreen } from "../utils/screen.js";
 
 interface MenuItem {
   key: string;
@@ -65,6 +66,9 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       onSelect("blueprints");
     } else if (input === "s" || input === "3") {
       onSelect("snapshots");
+    } else if (key.ctrl && input === "c") {
+      exitAlternateScreen();
+      process.exit(130);
     }
   });
 
