@@ -6,18 +6,15 @@ import React from "react";
 import { useNavigation } from "../store/navigationStore.js";
 import { useDevboxStore } from "../store/devboxStore.js";
 import { DevboxActionsMenu } from "../components/DevboxActionsMenu.js";
-import type { SSHSessionConfig } from "../utils/sshSession.js";
 
 interface DevboxActionsScreenProps {
   devboxId?: string;
   operation?: string;
-  onSSHRequest?: (config: SSHSessionConfig) => void;
 }
 
 export function DevboxActionsScreen({
   devboxId,
   operation,
-  onSSHRequest,
 }: DevboxActionsScreenProps) {
   const { goBack } = useNavigation();
   const devboxes = useDevboxStore((state) => state.devboxes);
@@ -41,7 +38,6 @@ export function DevboxActionsScreen({
       devbox={devbox}
       onBack={goBack}
       initialOperation={operation}
-      onSSHRequest={onSSHRequest}
     />
   );
 }

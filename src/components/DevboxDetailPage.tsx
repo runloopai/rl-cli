@@ -7,14 +7,12 @@ import { MetadataDisplay } from "./MetadataDisplay.js";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { DevboxActionsMenu } from "./DevboxActionsMenu.js";
 import { getDevboxUrl } from "../utils/url.js";
-import type { SSHSessionConfig } from "../utils/sshSession.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 
 interface DevboxDetailPageProps {
   devbox: any;
   onBack: () => void;
-  onSSHRequest?: (config: SSHSessionConfig) => void;
 }
 
 // Format time ago in a succinct way
@@ -42,7 +40,6 @@ const formatTimeAgo = (timestamp: number): string => {
 export const DevboxDetailPage = ({
   devbox: initialDevbox,
   onBack,
-  onSSHRequest,
 }: DevboxDetailPageProps) => {
   const isMounted = React.useRef(true);
 
@@ -602,7 +599,6 @@ export const DevboxDetailPage = ({
         ]}
         initialOperation={selectedOp?.key}
         skipOperationsMenu={true}
-        onSSHRequest={onSSHRequest}
       />
     );
   }

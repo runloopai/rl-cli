@@ -19,13 +19,8 @@ import { ActionsPopup } from "../components/ActionsPopup.js";
 import { getDevboxUrl } from "../utils/url.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { colors, sanitizeWidth } from "../utils/theme.js";
-import type { SSHSessionConfig } from "../utils/sshSession.js";
 
-interface DevboxListScreenProps {
-  onSSHRequest?: (config: SSHSessionConfig) => void;
-}
-
-export function DevboxListScreen({ onSSHRequest }: DevboxListScreenProps) {
+export function DevboxListScreen() {
   // Get state from store
   const devboxes = useDevboxStore((state) => state.devboxes);
   const loading = useDevboxStore((state) => state.loading);
@@ -314,8 +309,8 @@ export function DevboxListScreen({ onSSHRequest }: DevboxListScreenProps) {
         (devbox: any) => {
           if (devbox?.blueprint_id) {
             const bpId = String(devbox.blueprint_id);
-            const truncated = bpId.slice(0, 10);
-            const text = `blueprint:${truncated}`;
+            const truncated = bpId.slice(0, 16);
+            const text = `${truncated}`;
             return text.length > 30 ? text.substring(0, 27) + "..." : text;
           }
           return "-";

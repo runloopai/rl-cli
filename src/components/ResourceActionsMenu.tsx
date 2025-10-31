@@ -28,7 +28,6 @@ interface BaseProps {
 
 type DevboxMenuProps = BaseProps & {
   resourceType: "devbox";
-  onSSHRequest?: (config: any) => void;
 };
 
 type BlueprintMenuProps = BaseProps & {
@@ -53,7 +52,6 @@ export const ResourceActionsMenu = (
       initialOperation,
       initialOperationIndex,
       skipOperationsMenu,
-      onSSHRequest,
     } = props;
 
     return (
@@ -64,7 +62,6 @@ export const ResourceActionsMenu = (
         initialOperation={initialOperation}
         initialOperationIndex={initialOperationIndex}
         skipOperationsMenu={skipOperationsMenu}
-        onSSHRequest={onSSHRequest}
       />
     );
   }

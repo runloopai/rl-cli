@@ -9,7 +9,8 @@ export type ScreenName =
   | "blueprint-list"
   | "blueprint-detail"
   | "snapshot-list"
-  | "snapshot-detail";
+  | "snapshot-detail"
+  | "ssh-session";
 
 export interface RouteParams {
   devboxId?: string;
@@ -18,7 +19,15 @@ export interface RouteParams {
   operation?: string;
   focusDevboxId?: string;
   status?: string;
-  [key: string]: string | undefined;
+  // SSH session params
+  keyPath?: string;
+  proxyCommand?: string;
+  sshUser?: string;
+  url?: string;
+  devboxName?: string;
+  returnScreen?: ScreenName;
+  returnParams?: RouteParams;
+  [key: string]: string | ScreenName | RouteParams | undefined;
 }
 
 interface NavigationContextValue {

@@ -19,10 +19,6 @@ import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { getDevboxUrl } from "../../utils/url.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { exitAlternateScreen } from "../../utils/screen.js";
-import {
-  runSSHSession,
-  type SSHSessionConfig,
-} from "../../utils/sshSession.js";
 import { colors } from "../../utils/theme.js";
 
 interface ListOptions {
@@ -35,13 +31,11 @@ const MAX_CACHE_SIZE = 10; // Limit cache to 10 pages to prevent memory leaks
 
 const ListDevboxesUI = ({
   status,
-  onSSHRequest,
   focusDevboxId,
   onBack,
   onExit,
 }: {
   status?: string;
-  onSSHRequest?: (config: SSHSessionConfig) => void;
   focusDevboxId?: string;
   onBack?: () => void;
   onExit?: () => void;
@@ -220,8 +214,8 @@ const ListDevboxesUI = ({
           (devbox: any) => {
             if (devbox?.blueprint_id) {
               const bpId = String(devbox.blueprint_id);
-              const truncated = bpId.slice(0, 10);
-              const text = `blueprint:${truncated}`;
+              const truncated = bpId.slice(0, 16);
+              const text = `${truncated}`;
               // Cap source text to absolute maximum
               return text.length > 30 ? text.substring(0, 27) + "..." : text;
             }
@@ -776,7 +770,6 @@ const ListDevboxesUI = ({
         ]}
         initialOperation={selectedOp?.key}
         skipOperationsMenu={true}
-        onSSHRequest={onSSHRequest}
       />
     );
   }
@@ -787,7 +780,6 @@ const ListDevboxesUI = ({
       <DevboxDetailPage
         devbox={selectedDevbox}
         onBack={() => setShowDetails(false)}
-        onSSHRequest={onSSHRequest}
       />
     );
   }
@@ -971,8 +963,6 @@ export async function listDevboxes(
 ) {
   const executor = createExecutor(options);
 
-  let sshSessionConfig: SSHSessionConfig | null = null;
-
   await executor.executeList(
     async () => {
       const client = executor.getClient();
@@ -984,29 +974,8 @@ export async function listDevboxes(
       });
     },
     () => (
-      <ListDevboxesUI
-        status={options.status}
-        focusDevboxId={focusDevboxId}
-        onSSHRequest={(config) => {
-          sshSessionConfig = config;
-        }}
-      />
+      <ListDevboxesUI status={options.status} focusDevboxId={focusDevboxId} />
     ),
     DEFAULT_PAGE_SIZE,
   );
-
-  // If SSH was requested, handle it now after Ink has exited
-  if (sshSessionConfig) {
-    const result = await runSSHSession(sshSessionConfig);
-
-    if (result.shouldRestart) {
-      console.log(`\nSSH session ended. Returning to CLI...\n`);
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Restart the list view with the devbox ID to focus on
-      await listDevboxes(options, result.returnToDevboxId);
-    } else {
-      process.exit(result.exitCode);
-    }
-  }
 }

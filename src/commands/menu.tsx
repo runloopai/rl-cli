@@ -1,39 +1,30 @@
 import React from "react";
 import { render } from "ink";
-import { runSSHSession, type SSHSessionConfig } from "../utils/sshSession.js";
 import { enterAlternateScreen, exitAlternateScreen } from "../utils/screen.js";
 
 import { Router } from "../router/Router.js";
 import { NavigationProvider } from "../store/navigationStore.js";
 import type { ScreenName } from "../store/navigationStore.js";
 
-interface AppProps {
-  onSSHRequest: (config: SSHSessionConfig) => void;
-  initialScreen?: ScreenName;
-  focusDevboxId?: string;
-}
-
-function AppInner({
-  onSSHRequest,
-}: {
-  onSSHRequest: (config: SSHSessionConfig) => void;
-}) {
+function AppInner() {
   // NavigationProvider already handles initialScreen and initialParams
   // No need for useEffect here - provider sets state on mount
-  return <Router onSSHRequest={onSSHRequest} />;
+  return <Router />;
 }
 
 function App({
-  onSSHRequest,
   initialScreen = "menu",
   focusDevboxId,
-}: AppProps) {
+}: {
+  initialScreen?: ScreenName;
+  focusDevboxId?: string;
+}) {
   return (
     <NavigationProvider
       initialScreen={initialScreen}
       initialParams={focusDevboxId ? { focusDevboxId } : {}}
     >
-      <AppInner onSSHRequest={onSSHRequest} />
+      <AppInner />
     </NavigationProvider>
   );
 }
@@ -43,60 +34,27 @@ export async function runMainMenu(
   focusDevboxId?: string,
 ) {
   // Enter alternate screen buffer for fullscreen experience (like top/vim)
-  enterAlternateScreen();
+  //enterAlternateScreen();
 
-  let sshSessionConfig: SSHSessionConfig | null = null;
-  let shouldContinue = true;
-  let currentInitialScreen = initialScreen;
-  let currentFocusDevboxId = focusDevboxId;
-
-  while (shouldContinue) {
-    sshSessionConfig = null;
-
-    try {
-      const { waitUntilExit } = render(
-        <App
-          key={`app-${currentInitialScreen}-${currentFocusDevboxId}`}
-          onSSHRequest={(config) => {
-            sshSessionConfig = config;
-          }}
-          initialScreen={currentInitialScreen}
-          focusDevboxId={currentFocusDevboxId}
-        />,
-        {
-          patchConsole: false,
-          exitOnCtrlC: false,
-        },
-      );
-      await waitUntilExit();
-      shouldContinue = false;
-    } catch (error) {
-      console.error("Error in menu:", error);
-      shouldContinue = false;
-    }
-
-    // If SSH was requested, handle it now after Ink has exited
-    if (sshSessionConfig) {
-      const result = await runSSHSession(sshSessionConfig);
-
-      if (result.shouldRestart) {
-        console.log(`\nSSH session ended. Returning to menu...\n`);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        currentInitialScreen = "devbox-list";
-        currentFocusDevboxId = result.returnToDevboxId;
-        shouldContinue = true;
-      } else {
-        shouldContinue = false;
-      }
-    }
+  try {
+    const { waitUntilExit } = render(
+      <App
+        key={`app-${initialScreen}-${focusDevboxId}`}
+        initialScreen={initialScreen}
+        focusDevboxId={focusDevboxId}
+      />,
+      {
+        patchConsole: false,
+        exitOnCtrlC: false,
+      },
+    );
+    await waitUntilExit();
+  } catch (error) {
+    console.error("Error in menu:", error);
   }
 
-  // Disable synchronous updates
-  // disableSynchronousUpdates();
-
   // Exit alternate screen buffer
-  exitAlternateScreen();
+  //exitAlternateScreen();
 
   process.exit(0);
 }
