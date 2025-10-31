@@ -7,9 +7,9 @@ import { SpinnerComponent } from "./Spinner.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { SuccessMessage } from "./SuccessMessage.js";
 import { Breadcrumb } from "./Breadcrumb.js";
-import type { SSHSessionConfig } from "../utils/sshSession.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
+import { useNavigation } from "../store/navigationStore.js";
 import {
   getDevboxLogs,
   execCommand,
@@ -41,7 +41,6 @@ interface DevboxActionsMenuProps {
   initialOperation?: string; // Operation to execute immediately
   initialOperationIndex?: number; // Index of the operation to select
   skipOperationsMenu?: boolean; // Skip showing operations menu and execute immediately
-  onSSHRequest?: (config: SSHSessionConfig) => void; // Callback when SSH is requested
 }
 
 export const DevboxActionsMenu = ({
@@ -54,9 +53,8 @@ export const DevboxActionsMenu = ({
   initialOperation,
   initialOperationIndex = 0,
   skipOperationsMenu = false,
-  onSSHRequest,
 }: DevboxActionsMenuProps) => {
-  const { exit } = useApp();
+  const { navigate, currentScreen, params } = useNavigation();
   const [loading, setLoading] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(
     initialOperationIndex,
@@ -561,24 +559,22 @@ export const DevboxActionsMenu = ({
             devbox.launch_parameters?.user_parameters?.username || "user";
           const env = process.env.RUNLOOP_ENV?.toLowerCase();
           const sshHost = env === "dev" ? "ssh.runloop.pro" : "ssh.runloop.ai";
-          const proxyCommand = `openssl s_client -quiet -verify_quiet -servername %h -connect ${sshHost}:443 2>/dev/null`;
+          // macOS openssl doesn't support -verify_quiet, use compatible flags
+          // servername should be %h (target hostname) - SSH will replace %h with the actual hostname from the SSH command
+          // This matches the reference implementation where servername is the target hostname
+          const proxyCommand = `openssl s_client -quiet -servername %h -connect ${sshHost}:443 2>/dev/null`;
 
-          const sshConfig: SSHSessionConfig = {
+          // Navigate to SSH session screen
+          navigate("ssh-session", {
             keyPath,
             proxyCommand,
             sshUser,
             url: sshKey.url,
             devboxId: devbox.id,
             devboxName: devbox.name || devbox.id,
-          };
-
-          // Notify parent that SSH is requested
-          if (onSSHRequest) {
-            onSSHRequest(sshConfig);
-            exit();
-          } else {
-            setOperationError(new Error("SSH session handler not configured"));
-          }
+            returnScreen: currentScreen,
+            returnParams: params,
+          });
           break;
 
         case "logs":

@@ -30,49 +30,49 @@ type ColorPalette = {
 // Dark mode color palette (default)
 const darkColors: ColorPalette = {
   // Primary brand colors
-  primary: "cyan",
-  secondary: "magenta",
+  primary: "#00D9FF", // Bright cyan
+  secondary: "#FF6EC7", // Vibrant magenta
 
   // Status colors
-  success: "green",
-  warning: "yellow",
-  error: "red",
-  info: "blue",
+  success: "#10B981", // Emerald green
+  warning: "#F59E0B", // Amber
+  error: "#EF4444", // Red
+  info: "#3B82F6", // Blue
 
   // UI colors
-  text: "white",
-  textDim: "gray",
-  border: "gray",
-  background: "black",
+  text: "#FFFFFF", // White
+  textDim: "#9CA3AF", // Gray
+  border: "#6B7280", // Medium gray
+  background: "#000000", // Black
 
   // Accent colors for menu items and highlights
-  accent1: "cyan",
-  accent2: "magenta",
-  accent3: "green",
+  accent1: "#00D9FF", // Same as primary
+  accent2: "#FF6EC7", // Same as secondary
+  accent3: "#10B981", // Same as success
 };
 
 // Light mode color palette
 const lightColors: ColorPalette = {
   // Primary brand colors (brighter/darker for visibility on light backgrounds)
-  primary: "blue",
-  secondary: "magenta",
+  primary: "#2563EB", // Deep blue
+  secondary: "#C026D3", // Deep magenta
 
   // Status colors
-  success: "green",
-  warning: "yellow",
-  error: "red",
-  info: "blue",
+  success: "#059669", // Deep green
+  warning: "#D97706", // Deep amber
+  error: "#DC2626", // Deep red
+  info: "#2563EB", // Deep blue
 
   // UI colors
-  text: "black",
-  textDim: "blackBright", // Darker gray for better contrast on light backgrounds
-  border: "blackBright",
-  background: "white",
+  text: "#000000", // Black
+  textDim: "#4B5563", // Dark gray for better contrast on light backgrounds
+  border: "#9CA3AF", // Medium gray
+  background: "#FFFFFF", // White
 
   // Accent colors for menu items and highlights
-  accent1: "blue",
-  accent2: "magenta",
-  accent3: "green",
+  accent1: "#2563EB", // Same as primary
+  accent2: "#C026D3", // Same as secondary
+  accent3: "#059669", // Same as success
 };
 
 // Current active color palette (initialized by initializeTheme)

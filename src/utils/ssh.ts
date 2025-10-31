@@ -149,7 +149,10 @@ export function getSSHUrl(): string {
  */
 export function getProxyCommand(): string {
   const sshUrl = getSSHUrl();
-  return `openssl s_client -quiet -verify_quiet -servername %h -connect ${sshUrl} 2>/dev/null`;
+  const sshHost = sshUrl.split(":")[0]; // Extract hostname from "host:port"
+  // macOS openssl doesn't support -verify_quiet, use compatible flags
+  // servername should be %h (target hostname) - SSH will replace %h with the actual hostname from the SSH command
+  return `openssl s_client -quiet -servername %h -connect ${sshUrl} 2>/dev/null`;
 }
 
 /**

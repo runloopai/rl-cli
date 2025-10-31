@@ -9,7 +9,6 @@ import { useBlueprintStore } from "../store/blueprintStore.js";
 import { useSnapshotStore } from "../store/snapshotStore.js";
 import { ErrorBoundary } from "../components/ErrorBoundary.js";
 import type { ScreenName } from "../router/types.js";
-import type { SSHSessionConfig } from "../utils/sshSession.js";
 
 // Import screen components
 import { MenuScreen } from "../screens/MenuScreen.js";
@@ -19,10 +18,9 @@ import { DevboxActionsScreen } from "../screens/DevboxActionsScreen.js";
 import { DevboxCreateScreen } from "../screens/DevboxCreateScreen.js";
 import { BlueprintListScreen } from "../screens/BlueprintListScreen.js";
 import { SnapshotListScreen } from "../screens/SnapshotListScreen.js";
+import { SSHSessionScreen } from "../screens/SSHSessionScreen.js";
 
-interface RouterProps {
-  onSSHRequest: (config: SSHSessionConfig) => void;
-}
+interface RouterProps {}
 
 /**
  * Router component that renders the current screen
@@ -31,7 +29,7 @@ interface RouterProps {
  * Uses React key prop to force complete unmount/remount on screen changes,
  * which prevents Yoga WASM errors during transitions.
  */
-export function Router({ onSSHRequest }: RouterProps) {
+export function Router() {
   const { currentScreen, params } = useNavigation();
   const prevScreenRef = React.useRef<ScreenName | null>(null);
 
@@ -83,25 +81,13 @@ export function Router({ onSSHRequest }: RouterProps) {
         <MenuScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "devbox-list" && (
-        <DevboxListScreen
-          key={currentScreen}
-          {...params}
-          onSSHRequest={onSSHRequest}
-        />
+        <DevboxListScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "devbox-detail" && (
-        <DevboxDetailScreen
-          key={currentScreen}
-          {...params}
-          onSSHRequest={onSSHRequest}
-        />
+        <DevboxDetailScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "devbox-actions" && (
-        <DevboxActionsScreen
-          key={currentScreen}
-          {...params}
-          onSSHRequest={onSSHRequest}
-        />
+        <DevboxActionsScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "devbox-create" && (
         <DevboxCreateScreen key={currentScreen} {...params} />
@@ -117,6 +103,9 @@ export function Router({ onSSHRequest }: RouterProps) {
       )}
       {currentScreen === "snapshot-detail" && (
         <SnapshotListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "ssh-session" && (
+        <SSHSessionScreen key={currentScreen} {...params} />
       )}
     </ErrorBoundary>
   );
