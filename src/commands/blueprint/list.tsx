@@ -126,7 +126,7 @@ const ListBlueprintsUI = ({
           const padded = truncated.padEnd(width, " ");
           return (
             <Text
-              color={isSelected ? "white" : colors.textDim}
+              color={isSelected ? "white" : colors.idColor}
               bold={false}
               dimColor={false}
               inverse={isSelected}

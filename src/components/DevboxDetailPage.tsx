@@ -264,7 +264,7 @@ export const DevboxDetailPage = ({
       </Text>,
     );
     lines.push(
-      <Text key="core-id" dimColor>
+      <Text key="core-id" color={colors.idColor}>
         {" "}
         ID: {selectedDevbox.id}
       </Text>,
@@ -452,7 +452,7 @@ export const DevboxDetailPage = ({
       );
       if (selectedDevbox.blueprint_id) {
         lines.push(
-          <Text key="source-bp" dimColor>
+          <Text key="source-bp" color={colors.idColor}>
             {" "}
             {selectedDevbox.blueprint_id}
           </Text>,
@@ -460,7 +460,7 @@ export const DevboxDetailPage = ({
       }
       if (selectedDevbox.snapshot_id) {
         lines.push(
-          <Text key="source-snap" dimColor>
+          <Text key="source-snap" color={colors.idColor}>
             {" "}
             {selectedDevbox.snapshot_id}
           </Text>,
@@ -484,7 +484,7 @@ export const DevboxDetailPage = ({
       );
       if (selectedDevbox.initiator_id) {
         lines.push(
-          <Text key="init-id" dimColor>
+          <Text key="init-id" color={colors.idColor}>
             {" "}
             ID: {selectedDevbox.initiator_id}
           </Text>,
@@ -632,7 +632,7 @@ export const DevboxDetailPage = ({
           <Box marginBottom={1}>
             <StatusBadge status={selectedDevbox.status} />
             <Text> </Text>
-            <Text color={colors.textDim} dimColor>
+            <Text color={colors.idColor}>
               {selectedDevbox.id}
             </Text>
           </Box>
@@ -692,7 +692,7 @@ export const DevboxDetailPage = ({
           </Text>
           <Text> </Text>
           <StatusBadge status={selectedDevbox.status} />
-          <Text color={colors.textDim} dimColor>
+          <Text color={colors.idColor}>
             {" "}
             • {selectedDevbox.id}
           </Text>
@@ -766,12 +766,22 @@ export const DevboxDetailPage = ({
             <Text color={colors.secondary} bold>
               {figures.circleFilled} Source
             </Text>
-            <Text dimColor>
-              {selectedDevbox.blueprint_id &&
-                `BP: ${selectedDevbox.blueprint_id}`}
-              {selectedDevbox.snapshot_id &&
-                `Snap: ${selectedDevbox.snapshot_id}`}
-            </Text>
+            {selectedDevbox.blueprint_id && (
+              <>
+                <Text dimColor>BP: </Text>
+                <Text color={colors.idColor}>
+                  {selectedDevbox.blueprint_id}
+                </Text>
+              </>
+            )}
+            {selectedDevbox.snapshot_id && (
+              <>
+                <Text dimColor>Snap: </Text>
+                <Text color={colors.idColor}>
+                  {selectedDevbox.snapshot_id}
+                </Text>
+              </>
+            )}
           </Box>
         )}
       </Box>

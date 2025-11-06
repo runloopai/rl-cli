@@ -80,10 +80,25 @@ const DownloadObjectUI = ({
       <Banner />
       {loading && <SpinnerComponent message="Downloading object..." />}
       {result && (
-        <SuccessMessage
-          message="Object downloaded successfully"
-          details={`Object ID: ${result.objectId}\nPath: ${result.path}\nExtracted: ${result.extract ? "Yes" : "No"}`}
-        />
+        <>
+          <SuccessMessage message="Object downloaded successfully" />
+          <Box marginLeft={2} flexDirection="column" marginTop={1}>
+            <Box>
+              <Text color={colors.textDim} dimColor>Object ID: </Text>
+              <Text color={colors.idColor}>{result.objectId}</Text>
+            </Box>
+            <Box>
+              <Text color={colors.textDim} dimColor>
+                Path: {result.path}
+              </Text>
+            </Box>
+            <Box>
+              <Text color={colors.textDim} dimColor>
+                Extracted: {result.extract ? "Yes" : "No"}
+              </Text>
+            </Box>
+          </Box>
+        </>
       )}
       {error && (
         <ErrorMessage message="Failed to download object" error={error} />

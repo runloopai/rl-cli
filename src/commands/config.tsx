@@ -9,11 +9,7 @@ import {
 } from "../utils/config.js";
 import { Header } from "../components/Header.js";
 import { SuccessMessage } from "../components/SuccessMessage.js";
-import {
-  colors,
-  getCurrentTheme,
-  setThemeMode,
-} from "../utils/theme.js";
+import { colors, getCurrentTheme, setThemeMode } from "../utils/theme.js";
 
 interface ThemeOption {
   value: "auto" | "light" | "dark";
@@ -51,13 +47,8 @@ const InteractiveThemeSelector = ({
     themeOptions.findIndex((opt) => opt.value === initialTheme),
   );
   const [saved, setSaved] = React.useState(false);
-  const [detectedTheme] = React.useState<"light" | "dark">(
-    getCurrentTheme(),
-  );
-  const [currentTheme, setCurrentTheme] = React.useState<"light" | "dark">(
-    getCurrentTheme(),
-  );
-  
+  const [detectedTheme] = React.useState<"light" | "dark">(getCurrentTheme());
+
   // Update theme preview when selection changes
   React.useEffect(() => {
     const newTheme = themeOptions[selectedIndex].value;
@@ -73,7 +64,6 @@ const InteractiveThemeSelector = ({
 
     // Apply theme change for preview
     setThemeMode(targetTheme);
-    setCurrentTheme(targetTheme);
   }, [selectedIndex, detectedTheme]);
 
   useInput((input, key) => {
@@ -90,12 +80,12 @@ const InteractiveThemeSelector = ({
       // Save the selected theme to config
       const selectedTheme = themeOptions[selectedIndex].value;
       setThemePreference(selectedTheme);
-      
+
       // If setting to 'auto', clear cached detection for re-run
       if (selectedTheme === "auto") {
         clearDetectedTheme();
       }
-      
+
       setSaved(true);
       setTimeout(() => exit(), 1500);
     } else if (key.escape || input === "q") {
@@ -167,9 +157,9 @@ const InteractiveThemeSelector = ({
         <Text color={colors.text} bold>
           {figures.play} Live Preview:
         </Text>
-        <Box 
-          marginTop={1} 
-          marginLeft={2} 
+        <Box
+          marginTop={1}
+          marginLeft={2}
           paddingX={2}
           paddingY={1}
           borderStyle="round"
@@ -180,27 +170,21 @@ const InteractiveThemeSelector = ({
             <Text color={colors.primary} bold>
               {figures.tick} Primary
             </Text>
-            <Text>  </Text>
+            <Text> </Text>
             <Text color={colors.secondary} bold>
               {figures.star} Secondary
             </Text>
           </Box>
           <Box>
-            <Text color={colors.success}>
-              {figures.tick} Success
-            </Text>
-            <Text>  </Text>
-            <Text color={colors.warning}>
-              {figures.warning} Warning
-            </Text>
-            <Text>  </Text>
-            <Text color={colors.error}>
-              {figures.cross} Error
-            </Text>
+            <Text color={colors.success}>{figures.tick} Success</Text>
+            <Text> </Text>
+            <Text color={colors.warning}>{figures.warning} Warning</Text>
+            <Text> </Text>
+            <Text color={colors.error}>{figures.cross} Error</Text>
           </Box>
           <Box>
             <Text color={colors.text}>Normal text</Text>
-            <Text>  </Text>
+            <Text> </Text>
             <Text color={colors.textDim}>Dim text</Text>
           </Box>
         </Box>
@@ -227,12 +211,12 @@ const StaticConfigUI = ({ action, value }: StaticConfigUIProps) => {
   React.useEffect(() => {
     if (action === "set" && value) {
       setThemePreference(value);
-      
+
       // If setting to 'auto', clear the cached detection so it re-runs on next start
       if (value === "auto") {
         clearDetectedTheme();
       }
-      
+
       setSaved(true);
       setTimeout(() => process.exit(0), 1500);
     } else if (action === "get" || !action) {
@@ -284,8 +268,8 @@ const StaticConfigUI = ({ action, value }: StaticConfigUIProps) => {
             background automatically
           </Text>
           <Text color={colors.textDim}>
-            • <Text color={colors.primary}>light</Text> - Force light mode
-            (dark text on light background)
+            • <Text color={colors.primary}>light</Text> - Force light mode (dark
+            text on light background)
           </Text>
           <Text color={colors.textDim}>
             • <Text color={colors.primary}>dark</Text> - Force dark mode (light
@@ -314,4 +298,3 @@ export function showThemeConfig() {
 export function setThemeConfig(theme: "auto" | "light" | "dark") {
   render(<StaticConfigUI action="set" value={theme} />);
 }
-
