@@ -18,7 +18,7 @@ import { getBlueprintUrl } from "../../utils/url.js";
 import { colors } from "../../utils/theme.js";
 import { getStatusDisplay } from "../../components/StatusBadge.js";
 import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
-import { exitAlternateScreenBuffer } from "../../utils/screen.js";
+import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 
 const PAGE_SIZE = 10;
 const MAX_FETCH = 100;
@@ -310,16 +310,13 @@ const ListBlueprintsUI = ({
     };
   }, []);
 
+  // Handle Ctrl+C to exit
+  useExitOnCtrlC();
+
   // Handle input for all views - combined into single hook
   useInput((input, key) => {
     // Don't process input if unmounting
     if (!isMounted.current) return;
-
-    // Handle Ctrl+C to force exit
-    if (key.ctrl && input === "c") {
-      exitAlternateScreenBuffer(); // Exit alternate screen
-      process.exit(130);
-    }
 
     // Handle operation input mode
     if (executingOperation && !operationResult && !operationError) {

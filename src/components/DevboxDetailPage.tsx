@@ -9,6 +9,7 @@ import { DevboxActionsMenu } from "./DevboxActionsMenu.js";
 import { getDevboxUrl } from "../utils/url.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
+import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 
 interface DevboxDetailPageProps {
   devbox: any;
@@ -170,6 +171,9 @@ export const DevboxDetailPage = ({
   const createTimeAgo = selectedDevbox.create_time_ms
     ? formatTimeAgo(selectedDevbox.create_time_ms)
     : "";
+
+  // Handle Ctrl+C to exit
+  useExitOnCtrlC();
 
   useInput((input, key) => {
     // Don't process input if unmounting
@@ -605,7 +609,7 @@ export const DevboxDetailPage = ({
 
   // Detailed info mode - full screen
   if (showDetailedInfo) {
-    const detailLines = [<></>]; //buildDetailLines()]];
+    const detailLines = buildDetailLines();
     const viewportHeight = detailViewport.viewportHeight;
     const maxScroll = Math.max(0, detailLines.length - viewportHeight);
     const actualScroll = Math.min(detailScroll, maxScroll);

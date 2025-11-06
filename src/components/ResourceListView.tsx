@@ -8,7 +8,7 @@ import { ErrorMessage } from "./ErrorMessage.js";
 import { Table, Column } from "./Table.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
-import { exitAlternateScreenBuffer } from "../utils/screen.js";
+import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 
 // Format time ago in a succinct way
 export const formatTimeAgo = (timestamp: number): string => {
@@ -211,16 +211,13 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
 
   const selectedResource = currentResources[selectedIndex];
 
+  // Handle Ctrl+C to exit
+  useExitOnCtrlC();
+
   // Input handling
   useInput((input, key) => {
     // Don't process input if unmounting
     if (!isMounted.current) return;
-
-    // Handle Ctrl+C to force exit
-    if (key.ctrl && input === "c") {
-      exitAlternateScreenBuffer(); // Exit alternate screen
-      process.exit(130);
-    }
 
     const pageResourcesCount = currentResources.length;
 

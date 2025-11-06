@@ -18,7 +18,7 @@ import { ResourceActionsMenu } from "../../components/ResourceActionsMenu.js";
 import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { getDevboxUrl } from "../../utils/url.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
-import { exitAlternateScreenBuffer } from "../../utils/screen.js";
+import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { colors } from "../../utils/theme.js";
 
 interface ListOptions {
@@ -548,13 +548,10 @@ const ListDevboxesUI = ({
 
   // Removed refresh icon animation to prevent constant re-renders and flashing
 
-  useInput((input, key) => {
-    // Handle Ctrl+C to force exit
-    if (key.ctrl && input === "c") {
-      exitAlternateScreenBuffer(); // Exit alternate screen
-      process.exit(130);
-    }
+  // Handle Ctrl+C to exit
+  useExitOnCtrlC();
 
+  useInput((input, key) => {
     const pageDevboxes = currentDevboxes.length;
 
     // Skip input handling when in search mode - let TextInput handle it
