@@ -10,6 +10,7 @@ import { SuccessMessage } from "./SuccessMessage.js";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { MetadataDisplay } from "./MetadataDisplay.js";
 import { colors } from "../utils/theme.js";
+import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 
 interface DevboxCreatePageProps {
   onBack: () => void;
@@ -134,6 +135,9 @@ export const DevboxCreatePage = ({
   ];
 
   const currentFieldIndex = fields.findIndex((f) => f.key === currentField);
+
+  // Handle Ctrl+C to exit
+  useExitOnCtrlC();
 
   useInput((input, key) => {
     // Handle result screen

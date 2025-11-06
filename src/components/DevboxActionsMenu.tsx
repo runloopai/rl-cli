@@ -10,6 +10,7 @@ import { Breadcrumb } from "./Breadcrumb.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useNavigation } from "../store/navigationStore.js";
+import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import {
   getDevboxLogs,
   execCommand,
@@ -223,6 +224,9 @@ export const DevboxActionsMenu = ({
       executeOperation();
     }
   }, [executingOperation]);
+
+  // Handle Ctrl+C to exit
+  useExitOnCtrlC();
 
   useInput((input, key) => {
     // Handle operation input mode

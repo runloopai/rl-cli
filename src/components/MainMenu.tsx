@@ -6,7 +6,7 @@ import { Breadcrumb } from "./Breadcrumb.js";
 import { VERSION } from "../cli.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
-import { exitAlternateScreenBuffer } from "../utils/screen.js";
+import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 
 interface MenuItem {
   key: string;
@@ -51,6 +51,9 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
   // Use centralized viewport hook for consistent layout
   const { terminalHeight } = useViewportHeight({ overhead: 0 });
 
+  // Handle Ctrl+C to exit
+  useExitOnCtrlC();
+
   useInput((input, key) => {
     if (key.upArrow && selectedIndex > 0) {
       setSelectedIndex(selectedIndex - 1);
@@ -66,9 +69,6 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       onSelect("blueprints");
     } else if (input === "s" || input === "3") {
       onSelect("snapshots");
-    } else if (key.ctrl && input === "c") {
-      exitAlternateScreenBuffer();
-      process.exit(130);
     }
   });
 

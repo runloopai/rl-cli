@@ -19,6 +19,7 @@ import { ActionsPopup } from "../components/ActionsPopup.js";
 import { getDevboxUrl } from "../utils/url.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { colors, sanitizeWidth } from "../utils/theme.js";
+import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 
 export function DevboxListScreen() {
   // Get state from store
@@ -393,12 +394,11 @@ export function DevboxListScreen() {
     },
   ];
 
+  // Handle Ctrl+C to exit
+  useExitOnCtrlC();
+
   // Input handling
   useInput((input, key) => {
-    if (key.ctrl && input === "c") {
-      process.exit(130);
-    }
-
     const pageDevboxes = devboxes.length;
 
     // Search mode
