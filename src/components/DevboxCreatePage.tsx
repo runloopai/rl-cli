@@ -447,10 +447,23 @@ export const DevboxCreatePage = ({
         <Breadcrumb
           items={[{ label: "Devboxes" }, { label: "Create", active: true }]}
         />
-        <SuccessMessage
-          message="Devbox created successfully!"
-          details={`ID: ${result.id}\nName: ${result.name || "(none)"}\nStatus: ${result.status}`}
-        />
+        <SuccessMessage message="Devbox created successfully!" />
+        <Box marginLeft={2} flexDirection="column" marginTop={1}>
+          <Box>
+            <Text color={colors.textDim} dimColor>ID: </Text>
+            <Text color={colors.idColor}>{result.id}</Text>
+          </Box>
+          <Box>
+            <Text color={colors.textDim} dimColor>
+              Name: {result.name || "(none)"}
+            </Text>
+          </Box>
+          <Box>
+            <Text color={colors.textDim} dimColor>
+              Status: {result.status}
+            </Text>
+          </Box>
+        </Box>
         <Box marginTop={1}>
           <Text color={colors.textDim} dimColor>
             Press [Enter], [q], or [esc] to return to list

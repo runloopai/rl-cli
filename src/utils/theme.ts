@@ -25,6 +25,7 @@ type ColorPalette = {
   accent1: string;
   accent2: string;
   accent3: string;
+  idColor: string;
 };
 
 // Dark mode color palette (default)
@@ -49,6 +50,9 @@ const darkColors: ColorPalette = {
   accent1: "#00D9FF", // Same as primary
   accent2: "#FF6EC7", // Same as secondary
   accent3: "#10B981", // Same as success
+
+  // ID color for displaying resource IDs
+  idColor: "#60A5FA", // Muted blue for IDs
 };
 
 // Light mode color palette
@@ -73,6 +77,9 @@ const lightColors: ColorPalette = {
   accent1: "#2563EB", // Same as primary
   accent2: "#C026D3", // Same as secondary
   accent3: "#059669", // Same as success
+
+  // ID color for displaying resource IDs
+  idColor: "#0284C7", // Deeper blue for IDs on light backgrounds
 };
 
 // Current active color palette (initialized by initializeTheme)

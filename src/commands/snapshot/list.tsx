@@ -108,7 +108,7 @@ const ListSnapshotsUI = ({
         columns: [
           createTextColumn("id", "ID", (snapshot: any) => snapshot.id, {
             width: idWidth,
-            color: colors.textDim,
+            color: colors.idColor,
             dimColor: false,
             bold: false,
           }),
@@ -126,7 +126,7 @@ const ListSnapshotsUI = ({
             (snapshot: any) => snapshot.source_devbox_id || "",
             {
               width: devboxWidth,
-              color: colors.primary,
+              color: colors.idColor,
               dimColor: false,
               bold: false,
               visible: showDevboxId,

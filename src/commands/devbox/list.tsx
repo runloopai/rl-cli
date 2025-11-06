@@ -169,7 +169,7 @@ const ListDevboxesUI = ({
         },
         {
           width: Math.min(idWidth || 26, ABSOLUTE_MAX_ID),
-          color: colors.textDim,
+          color: colors.idColor,
           dimColor: false,
           bold: false,
         },

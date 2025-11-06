@@ -87,10 +87,23 @@ const CreateSnapshotUI = ({
 
       {result && (
         <>
-          <SuccessMessage
-            message="Snapshot created successfully!"
-            details={`ID: ${result.id}\nName: ${result.name || "(unnamed)"}\nStatus: ${result.status}`}
-          />
+          <SuccessMessage message="Snapshot created successfully!" />
+          <Box marginLeft={2} flexDirection="column" marginTop={1}>
+            <Box>
+              <Text color={colors.textDim} dimColor>ID: </Text>
+              <Text color={colors.idColor}>{result.id}</Text>
+            </Box>
+            <Box>
+              <Text color={colors.textDim} dimColor>
+                Name: {result.name || "(unnamed)"}
+              </Text>
+            </Box>
+            <Box>
+              <Text color={colors.textDim} dimColor>
+                Status: {result.status}
+              </Text>
+            </Box>
+          </Box>
           <Box
             borderStyle="double"
             borderColor={colors.success}
@@ -116,8 +129,9 @@ const CreateSnapshotUI = ({
                   {figures.tick} Create devbox from snapshot:{" "}
                 </Text>
                 <Text color={colors.primary}>
-                  rli devbox create -t {result.id}
+                  rli devbox create -t{" "}
                 </Text>
+                <Text color={colors.idColor}>{result.id}</Text>
               </Box>
             </Box>
           </Box>

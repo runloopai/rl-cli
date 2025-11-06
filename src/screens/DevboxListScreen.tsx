@@ -267,7 +267,7 @@ export function DevboxListScreen() {
           1,
           ABSOLUTE_MAX_ID,
         ),
-        color: colors.textDim,
+        color: colors.idColor,
         dimColor: false,
         bold: false,
       },
@@ -317,7 +317,7 @@ export function DevboxListScreen() {
         },
         {
           width: sanitizeWidth(sourceWidth, 1, 100),
-          color: colors.textDim,
+          color: colors.idColor,
           dimColor: false,
         },
       ),
