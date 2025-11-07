@@ -10,6 +10,8 @@ import { getDevboxUrl } from "../utils/url.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
+import { useNavigation, type ScreenName, type RouteParams } from "../store/navigationStore.js";
+import { getDevbox } from "../services/devboxService.js";
 
 interface DevboxDetailPageProps {
   devbox: any;
@@ -52,10 +54,37 @@ export const DevboxDetailPage = ({
     };
   }, []);
 
+  // Local state for devbox data (updated by polling)
+  const [currentDevbox, setCurrentDevbox] = React.useState(initialDevbox);
+
   const [showDetailedInfo, setShowDetailedInfo] = React.useState(false);
   const [detailScroll, setDetailScroll] = React.useState(0);
   const [showActions, setShowActions] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(0);
+
+  // Background polling for devbox details
+  React.useEffect(() => {
+    // Skip polling if showing actions, detailed info, or not mounted
+    if (showActions || showDetailedInfo) return;
+
+    const interval = setInterval(async () => {
+      // Only poll when not in actions/detail mode and component is mounted
+      if (!showActions && !showDetailedInfo && isMounted.current) {
+        try {
+          const updatedDevbox = await getDevbox(initialDevbox.id);
+          
+          // Only update if still mounted
+          if (isMounted.current) {
+            setCurrentDevbox(updatedDevbox);
+          }
+        } catch (err) {
+          // Silently ignore polling errors to avoid disrupting user experience
+        }
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [initialDevbox.id, showActions, showDetailedInfo]);
 
   // Calculate viewport for detailed info view:
   // - Breadcrumb (3 lines + marginBottom): 4 lines
@@ -67,7 +96,7 @@ export const DevboxDetailPage = ({
   // Total: 18 lines
   const detailViewport = useViewportHeight({ overhead: 18, minHeight: 10 });
 
-  const selectedDevbox = initialDevbox;
+  const selectedDevbox = currentDevbox;
 
   const allOperations = [
     {

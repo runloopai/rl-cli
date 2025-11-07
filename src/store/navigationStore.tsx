@@ -60,32 +60,57 @@ export function NavigationProvider({
     React.useState<ScreenName>(initialScreen);
   const [params, setParams] = React.useState<RouteParams>(initialParams);
 
+  // Track navigation history stack
+  // Start with empty history - screens are added when navigating away from them
+  const [history, setHistory] = React.useState<
+    Array<{ screen: ScreenName; params: RouteParams }>
+  >([]);
+
   const navigate = (screen: ScreenName, newParams: RouteParams = {}) => {
+    // Add current screen to history before navigating to new screen
+    setHistory((prev) => [...prev, { screen: currentScreen, params }]);
     setCurrentScreen(screen);
     setParams(newParams);
   };
 
   const push = (screen: ScreenName, newParams: RouteParams = {}) => {
+    // Add current screen to history before navigating to new screen
+    setHistory((prev) => [...prev, { screen: currentScreen, params }]);
     setCurrentScreen(screen);
     setParams(newParams);
   };
 
   const replace = (screen: ScreenName, newParams: RouteParams = {}) => {
+    // Replace current screen without adding to history
     setCurrentScreen(screen);
     setParams(newParams);
   };
 
   const goBack = () => {
-    setCurrentScreen("menu");
-    setParams({});
+    // Pop from history stack and navigate to previous screen
+    if (history.length > 0) {
+      const newHistory = [...history];
+      const previousScreen = newHistory.pop(); // Remove and get last screen
+      
+      setHistory(newHistory);
+      if (previousScreen) {
+        setCurrentScreen(previousScreen.screen);
+        setParams(previousScreen.params);
+      }
+    } else {
+      // If no history, go to menu
+      setCurrentScreen("menu");
+      setParams({});
+    }
   };
 
   const reset = () => {
     setCurrentScreen("menu");
     setParams({});
+    setHistory([]);
   };
 
-  const canGoBack = () => false;
+  const canGoBack = () => history.length > 0;
 
   const value = {
     currentScreen,
