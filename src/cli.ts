@@ -79,12 +79,9 @@ const devbox = program
   .description("Manage devboxes")
   .alias("d")
   .action(async () => {
-    // Open interactive devbox list when no subcommand provided
-    const { runInteractiveCommand } = await import(
-      "./utils/interactiveCommand.js"
-    );
-    const { listDevboxes } = await import("./commands/devbox/list.js");
-    await runInteractiveCommand(() => listDevboxes({ output: "interactive" }));
+    // Open interactive devbox list using the Router architecture
+    const { runMainMenu } = await import("./commands/menu.js");
+    await runMainMenu("devbox-list");
   });
 
 devbox
@@ -350,12 +347,9 @@ const snapshot = program
   .description("Manage devbox snapshots")
   .alias("snap")
   .action(async () => {
-    // Open interactive snapshot list when no subcommand provided
-    const { runInteractiveCommand } = await import(
-      "./utils/interactiveCommand.js"
-    );
-    const { listSnapshots } = await import("./commands/snapshot/list.js");
-    await runInteractiveCommand(() => listSnapshots({ output: "interactive" }));
+    // Open interactive snapshot list using the Router architecture
+    const { runMainMenu } = await import("./commands/menu.js");
+    await runMainMenu("snapshot-list");
   });
 
 snapshot
@@ -415,14 +409,9 @@ const blueprint = program
   .description("Manage blueprints")
   .alias("bp")
   .action(async () => {
-    // Open interactive blueprint list when no subcommand provided
-    const { runInteractiveCommand } = await import(
-      "./utils/interactiveCommand.js"
-    );
-    const { listBlueprints } = await import("./commands/blueprint/list.js");
-    await runInteractiveCommand(() =>
-      listBlueprints({ output: "interactive" }),
-    );
+    // Open interactive blueprint list using the Router architecture
+    const { runMainMenu } = await import("./commands/menu.js");
+    await runMainMenu("blueprint-list");
   });
 
 blueprint

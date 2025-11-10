@@ -10,7 +10,6 @@ import { getDevboxUrl } from "../utils/url.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
-import { useNavigation, type ScreenName, type RouteParams } from "../store/navigationStore.js";
 import { getDevbox } from "../services/devboxService.js";
 
 interface DevboxDetailPageProps {
