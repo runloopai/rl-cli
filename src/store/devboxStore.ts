@@ -133,15 +133,24 @@ export const useDevboxStore = create<DevboxState>((set, get) => ({
       }
     }
 
-    // Direct mutation - create plain data objects to avoid SDK references
-    const plainData = data.map((d) => ({
-      id: d.id,
-      name: d.name,
-      status: d.status,
-      create_time_ms: d.create_time_ms,
-      blueprint_id: d.blueprint_id,
-      entitlements: d.entitlements ? { ...d.entitlements } : undefined,
-    }));
+    // Deep copy all fields to avoid SDK references
+    const plainData = data.map((d) => {
+      // Create a deep copy of the entire devbox object
+      const plain: any = {};
+      for (const key in d) {
+        const value = d[key];
+        if (value === null || value === undefined) {
+          plain[key] = value;
+        } else if (Array.isArray(value)) {
+          plain[key] = [...value];
+        } else if (typeof value === 'object') {
+          plain[key] = JSON.parse(JSON.stringify(value));
+        } else {
+          plain[key] = value;
+        }
+      }
+      return plain;
+    });
 
     pageCache.set(page, plainData);
     lastIdCache.set(page, lastId);

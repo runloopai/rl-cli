@@ -13,13 +13,13 @@ import { formatTimeAgo } from "../../components/ResourceListView.js";
 import { createExecutor } from "../../utils/CommandExecutor.js";
 import { DevboxDetailPage } from "../../components/DevboxDetailPage.js";
 import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
-import { DevboxActionsMenu } from "../../components/DevboxActionsMenu.js";
 import { ResourceActionsMenu } from "../../components/ResourceActionsMenu.js";
 import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { getDevboxUrl } from "../../utils/url.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { colors } from "../../utils/theme.js";
+import { useDevboxStore } from "../../store/devboxStore.js";
 
 interface ListOptions {
   status?: string;
@@ -31,14 +31,14 @@ const MAX_CACHE_SIZE = 10; // Limit cache to 10 pages to prevent memory leaks
 
 const ListDevboxesUI = ({
   status,
-  focusDevboxId,
   onBack,
   onExit,
+  onNavigateToDetail,
 }: {
   status?: string;
-  focusDevboxId?: string;
   onBack?: () => void;
   onExit?: () => void;
+  onNavigateToDetail?: (devboxId: string) => void;
 }) => {
   const { exit: inkExit } = useApp();
   const [initialLoading, setInitialLoading] = React.useState(true);
@@ -56,10 +56,12 @@ const ListDevboxesUI = ({
   const [searchMode, setSearchMode] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [totalCount, setTotalCount] = React.useState(0);
-  const [hasMore, setHasMore] = React.useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pageCache = React.useRef<Map<number, any[]>>(new Map());
   const lastIdCache = React.useRef<Map<number, string>>(new Map());
+
+  // Get devbox store setter to sync data for detail screen
+  const setDevboxesInStore = useDevboxStore((state) => state.setDevboxes);
 
   // Calculate overhead for viewport height:
   // - Breadcrumb (3 lines + marginBottom): 4 lines
@@ -334,17 +336,8 @@ const ListDevboxesUI = ({
     [],
   );
 
-  // Check if we need to focus on a specific devbox after returning from SSH
-  React.useEffect(() => {
-    if (focusDevboxId && devboxes.length > 0 && !initialLoading) {
-      // Find the devbox in the current page
-      const devboxIndex = devboxes.findIndex((d) => d.id === focusDevboxId);
-      if (devboxIndex !== -1) {
-        setSelectedIndex(devboxIndex);
-        setShowDetails(true);
-      }
-    }
-  }, [devboxes, initialLoading, focusDevboxId]);
+  // NOTE: focusDevboxId auto-navigation removed - now handled by Router in DevboxListScreen
+  // The Router will navigate directly to devbox-detail screen instead of relying on internal state
 
   // Clear cache when search query changes
   React.useEffect(() => {
@@ -446,16 +439,22 @@ const ListDevboxesUI = ({
         // Extract data immediately and create defensive copies
         // This breaks all reference chains to the SDK's internal objects
         if (page.devboxes && Array.isArray(page.devboxes)) {
-          // Copy ONLY the fields we need - don't hold entire SDK objects
+          // Deep copy all fields to avoid SDK references
           page.devboxes.forEach((d: any) => {
-            pageDevboxes.push({
-              id: d.id,
-              name: d.name,
-              status: d.status,
-              create_time_ms: d.create_time_ms,
-              blueprint_id: d.blueprint_id,
-              entitlements: d.entitlements ? { ...d.entitlements } : undefined,
-            });
+            const plain: any = {};
+            for (const key in d) {
+              const value = d[key];
+              if (value === null || value === undefined) {
+                plain[key] = value;
+              } else if (Array.isArray(value)) {
+                plain[key] = [...value];
+              } else if (typeof value === "object") {
+                plain[key] = JSON.parse(JSON.stringify(value));
+              } else {
+                plain[key] = value;
+              }
+            }
+            pageDevboxes.push(plain);
           });
         } else {
           console.error(
@@ -466,7 +465,6 @@ const ListDevboxesUI = ({
 
         // Extract metadata before releasing page reference
         const totalCount = page.total_count || pageDevboxes.length;
-        const hasMore = page.has_more || false;
 
         // CRITICAL: Explicitly null out page reference to help GC
         // The Page object holds references to client, response, and options
@@ -477,7 +475,6 @@ const ListDevboxesUI = ({
 
         // Update pagination metadata
         setTotalCount(totalCount);
-        setHasMore(hasMore);
 
         // Cache the page data and last ID
         if (pageDevboxes.length > 0) {
@@ -499,6 +496,9 @@ const ListDevboxesUI = ({
         // Update devboxes for current page
         // React will handle efficient re-rendering - no need for manual comparison
         setDevboxes(pageDevboxes);
+
+        // Also update the store so DevboxDetailScreen can access the data
+        setDevboxesInStore(pageDevboxes);
       } catch (err) {
         if (isMounted) {
           setError(err as Error);
@@ -632,7 +632,12 @@ const ListDevboxesUI = ({
       setCurrentPage(currentPage - 1);
       setSelectedIndex(0);
     } else if (key.return) {
-      setShowDetails(true);
+      // Use Router navigation if callback provided, otherwise use internal state
+      if (onNavigateToDetail && selectedDevbox) {
+        onNavigateToDetail(selectedDevbox.id);
+      } else {
+        setShowDetails(true);
+      }
     } else if (input === "a") {
       setShowPopup(true);
       setSelectedOperation(0);
@@ -726,13 +731,18 @@ const ListDevboxesUI = ({
       })
     : allOperations;
 
-  // CRITICAL: Aggressive memory cleanup when switching views to prevent heap exhaustion
+  // CRITICAL: Memory cleanup when switching views
+  // Only clear LOCAL component state, NOT the store (store is needed by detail screen)
   React.useEffect(() => {
     if (showDetails || showActions || showCreate) {
-      // Immediately clear list data when navigating away to free memory
-      setDevboxes([]);
+      // Clear local list data only when using internal navigation
+      // When using Router navigation (onNavigateToDetail), the component will unmount
+      // so this cleanup is not needed
+      if (!onNavigateToDetail) {
+        setDevboxes([]);
+      }
     }
-  }, [showDetails, showActions, showCreate]);
+  }, [showDetails, showActions, showCreate, onNavigateToDetail]);
 
   // Create view
   if (showCreate) {
@@ -741,7 +751,7 @@ const ListDevboxesUI = ({
         onBack={() => {
           setShowCreate(false);
         }}
-        onCreate={(devbox) => {
+        onCreate={() => {
           // Refresh the list after creation
           setShowCreate(false);
           // The list will auto-refresh via the polling effect
@@ -954,10 +964,7 @@ const ListDevboxesUI = ({
 // Export the UI component for use in the main menu
 export { ListDevboxesUI };
 
-export async function listDevboxes(
-  options: ListOptions,
-  focusDevboxId?: string,
-) {
+export async function listDevboxes(options: ListOptions) {
   const executor = createExecutor(options);
 
   await executor.executeList(
@@ -970,9 +977,7 @@ export async function listDevboxes(
         limit: DEFAULT_PAGE_SIZE,
       });
     },
-    () => (
-      <ListDevboxesUI status={options.status} focusDevboxId={focusDevboxId} />
-    ),
+    () => <ListDevboxesUI status={options.status} />,
     DEFAULT_PAGE_SIZE,
   );
 }

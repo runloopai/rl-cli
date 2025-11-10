@@ -56,72 +56,109 @@ export function NavigationProvider({
   initialParams = {},
   children,
 }: NavigationProviderProps) {
-  const [currentScreen, setCurrentScreen] =
-    React.useState<ScreenName>(initialScreen);
-  const [params, setParams] = React.useState<RouteParams>(initialParams);
+  // Use a single state object to avoid timing issues
+  const [state, setState] = React.useState({
+    currentScreen: initialScreen,
+    params: initialParams,
+    history: [] as Array<{ screen: ScreenName; params: RouteParams }>,
+  });
 
-  // Track navigation history stack
-  // Start with empty history - screens are added when navigating away from them
-  const [history, setHistory] = React.useState<
-    Array<{ screen: ScreenName; params: RouteParams }>
-  >([]);
+  const navigate = React.useCallback(
+    (screen: ScreenName, newParams: RouteParams = {}) => {
+      setState((prev) => ({
+        currentScreen: screen,
+        params: newParams,
+        history: [
+          ...prev.history,
+          { screen: prev.currentScreen, params: prev.params },
+        ],
+      }));
+    },
+    [],
+  );
 
-  const navigate = (screen: ScreenName, newParams: RouteParams = {}) => {
-    // Add current screen to history before navigating to new screen
-    setHistory((prev) => [...prev, { screen: currentScreen, params }]);
-    setCurrentScreen(screen);
-    setParams(newParams);
-  };
+  const push = React.useCallback(
+    (screen: ScreenName, newParams: RouteParams = {}) => {
+      setState((prev) => ({
+        currentScreen: screen,
+        params: newParams,
+        history: [
+          ...prev.history,
+          { screen: prev.currentScreen, params: prev.params },
+        ],
+      }));
+    },
+    [],
+  );
 
-  const push = (screen: ScreenName, newParams: RouteParams = {}) => {
-    // Add current screen to history before navigating to new screen
-    setHistory((prev) => [...prev, { screen: currentScreen, params }]);
-    setCurrentScreen(screen);
-    setParams(newParams);
-  };
+  const replace = React.useCallback(
+    (screen: ScreenName, newParams: RouteParams = {}) => {
+      setState((prev) => ({
+        ...prev,
+        currentScreen: screen,
+        params: newParams,
+      }));
+    },
+    [],
+  );
 
-  const replace = (screen: ScreenName, newParams: RouteParams = {}) => {
-    // Replace current screen without adding to history
-    setCurrentScreen(screen);
-    setParams(newParams);
-  };
+  const goBack = React.useCallback(() => {
+    setState((prev) => {
+      if (prev.history.length > 0) {
+        const newHistory = [...prev.history];
+        const previousScreen = newHistory.pop();
 
-  const goBack = () => {
-    // Pop from history stack and navigate to previous screen
-    if (history.length > 0) {
-      const newHistory = [...history];
-      const previousScreen = newHistory.pop(); // Remove and get last screen
-      
-      setHistory(newHistory);
-      if (previousScreen) {
-        setCurrentScreen(previousScreen.screen);
-        setParams(previousScreen.params);
+        return {
+          currentScreen: previousScreen!.screen,
+          params: previousScreen!.params,
+          history: newHistory,
+        };
+      } else {
+        // If no history, go to menu
+        return {
+          currentScreen: "menu",
+          params: {},
+          history: [],
+        };
       }
-    } else {
-      // If no history, go to menu
-      setCurrentScreen("menu");
-      setParams({});
-    }
-  };
+    });
+  }, []);
 
-  const reset = () => {
-    setCurrentScreen("menu");
-    setParams({});
-    setHistory([]);
-  };
+  const reset = React.useCallback(() => {
+    setState({
+      currentScreen: "menu",
+      params: {},
+      history: [],
+    });
+  }, []);
 
-  const canGoBack = () => history.length > 0;
+  const canGoBack = React.useCallback(
+    () => state.history.length > 0,
+    [state.history.length],
+  );
 
-  const value = {
-    currentScreen,
-    params,
-    navigate,
-    push,
-    replace,
-    goBack,
-    reset,
-    canGoBack,
-  };
+  const value = React.useMemo(
+    () => ({
+      currentScreen: state.currentScreen,
+      params: state.params,
+      navigate,
+      push,
+      replace,
+      goBack,
+      reset,
+      canGoBack,
+    }),
+    [
+      state.currentScreen,
+      state.params,
+      navigate,
+      push,
+      replace,
+      goBack,
+      reset,
+      canGoBack,
+    ],
+  );
 
   return (
     <NavigationContext.Provider value={value}>
