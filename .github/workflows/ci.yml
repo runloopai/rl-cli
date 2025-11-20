@@ -12,10 +12,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: runloopai/checkout@main
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: runloopai/setup-node@main
         with:
           node-version: '18'
           cache: 'npm'
