@@ -39,8 +39,11 @@ export interface UsePaginatedListResult<T> {
   /** Current page items */
   items: T[];
 
-  /** True during initial load or page navigation */
+  /** True during initial load only (no items yet) */
   loading: boolean;
+
+  /** True when navigating between pages (shows existing items while loading) */
+  navigating: boolean;
 
   /** Error from last fetch attempt */
   error: Error | null;
@@ -96,6 +99,7 @@ export function useCursorPagination<T>(
   // State
   const [items, setItems] = React.useState<T[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [navigating, setNavigating] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
   const [currentPage, setCurrentPage] = React.useState(0);
   const [hasMore, setHasMore] = React.useState(false);
@@ -141,9 +145,10 @@ export function useCursorPagination<T>(
    * Fetch a specific page
    * @param page - Page number to fetch (0-indexed)
    * @param isInitialLoad - Whether this is the initial load (shows loading state)
+   * @param isNavigation - Whether this is a page navigation (shows navigating state)
    */
   const fetchPageData = React.useCallback(
-    async (page: number, isInitialLoad: boolean = false) => {
+    async (page: number, isInitialLoad: boolean = false, isNavigation: boolean = false) => {
       if (!isMountedRef.current) return;
       if (isFetchingRef.current) return;
 
@@ -152,6 +157,9 @@ export function useCursorPagination<T>(
       try {
         if (isInitialLoad) {
           setLoading(true);
+        }
+        if (isNavigation) {
+          setNavigating(true);
         }
         setError(null);
 
@@ -190,6 +198,7 @@ export function useCursorPagination<T>(
       } finally {
         if (isMountedRef.current) {
           setLoading(false);
+          setNavigating(false);
         }
         isFetchingRef.current = false;
       }
@@ -227,20 +236,20 @@ export function useCursorPagination<T>(
 
   // Navigation functions
   const nextPage = React.useCallback(() => {
-    if (!loading && hasMore) {
+    if (!loading && !navigating && hasMore) {
       const newPage = currentPage + 1;
       setCurrentPage(newPage);
-      fetchPageData(newPage, true);
+      fetchPageData(newPage, false, true);
     }
-  }, [loading, hasMore, currentPage, fetchPageData]);
+  }, [loading, navigating, hasMore, currentPage, fetchPageData]);
 
   const prevPage = React.useCallback(() => {
-    if (!loading && currentPage > 0) {
+    if (!loading && !navigating && currentPage > 0) {
       const newPage = currentPage - 1;
       setCurrentPage(newPage);
-      fetchPageData(newPage, true);
+      fetchPageData(newPage, false, true);
     }
-  }, [loading, currentPage, fetchPageData]);
+  }, [loading, navigating, currentPage, fetchPageData]);
 
   const refresh = React.useCallback(() => {
     fetchPageData(currentPage, false);
@@ -249,6 +258,7 @@ export function useCursorPagination<T>(
   return {
     items,
     loading,
+    navigating,
     error,
     currentPage,
     hasMore,
