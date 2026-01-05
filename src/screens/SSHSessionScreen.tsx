@@ -15,7 +15,7 @@ import { colors } from "../utils/theme.js";
 import figures from "figures";
 
 export function SSHSessionScreen() {
-  const { params, navigate } = useNavigation();
+  const { params, replace } = useNavigation();
 
   // NOTE: Do NOT use useExitOnCtrlC here - SSH handles Ctrl+C itself
   // Using useInput would conflict with the subprocess's terminal control
@@ -76,15 +76,16 @@ export function SSHSessionScreen() {
         command="ssh"
         args={sshArgs}
         onExit={(_code) => {
-          // Navigate back to previous screen when SSH exits
+          // Replace current screen (don't add SSH to history stack)
+          // Using replace() instead of navigate() prevents "escape goes back to SSH" bug
           setTimeout(() => {
-            navigate(returnScreen, returnParams || {});
+            replace(returnScreen, returnParams || {});
           }, 100);
         }}
         onError={(_error) => {
-          // On error, navigate back as well
+          // On error, replace current screen as well
           setTimeout(() => {
-            navigate(returnScreen, returnParams || {});
+            replace(returnScreen, returnParams || {});
           }, 100);
         }}
       />
