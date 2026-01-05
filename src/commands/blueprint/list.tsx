@@ -126,6 +126,7 @@ const ListBlueprintsUI = ({
   const {
     items: blueprints,
     loading,
+    navigating,
     error: listError,
     currentPage,
     hasMore,
@@ -434,10 +435,10 @@ const ListBlueprintsUI = ({
       setSelectedIndex(selectedIndex - 1);
     } else if (key.downArrow && selectedIndex < pageBlueprints - 1) {
       setSelectedIndex(selectedIndex + 1);
-    } else if ((input === "n" || key.rightArrow) && !loading && hasMore) {
+    } else if ((input === "n" || key.rightArrow) && !loading && !navigating && hasMore) {
       nextPage();
       setSelectedIndex(0);
-    } else if ((input === "p" || key.leftArrow) && !loading && hasPrev) {
+    } else if ((input === "p" || key.leftArrow) && !loading && !navigating && hasPrev) {
       prevPage();
       setSelectedIndex(0);
     } else if (input === "a") {
@@ -665,9 +666,15 @@ const ListBlueprintsUI = ({
                 {" "}
                 •{" "}
               </Text>
-              <Text color={colors.textDim} dimColor>
-                Page {currentPage + 1} of {totalPages}
-              </Text>
+              {navigating ? (
+                <Text color={colors.warning}>
+                  {figures.pointer} Loading page {currentPage + 1}...
+                </Text>
+              ) : (
+                <Text color={colors.textDim} dimColor>
+                  Page {currentPage + 1} of {totalPages}
+                </Text>
+              )}
             </>
           )}
           <Text color={colors.textDim} dimColor>
