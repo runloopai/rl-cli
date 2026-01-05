@@ -13,7 +13,7 @@ import { createTextColumn, Table } from "../../components/Table.js";
 import { Operation } from "../../components/OperationsMenu.js";
 import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
-import { createExecutor } from "../../utils/CommandExecutor.js";
+import { output, outputError } from "../../utils/output.js";
 import { getBlueprintUrl } from "../../utils/url.js";
 import { colors } from "../../utils/theme.js";
 import { getStatusDisplay } from "../../components/StatusBadge.js";
@@ -435,10 +435,20 @@ const ListBlueprintsUI = ({
       setSelectedIndex(selectedIndex - 1);
     } else if (key.downArrow && selectedIndex < pageBlueprints - 1) {
       setSelectedIndex(selectedIndex + 1);
-    } else if ((input === "n" || key.rightArrow) && !loading && !navigating && hasMore) {
+    } else if (
+      (input === "n" || key.rightArrow) &&
+      !loading &&
+      !navigating &&
+      hasMore
+    ) {
       nextPage();
       setSelectedIndex(0);
-    } else if ((input === "p" || key.leftArrow) && !loading && !navigating && hasPrev) {
+    } else if (
+      (input === "p" || key.leftArrow) &&
+      !loading &&
+      !navigating &&
+      hasPrev
+    ) {
       prevPage();
       setSelectedIndex(0);
     } else if (input === "a") {
@@ -748,16 +758,19 @@ interface ListBlueprintsOptions {
 export { ListBlueprintsUI };
 
 export async function listBlueprints(options: ListBlueprintsOptions = {}) {
-  const executor = createExecutor(options);
+  try {
+    const client = getClient();
 
-  await executor.executeList(
-    async () => {
-      const client = executor.getClient();
-      return executor.fetchFromIterator(client.blueprints.list(), {
-        limit: DEFAULT_PAGE_SIZE,
-      });
-    },
-    () => <ListBlueprintsUI />,
-    DEFAULT_PAGE_SIZE,
-  );
+    // Fetch blueprints
+    const page = (await client.blueprints.list({
+      limit: DEFAULT_PAGE_SIZE,
+    })) as BlueprintsCursorIDPage<{ id: string }>;
+
+    // Extract blueprints array
+    const blueprints = page.blueprints || [];
+
+    output(blueprints, { format: options.output, defaultFormat: "json" });
+  } catch (error) {
+    outputError("Failed to list blueprints", error);
+  }
 }

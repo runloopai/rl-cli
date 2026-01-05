@@ -12,7 +12,7 @@ import { Table, createTextColumn } from "../../components/Table.js";
 import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { Operation } from "../../components/OperationsMenu.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
-import { createExecutor } from "../../utils/CommandExecutor.js";
+import { output, outputError } from "../../utils/output.js";
 import { colors } from "../../utils/theme.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
@@ -502,20 +502,25 @@ const ListSnapshotsUI = ({
 export { ListSnapshotsUI };
 
 export async function listSnapshots(options: ListOptions) {
-  const executor = createExecutor(options);
-
-  await executor.executeList(
-    async () => {
-      const client = executor.getClient();
-      const params = options.devbox ? { devbox_id: options.devbox } : {};
-      return executor.fetchFromIterator(
-        client.devboxes.listDiskSnapshots(params),
-        {
-          limit: DEFAULT_PAGE_SIZE,
-        },
-      );
-    },
-    () => <ListSnapshotsUI devboxId={options.devbox} />,
-    DEFAULT_PAGE_SIZE,
-  );
+  try {
+    const client = getClient();
+    
+    // Build query params
+    const queryParams: Record<string, unknown> = {
+      limit: DEFAULT_PAGE_SIZE,
+    };
+    if (options.devbox) {
+      queryParams.devbox_id = options.devbox;
+    }
+    
+    // Fetch snapshots
+    const page = await client.devboxes.listDiskSnapshots(queryParams) as DiskSnapshotsCursorIDPage<{ id: string }>;
+    
+    // Extract snapshots array
+    const snapshots = page.snapshots || [];
+    
+    output(snapshots, { format: options.output, defaultFormat: "json" });
+  } catch (error) {
+    outputError("Failed to list snapshots", error);
+  }
 }
