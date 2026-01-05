@@ -10,7 +10,7 @@ import { getStatusDisplay } from "../../components/StatusBadge.js";
 import { Breadcrumb } from "../../components/Breadcrumb.js";
 import { Table, createTextColumn } from "../../components/Table.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
-import { createExecutor } from "../../utils/CommandExecutor.js";
+import { output, outputError } from "../../utils/output.js";
 import { DevboxDetailPage } from "../../components/DevboxDetailPage.js";
 import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
 import { ResourceActionsMenu } from "../../components/ResourceActionsMenu.js";
@@ -782,19 +782,25 @@ const ListDevboxesUI = ({
 export { ListDevboxesUI };
 
 export async function listDevboxes(options: ListOptions) {
-  const executor = createExecutor(options);
-
-  await executor.executeList(
-    async () => {
-      const client = executor.getClient();
-      return executor.fetchFromIterator(client.devboxes.list(), {
-        filter: options.status
-          ? (devbox: any) => devbox.status === options.status
-          : undefined,
-        limit: DEFAULT_PAGE_SIZE,
-      });
-    },
-    () => <ListDevboxesUI status={options.status} />,
-    DEFAULT_PAGE_SIZE,
-  );
+  try {
+    const client = getClient();
+    
+    // Build query params
+    const queryParams: Record<string, unknown> = {
+      limit: DEFAULT_PAGE_SIZE,
+    };
+    if (options.status) {
+      queryParams.status = options.status;
+    }
+    
+    // Fetch devboxes
+    const page = await client.devboxes.list(queryParams) as DevboxesCursorIDPage<{ id: string }>;
+    
+    // Extract devboxes array
+    const devboxes = page.devboxes || [];
+    
+    output(devboxes, { format: options.output, defaultFormat: "json" });
+  } catch (error) {
+    outputError("Failed to list devboxes", error);
+  }
 }

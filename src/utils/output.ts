@@ -1,5 +1,9 @@
 /**
  * Utility for handling different output formats across CLI commands
+ * 
+ * Simple API:
+ * - output(data, options) - outputs data in specified format
+ * - outputError(message, error) - outputs error and exits
  */
 
 import YAML from "yaml";
@@ -11,75 +15,193 @@ export interface OutputOptions {
 }
 
 /**
- * Check if the command should use non-interactive output
+ * Options for the simplified output function
+ */
+export interface SimpleOutputOptions {
+  /** The format to use (json, yaml, text). If not provided, uses defaultFormat */
+  format?: string;
+  /** The default format if none specified. Defaults to 'json' */
+  defaultFormat?: OutputFormat;
+}
+
+/**
+ * Resolve the output format from options
+ */
+function resolveFormat(options: SimpleOutputOptions): OutputFormat {
+  const format = options.format || options.defaultFormat || "json";
+  
+  if (format === "json" || format === "yaml" || format === "text") {
+    return format;
+  }
+  
+  console.error(`Unknown output format: ${format}. Valid options: text, json, yaml`);
+  process.exit(1);
+}
+
+/**
+ * Format a value for text output (key-value pairs)
+ */
+function formatKeyValue(data: unknown, indent: number = 0): string {
+  const prefix = "  ".repeat(indent);
+  
+  if (data === null || data === undefined) {
+    return `${prefix}(none)`;
+  }
+  
+  if (typeof data === "string" || typeof data === "number" || typeof data === "boolean") {
+    return String(data);
+  }
+  
+  if (Array.isArray(data)) {
+    if (data.length === 0) {
+      return `${prefix}(empty)`;
+    }
+    // For arrays of primitives, join them
+    if (data.every(item => typeof item !== "object" || item === null)) {
+      return data.join(", ");
+    }
+    // For arrays of objects, format each with separator
+    return data.map((item, i) => {
+      if (typeof item === "object" && item !== null) {
+        const lines: string[] = [];
+        for (const [key, value] of Object.entries(item)) {
+          if (value !== null && value !== undefined) {
+            const formattedValue = typeof value === "object" 
+              ? formatKeyValue(value, indent + 1)
+              : String(value);
+            lines.push(`${prefix}${key}: ${formattedValue}`);
+          }
+        }
+        return lines.join("\n");
+      }
+      return `${prefix}${item}`;
+    }).join(`\n${prefix}---\n`);
+  }
+  
+  if (typeof data === "object") {
+    const lines: string[] = [];
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== null && value !== undefined) {
+        if (typeof value === "object" && !Array.isArray(value)) {
+          lines.push(`${prefix}${key}:`);
+          lines.push(formatKeyValue(value, indent + 1));
+        } else if (Array.isArray(value)) {
+          lines.push(`${prefix}${key}: ${formatKeyValue(value, 0)}`);
+        } else {
+          lines.push(`${prefix}${key}: ${value}`);
+        }
+      }
+    }
+    return lines.join("\n");
+  }
+  
+  return String(data);
+}
+
+/**
+ * Main output function - outputs data in the specified format
+ * 
+ * @param data - The data to output
+ * @param options - Output options (format, defaultFormat)
+ * 
+ * @example
+ * // Output a devbox as text (default for single items)
+ * output(devbox, { format: options.output, defaultFormat: 'text' });
+ * 
+ * @example
+ * // Output a list as JSON (default for lists)
+ * output(devboxes, { format: options.output, defaultFormat: 'json' });
+ */
+export function output(data: unknown, options: SimpleOutputOptions = {}): void {
+  const format = resolveFormat(options);
+  
+  if (format === "json") {
+    console.log(JSON.stringify(data, null, 2));
+    return;
+  }
+  
+  if (format === "yaml") {
+    console.log(YAML.stringify(data));
+    return;
+  }
+  
+  // Text format - key-value pairs
+  console.log(formatKeyValue(data));
+}
+
+/**
+ * Output an error message and exit
+ * 
+ * @param message - Human-readable error message
+ * @param error - Optional Error object with details
+ * 
+ * @example
+ * outputError('Failed to get devbox', error);
+ */
+export function outputError(message: string, error?: Error | unknown): never {
+  const errorMessage = error instanceof Error ? error.message : String(error || message);
+  console.error(`Error: ${message}`);
+  if (error && errorMessage !== message) {
+    console.error(`  ${errorMessage}`);
+  }
+  process.exit(1);
+}
+
+/**
+ * Output a success message for action commands
+ * 
+ * @param message - Success message
+ * @param data - Optional data to include
+ * @param options - Output options
+ */
+export function outputSuccess(message: string, data?: unknown, options: SimpleOutputOptions = {}): void {
+  const format = resolveFormat(options);
+  
+  if (format === "json") {
+    console.log(JSON.stringify({ success: true, message, ...( data && typeof data === 'object' ? data : { data }) }, null, 2));
+    return;
+  }
+  
+  if (format === "yaml") {
+    console.log(YAML.stringify({ success: true, message, ...( data && typeof data === 'object' ? data : { data }) }));
+    return;
+  }
+  
+  // Text format
+  console.log(`✓ ${message}`);
+  if (data) {
+    console.log(formatKeyValue(data));
+  }
+}
+
+// ============================================================================
+// Legacy API (for backward compatibility during migration)
+// ============================================================================
+
+/**
+ * @deprecated Use output() instead
  */
 export function shouldUseNonInteractiveOutput(options: OutputOptions): boolean {
   return !!options.output && options.output !== "interactive";
 }
 
 /**
- * Output data in the specified format
+ * @deprecated Use output() instead
  */
-export function outputData(data: any, format: OutputFormat = "json"): void {
-  if (format === "json") {
-    console.log(JSON.stringify(data, null, 2));
-    return;
-  }
-
-  if (format === "yaml") {
-    console.log(YAML.stringify(data));
-    return;
-  }
-
-  if (format === "text") {
-    // Simple text output
-    if (Array.isArray(data)) {
-      // For lists of complex objects, just output IDs
-      data.forEach((item) => {
-        if (typeof item === "object" && item !== null && "id" in item) {
-          console.log(item.id);
-        } else {
-          console.log(formatTextOutput(item));
-        }
-      });
-    } else {
-      console.log(formatTextOutput(data));
-    }
-    return;
-  }
-
-  console.error(`Unknown output format: ${format}`);
-  process.exit(1);
+export function outputData(data: unknown, format: OutputFormat = "json"): void {
+  output(data, { format, defaultFormat: format });
 }
 
 /**
- * Format a single item as text output
- */
-function formatTextOutput(item: any): string {
-  if (typeof item === "string") {
-    return item;
-  }
-
-  // For objects, create a simple key: value format
-  const lines: string[] = [];
-  for (const [key, value] of Object.entries(item)) {
-    if (value !== null && value !== undefined) {
-      lines.push(`${key}: ${value}`);
-    }
-  }
-  return lines.join("\n");
-}
-
-/**
- * Output a single result (for create, delete, etc)
+ * @deprecated Use output() instead
  */
 export function outputResult(
-  result: any,
+  result: unknown,
   options: OutputOptions,
   successMessage?: string,
 ): void {
   if (shouldUseNonInteractiveOutput(options)) {
-    outputData(result, options.output as OutputFormat);
+    output(result, { format: options.output, defaultFormat: "text" });
     return;
   }
 
@@ -90,35 +212,16 @@ export function outputResult(
 }
 
 /**
- * Output a list of items (for list commands)
+ * @deprecated Use output() instead
  */
-export function outputList(items: any[], options: OutputOptions): void {
+export function outputList(items: unknown[], options: OutputOptions): void {
   if (shouldUseNonInteractiveOutput(options)) {
-    outputData(items, options.output as OutputFormat);
+    output(items, { format: options.output, defaultFormat: "json" });
   }
 }
 
 /**
- * Handle errors in both interactive and non-interactive modes
- */
-export function outputError(error: Error, options: OutputOptions): void {
-  if (shouldUseNonInteractiveOutput(options)) {
-    if (options.output === "json") {
-      console.error(JSON.stringify({ error: error.message }, null, 2));
-    } else if (options.output === "yaml") {
-      console.error(YAML.stringify({ error: error.message }));
-    } else {
-      console.error(`Error: ${error.message}`);
-    }
-    process.exit(1);
-  }
-
-  // Let interactive UI handle the error
-  throw error;
-}
-
-/**
- * Validate output format option
+ * @deprecated Use validateOutputFormat with the new output() function
  */
 export function validateOutputFormat(format?: string): OutputFormat {
   if (!format || format === "text") {
