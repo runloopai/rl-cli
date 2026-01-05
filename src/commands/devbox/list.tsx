@@ -18,6 +18,7 @@ import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { getDevboxUrl } from "../../utils/url.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
+import { useCursorPagination } from "../../hooks/useCursorPagination.js";
 import { colors } from "../../utils/theme.js";
 import { useDevboxStore } from "../../store/devboxStore.js";
 
@@ -27,7 +28,6 @@ interface ListOptions {
 }
 
 const DEFAULT_PAGE_SIZE = 10;
-const MAX_CACHE_SIZE = 10; // Limit cache to 10 pages to prevent memory leaks
 
 const ListDevboxesUI = ({
   status,
@@ -41,24 +41,15 @@ const ListDevboxesUI = ({
   onNavigateToDetail?: (devboxId: string) => void;
 }) => {
   const { exit: inkExit } = useApp();
-  const [initialLoading, setInitialLoading] = React.useState(true);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [devboxes, setDevboxes] = React.useState<any[]>([]);
-  const [error, setError] = React.useState<Error | null>(null);
-  const [currentPage, setCurrentPage] = React.useState(0);
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showDetails, setShowDetails] = React.useState(false);
   const [showCreate, setShowCreate] = React.useState(false);
   const [showActions, setShowActions] = React.useState(false);
   const [showPopup, setShowPopup] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(0);
-  const isNavigating = React.useRef(false);
   const [searchMode, setSearchMode] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [totalCount, setTotalCount] = React.useState(0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pageCache = React.useRef<Map<number, any[]>>(new Map());
-  const lastIdCache = React.useRef<Map<number, string>>(new Map());
+  const [submittedSearchQuery, setSubmittedSearchQuery] = React.useState("");
 
   // Get devbox store setter to sync data for detail screen
   const setDevboxesInStore = useDevboxStore((state) => state.setDevboxes);
@@ -71,13 +62,101 @@ const ListDevboxesUI = ({
   // - Help bar (marginTop + content): 2 lines
   // - Safety buffer for edge cases: 1 line
   // Total: 13 lines base + 2 if searching
-  const overhead = 13 + (searchMode || searchQuery ? 2 : 0);
+  const overhead = 13 + (searchMode || submittedSearchQuery ? 2 : 0);
   const { viewportHeight, terminalWidth } = useViewportHeight({
     overhead,
     minHeight: 5,
   });
 
   const PAGE_SIZE = viewportHeight;
+
+  // Fetch function for pagination hook
+  const fetchPage = React.useCallback(
+    async (params: { limit: number; startingAt?: string }) => {
+      const client = getClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pageDevboxes: any[] = [];
+
+      // Build query params
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const queryParams: any = {
+        limit: params.limit,
+      };
+      if (params.startingAt) {
+        queryParams.starting_after = params.startingAt;
+      }
+      if (status) {
+        queryParams.status = status;
+      }
+      if (submittedSearchQuery) {
+        queryParams.search = submittedSearchQuery;
+      }
+
+      // Fetch ONE page only
+      let page = (await client.devboxes.list(queryParams)) as DevboxesCursorIDPage<{
+        id: string;
+      }>;
+
+      // Extract data and create defensive copies
+      if (page.devboxes && Array.isArray(page.devboxes)) {
+        page.devboxes.forEach((d: any) => {
+          const plain: any = {};
+          for (const key in d) {
+            const value = d[key];
+            if (value === null || value === undefined) {
+              plain[key] = value;
+            } else if (Array.isArray(value)) {
+              plain[key] = [...value];
+            } else if (typeof value === "object") {
+              plain[key] = JSON.parse(JSON.stringify(value));
+            } else {
+              plain[key] = value;
+            }
+          }
+          pageDevboxes.push(plain);
+        });
+      }
+
+      const result = {
+        items: pageDevboxes,
+        hasMore: page.has_more || false,
+        totalCount: page.total_count || pageDevboxes.length,
+      };
+
+      // Help GC
+      page = null as any;
+
+      return result;
+    },
+    [status, submittedSearchQuery],
+  );
+
+  // Use the shared pagination hook
+  const {
+    items: devboxes,
+    loading,
+    error,
+    currentPage,
+    hasMore,
+    hasPrev,
+    totalCount,
+    nextPage,
+    prevPage,
+  } = useCursorPagination({
+    fetchPage,
+    pageSize: PAGE_SIZE,
+    getItemId: (devbox: any) => devbox.id,
+    pollInterval: 2000,
+    pollingEnabled: !showDetails && !showCreate && !showActions && !showPopup && !searchMode,
+    deps: [status, submittedSearchQuery, PAGE_SIZE],
+  });
+
+  // Sync devboxes to store for detail screen
+  React.useEffect(() => {
+    if (devboxes.length > 0) {
+      setDevboxesInStore(devboxes);
+    }
+  }, [devboxes, setDevboxesInStore]);
 
   const fixedWidth = 4; // pointer + spaces
   const statusIconWidth = 2;
@@ -94,7 +173,6 @@ const ListDevboxesUI = ({
   const showSource = terminalWidth >= 120;
 
   // CRITICAL: Absolute maximum column widths to prevent Yoga crashes
-  // These caps apply regardless of terminal size to prevent padEnd() from creating massive strings
   const ABSOLUTE_MAX_NAME_WIDTH = 80;
 
   // Name width is flexible and uses remaining space
@@ -136,8 +214,6 @@ const ListDevboxesUI = ({
 
   // Build responsive column list (memoized to prevent recreating on every render)
   const tableColumns = React.useMemo(() => {
-    // CRITICAL: Absolute max lengths to prevent Yoga crashes on repeated mounts
-    // Yoga layout engine cannot handle strings longer than ~100 chars reliably
     const ABSOLUTE_MAX_NAME = 80;
     const ABSOLUTE_MAX_ID = 50;
 
@@ -147,7 +223,6 @@ const ListDevboxesUI = ({
         "Name",
         (devbox: any) => {
           const name = String(devbox?.name || devbox?.id || "");
-          // Use absolute minimum to prevent Yoga crashes
           const safeMax = Math.min(nameWidth || 15, ABSOLUTE_MAX_NAME);
           return name.length > safeMax
             ? name.substring(0, Math.max(1, safeMax - 3)) + "..."
@@ -163,7 +238,6 @@ const ListDevboxesUI = ({
         "ID",
         (devbox: any) => {
           const id = String(devbox?.id || "");
-          // Use absolute minimum to prevent Yoga crashes
           const safeMax = Math.min(idWidth || 26, ABSOLUTE_MAX_ID);
           return id.length > safeMax
             ? id.substring(0, Math.max(1, safeMax - 3)) + "..."
@@ -182,7 +256,6 @@ const ListDevboxesUI = ({
         (devbox: any) => {
           const statusDisplay = getStatusDisplay(devbox?.status);
           const text = String(statusDisplay?.text || "-");
-          // Cap status text to absolute maximum
           return text.length > 20 ? text.substring(0, 17) + "..." : text;
         },
         {
@@ -196,7 +269,6 @@ const ListDevboxesUI = ({
         (devbox: any) => {
           const time = formatTimeAgo(devbox?.create_time_ms || Date.now());
           const text = String(time || "-");
-          // Cap time text to absolute maximum
           return text.length > 25 ? text.substring(0, 22) + "..." : text;
         },
         {
@@ -207,7 +279,6 @@ const ListDevboxesUI = ({
       ),
     ];
 
-    // Add optional columns based on terminal width
     if (showSource) {
       columns.push(
         createTextColumn(
@@ -218,7 +289,6 @@ const ListDevboxesUI = ({
               const bpId = String(devbox.blueprint_id);
               const truncated = bpId.slice(0, 16);
               const text = `${truncated}`;
-              // Cap source text to absolute maximum
               return text.length > 30 ? text.substring(0, 27) + "..." : text;
             }
             return "-";
@@ -242,7 +312,6 @@ const ListDevboxesUI = ({
             if (devbox?.entitlements?.network_enabled) caps.push("net");
             if (devbox?.entitlements?.gpu_enabled) caps.push("gpu");
             const text = caps.length > 0 ? caps.join(",") : "-";
-            // Cap capabilities text to absolute maximum
             return text.length > 20 ? text.substring(0, 17) + "..." : text;
           },
           {
@@ -336,251 +405,71 @@ const ListDevboxesUI = ({
     [],
   );
 
-  // NOTE: focusDevboxId auto-navigation removed - now handled by Router in DevboxListScreen
-  // The Router will navigate directly to devbox-detail screen instead of relying on internal state
-
-  // Clear cache when search query changes
-  React.useEffect(() => {
-    pageCache.current.clear();
-    lastIdCache.current.clear();
-    setCurrentPage(0);
-  }, [searchQuery]);
-
-  // Track previous PAGE_SIZE to detect changes
-  const prevPageSize = React.useRef<number | undefined>(undefined);
-
-  // Clear cache when PAGE_SIZE changes (e.g., when search UI appears/disappears)
-  React.useEffect(() => {
-    // Only clear cache if PAGE_SIZE actually changed and not initial mount
-    if (
-      prevPageSize.current !== undefined &&
-      prevPageSize.current !== PAGE_SIZE &&
-      !initialLoading
-    ) {
-      pageCache.current.clear();
-      lastIdCache.current.clear();
-      // Reset to page 0 to avoid out of bounds
-      setCurrentPage(0);
-      setSelectedIndex(0);
-    }
-    prevPageSize.current = PAGE_SIZE;
-  }, [PAGE_SIZE, initialLoading]);
-
-  // Cleanup: Clear cache on unmount to prevent memory leaks
-  React.useEffect(() => {
-    return () => {
-      pageCache.current.clear();
-      lastIdCache.current.clear();
-    };
-  }, []);
-
-  React.useEffect(() => {
-    let isMounted = true; // Track if component is still mounted
-
-    const list = async (
-      isInitialLoad: boolean = false,
-      isBackgroundRefresh: boolean = false,
-    ) => {
-      try {
-        // Set navigating flag at the start (but not for background refresh)
-        if (!isBackgroundRefresh) {
-          isNavigating.current = true;
-        }
-
-        // Check if we have cached data for this page
-        if (
-          !isInitialLoad &&
-          !isBackgroundRefresh &&
-          pageCache.current.has(currentPage)
-        ) {
-          if (isMounted) {
-            setDevboxes(pageCache.current.get(currentPage) || []);
-          }
-          isNavigating.current = false;
-          return;
-        }
-
-        const client = getClient();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pageDevboxes: any[] = [];
-
-        // Get starting_after cursor from previous page's last ID
-        const startingAfter =
-          currentPage > 0
-            ? lastIdCache.current.get(currentPage - 1)
-            : undefined;
-
-        // Build query params (using any to avoid complex type imports)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const queryParams: any = {
-          limit: PAGE_SIZE,
-        };
-        if (startingAfter) {
-          queryParams.starting_after = startingAfter;
-        }
-        if (status) {
-          queryParams.status = status;
-        }
-        if (searchQuery) {
-          queryParams.search = searchQuery;
-        }
-
-        // CRITICAL: Fetch ONLY ONE page, never auto-paginate
-        // The SDK will return a Page object, but we MUST NOT iterate it
-        // The limit parameter ensures we only request PAGE_SIZE items
-        const pagePromise = client.devboxes.list(queryParams);
-
-        // Await the promise to get the Page object
-        // DO NOT use for-await or iterate - that triggers auto-pagination
-        let page = (await pagePromise) as DevboxesCursorIDPage<{
-          id: string;
-        }>;
-
-        // Extract data immediately and create defensive copies
-        // This breaks all reference chains to the SDK's internal objects
-        if (page.devboxes && Array.isArray(page.devboxes)) {
-          // Deep copy all fields to avoid SDK references
-          page.devboxes.forEach((d: any) => {
-            const plain: any = {};
-            for (const key in d) {
-              const value = d[key];
-              if (value === null || value === undefined) {
-                plain[key] = value;
-              } else if (Array.isArray(value)) {
-                plain[key] = [...value];
-              } else if (typeof value === "object") {
-                plain[key] = JSON.parse(JSON.stringify(value));
-              } else {
-                plain[key] = value;
-              }
-            }
-            pageDevboxes.push(plain);
-          });
-        } else {
-          console.error(
-            "Unable to access devboxes from page. Available keys:",
-            Object.keys(page || {}),
-          );
-        }
-
-        // Extract metadata before releasing page reference
-        const totalCount = page.total_count || pageDevboxes.length;
-
-        // CRITICAL: Explicitly null out page reference to help GC
-        // The Page object holds references to client, response, and options
-        page = null as any;
-
-        // Only update state if component is still mounted
-        if (!isMounted) return;
-
-        // Update pagination metadata
-        setTotalCount(totalCount);
-
-        // Cache the page data and last ID
-        if (pageDevboxes.length > 0) {
-          // Implement LRU cache eviction: if cache is full, remove oldest entry
-          if (pageCache.current.size >= MAX_CACHE_SIZE) {
-            const firstKey = pageCache.current.keys().next().value;
-            if (firstKey !== undefined) {
-              pageCache.current.delete(firstKey);
-              lastIdCache.current.delete(firstKey);
-            }
-          }
-          pageCache.current.set(currentPage, pageDevboxes);
-          lastIdCache.current.set(
-            currentPage,
-            pageDevboxes[pageDevboxes.length - 1].id,
-          );
-        }
-
-        // Update devboxes for current page
-        // React will handle efficient re-rendering - no need for manual comparison
-        setDevboxes(pageDevboxes);
-
-        // Also update the store so DevboxDetailScreen can access the data
-        setDevboxesInStore(pageDevboxes);
-      } catch (err) {
-        if (isMounted) {
-          setError(err as Error);
-        }
-      } finally {
-        if (!isBackgroundRefresh) {
-          isNavigating.current = false;
-        }
-        // Only set initialLoading to false after first successful load
-        if (isInitialLoad && isMounted) {
-          setInitialLoading(false);
-        }
-      }
-    };
-
-    // Only treat as initial load on first mount
-    const isFirstMount = initialLoading;
-    list(isFirstMount, false);
-
-    // Cleanup: Cancel any pending state updates when component unmounts
-    return () => {
-      isMounted = false;
-    };
-
-    // DISABLED: Polling causes flashing in non-tmux terminals
-    // Users can manually refresh by navigating away and back
-    // const interval = setInterval(() => {
-    //   if (
-    //     !showDetails &&
-    //     !showCreate &&
-    //     !showActions &&
-    //     !isNavigating.current
-    //   ) {
-    //     list(false, true);
-    //   }
-    // }, 3000);
-    // return () => clearInterval(interval);
-  }, [
-    showDetails,
-    showCreate,
-    showActions,
-    currentPage,
-    searchQuery,
-    PAGE_SIZE,
-    status,
-  ]);
-
-  // Removed refresh icon animation to prevent constant re-renders and flashing
-
   // Handle Ctrl+C to exit
   useExitOnCtrlC();
 
+  // Ensure selected index is within bounds
+  React.useEffect(() => {
+    if (devboxes.length > 0 && selectedIndex >= devboxes.length) {
+      setSelectedIndex(Math.max(0, devboxes.length - 1));
+    }
+  }, [devboxes.length, selectedIndex]);
+
+  const selectedDevbox = devboxes[selectedIndex];
+
+  // Calculate pagination info for display
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const startIndex = currentPage * PAGE_SIZE;
+  const endIndex = startIndex + devboxes.length;
+
+  // Filter operations based on devbox status
+  const operations = selectedDevbox
+    ? allOperations.filter((op) => {
+        const devboxStatus = selectedDevbox.status;
+
+        if (devboxStatus === "suspended") {
+          return op.key === "resume" || op.key === "logs";
+        }
+
+        if (
+          devboxStatus !== "running" &&
+          devboxStatus !== "provisioning" &&
+          devboxStatus !== "initializing"
+        ) {
+          return op.key === "logs";
+        }
+
+        if (devboxStatus === "running") {
+          return op.key !== "resume";
+        }
+
+        return op.key === "logs" || op.key === "delete";
+      })
+    : allOperations;
+
   useInput((input, key) => {
-    const pageDevboxes = currentDevboxes.length;
+    const pageDevboxes = devboxes.length;
 
     // Skip input handling when in search mode - let TextInput handle it
     if (searchMode) {
       if (key.escape) {
         setSearchMode(false);
-        if (searchQuery) {
-          // If there was a query, clear it and refresh
-          setSearchQuery("");
-          setCurrentPage(0);
-          setSelectedIndex(0);
-          pageCache.current.clear();
-          lastIdCache.current.clear();
-        }
+        setSearchQuery("");
       }
       return;
     }
 
-    // Skip input handling when in details view - let DevboxDetailPage handle it
+    // Skip input handling when in details view
     if (showDetails) {
       return;
     }
 
-    // Skip input handling when in create view - let DevboxCreatePage handle it
+    // Skip input handling when in create view
     if (showCreate) {
       return;
     }
 
-    // Skip input handling when in actions view - let DevboxActionsMenu handle it
+    // Skip input handling when in actions view
     if (showActions) {
       return;
     }
@@ -595,11 +484,9 @@ const ListDevboxesUI = ({
       } else if (key.downArrow && selectedOperation < operations.length - 1) {
         setSelectedOperation(selectedOperation + 1);
       } else if (key.return) {
-        // Execute the selected operation
         setShowPopup(false);
         setShowActions(true);
       } else if (input) {
-        // Check for shortcut match
         const matchedOpIndex = operations.findIndex(
           (op) => op.shortcut === input,
         );
@@ -617,22 +504,13 @@ const ListDevboxesUI = ({
       setSelectedIndex(selectedIndex - 1);
     } else if (key.downArrow && selectedIndex < pageDevboxes - 1) {
       setSelectedIndex(selectedIndex + 1);
-    } else if (
-      (input === "n" || key.rightArrow) &&
-      !isNavigating.current &&
-      currentPage < totalPages - 1
-    ) {
-      setCurrentPage(currentPage + 1);
+    } else if ((input === "n" || key.rightArrow) && !loading && hasMore) {
+      nextPage();
       setSelectedIndex(0);
-    } else if (
-      (input === "p" || key.leftArrow) &&
-      !isNavigating.current &&
-      currentPage > 0
-    ) {
-      setCurrentPage(currentPage - 1);
+    } else if ((input === "p" || key.leftArrow) && !loading && hasPrev) {
+      prevPage();
       setSelectedIndex(0);
     } else if (key.return) {
-      // Use Router navigation if callback provided, otherwise use internal state
       if (onNavigateToDetail && selectedDevbox) {
         onNavigateToDetail(selectedDevbox.id);
       } else {
@@ -644,7 +522,6 @@ const ListDevboxesUI = ({
     } else if (input === "c") {
       setShowCreate(true);
     } else if (input === "o" && selectedDevbox) {
-      // Open in browser
       const url = getDevboxUrl(selectedDevbox.id);
       const openBrowser = async () => {
         const { exec } = await import("child_process");
@@ -665,15 +542,11 @@ const ListDevboxesUI = ({
     } else if (input === "/") {
       setSearchMode(true);
     } else if (key.escape) {
-      if (searchQuery) {
-        // Clear search when Esc is pressed and there's an active search
+      if (submittedSearchQuery) {
+        setSubmittedSearchQuery("");
         setSearchQuery("");
-        setCurrentPage(0);
         setSelectedIndex(0);
-        pageCache.current.clear();
-        lastIdCache.current.clear();
       } else {
-        // Go back to home
         if (onBack) {
           onBack();
         } else if (onExit) {
@@ -685,65 +558,6 @@ const ListDevboxesUI = ({
     }
   });
 
-  // No client-side filtering - search is handled server-side
-  const currentDevboxes = devboxes;
-
-  // Ensure selected index is within bounds after filtering
-  React.useEffect(() => {
-    if (currentDevboxes.length > 0 && selectedIndex >= currentDevboxes.length) {
-      setSelectedIndex(Math.max(0, currentDevboxes.length - 1));
-    }
-  }, [currentDevboxes.length, selectedIndex]);
-
-  const selectedDevbox = currentDevboxes[selectedIndex];
-
-  // Calculate pagination info
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-  const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + currentDevboxes.length;
-
-  // Filter operations based on devbox status (inline like blueprints)
-  const operations = selectedDevbox
-    ? allOperations.filter((op) => {
-        const status = selectedDevbox.status;
-
-        // When suspended: logs and resume
-        if (status === "suspended") {
-          return op.key === "resume" || op.key === "logs";
-        }
-
-        // When not running (shutdown, failure, etc): only logs
-        if (
-          status !== "running" &&
-          status !== "provisioning" &&
-          status !== "initializing"
-        ) {
-          return op.key === "logs";
-        }
-
-        // When running: everything except resume
-        if (status === "running") {
-          return op.key !== "resume";
-        }
-
-        // Default for transitional states (provisioning, initializing)
-        return op.key === "logs" || op.key === "delete";
-      })
-    : allOperations;
-
-  // CRITICAL: Memory cleanup when switching views
-  // Only clear LOCAL component state, NOT the store (store is needed by detail screen)
-  React.useEffect(() => {
-    if (showDetails || showActions || showCreate) {
-      // Clear local list data only when using internal navigation
-      // When using Router navigation (onNavigateToDetail), the component will unmount
-      // so this cleanup is not needed
-      if (!onNavigateToDetail) {
-        setDevboxes([]);
-      }
-    }
-  }, [showDetails, showActions, showCreate, onNavigateToDetail]);
-
   // Create view
   if (showCreate) {
     return (
@@ -752,9 +566,7 @@ const ListDevboxesUI = ({
           setShowCreate(false);
         }}
         onCreate={() => {
-          // Refresh the list after creation
           setShowCreate(false);
-          // The list will auto-refresh via the polling effect
         }}
       />
     );
@@ -791,8 +603,8 @@ const ListDevboxesUI = ({
     );
   }
 
-  // If initial loading or error, show that first
-  if (initialLoading) {
+  // Loading state (only on initial load)
+  if (loading && devboxes.length === 0) {
     return (
       <>
         <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
@@ -825,10 +637,8 @@ const ListDevboxesUI = ({
             placeholder="Type to search..."
             onSubmit={() => {
               setSearchMode(false);
-              setCurrentPage(0);
+              setSubmittedSearchQuery(searchQuery);
               setSelectedIndex(0);
-              pageCache.current.clear();
-              lastIdCache.current.clear();
             }}
           />
           <Text color={colors.textDim} dimColor>
@@ -837,13 +647,13 @@ const ListDevboxesUI = ({
           </Text>
         </Box>
       )}
-      {!searchMode && searchQuery && (
+      {!searchMode && submittedSearchQuery && (
         <Box marginBottom={1}>
           <Text color={colors.primary}>{figures.info} Searching for: </Text>
           <Text color={colors.warning} bold>
-            {searchQuery.length > 50
-              ? searchQuery.substring(0, 50) + "..."
-              : searchQuery}
+            {submittedSearchQuery.length > 50
+              ? submittedSearchQuery.substring(0, 50) + "..."
+              : submittedSearchQuery}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -855,7 +665,7 @@ const ListDevboxesUI = ({
       {/* Table - hide when popup is shown */}
       {!showPopup && (
         <Table
-          data={currentDevboxes}
+          data={devboxes}
           keyExtractor={(devbox: any) => devbox.id}
           selectedIndex={selectedIndex}
           title="devboxes"
@@ -891,14 +701,14 @@ const ListDevboxesUI = ({
           <Text color={colors.textDim} dimColor>
             Showing {startIndex + 1}-{endIndex} of {totalCount}
           </Text>
-          {searchQuery && (
+          {submittedSearchQuery && (
             <>
               <Text color={colors.textDim} dimColor>
                 {" "}
                 •{" "}
               </Text>
               <Text color={colors.warning}>
-                Filtered: &quot;{searchQuery}&quot;
+                Filtered: &quot;{submittedSearchQuery}&quot;
               </Text>
             </>
           )}
@@ -923,7 +733,7 @@ const ListDevboxesUI = ({
           {figures.arrowUp}
           {figures.arrowDown} Navigate
         </Text>
-        {totalPages > 1 && (
+        {(hasMore || hasPrev) && (
           <Text color={colors.textDim} dimColor>
             {" "}
             • {figures.arrowLeft}

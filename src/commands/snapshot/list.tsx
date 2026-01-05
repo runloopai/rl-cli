@@ -1,31 +1,25 @@
 import React from "react";
-import { render, Box, Text, useInput, useStdout, useApp } from "ink";
+import { Box, Text, useInput, useApp } from "ink";
 import figures from "figures";
 import type { DiskSnapshotsCursorIDPage } from "@runloop/api-client/pagination";
 import { getClient } from "../../utils/client.js";
 import { SpinnerComponent } from "../../components/Spinner.js";
 import { ErrorMessage } from "../../components/ErrorMessage.js";
-import { StatusBadge, getStatusDisplay } from "../../components/StatusBadge.js";
 import { Breadcrumb } from "../../components/Breadcrumb.js";
-import {
-  Table,
-  createTextColumn,
-  createComponentColumn,
-} from "../../components/Table.js";
-import {
-  ResourceListView,
-  formatTimeAgo,
-} from "../../components/ResourceListView.js";
+import { Table, createTextColumn } from "../../components/Table.js";
+import { formatTimeAgo } from "../../components/ResourceListView.js";
 import { createExecutor } from "../../utils/CommandExecutor.js";
 import { colors } from "../../utils/theme.js";
+import { useViewportHeight } from "../../hooks/useViewportHeight.js";
+import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
+import { useCursorPagination } from "../../hooks/useCursorPagination.js";
 
 interface ListOptions {
   devbox?: string;
   output?: string;
 }
 
-const PAGE_SIZE = 10;
-const MAX_FETCH = 100;
+const DEFAULT_PAGE_SIZE = 10;
 
 const ListSnapshotsUI = ({
   devboxId,
@@ -36,132 +30,298 @@ const ListSnapshotsUI = ({
   onBack?: () => void;
   onExit?: () => void;
 }) => {
-  const { stdout } = useStdout();
+  const { exit: inkExit } = useApp();
+  const [selectedIndex, setSelectedIndex] = React.useState(0);
 
-  // Sample terminal width ONCE for fixed layout - no reactive dependencies to avoid re-renders
-  // CRITICAL: Initialize with fallback value to prevent any possibility of null/undefined
-  const terminalWidth = React.useRef<number>(120);
-  if (terminalWidth.current === 120) {
-    // Only sample on first render if stdout has valid width
-    const sampledWidth = (stdout?.columns && stdout.columns > 0) ? stdout.columns : 120;
-    terminalWidth.current = Math.max(80, Math.min(200, sampledWidth));
-  }
-  const fixedWidth = terminalWidth.current;
+  // Calculate overhead for viewport height
+  const overhead = 13;
+  const { viewportHeight, terminalWidth } = useViewportHeight({
+    overhead,
+    minHeight: 5,
+  });
 
-  // All width constants - guaranteed to be valid positive integers
-  const statusIconWidth = 2;
-  const statusTextWidth = 10;
+  const PAGE_SIZE = viewportHeight;
+
+  // All width constants
   const idWidth = 25;
-  const nameWidth = Math.max(15, fixedWidth >= 120 ? 30 : 25);
+  const nameWidth = Math.max(15, terminalWidth >= 120 ? 30 : 25);
   const devboxWidth = 15;
   const timeWidth = 20;
-  const showDevboxId = fixedWidth >= 100 && !devboxId; // Hide devbox column if filtering by devbox
-  const showFullId = fixedWidth >= 80;
+  const showDevboxId = terminalWidth >= 100 && !devboxId;
 
+  // Fetch function for pagination hook
+  const fetchPage = React.useCallback(
+    async (params: { limit: number; startingAt?: string }) => {
+      const client = getClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pageSnapshots: any[] = [];
+
+      // Build query params
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const queryParams: any = {
+        limit: params.limit,
+      };
+      if (params.startingAt) {
+        queryParams.starting_after = params.startingAt;
+      }
+      if (devboxId) {
+        queryParams.devbox_id = devboxId;
+      }
+
+      // Fetch ONE page only
+      let page = (await client.devboxes.listDiskSnapshots(
+        queryParams,
+      )) as DiskSnapshotsCursorIDPage<{ id: string }>;
+
+      // Extract data and create defensive copies
+      if (page.snapshots && Array.isArray(page.snapshots)) {
+        page.snapshots.forEach((s: any) => {
+          pageSnapshots.push({
+            id: s.id,
+            name: s.name,
+            status: s.status,
+            create_time_ms: s.create_time_ms,
+            source_devbox_id: s.source_devbox_id,
+          });
+        });
+      }
+
+      const result = {
+        items: pageSnapshots,
+        hasMore: page.has_more || false,
+        totalCount: page.total_count || pageSnapshots.length,
+      };
+
+      // Help GC
+      page = null as any;
+
+      return result;
+    },
+    [devboxId],
+  );
+
+  // Use the shared pagination hook
+  const {
+    items: snapshots,
+    loading,
+    error,
+    currentPage,
+    hasMore,
+    hasPrev,
+    totalCount,
+    nextPage,
+    prevPage,
+  } = useCursorPagination({
+    fetchPage,
+    pageSize: PAGE_SIZE,
+    getItemId: (snapshot: any) => snapshot.id,
+    pollInterval: 2000,
+    deps: [devboxId, PAGE_SIZE],
+  });
+
+  // Build columns
+  const columns = React.useMemo(
+    () => [
+      createTextColumn("id", "ID", (snapshot: any) => snapshot.id, {
+        width: idWidth,
+        color: colors.idColor,
+        dimColor: false,
+        bold: false,
+      }),
+      createTextColumn(
+        "name",
+        "Name",
+        (snapshot: any) => snapshot.name || "(unnamed)",
+        {
+          width: nameWidth,
+        },
+      ),
+      createTextColumn(
+        "devbox",
+        "Devbox",
+        (snapshot: any) => snapshot.source_devbox_id || "",
+        {
+          width: devboxWidth,
+          color: colors.idColor,
+          dimColor: false,
+          bold: false,
+          visible: showDevboxId,
+        },
+      ),
+      createTextColumn(
+        "created",
+        "Created",
+        (snapshot: any) =>
+          snapshot.create_time_ms ? formatTimeAgo(snapshot.create_time_ms) : "",
+        {
+          width: timeWidth,
+          color: colors.textDim,
+          dimColor: false,
+          bold: false,
+        },
+      ),
+    ],
+    [idWidth, nameWidth, devboxWidth, timeWidth, showDevboxId],
+  );
+
+  // Handle Ctrl+C to exit
+  useExitOnCtrlC();
+
+  // Ensure selected index is within bounds
+  React.useEffect(() => {
+    if (snapshots.length > 0 && selectedIndex >= snapshots.length) {
+      setSelectedIndex(Math.max(0, snapshots.length - 1));
+    }
+  }, [snapshots.length, selectedIndex]);
+
+  // Calculate pagination info for display
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const startIndex = currentPage * PAGE_SIZE;
+  const endIndex = startIndex + snapshots.length;
+
+  useInput((input, key) => {
+    const pageSnapshots = snapshots.length;
+
+    // Handle list view navigation
+    if (key.upArrow && selectedIndex > 0) {
+      setSelectedIndex(selectedIndex - 1);
+    } else if (key.downArrow && selectedIndex < pageSnapshots - 1) {
+      setSelectedIndex(selectedIndex + 1);
+    } else if ((input === "n" || key.rightArrow) && !loading && hasMore) {
+      nextPage();
+      setSelectedIndex(0);
+    } else if ((input === "p" || key.leftArrow) && !loading && hasPrev) {
+      prevPage();
+      setSelectedIndex(0);
+    } else if (key.escape) {
+      if (onBack) {
+        onBack();
+      } else if (onExit) {
+        onExit();
+      } else {
+        inkExit();
+      }
+    }
+  });
+
+  // Loading state
+  if (loading && snapshots.length === 0) {
+    return (
+      <>
+        <Breadcrumb
+          items={[
+            { label: "Snapshots", active: !devboxId },
+            ...(devboxId ? [{ label: `Devbox: ${devboxId}`, active: true }] : []),
+          ]}
+        />
+        <SpinnerComponent message="Loading snapshots..." />
+      </>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <>
+        <Breadcrumb
+          items={[
+            { label: "Snapshots", active: !devboxId },
+            ...(devboxId ? [{ label: `Devbox: ${devboxId}`, active: true }] : []),
+          ]}
+        />
+        <ErrorMessage message="Failed to list snapshots" error={error} />
+      </>
+    );
+  }
+
+  // Empty state
+  if (snapshots.length === 0) {
+    return (
+      <>
+        <Breadcrumb
+          items={[
+            { label: "Snapshots", active: !devboxId },
+            ...(devboxId ? [{ label: `Devbox: ${devboxId}`, active: true }] : []),
+          ]}
+        />
+        <Box>
+          <Text color={colors.warning}>{figures.info}</Text>
+          <Text> No snapshots found. Try: </Text>
+          <Text color={colors.primary} bold>
+            rli snapshot create {"<devbox-id>"}
+          </Text>
+        </Box>
+      </>
+    );
+  }
+
+  // Main list view
   return (
-    <ResourceListView
-      config={{
-        resourceName: "Snapshot",
-        resourceNamePlural: "Snapshots",
-        fetchResources: async () => {
-          const client = getClient();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const pageSnapshots: any[] = [];
-
-          // CRITICAL: Fetch ONLY ONE page with limit, never auto-paginate
-          // DO NOT iterate or use for-await - that fetches ALL pages
-          const params = devboxId
-            ? { devbox_id: devboxId, limit: MAX_FETCH }
-            : { limit: MAX_FETCH };
-          const pagePromise = client.devboxes.listDiskSnapshots(params);
-
-          // Await to get the Page object (NOT async iteration)
-          let page = (await pagePromise) as DiskSnapshotsCursorIDPage<{
-            id: string;
-          }>;
-
-          // Extract data immediately and create defensive copies
-          if (page.snapshots && Array.isArray(page.snapshots)) {
-            // Copy ONLY the fields we need - don't hold entire SDK objects
-            page.snapshots.forEach((s: any) => {
-              pageSnapshots.push({
-                id: s.id,
-                name: s.name,
-                status: s.status,
-                create_time_ms: s.create_time_ms,
-                source_devbox_id: s.source_devbox_id,
-              });
-            });
-          } else {
-            console.error(
-              "Unable to access snapshots from page. Available keys:",
-              Object.keys(page || {}),
-            );
-          }
-
-          // CRITICAL: Explicitly null out page reference to help GC
-          // The Page object holds references to client, response, and options
-          page = null as any;
-
-          return pageSnapshots;
-        },
-        columns: [
-          createTextColumn("id", "ID", (snapshot: any) => snapshot.id, {
-            width: idWidth,
-            color: colors.idColor,
-            dimColor: false,
-            bold: false,
-          }),
-          createTextColumn(
-            "name",
-            "Name",
-            (snapshot: any) => snapshot.name || "(unnamed)",
-            {
-              width: nameWidth,
-            },
-          ),
-          createTextColumn(
-            "devbox",
-            "Devbox",
-            (snapshot: any) => snapshot.source_devbox_id || "",
-            {
-              width: devboxWidth,
-              color: colors.idColor,
-              dimColor: false,
-              bold: false,
-              visible: showDevboxId,
-            },
-          ),
-          createTextColumn(
-            "created",
-            "Created",
-            (snapshot: any) =>
-              snapshot.create_time_ms
-                ? formatTimeAgo(snapshot.create_time_ms)
-                : "",
-            {
-              width: timeWidth,
-              color: colors.textDim,
-              dimColor: false,
-              bold: false,
-            },
-          ),
-        ],
-        keyExtractor: (snapshot: any) => snapshot.id,
-        emptyState: {
-          message: "No snapshots found. Try:",
-          command: "rli snapshot create <devbox-id>",
-        },
-        pageSize: PAGE_SIZE,
-        maxFetch: MAX_FETCH,
-        onBack: onBack,
-        onExit: onExit,
-        breadcrumbItems: [
+    <>
+      <Breadcrumb
+        items={[
           { label: "Snapshots", active: !devboxId },
           ...(devboxId ? [{ label: `Devbox: ${devboxId}`, active: true }] : []),
-        ],
-      }}
-    />
+        ]}
+      />
+
+      {/* Table */}
+      <Table
+        data={snapshots}
+        keyExtractor={(snapshot: any) => snapshot.id}
+        selectedIndex={selectedIndex}
+        title={`snapshots[${totalCount}]`}
+        columns={columns}
+      />
+
+      {/* Statistics Bar */}
+      <Box marginTop={1} paddingX={1}>
+        <Text color={colors.primary} bold>
+          {figures.hamburger} {totalCount}
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          total
+        </Text>
+        {totalPages > 1 && (
+          <>
+            <Text color={colors.textDim} dimColor>
+              {" "}
+              •{" "}
+            </Text>
+            <Text color={colors.textDim} dimColor>
+              Page {currentPage + 1} of {totalPages}
+            </Text>
+          </>
+        )}
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          •{" "}
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          Showing {startIndex + 1}-{endIndex} of {totalCount}
+        </Text>
+      </Box>
+
+      {/* Help Bar */}
+      <Box marginTop={1} paddingX={1}>
+        <Text color={colors.textDim} dimColor>
+          {figures.arrowUp}
+          {figures.arrowDown} Navigate
+        </Text>
+        {(hasMore || hasPrev) && (
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            • {figures.arrowLeft}
+            {figures.arrowRight} Page
+          </Text>
+        )}
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          • [Esc] Back
+        </Text>
+      </Box>
+    </>
   );
 };
 
@@ -178,11 +338,11 @@ export async function listSnapshots(options: ListOptions) {
       return executor.fetchFromIterator(
         client.devboxes.listDiskSnapshots(params),
         {
-          limit: PAGE_SIZE,
+          limit: DEFAULT_PAGE_SIZE,
         },
       );
     },
     () => <ListSnapshotsUI devboxId={options.devbox} />,
-    PAGE_SIZE,
+    DEFAULT_PAGE_SIZE,
   );
 }
