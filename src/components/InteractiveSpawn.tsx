@@ -17,6 +17,34 @@ interface InteractiveSpawnProps {
   onError?: (error: Error) => void;
 }
 
+/**
+ * Releases terminal control from Ink so a subprocess can take over.
+ * This directly manipulates stdin to bypass Ink's input handling.
+ */
+function releaseTerminal(): void {
+  // Pause stdin to stop Ink from reading input
+  process.stdin.pause();
+
+  // Disable raw mode so the subprocess can control terminal echo and line buffering
+  // SSH needs to set its own terminal modes
+  if (process.stdin.isTTY && process.stdin.setRawMode) {
+    process.stdin.setRawMode(false);
+  }
+}
+
+/**
+ * Restores terminal control to Ink after subprocess exits.
+ */
+function restoreTerminal(): void {
+  // Re-enable raw mode for Ink's input handling
+  if (process.stdin.isTTY && process.stdin.setRawMode) {
+    process.stdin.setRawMode(true);
+  }
+
+  // Resume stdin so Ink can read input again
+  process.stdin.resume();
+}
+
 export const InteractiveSpawn: React.FC<InteractiveSpawnProps> = ({
   command,
   args,
@@ -36,10 +64,13 @@ export const InteractiveSpawn: React.FC<InteractiveSpawnProps> = ({
     }
     hasSpawnedRef.current = true;
 
-    // Exit alternate screen so SSH gets a clean terminal
+    // Exit alternate screen so subprocess gets a clean terminal
     exitAlternateScreenBuffer();
 
-    // Small delay to ensure terminal state is clean
+    // Release terminal from Ink's control
+    releaseTerminal();
+
+    // Small delay to ensure terminal state is fully released
     setTimeout(() => {
       // Spawn the process with inherited stdio for proper TTY allocation
       const child = spawn(command, args, {
@@ -50,9 +81,12 @@ export const InteractiveSpawn: React.FC<InteractiveSpawnProps> = ({
       processRef.current = child;
 
       // Handle process exit
-      child.on("exit", (code, signal) => {
+      child.on("exit", (code, _signal) => {
         processRef.current = null;
         hasSpawnedRef.current = false;
+
+        // Restore terminal control to Ink
+        restoreTerminal();
 
         // Re-enter alternate screen after process exits
         enterAlternateScreenBuffer();
@@ -66,6 +100,9 @@ export const InteractiveSpawn: React.FC<InteractiveSpawnProps> = ({
       child.on("error", (error) => {
         processRef.current = null;
         hasSpawnedRef.current = false;
+
+        // Restore terminal control to Ink
+        restoreTerminal();
 
         // Re-enter alternate screen on error
         enterAlternateScreenBuffer();
@@ -81,6 +118,8 @@ export const InteractiveSpawn: React.FC<InteractiveSpawnProps> = ({
       if (processRef.current && !processRef.current.killed) {
         processRef.current.kill("SIGTERM");
       }
+      // Restore terminal state on cleanup
+      restoreTerminal();
       hasSpawnedRef.current = false;
     };
   }, [command, argsKey, onExit, onError]);

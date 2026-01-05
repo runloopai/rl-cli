@@ -13,13 +13,12 @@ import {
 import { Breadcrumb } from "../components/Breadcrumb.js";
 import { colors } from "../utils/theme.js";
 import figures from "figures";
-import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 
 export function SSHSessionScreen() {
   const { params, navigate } = useNavigation();
 
-  // Handle Ctrl+C to exit (before SSH connects or on error)
-  useExitOnCtrlC();
+  // NOTE: Do NOT use useExitOnCtrlC here - SSH handles Ctrl+C itself
+  // Using useInput would conflict with the subprocess's terminal control
 
   // Extract SSH config from params
   const keyPath = params.keyPath;
