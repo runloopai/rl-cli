@@ -46,11 +46,11 @@ export const MetadataDisplay = ({
   }
 
   const content = (
-    <Box flexDirection="row" alignItems="center" flexWrap="wrap">
+    <Box flexDirection="row" alignItems="center" flexWrap="wrap" gap={1}>
       {title && (
         <>
           <Text color={colors.accent3} bold>
-            {figures.info} {title}
+            {figures.identical} {title}
           </Text>
           <Text> </Text>
         </>
