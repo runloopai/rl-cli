@@ -26,6 +26,15 @@ const DEFAULT_PAGE_SIZE = 10;
 
 type OperationType = "create_devbox" | "delete" | null;
 
+// Local interface for blueprint data used in this component
+interface BlueprintListItem {
+  id: string;
+  name?: string;
+  status?: string;
+  create_time_ms?: number;
+  [key: string]: unknown;
+}
+
 const ListBlueprintsUI = ({
   onBack,
   onExit,
@@ -76,12 +85,10 @@ const ListBlueprintsUI = ({
   const fetchPage = React.useCallback(
     async (params: { limit: number; startingAt?: string }) => {
       const client = getClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pageBlueprints: any[] = [];
+      const pageBlueprints: BlueprintListItem[] = [];
 
       // Build query params
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const queryParams: any = {
+      const queryParams: Record<string, unknown> = {
         limit: params.limit,
       };
       if (params.startingAt) {
@@ -89,21 +96,18 @@ const ListBlueprintsUI = ({
       }
 
       // Fetch ONE page only
-      let page = (await client.blueprints.list(
+      const page = (await client.blueprints.list(
         queryParams,
-      )) as BlueprintsCursorIDPage<{ id: string }>;
+      )) as unknown as BlueprintsCursorIDPage<BlueprintListItem>;
 
       // Extract data and create defensive copies
       if (page.blueprints && Array.isArray(page.blueprints)) {
-        page.blueprints.forEach((b: any) => {
+        page.blueprints.forEach((b: BlueprintListItem) => {
           pageBlueprints.push({
             id: b.id,
             name: b.name,
             status: b.status,
             create_time_ms: b.create_time_ms,
-            dockerfile_setup: b.dockerfile_setup
-              ? { ...b.dockerfile_setup }
-              : undefined,
           });
         });
       }
@@ -113,9 +117,6 @@ const ListBlueprintsUI = ({
         hasMore: page.has_more || false,
         totalCount: page.total_count || pageBlueprints.length,
       };
-
-      // Help GC
-      page = null as any;
 
       return result;
     },
@@ -137,7 +138,7 @@ const ListBlueprintsUI = ({
   } = useCursorPagination({
     fetchPage,
     pageSize: PAGE_SIZE,
-    getItemId: (blueprint: any) => blueprint.id,
+    getItemId: (blueprint: BlueprintListItem) => blueprint.id,
     pollInterval: 2000,
     pollingEnabled: !showPopup && !showCreateDevbox && !executingOperation,
     deps: [PAGE_SIZE],
@@ -150,8 +151,12 @@ const ListBlueprintsUI = ({
         key: "statusIcon",
         label: "",
         width: statusIconWidth,
-        render: (blueprint: any, index: number, isSelected: boolean) => {
-          const statusDisplay = getStatusDisplay(blueprint.status);
+        render: (
+          blueprint: BlueprintListItem,
+          _index: number,
+          isSelected: boolean,
+        ) => {
+          const statusDisplay = getStatusDisplay(blueprint.status || "");
           const statusColor =
             statusDisplay.color === colors.textDim
               ? colors.info
@@ -173,7 +178,11 @@ const ListBlueprintsUI = ({
         key: "id",
         label: "ID",
         width: idWidth + 1,
-        render: (blueprint: any, index: number, isSelected: boolean) => {
+        render: (
+          blueprint: BlueprintListItem,
+          _index: number,
+          isSelected: boolean,
+        ) => {
           const value = blueprint.id;
           const width = Math.max(1, idWidth + 1);
           const truncated = value.slice(0, Math.max(1, width - 1));
@@ -195,8 +204,12 @@ const ListBlueprintsUI = ({
         key: "statusText",
         label: "Status",
         width: statusTextWidth,
-        render: (blueprint: any, index: number, isSelected: boolean) => {
-          const statusDisplay = getStatusDisplay(blueprint.status);
+        render: (
+          blueprint: BlueprintListItem,
+          _index: number,
+          isSelected: boolean,
+        ) => {
+          const statusDisplay = getStatusDisplay(blueprint.status || "");
           const statusColor =
             statusDisplay.color === colors.textDim
               ? colors.info
@@ -220,27 +233,16 @@ const ListBlueprintsUI = ({
       createTextColumn(
         "name",
         "Name",
-        (blueprint: any) => blueprint.name || "(unnamed)",
+        (blueprint: BlueprintListItem) => blueprint.name || "(unnamed)",
         {
           width: nameWidth,
         },
       ),
-      createTextColumn(
-        "description",
-        "Description",
-        (blueprint: any) => blueprint.dockerfile_setup?.description || "",
-        {
-          width: descriptionWidth,
-          color: colors.textDim,
-          dimColor: false,
-          bold: false,
-          visible: showDescription,
-        },
-      ),
+      // Description column removed - not available in API
       createTextColumn(
         "created",
         "Created",
-        (blueprint: any) =>
+        (blueprint: BlueprintListItem) =>
           blueprint.create_time_ms
             ? formatTimeAgo(blueprint.create_time_ms)
             : "",
@@ -264,7 +266,9 @@ const ListBlueprintsUI = ({
   );
 
   // Helper function to generate operations based on selected blueprint
-  const getOperationsForBlueprint = (blueprint: any): Operation[] => {
+  const getOperationsForBlueprint = (
+    blueprint: BlueprintListItem,
+  ): Operation[] => {
     const operations: Operation[] = [];
 
     if (
@@ -653,7 +657,7 @@ const ListBlueprintsUI = ({
       {!showPopup && (
         <Table
           data={blueprints}
-          keyExtractor={(blueprint: any) => blueprint.id}
+          keyExtractor={(blueprint: BlueprintListItem) => blueprint.id}
           selectedIndex={selectedIndex}
           title={`blueprints[${totalCount}]`}
           columns={blueprintColumns}

@@ -33,9 +33,9 @@ interface OperationsMenuProps {
 export const OperationsMenu = ({
   operations,
   selectedIndex,
-  onNavigate,
-  onSelect,
-  onBack,
+  onNavigate: _onNavigate,
+  onSelect: _onSelect,
+  onBack: _onBack,
   additionalActions = [],
 }: OperationsMenuProps) => {
   return (

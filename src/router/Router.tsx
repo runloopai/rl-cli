@@ -20,8 +20,6 @@ import { BlueprintListScreen } from "../screens/BlueprintListScreen.js";
 import { SnapshotListScreen } from "../screens/SnapshotListScreen.js";
 import { SSHSessionScreen } from "../screens/SSHSessionScreen.js";
 
-interface RouterProps {}
-
 /**
  * Router component that renders the current screen
  * Implements memory cleanup on route changes

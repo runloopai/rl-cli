@@ -26,7 +26,7 @@ export interface UsePaginatedListConfig<T> {
   pollInterval?: number;
 
   /** Dependencies that reset pagination when changed (e.g., filters, search) */
-  deps?: any[];
+  deps?: unknown[];
 
   /** Whether polling is enabled (can be used to pause during interactions) */
   pollingEnabled?: boolean;

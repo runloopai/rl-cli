@@ -1,7 +1,6 @@
 import React from "react";
 import { render, Box, Text, useInput, useApp } from "ink";
 import figures from "figures";
-import chalk from "chalk";
 import {
   setThemePreference,
   getThemePreference,

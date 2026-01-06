@@ -121,7 +121,7 @@ export async function initializeTheme(): Promise<void> {
           // Cache the result so we don't detect again
           setDetectedTheme(detectedTheme);
         }
-      } catch (error) {
+      } catch {
         // Detection failed, fall back to dark mode
         detectedTheme = null;
       }

@@ -1,7 +1,6 @@
 import { exec } from "child_process";
 import { promisify } from "util";
-import { writeFile, mkdir, chmod, access } from "fs/promises";
-import { constants } from "fs";
+import { writeFile, mkdir, chmod } from "fs/promises";
 import { join } from "path";
 import { homedir } from "os";
 import { getClient } from "./client.js";

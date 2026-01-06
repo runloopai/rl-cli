@@ -3,7 +3,6 @@ import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
 import { getClient } from "../utils/client.js";
-import { Header } from "./Header.js";
 import { SpinnerComponent } from "./Spinner.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { SuccessMessage } from "./SuccessMessage.js";
@@ -514,7 +513,7 @@ export const DevboxCreatePage = ({
       />
 
       <Box flexDirection="column" marginBottom={1}>
-        {fields.map((field, index) => {
+        {fields.map((field) => {
           const isActive = currentField === field.key;
           const fieldData = formData[field.key as keyof FormData];
 

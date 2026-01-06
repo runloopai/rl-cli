@@ -61,7 +61,7 @@ function formatKeyValue(data: unknown, indent: number = 0): string {
       return data.join(", ");
     }
     // For arrays of objects, format each with separator
-    return data.map((item, i) => {
+    return data.map((item) => {
       if (typeof item === "object" && item !== null) {
         const lines: string[] = [];
         for (const [key, value] of Object.entries(item)) {

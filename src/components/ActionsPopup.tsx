@@ -2,10 +2,16 @@ import React from "react";
 import { Box, Text } from "ink";
 import figures from "figures";
 import chalk from "chalk";
-import { colors, isLightMode } from "../utils/theme.js";
+import { isLightMode } from "../utils/theme.js";
+
+// Generic resource type - accepts any object with an id
+interface ResourceWithId {
+  id: string;
+  [key: string]: unknown;
+}
 
 interface ActionsPopupProps {
-  devbox: any;
+  devbox: ResourceWithId;
   operations: Array<{
     key: string;
     label: string;
@@ -18,14 +24,11 @@ interface ActionsPopupProps {
 }
 
 export const ActionsPopup = ({
-  devbox,
+  devbox: _devbox,
   operations,
   selectedOperation,
-  onClose,
+  onClose: _onClose,
 }: ActionsPopupProps) => {
-  // Strip ANSI codes to get actual visible length
-  const stripAnsi = (str: string) => str.replace(/\u001b\[[0-9;]*m/g, "");
-
   // Calculate max width needed for content (visible characters only)
   // CRITICAL: Ensure all values are valid numbers to prevent Yoga crashes
   const maxContentWidth = Math.max(
@@ -43,7 +46,6 @@ export const ActionsPopup = ({
   // Plus 2 for border characters = 6 total extra
   // CRITICAL: Validate all computed widths are positive integers
   const contentWidth = Math.max(10, maxContentWidth + 4);
-  const totalWidth = Math.max(12, contentWidth + 2); // +2 for border characters
 
   // Get background color chalk function - inverted for contrast
   // In light mode (light terminal), use black background for popup
@@ -67,7 +69,6 @@ export const ActionsPopup = ({
 
   // Create border lines with background and integrated title
   const title = `${figures.play} Quick Actions`;
-  const titleLength = title.length;
   
   // The content between ╭ and ╮ should be exactly contentWidth
   // Format: "─ title ─────"

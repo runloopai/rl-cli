@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text, useInput, useApp } from "ink";
+import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
 import { Header } from "./Header.js";
@@ -22,7 +22,7 @@ import {
   createTunnel,
   createSSHKey,
 } from "../services/devboxService.js";
-import { parseLogEntry, formatTimestamp } from "../utils/logFormatter.js";
+import { parseLogEntry } from "../utils/logFormatter.js";
 
 type Operation =
   | "exec"

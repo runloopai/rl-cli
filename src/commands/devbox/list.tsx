@@ -20,7 +20,7 @@ import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
 import { colors } from "../../utils/theme.js";
-import { useDevboxStore } from "../../store/devboxStore.js";
+import { useDevboxStore, type Devbox } from "../../store/devboxStore.js";
 
 interface ListOptions {
   status?: string;
@@ -75,12 +75,10 @@ const ListDevboxesUI = ({
   const fetchPage = React.useCallback(
     async (params: { limit: number; startingAt?: string }) => {
       const client = getClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pageDevboxes: any[] = [];
+      const pageDevboxes: Devbox[] = [];
 
       // Build query params
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const queryParams: any = {
+      const queryParams: Record<string, unknown> = {
         limit: params.limit,
       };
       if (params.startingAt) {
@@ -94,16 +92,14 @@ const ListDevboxesUI = ({
       }
 
       // Fetch ONE page only
-      let page = (await client.devboxes.list(queryParams)) as DevboxesCursorIDPage<{
-        id: string;
-      }>;
+      const page = (await client.devboxes.list(queryParams)) as unknown as DevboxesCursorIDPage<Devbox>;
 
       // Extract data and create defensive copies
       if (page.devboxes && Array.isArray(page.devboxes)) {
-        page.devboxes.forEach((d: any) => {
-          const plain: any = {};
+        page.devboxes.forEach((d: Devbox) => {
+          const plain: Record<string, unknown> = {};
           for (const key in d) {
-            const value = d[key];
+            const value = (d as unknown as Record<string, unknown>)[key];
             if (value === null || value === undefined) {
               plain[key] = value;
             } else if (Array.isArray(value)) {
@@ -114,7 +110,7 @@ const ListDevboxesUI = ({
               plain[key] = value;
             }
           }
-          pageDevboxes.push(plain);
+          pageDevboxes.push(plain as Devbox);
         });
       }
 
@@ -123,9 +119,6 @@ const ListDevboxesUI = ({
         hasMore: page.has_more || false,
         totalCount: page.total_count || pageDevboxes.length,
       };
-
-      // Help GC
-      page = null as any;
 
       return result;
     },
@@ -147,7 +140,7 @@ const ListDevboxesUI = ({
   } = useCursorPagination({
     fetchPage,
     pageSize: PAGE_SIZE,
-    getItemId: (devbox: any) => devbox.id,
+    getItemId: (devbox: Devbox) => devbox.id,
     pollInterval: 2000,
     pollingEnabled: !showDetails && !showCreate && !showActions && !showPopup && !searchMode,
     deps: [status, submittedSearchQuery, PAGE_SIZE],
@@ -223,7 +216,7 @@ const ListDevboxesUI = ({
       createTextColumn(
         "name",
         "Name",
-        (devbox: any) => {
+        (devbox: Devbox) => {
           const name = String(devbox?.name || devbox?.id || "");
           const safeMax = Math.min(nameWidth || 15, ABSOLUTE_MAX_NAME);
           return name.length > safeMax
@@ -238,7 +231,7 @@ const ListDevboxesUI = ({
       createTextColumn(
         "id",
         "ID",
-        (devbox: any) => {
+        (devbox: Devbox) => {
           const id = String(devbox?.id || "");
           const safeMax = Math.min(idWidth || 26, ABSOLUTE_MAX_ID);
           return id.length > safeMax
@@ -255,7 +248,7 @@ const ListDevboxesUI = ({
       createTextColumn(
         "status",
         "Status",
-        (devbox: any) => {
+        (devbox: Devbox) => {
           const statusDisplay = getStatusDisplay(devbox?.status);
           const text = String(statusDisplay?.text || "-");
           return text.length > 20 ? text.substring(0, 17) + "..." : text;
@@ -268,7 +261,7 @@ const ListDevboxesUI = ({
       createTextColumn(
         "created",
         "Created",
-        (devbox: any) => {
+        (devbox: Devbox) => {
           const time = formatTimeAgo(devbox?.create_time_ms || Date.now());
           const text = String(time || "-");
           return text.length > 25 ? text.substring(0, 22) + "..." : text;
@@ -286,7 +279,7 @@ const ListDevboxesUI = ({
         createTextColumn(
           "source",
           "Source",
-          (devbox: any) => {
+          (devbox: Devbox) => {
             if (devbox?.blueprint_id) {
               const bpId = String(devbox.blueprint_id);
               const truncated = bpId.slice(0, 16);
@@ -309,7 +302,7 @@ const ListDevboxesUI = ({
         createTextColumn(
           "capabilities",
           "Capabilities",
-          (devbox: any) => {
+          (devbox: Devbox) => {
             const caps = [];
             if (devbox?.entitlements?.network_enabled) caps.push("net");
             if (devbox?.entitlements?.gpu_enabled) caps.push("gpu");
@@ -668,7 +661,7 @@ const ListDevboxesUI = ({
       {!showPopup && (
         <Table
           data={devboxes}
-          keyExtractor={(devbox: any) => devbox.id}
+          keyExtractor={(devbox: Devbox) => devbox.id}
           selectedIndex={selectedIndex}
           title="devboxes"
           columns={tableColumns}
