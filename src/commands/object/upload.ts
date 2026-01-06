@@ -86,4 +86,3 @@ export async function uploadObject(options: UploadObjectOptions) {
     outputError("Failed to upload object", error);
   }
 }
-

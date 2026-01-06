@@ -40,4 +40,3 @@ export async function getBlueprint(options: GetBlueprintOptions) {
     outputError("Failed to get blueprint", error);
   }
 }
-

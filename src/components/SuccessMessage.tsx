@@ -8,10 +8,7 @@ interface SuccessMessageProps {
   details?: string;
 }
 
-export const SuccessMessage = ({
-  message,
-  details,
-}: SuccessMessageProps) => {
+export const SuccessMessage = ({ message, details }: SuccessMessageProps) => {
   // Limit message length to prevent Yoga layout engine errors
   const MAX_LENGTH = 500;
   const truncatedMessage =

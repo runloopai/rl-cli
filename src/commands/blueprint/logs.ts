@@ -36,10 +36,10 @@ function formatLogLevel(level: string): string {
 function formatTimestamp(timestampMs: number): string {
   const date = new Date(timestampMs);
   const now = new Date();
-  
+
   const isToday = date.toDateString() === now.toDateString();
   const isThisYear = date.getFullYear() === now.getFullYear();
-  
+
   const time = date.toLocaleTimeString("en-US", {
     hour12: false,
     hour: "2-digit",
@@ -47,7 +47,7 @@ function formatTimestamp(timestampMs: number): string {
     second: "2-digit",
   });
   const ms = date.getMilliseconds().toString().padStart(3, "0");
-  
+
   if (isToday) {
     // Today: show time with milliseconds for fine granularity
     return chalk.dim(`${time}.${ms}`);

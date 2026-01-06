@@ -18,4 +18,3 @@ export async function getDevbox(devboxId: string, options: GetOptions = {}) {
     outputError("Failed to get devbox", error);
   }
 }
-

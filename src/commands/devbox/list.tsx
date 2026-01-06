@@ -92,7 +92,9 @@ const ListDevboxesUI = ({
       }
 
       // Fetch ONE page only
-      const page = (await client.devboxes.list(queryParams)) as unknown as DevboxesCursorIDPage<Devbox>;
+      const page = (await client.devboxes.list(
+        queryParams,
+      )) as unknown as DevboxesCursorIDPage<Devbox>;
 
       // Extract data and create defensive copies using JSON serialization
       if (page.devboxes && Array.isArray(page.devboxes)) {
@@ -129,7 +131,8 @@ const ListDevboxesUI = ({
     pageSize: PAGE_SIZE,
     getItemId: (devbox: Devbox) => devbox.id,
     pollInterval: 2000,
-    pollingEnabled: !showDetails && !showCreate && !showActions && !showPopup && !searchMode,
+    pollingEnabled:
+      !showDetails && !showCreate && !showActions && !showPopup && !searchMode,
     deps: [status, submittedSearchQuery, PAGE_SIZE],
   });
 
@@ -484,10 +487,20 @@ const ListDevboxesUI = ({
       setSelectedIndex(selectedIndex - 1);
     } else if (key.downArrow && selectedIndex < pageDevboxes - 1) {
       setSelectedIndex(selectedIndex + 1);
-    } else if ((input === "n" || key.rightArrow) && !loading && !navigating && hasMore) {
+    } else if (
+      (input === "n" || key.rightArrow) &&
+      !loading &&
+      !navigating &&
+      hasMore
+    ) {
       nextPage();
       setSelectedIndex(0);
-    } else if ((input === "p" || key.leftArrow) && !loading && !navigating && hasPrev) {
+    } else if (
+      (input === "p" || key.leftArrow) &&
+      !loading &&
+      !navigating &&
+      hasPrev
+    ) {
       prevPage();
       setSelectedIndex(0);
     } else if (key.return) {
@@ -763,7 +776,7 @@ export { ListDevboxesUI };
 export async function listDevboxes(options: ListOptions) {
   try {
     const client = getClient();
-    
+
     // Build query params
     const queryParams: Record<string, unknown> = {
       limit: options.limit ? parseInt(options.limit, 10) : DEFAULT_PAGE_SIZE,
@@ -771,13 +784,15 @@ export async function listDevboxes(options: ListOptions) {
     if (options.status) {
       queryParams.status = options.status;
     }
-    
+
     // Fetch devboxes
-    const page = await client.devboxes.list(queryParams) as DevboxesCursorIDPage<{ id: string }>;
-    
+    const page = (await client.devboxes.list(
+      queryParams,
+    )) as DevboxesCursorIDPage<{ id: string }>;
+
     // Extract devboxes array
     const devboxes = page.devboxes || [];
-    
+
     output(devboxes, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to list devboxes", error);

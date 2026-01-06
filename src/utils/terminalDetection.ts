@@ -31,7 +31,9 @@ function parseRGBResponse(response: string): {
   b: number;
 } | null {
   // Match patterns like: rgb:RRRR/GGGG/BBBB or rgba:RRRR/GGGG/BBBB/AAAA
-  const rgbMatch = response.match(/rgba?:([0-9a-f]+)\/([0-9a-f]+)\/([0-9a-f]+)/i);
+  const rgbMatch = response.match(
+    /rgba?:([0-9a-f]+)\/([0-9a-f]+)\/([0-9a-f]+)/i,
+  );
   if (!rgbMatch) {
     return null;
   }
@@ -47,7 +49,7 @@ function parseRGBResponse(response: string): {
 /**
  * Detect terminal theme by querying background color
  * Returns 'light' or 'dark' based on background luminance, or null if detection fails
- * 
+ *
  * NOTE: This is disabled by default to prevent flashing. Theme detection writes
  * escape sequences to stdout which can cause visible flashing on the terminal.
  * Users can explicitly enable it with RUNLOOP_ENABLE_THEME_DETECTION=1
@@ -114,4 +116,3 @@ export async function detectTerminalTheme(): Promise<ThemeMode | null> {
     }
   });
 }
-

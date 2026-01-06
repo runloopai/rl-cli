@@ -72,7 +72,7 @@ export const DevboxDetailPage = ({
       if (!showActions && !showDetailedInfo && isMounted.current) {
         try {
           const updatedDevbox = await getDevbox(initialDevbox.id);
-          
+
           // Only update if still mounted
           if (isMounted.current) {
             setCurrentDevbox(updatedDevbox);
@@ -585,17 +585,20 @@ export const DevboxDetailPage = ({
           State History
         </Text>,
       );
-      (selectedDevbox.state_transitions as Array<{ status: string; transition_time_ms?: number }>).forEach(
-        (transition, idx: number) => {
-          const text = `${idx + 1}. ${capitalize(transition.status)}${transition.transition_time_ms ? ` at ${new Date(transition.transition_time_ms).toLocaleString()}` : ""}`;
-          lines.push(
-            <Text key={`state-${idx}`} dimColor>
-              {" "}
-              {text}
-            </Text>,
-          );
-        },
-      );
+      (
+        selectedDevbox.state_transitions as Array<{
+          status: string;
+          transition_time_ms?: number;
+        }>
+      ).forEach((transition, idx: number) => {
+        const text = `${idx + 1}. ${capitalize(transition.status)}${transition.transition_time_ms ? ` at ${new Date(transition.transition_time_ms).toLocaleString()}` : ""}`;
+        lines.push(
+          <Text key={`state-${idx}`} dimColor>
+            {" "}
+            {text}
+          </Text>,
+        );
+      });
       lines.push(<Text key="state-space"> </Text>);
     }
 
@@ -667,9 +670,7 @@ export const DevboxDetailPage = ({
           <Box marginBottom={1}>
             <StatusBadge status={selectedDevbox.status} />
             <Text> </Text>
-            <Text color={colors.idColor}>
-              {selectedDevbox.id}
-            </Text>
+            <Text color={colors.idColor}>{selectedDevbox.id}</Text>
           </Box>
         </Box>
 
@@ -727,10 +728,7 @@ export const DevboxDetailPage = ({
           </Text>
           <Text> </Text>
           <StatusBadge status={selectedDevbox.status} />
-          <Text color={colors.idColor}>
-            {" "}
-            • {selectedDevbox.id}
-          </Text>
+          <Text color={colors.idColor}> • {selectedDevbox.id}</Text>
         </Box>
         <Box>
           <Text color={colors.textDim} dimColor>
@@ -812,9 +810,7 @@ export const DevboxDetailPage = ({
             {selectedDevbox.snapshot_id && (
               <>
                 <Text dimColor>Snap: </Text>
-                <Text color={colors.idColor}>
-                  {selectedDevbox.snapshot_id}
-                </Text>
+                <Text color={colors.idColor}>{selectedDevbox.snapshot_id}</Text>
               </>
             )}
           </Box>

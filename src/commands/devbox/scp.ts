@@ -22,7 +22,9 @@ export async function scpFiles(devboxId: string, options: SCPOptions) {
     // Check if SSH tools are available
     const sshToolsAvailable = await checkSSHTools();
     if (!sshToolsAvailable) {
-      outputError("SSH tools (ssh, scp, openssl) are not available on this system");
+      outputError(
+        "SSH tools (ssh, scp, openssl) are not available on this system",
+      );
     }
 
     const client = getClient();
@@ -40,9 +42,12 @@ export async function scpFiles(devboxId: string, options: SCPOptions) {
     const proxyCommand = getProxyCommand();
     const scpCommand = [
       "scp",
-      "-i", sshInfo!.keyfilePath,
-      "-o", `ProxyCommand=${proxyCommand}`,
-      "-o", "StrictHostKeyChecking=no",
+      "-i",
+      sshInfo!.keyfilePath,
+      "-o",
+      `ProxyCommand=${proxyCommand}`,
+      "-o",
+      "StrictHostKeyChecking=no",
     ];
 
     if (options.scpOptions) {
@@ -63,15 +68,18 @@ export async function scpFiles(devboxId: string, options: SCPOptions) {
     }
 
     await execAsync(scpCommand.join(" "));
-    
+
     // Default: just output the destination for easy scripting
     if (!options.output || options.output === "text") {
       console.log(options.dst);
     } else {
-      output({
-        source: options.src,
-        destination: options.dst,
-      }, { format: options.output, defaultFormat: "json" });
+      output(
+        {
+          source: options.src,
+          destination: options.dst,
+        },
+        { format: options.output, defaultFormat: "json" },
+      );
     }
   } catch (error) {
     outputError("SCP operation failed", error);

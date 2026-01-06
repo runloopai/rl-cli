@@ -8,10 +8,7 @@ interface ErrorMessageProps {
   error?: Error;
 }
 
-export const ErrorMessage = ({
-  message,
-  error,
-}: ErrorMessageProps) => {
+export const ErrorMessage = ({ message, error }: ErrorMessageProps) => {
   // Limit message length to prevent Yoga layout engine errors
   const MAX_LENGTH = 500;
   const truncatedMessage =

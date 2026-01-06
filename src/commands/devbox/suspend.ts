@@ -9,7 +9,10 @@ interface SuspendOptions {
   output?: string;
 }
 
-export async function suspendDevbox(devboxId: string, options: SuspendOptions = {}) {
+export async function suspendDevbox(
+  devboxId: string,
+  options: SuspendOptions = {},
+) {
   try {
     const client = getClient();
     const devbox = await client.devboxes.suspend(devboxId);
@@ -18,4 +21,3 @@ export async function suspendDevbox(devboxId: string, options: SuspendOptions = 
     outputError("Failed to suspend devbox", error);
   }
 }
-

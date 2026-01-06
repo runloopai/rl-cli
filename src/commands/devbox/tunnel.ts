@@ -40,27 +40,36 @@ export async function createTunnel(devboxId: string, options: TunnelOptions) {
 
     // If output format is specified, just return the tunnel info
     if (options.output && options.output !== "text") {
-      output({
-        devboxId,
-        localPort,
-        remotePort,
-        user,
-        keyfilePath: sshInfo!.keyfilePath,
-      }, { format: options.output, defaultFormat: "json" });
+      output(
+        {
+          devboxId,
+          localPort,
+          remotePort,
+          user,
+          keyfilePath: sshInfo!.keyfilePath,
+        },
+        { format: options.output, defaultFormat: "json" },
+      );
       return;
     }
 
     const proxyCommand = getProxyCommand();
     const tunnelArgs = [
-      "-i", sshInfo!.keyfilePath,
-      "-o", `ProxyCommand=${proxyCommand}`,
-      "-o", "StrictHostKeyChecking=no",
+      "-i",
+      sshInfo!.keyfilePath,
+      "-o",
+      `ProxyCommand=${proxyCommand}`,
+      "-o",
+      "StrictHostKeyChecking=no",
       "-N", // Do not execute a remote command
-      "-L", `${localPort}:localhost:${remotePort}`,
+      "-L",
+      `${localPort}:localhost:${remotePort}`,
       `${user}@${sshInfo!.url}`,
     ];
 
-    console.log(`Starting tunnel: local port ${localPort} -> remote port ${remotePort}`);
+    console.log(
+      `Starting tunnel: local port ${localPort} -> remote port ${remotePort}`,
+    );
     console.log("Press Ctrl+C to stop the tunnel.");
 
     const tunnelProcess = spawn("/usr/bin/ssh", tunnelArgs, {
@@ -79,4 +88,3 @@ export async function createTunnel(devboxId: string, options: TunnelOptions) {
     outputError("Failed to create SSH tunnel", error);
   }
 }
-

@@ -9,7 +9,10 @@ interface ResumeOptions {
   output?: string;
 }
 
-export async function resumeDevbox(devboxId: string, options: ResumeOptions = {}) {
+export async function resumeDevbox(
+  devboxId: string,
+  options: ResumeOptions = {},
+) {
   try {
     const client = getClient();
     const devbox = await client.devboxes.resume(devboxId);
@@ -18,4 +21,3 @@ export async function resumeDevbox(devboxId: string, options: ResumeOptions = {}
     outputError("Failed to resume devbox", error);
   }
 }
-

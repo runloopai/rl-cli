@@ -10,7 +10,10 @@ interface CreateOptions {
   output?: string;
 }
 
-export async function createSnapshot(devboxId: string, options: CreateOptions = {}) {
+export async function createSnapshot(
+  devboxId: string,
+  options: CreateOptions = {},
+) {
   try {
     const client = getClient();
     const snapshot = await client.devboxes.snapshotDisk(devboxId, {
@@ -28,4 +31,3 @@ export async function createSnapshot(devboxId: string, options: CreateOptions = 
     outputError("Failed to create snapshot", error);
   }
 }
-

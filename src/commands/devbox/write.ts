@@ -19,25 +19,28 @@ export async function writeFile(devboxId: string, options: WriteOptions = {}) {
   if (!options.remote) {
     outputError("--remote is required");
   }
-  
+
   try {
     const client = getClient();
     const contents = await readFile(options.input!, "utf-8");
-    
+
     await client.devboxes.writeFileContents(devboxId, {
       file_path: options.remote!,
       contents,
     });
-    
+
     // Default: just output the remote path for easy scripting
     if (!options.output || options.output === "text") {
       console.log(options.remote);
     } else {
-      output({
-        local: options.input,
-        remote: options.remote,
-        size: contents.length,
-      }, { format: options.output, defaultFormat: "json" });
+      output(
+        {
+          local: options.input,
+          remote: options.remote,
+          size: contents.length,
+        },
+        { format: options.output, defaultFormat: "json" },
+      );
     }
   } catch (error) {
     outputError("Failed to write file", error);

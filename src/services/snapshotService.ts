@@ -3,7 +3,10 @@
  */
 import { getClient } from "../utils/client.js";
 import type { Snapshot } from "../store/snapshotStore.js";
-import type { DevboxListDiskSnapshotsParams, DevboxSnapshotView } from "@runloop/api-client/resources/devboxes/devboxes";
+import type {
+  DevboxListDiskSnapshotsParams,
+  DevboxSnapshotView,
+} from "@runloop/api-client/resources/devboxes/devboxes";
 import type { DiskSnapshotsCursorIDPage } from "@runloop/api-client/pagination";
 
 export interface ListSnapshotsOptions {
@@ -38,7 +41,8 @@ export async function listSnapshots(
   }
 
   const pagePromise = client.devboxes.listDiskSnapshots(queryParams);
-  const page = (await pagePromise) as unknown as DiskSnapshotsCursorIDPage<DevboxSnapshotView>;
+  const page =
+    (await pagePromise) as unknown as DiskSnapshotsCursorIDPage<DevboxSnapshotView>;
 
   const snapshots: Snapshot[] = [];
 
@@ -55,9 +59,16 @@ export async function listSnapshots(
 
       snapshots.push({
         id: String(snapshotView.id || "").substring(0, MAX_ID_LENGTH),
-        name: snapshotView.name ? String(snapshotView.name).substring(0, MAX_NAME_LENGTH) : undefined,
-        devbox_id: String(snapshotView.source_devbox_id || "").substring(0, MAX_ID_LENGTH),
-        status: snapshotView.status ? String(snapshotView.status).substring(0, MAX_STATUS_LENGTH) : "",
+        name: snapshotView.name
+          ? String(snapshotView.name).substring(0, MAX_NAME_LENGTH)
+          : undefined,
+        devbox_id: String(snapshotView.source_devbox_id || "").substring(
+          0,
+          MAX_ID_LENGTH,
+        ),
+        status: snapshotView.status
+          ? String(snapshotView.status).substring(0, MAX_STATUS_LENGTH)
+          : "",
         create_time_ms: snapshotView.create_time_ms,
       });
     });

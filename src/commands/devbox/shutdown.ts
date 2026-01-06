@@ -9,7 +9,10 @@ interface ShutdownOptions {
   output?: string;
 }
 
-export async function shutdownDevbox(devboxId: string, options: ShutdownOptions = {}) {
+export async function shutdownDevbox(
+  devboxId: string,
+  options: ShutdownOptions = {},
+) {
   try {
     const client = getClient();
     const devbox = await client.devboxes.shutdown(devboxId);
@@ -18,4 +21,3 @@ export async function shutdownDevbox(devboxId: string, options: ShutdownOptions 
     outputError("Failed to shutdown devbox", error);
   }
 }
-

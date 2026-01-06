@@ -68,7 +68,6 @@ export function Router() {
     prevScreenRef.current = currentScreen;
   }, [currentScreen]);
 
-
   // CRITICAL: Use key prop to force React to completely unmount old component
   // and mount new component, preventing race conditions during screen transitions.
   // The key ensures React treats this as a completely new component tree.

@@ -7,10 +7,7 @@ export interface UsePaginatedListConfig<T> {
   /**
    * Fetch function that takes pagination params and returns a page of results
    */
-  fetchPage: (params: {
-    limit: number;
-    startingAt?: string;
-  }) => Promise<{
+  fetchPage: (params: { limit: number; startingAt?: string }) => Promise<{
     items: T[];
     hasMore: boolean;
     totalCount?: number;
@@ -148,7 +145,11 @@ export function useCursorPagination<T>(
    * @param isNavigation - Whether this is a page navigation (shows navigating state)
    */
   const fetchPageData = React.useCallback(
-    async (page: number, isInitialLoad: boolean = false, isNavigation: boolean = false) => {
+    async (
+      page: number,
+      isInitialLoad: boolean = false,
+      isNavigation: boolean = false,
+    ) => {
       if (!isMountedRef.current) return;
       if (isFetchingRef.current) return;
 

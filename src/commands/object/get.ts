@@ -19,4 +19,3 @@ export async function getObject(options: GetObjectOptions) {
     outputError("Failed to get object", error);
   }
 }
-

@@ -97,9 +97,15 @@ devbox
   )
   .option("--architecture <arch>", "Architecture (arm64, x86_64)")
   .option("--entrypoint <command>", "Entrypoint command to run")
-  .option("--launch-commands <commands...>", "Initialization commands to run on startup")
+  .option(
+    "--launch-commands <commands...>",
+    "Initialization commands to run on startup",
+  )
   .option("--env-vars <vars...>", "Environment variables (format: KEY=value)")
-  .option("--code-mounts <mounts...>", "Code mount configurations (JSON format)")
+  .option(
+    "--code-mounts <mounts...>",
+    "Code mount configurations (JSON format)",
+  )
   .option("--idle-time <seconds>", "Idle time in seconds before idle action")
   .option("--idle-action <action>", "Action on idle (shutdown, suspend)")
   .option("--available-ports <ports...>", "Available ports")
