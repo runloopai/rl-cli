@@ -24,6 +24,7 @@ import { useDevboxStore } from "../../store/devboxStore.js";
 
 interface ListOptions {
   status?: string;
+  limit?: string;
   output?: string;
 }
 
@@ -787,7 +788,7 @@ export async function listDevboxes(options: ListOptions) {
     
     // Build query params
     const queryParams: Record<string, unknown> = {
-      limit: DEFAULT_PAGE_SIZE,
+      limit: options.limit ? parseInt(options.limit, 10) : DEFAULT_PAGE_SIZE,
     };
     if (options.status) {
       queryParams.status = options.status;

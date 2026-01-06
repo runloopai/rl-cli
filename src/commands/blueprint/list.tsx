@@ -751,6 +751,7 @@ const ListBlueprintsUI = ({
 };
 
 interface ListBlueprintsOptions {
+  name?: string;
   output?: string;
 }
 
@@ -761,10 +762,18 @@ export async function listBlueprints(options: ListBlueprintsOptions = {}) {
   try {
     const client = getClient();
 
-    // Fetch blueprints
-    const page = (await client.blueprints.list({
+    // Build query params
+    const queryParams: Record<string, unknown> = {
       limit: DEFAULT_PAGE_SIZE,
-    })) as BlueprintsCursorIDPage<{ id: string }>;
+    };
+    if (options.name) {
+      queryParams.name = options.name;
+    }
+
+    // Fetch blueprints
+    const page = (await client.blueprints.list(
+      queryParams,
+    )) as BlueprintsCursorIDPage<{ id: string }>;
 
     // Extract blueprints array
     const blueprints = page.blueprints || [];

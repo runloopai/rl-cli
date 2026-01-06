@@ -6,6 +6,7 @@ import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
 
 interface ExecCommandOptions {
+  shellName?: string;
   output?: string;
 }
 
@@ -18,6 +19,7 @@ export async function execCommand(
     const client = getClient();
     const result = await client.devboxes.executeSync(id, {
       command: command.join(" "),
+      shell_name: options.shellName || undefined,
     });
     
     // For text output, just print stdout/stderr directly
