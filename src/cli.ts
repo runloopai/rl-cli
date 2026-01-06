@@ -417,6 +417,18 @@ snapshot
   });
 
 snapshot
+  .command("get <id>")
+  .description("Get snapshot details")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: json)",
+  )
+  .action(async (id, options) => {
+    const { getSnapshot } = await import("./commands/snapshot/get.js");
+    await getSnapshot({ id, ...options });
+  });
+
+snapshot
   .command("status <snapshot-id>")
   .description("Get snapshot operation status")
   .option(
