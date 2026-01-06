@@ -5,6 +5,8 @@ import { existsSync, statSync, mkdirSync, writeFileSync } from "fs";
 
 interface Config {
   apiKey?: string;
+  theme?: "auto" | "light" | "dark";
+  detectedTheme?: "light" | "dark";
 }
 
 const config = new Conf<Config>({
@@ -70,4 +72,30 @@ export function updateCheckCache(): void {
 
   // Touch the cache file
   writeFileSync(cacheFile, "");
+}
+
+export function getThemePreference(): "auto" | "light" | "dark" {
+  // Check environment variable first, then fall back to stored config
+  const envTheme = process.env.RUNLOOP_THEME?.toLowerCase();
+  if (envTheme === "light" || envTheme === "dark" || envTheme === "auto") {
+    return envTheme;
+  }
+
+  return config.get("theme") || "auto";
+}
+
+export function setThemePreference(theme: "auto" | "light" | "dark"): void {
+  config.set("theme", theme);
+}
+
+export function getDetectedTheme(): "light" | "dark" | null {
+  return config.get("detectedTheme") || null;
+}
+
+export function setDetectedTheme(theme: "light" | "dark"): void {
+  config.set("detectedTheme", theme);
+}
+
+export function clearDetectedTheme(): void {
+  config.delete("detectedTheme");
 }

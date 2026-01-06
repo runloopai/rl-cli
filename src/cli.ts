@@ -19,10 +19,12 @@ const packageJson = JSON.parse(
 );
 export const VERSION = packageJson.version;
 
+import { exitAlternateScreenBuffer } from "./utils/screen.js";
+
 // Global Ctrl+C handler to ensure it always exits
 process.on("SIGINT", () => {
   // Force exit immediately, clearing alternate screen buffer
-  process.stdout.write("\x1b[?1049l");
+  exitAlternateScreenBuffer();
   process.stdout.write("\n");
   process.exit(130); // Standard exit code for SIGINT
 });
@@ -42,32 +44,65 @@ program
     auth();
   });
 
+// Config commands
+const config = program
+  .command("config")
+  .description("Configure CLI settings")
+  .action(async () => {
+    const { showThemeConfig } = await import("./commands/config.js");
+    showThemeConfig();
+  });
+
+config
+  .command("theme [mode]")
+  .description("Get or set theme mode (auto|light|dark)")
+  .action(async (mode?: string) => {
+    const { showThemeConfig, setThemeConfig } = await import(
+      "./commands/config.js"
+    );
+
+    if (!mode) {
+      showThemeConfig();
+    } else if (mode === "auto" || mode === "light" || mode === "dark") {
+      setThemeConfig(mode);
+    } else {
+      console.error(
+        `\n❌ Invalid theme mode: ${mode}\nValid options: auto, light, dark\n`,
+      );
+      process.exit(1);
+    }
+  });
+
 // Devbox commands
 const devbox = program
   .command("devbox")
   .description("Manage devboxes")
-  .alias("d")
-  .action(async () => {
-    // Open interactive devbox list when no subcommand provided
-    const { runInteractiveCommand } = await import(
-      "./utils/interactiveCommand.js"
-    );
-    const { listDevboxes } = await import("./commands/devbox/list.js");
-    await runInteractiveCommand(() => listDevboxes({ output: "interactive" }));
-  });
+  .alias("d");
 
 devbox
   .command("create")
   .description("Create a new devbox")
   .option("-n, --name <name>", "Devbox name")
-  .option("-t, --template <template>", "Template to use")
-  .option("--blueprint <blueprint>", "Blueprint ID to use")
+  .option("-t, --template <template>", "Snapshot ID to use (alias: --snapshot)")
+  .option("-s, --snapshot <snapshot>", "Snapshot ID to use")
+  .option("--blueprint <blueprint>", "Blueprint name or ID to use")
   .option(
     "--resources <size>",
     "Resource size (X_SMALL, SMALL, MEDIUM, LARGE, X_LARGE, XX_LARGE)",
   )
   .option("--architecture <arch>", "Architecture (arm64, x86_64)")
   .option("--entrypoint <command>", "Entrypoint command to run")
+  .option(
+    "--launch-commands <commands...>",
+    "Initialization commands to run on startup",
+  )
+  .option("--env-vars <vars...>", "Environment variables (format: KEY=value)")
+  .option(
+    "--code-mounts <mounts...>",
+    "Code mount configurations (JSON format)",
+  )
+  .option("--idle-time <seconds>", "Idle time in seconds before idle action")
+  .option("--idle-action <action>", "Action on idle (shutdown, suspend)")
   .option("--available-ports <ports...>", "Available ports")
   .option("--root", "Run as root")
   .option("--user <user:uid>", "Run as this user (format: username:uid)")
@@ -80,7 +115,11 @@ devbox
 devbox
   .command("list")
   .description("List all devboxes")
-  .option("-s, --status <status>", "Filter by status")
+  .option(
+    "-s, --status <status>",
+    "Filter by status (initializing, running, suspending, suspended, resuming, failure, shutdown)",
+  )
+  .option("-l, --limit <n>", "Max results", "20")
   .option(
     "-o, --output [format]",
     "Output format: text|json|yaml (default: json)",
@@ -102,6 +141,7 @@ devbox
 devbox
   .command("exec <id> <command...>")
   .description("Execute a command in a devbox")
+  .option("--shell-name <name>", "Shell name to use (optional)")
   .option(
     "-o, --output [format]",
     "Output format: text|json|yaml (default: text)",
@@ -302,6 +342,20 @@ devbox
   });
 
 devbox
+  .command("send-stdin <id> <execution-id>")
+  .description("Send stdin to a running async execution")
+  .option("--text <text>", "Text content to send to stdin")
+  .option("--signal <signal>", "Signal to send (EOF, INTERRUPT)")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: text)",
+  )
+  .action(async (id, executionId, options) => {
+    const { sendStdin } = await import("./commands/devbox/sendStdin.js");
+    await sendStdin(id, executionId, options);
+  });
+
+devbox
   .command("logs <id>")
   .description("View devbox logs")
   .option(
@@ -317,15 +371,7 @@ devbox
 const snapshot = program
   .command("snapshot")
   .description("Manage devbox snapshots")
-  .alias("snap")
-  .action(async () => {
-    // Open interactive snapshot list when no subcommand provided
-    const { runInteractiveCommand } = await import(
-      "./utils/interactiveCommand.js"
-    );
-    const { listSnapshots } = await import("./commands/snapshot/list.js");
-    await runInteractiveCommand(() => listSnapshots({ output: "interactive" }));
-  });
+  .alias("snap");
 
 snapshot
   .command("list")
@@ -367,6 +413,18 @@ snapshot
   });
 
 snapshot
+  .command("get <id>")
+  .description("Get snapshot details")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: json)",
+  )
+  .action(async (id, options) => {
+    const { getSnapshot } = await import("./commands/snapshot/get.js");
+    await getSnapshot({ id, ...options });
+  });
+
+snapshot
   .command("status <snapshot-id>")
   .description("Get snapshot operation status")
   .option(
@@ -382,21 +440,12 @@ snapshot
 const blueprint = program
   .command("blueprint")
   .description("Manage blueprints")
-  .alias("bp")
-  .action(async () => {
-    // Open interactive blueprint list when no subcommand provided
-    const { runInteractiveCommand } = await import(
-      "./utils/interactiveCommand.js"
-    );
-    const { listBlueprints } = await import("./commands/blueprint/list.js");
-    await runInteractiveCommand(() =>
-      listBlueprints({ output: "interactive" }),
-    );
-  });
+  .alias("bp");
 
 blueprint
   .command("list")
   .description("List all blueprints")
+  .option("-n, --name <name>", "Filter by blueprint name")
   .option(
     "-o, --output [format]",
     "Output format: text|json|yaml (default: json)",
@@ -407,8 +456,9 @@ blueprint
   });
 
 blueprint
-  .command("create <name>")
+  .command("create")
   .description("Create a new blueprint")
+  .requiredOption("--name <name>", "Blueprint name (required)")
   .option("--dockerfile <content>", "Dockerfile contents")
   .option("--dockerfile-path <path>", "Dockerfile path")
   .option("--system-setup-commands <commands...>", "System setup commands")
@@ -422,43 +472,19 @@ blueprint
   .option("--user <user:uid>", "Run as this user (format: username:uid)")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: text)",
+    "Output format: text|json|yaml (default: json)",
   )
-  .action(async (name, options) => {
+  .action(async (options) => {
     const { createBlueprint } = await import("./commands/blueprint/create.js");
-    await createBlueprint({ name, ...options });
+    await createBlueprint(options);
   });
 
 blueprint
-  .command("preview <name>")
-  .description("Preview blueprint before creation")
-  .option("--dockerfile <content>", "Dockerfile contents")
-  .option("--system-setup-commands <commands...>", "System setup commands")
-  .option(
-    "--resources <size>",
-    "Resource size (X_SMALL, SMALL, MEDIUM, LARGE, X_LARGE, XX_LARGE)",
-  )
-  .option("--architecture <arch>", "Architecture (arm64, x86_64)")
-  .option("--available-ports <ports...>", "Available ports")
-  .option("--root", "Run as root")
-  .option("--user <user:uid>", "Run as this user (format: username:uid)")
+  .command("get <name-or-id>")
+  .description("Get blueprint details by name or ID (IDs start with bpt_)")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: text)",
-  )
-  .action(async (name, options) => {
-    const { previewBlueprint } = await import(
-      "./commands/blueprint/preview.js"
-    );
-    await previewBlueprint({ name, ...options });
-  });
-
-blueprint
-  .command("get <id>")
-  .description("Get blueprint details")
-  .option(
-    "-o, --output [format]",
-    "Output format: text|json|yaml (default: text)",
+    "Output format: text|json|yaml (default: json)",
   )
   .action(async (id, options) => {
     const { getBlueprint } = await import("./commands/blueprint/get.js");
@@ -466,8 +492,8 @@ blueprint
   });
 
 blueprint
-  .command("logs <id>")
-  .description("Get blueprint build logs")
+  .command("logs <name-or-id>")
+  .description("Get blueprint build logs by name or ID (IDs start with bpt_)")
   .option(
     "-o, --output [format]",
     "Output format: text|json|yaml (default: text)",
@@ -622,10 +648,15 @@ program
 
 // Main CLI entry point
 (async () => {
-  // Check if API key is configured (except for auth and mcp commands)
+  // Initialize theme system early (before any UI rendering)
+  const { initializeTheme } = await import("./utils/theme.js");
+  await initializeTheme();
+
+  // Check if API key is configured (except for auth, config, and mcp commands)
   const args = process.argv.slice(2);
   if (
     args[0] !== "auth" &&
+    args[0] !== "config" &&
     args[0] !== "mcp" &&
     args[0] !== "mcp-server" &&
     args[0] !== "--help" &&

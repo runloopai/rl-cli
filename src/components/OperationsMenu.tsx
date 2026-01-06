@@ -30,14 +30,14 @@ interface OperationsMenuProps {
  * Reusable operations menu component for detail pages
  * Displays a list of available operations with keyboard navigation
  */
-export const OperationsMenu: React.FC<OperationsMenuProps> = ({
+export const OperationsMenu = ({
   operations,
   selectedIndex,
-  onNavigate,
-  onSelect,
-  onBack,
+  onNavigate: _onNavigate,
+  onSelect: _onSelect,
+  onBack: _onBack,
   additionalActions = [],
-}) => {
+}: OperationsMenuProps) => {
   return (
     <>
       {/* Operations List */}

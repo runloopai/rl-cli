@@ -11,7 +11,7 @@ interface BreadcrumbProps {
   items: BreadcrumbItem[];
 }
 
-export const Breadcrumb: React.FC<BreadcrumbProps> = React.memo(({ items }) => {
+export const Breadcrumb = ({ items }: BreadcrumbProps) => {
   const env = process.env.RUNLOOP_ENV?.toLowerCase();
   const isDevEnvironment = env === "dev";
 
@@ -27,33 +27,32 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = React.memo(({ items }) => {
           rl
         </Text>
         {isDevEnvironment && (
-          <Text color="redBright" bold>
+          <Text color={colors.error} bold>
             {" "}
             (dev)
           </Text>
         )}
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          ›{" "}
-        </Text>
-        {items.map((item, index) => (
-          <React.Fragment key={index}>
-            <Text
-              color={item.active ? colors.text : colors.textDim}
-              bold={item.active}
-              dimColor={!item.active}
-            >
-              {item.label}
-            </Text>
-            {index < items.length - 1 && (
-              <Text color={colors.textDim} dimColor>
-                {" "}
-                ›{" "}
+        <Text color={colors.textDim}> › </Text>
+        {items.map((item, index) => {
+          // Limit label length to prevent Yoga layout engine errors
+          const MAX_LABEL_LENGTH = 80;
+          const truncatedLabel =
+            item.label.length > MAX_LABEL_LENGTH
+              ? item.label.substring(0, MAX_LABEL_LENGTH) + "..."
+              : item.label;
+
+          return (
+            <React.Fragment key={index}>
+              <Text color={item.active ? colors.primary : colors.textDim}>
+                {truncatedLabel}
               </Text>
-            )}
-          </React.Fragment>
-        ))}
+              {index < items.length - 1 && (
+                <Text color={colors.textDim}> › </Text>
+              )}
+            </React.Fragment>
+          );
+        })}
       </Box>
     </Box>
   );
-});
+};

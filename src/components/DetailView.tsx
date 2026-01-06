@@ -1,6 +1,5 @@
 import React from "react";
 import { Box, Text } from "ink";
-import figures from "figures";
 import { colors } from "../utils/theme.js";
 
 interface DetailSection {
@@ -20,7 +19,7 @@ interface DetailViewProps {
  * Reusable detail view component for displaying entity information
  * Organizes data into sections with labeled items
  */
-export const DetailView: React.FC<DetailViewProps> = ({ sections }) => {
+export const DetailView = ({ sections }: DetailViewProps) => {
   return (
     <Box flexDirection="column" gap={1}>
       {sections.map((section, sectionIndex) => (
@@ -50,13 +49,13 @@ export const DetailView: React.FC<DetailViewProps> = ({ sections }) => {
  * Helper to build detail sections from an object
  */
 export function buildDetailSections(
-  data: Record<string, any>,
+  data: Record<string, unknown>,
   config: {
     [sectionName: string]: {
       fields: Array<{
         key: string;
         label: string;
-        formatter?: (value: any) => string | React.ReactNode;
+        formatter?: (value: unknown) => string | React.ReactNode;
         color?: string;
       }>;
     };

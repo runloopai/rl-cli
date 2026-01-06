@@ -5,6 +5,8 @@ import { Banner } from "./Banner.js";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { VERSION } from "../cli.js";
 import { colors } from "../utils/theme.js";
+import { useViewportHeight } from "../hooks/useViewportHeight.js";
+import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 
 interface MenuItem {
   key: string;
@@ -14,43 +16,43 @@ interface MenuItem {
   color: string;
 }
 
+const menuItems: MenuItem[] = [
+  {
+    key: "devboxes",
+    label: "Devboxes",
+    description: "Manage cloud development environments",
+    icon: "◉",
+    color: colors.accent1,
+  },
+  {
+    key: "blueprints",
+    label: "Blueprints",
+    description: "Create and manage devbox templates",
+    icon: "▣",
+    color: colors.accent2,
+  },
+  {
+    key: "snapshots",
+    label: "Snapshots",
+    description: "Save and restore devbox states",
+    icon: "◈",
+    color: colors.accent3,
+  },
+];
+
 interface MainMenuProps {
   onSelect: (key: string) => void;
 }
 
-export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
+export const MainMenu = ({ onSelect }: MainMenuProps) => {
   const { exit } = useApp();
   const [selectedIndex, setSelectedIndex] = React.useState(0);
 
-  // Calculate terminal height once at mount and memoize
-  const terminalHeight = React.useMemo(() => process.stdout.rows || 24, []);
+  // Use centralized viewport hook for consistent layout
+  const { terminalHeight } = useViewportHeight({ overhead: 0 });
 
-  const menuItems: MenuItem[] = React.useMemo(
-    () => [
-      {
-        key: "devboxes",
-        label: "Devboxes",
-        description: "Manage cloud development environments",
-        icon: "◉",
-        color: colors.accent1,
-      },
-      {
-        key: "blueprints",
-        label: "Blueprints",
-        description: "Create and manage devbox templates",
-        icon: "▣",
-        color: colors.accent2,
-      },
-      {
-        key: "snapshots",
-        label: "Snapshots",
-        description: "Save and restore devbox states",
-        icon: "◈",
-        color: colors.accent3,
-      },
-    ],
-    [],
-  );
+  // Handle Ctrl+C to exit
+  useExitOnCtrlC();
 
   useInput((input, key) => {
     if (key.upArrow && selectedIndex > 0) {
@@ -71,14 +73,11 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
   });
 
   // Use compact layout if terminal height is less than 20 lines (memoized)
-  const useCompactLayout = React.useMemo(
-    () => terminalHeight < 20,
-    [terminalHeight],
-  );
+  const useCompactLayout = terminalHeight < 20;
 
   if (useCompactLayout) {
     return (
-      <Box flexDirection="column" height="100%">
+      <Box flexDirection="column">
         <Box paddingX={2} marginBottom={1}>
           <Text color={colors.primary} bold>
             RUNLOOP.ai
@@ -133,12 +132,10 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
   }
 
   return (
-    <Box flexDirection="column" height="100%">
+    <Box flexDirection="column">
       <Breadcrumb items={[{ label: "Home", active: true }]} />
 
-      <Box flexShrink={0}>
-        <Banner />
-      </Box>
+      <Banner />
 
       <Box flexDirection="column" paddingX={2} flexShrink={0}>
         <Box paddingX={1}>
@@ -162,11 +159,19 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
               key={item.key}
               paddingX={2}
               paddingY={0}
-              borderStyle={isSelected ? "round" : "single"}
+              borderStyle="single"
               borderColor={isSelected ? item.color : colors.border}
               marginTop={index === 0 ? 1 : 0}
               flexShrink={0}
             >
+              {isSelected && (
+                <>
+                  <Text color={item.color} bold>
+                    {figures.pointer}
+                  </Text>
+                  <Text> </Text>
+                </>
+              )}
               <Text color={item.color} bold>
                 {item.icon}
               </Text>
@@ -201,4 +206,4 @@ export const MainMenu: React.FC<MainMenuProps> = React.memo(({ onSelect }) => {
       </Box>
     </Box>
   );
-});
+};

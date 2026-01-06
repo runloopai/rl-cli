@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import figures from "figures";
-import { colors } from "../utils/theme.js";
+import { colors, sanitizeWidth } from "../utils/theme.js";
 
 export interface Column<T> {
   /** Column key for identification */
@@ -46,6 +46,11 @@ export function Table<T>({
   keyExtractor,
   title,
 }: TableProps<T>) {
+  // Safety: Handle null/undefined data
+  if (!data || !Array.isArray(data)) {
+    return emptyState ? <>{emptyState}</> : null;
+  }
+
   if (data.length === 0 && emptyState) {
     return <>{emptyState}</>;
   }
@@ -59,7 +64,8 @@ export function Table<T>({
       {title && (
         <Box paddingX={1} marginBottom={0}>
           <Text color={colors.primary} bold>
-            ╭─ {title} {"─".repeat(Math.max(0, 10))}╮
+            ╭─ {title.length > 50 ? title.substring(0, 50) + "..." : title}{" "}
+            {"─".repeat(10)}╮
           </Text>
         </Box>
       )}
@@ -81,11 +87,15 @@ export function Table<T>({
           )}
 
           {/* Column headers */}
-          {visibleColumns.map((column) => (
-            <Text key={`header-${column.key}`} bold dimColor>
-              {column.label.slice(0, column.width).padEnd(column.width, " ")}
-            </Text>
-          ))}
+          {visibleColumns.map((column) => {
+            // Cap column width to prevent Yoga crashes from padEnd creating massive strings
+            const safeWidth = sanitizeWidth(column.width, 1, 100);
+            return (
+              <Text key={`header-${column.key}`} bold dimColor>
+                {column.label.slice(0, safeWidth).padEnd(safeWidth, " ")}
+              </Text>
+            );
+          })}
         </Box>
 
         {/* Data rows */}
@@ -107,7 +117,7 @@ export function Table<T>({
 
               {/* Render each column */}
               {visibleColumns.map((column, colIndex) => (
-                <React.Fragment key={`${rowKey}-${column.key}`}>
+                <React.Fragment key={`${rowKey}-${column.key}-${colIndex}`}>
                   {column.render(row, index, isSelected)}
                 </React.Fragment>
               ))}
@@ -140,8 +150,10 @@ export function createTextColumn<T>(
     width: options?.width || 20,
     visible: options?.visible,
     render: (row, index, isSelected) => {
-      const value = getValue(row);
-      const width = options?.width || 20;
+      const value = String(getValue(row) || "");
+      const rawWidth = options?.width || 20;
+      // CRITICAL: Sanitize width to prevent padEnd from creating invalid strings that crash Yoga
+      const width = sanitizeWidth(rawWidth, 1, 100);
       const color = options?.color || (isSelected ? colors.text : colors.text);
       const bold = options?.bold !== undefined ? options.bold : isSelected;
       const dimColor = options?.dimColor || false;
@@ -150,7 +162,7 @@ export function createTextColumn<T>(
       let truncated: string;
       if (value.length > width) {
         // Reserve space for ellipsis if truncating
-        truncated = value.slice(0, width - 1) + "…";
+        truncated = value.slice(0, Math.max(1, width - 1)) + "…";
       } else {
         truncated = value;
       }

@@ -32,7 +32,7 @@ function getRliPath(): string {
     const cmd = platform() === "win32" ? "where rli" : "which rli";
     const path = execSync(cmd, { encoding: "utf-8" }).trim().split("\n")[0];
     return path;
-  } catch (error) {
+  } catch {
     // If rli not found in PATH, just use 'rli' and hope it works
     return "rli";
   }
@@ -47,7 +47,10 @@ export async function installMcpConfig() {
     console.log(`📍 rli command location: ${rliPath}\n`);
 
     // Read or create config
-    let config: any = { mcpServers: {} };
+    let config: {
+      mcpServers: Record<string, unknown>;
+      [key: string]: unknown;
+    } = { mcpServers: {} };
 
     if (existsSync(configPath)) {
       console.log("✓ Found existing Claude Desktop config");
@@ -57,7 +60,7 @@ export async function installMcpConfig() {
         if (!config.mcpServers) {
           config.mcpServers = {};
         }
-      } catch (error) {
+      } catch {
         console.error(
           "❌ Error: Claude config file exists but is not valid JSON",
         );
@@ -136,8 +139,9 @@ export async function installMcpConfig() {
     console.log(
       '\n💡 Tip: Make sure you\'ve run "rli auth" to configure your API key first!',
     );
-  } catch (error: any) {
-    console.error("\n❌ Error installing MCP configuration:", error.message);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("\n❌ Error installing MCP configuration:", errorMessage);
     console.error(
       "\n💡 You can manually add this configuration to your Claude Desktop config:",
     );

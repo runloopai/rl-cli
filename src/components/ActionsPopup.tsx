@@ -2,10 +2,16 @@ import React from "react";
 import { Box, Text } from "ink";
 import figures from "figures";
 import chalk from "chalk";
-import { colors } from "../utils/theme.js";
+import { isLightMode } from "../utils/theme.js";
+
+// Generic resource type - accepts any object with an id and optional name
+interface ResourceWithId {
+  id: string;
+  name?: string | null;
+}
 
 interface ActionsPopupProps {
-  devbox: any;
+  devbox: ResourceWithId;
   operations: Array<{
     key: string;
     label: string;
@@ -17,72 +23,130 @@ interface ActionsPopupProps {
   onClose: () => void;
 }
 
-export const ActionsPopup: React.FC<ActionsPopupProps> = ({
-  devbox,
+export const ActionsPopup = ({
+  devbox: _devbox,
   operations,
   selectedOperation,
-  onClose,
-}) => {
-  // Calculate the maximum width needed
-  const maxLabelLength = Math.max(...operations.map((op) => op.label.length));
-  const contentWidth = maxLabelLength + 12; // Content + icon + pointer + shortcuts
+  onClose: _onClose,
+}: ActionsPopupProps) => {
+  // Calculate max width needed for content (visible characters only)
+  // CRITICAL: Ensure all values are valid numbers to prevent Yoga crashes
+  const maxContentWidth = Math.max(
+    ...operations.map((op) => {
+      const lineText = `${figures.pointer} ${op.icon} ${op.label} [${op.shortcut}]`;
+      const len = lineText.length;
+      return Number.isFinite(len) && len > 0 ? len : 0;
+    }),
+    `${figures.play} Quick Actions`.length,
+    `${figures.arrowUp}${figures.arrowDown} Nav • [Enter] • [Esc] Close`.length,
+    40, // Increased minimum width
+  );
 
-  // Strip ANSI codes to get real length, then pad
-  const stripAnsi = (str: string) => str.replace(/\u001b\[[0-9;]*m/g, "");
+  // Add horizontal padding to width (2 spaces on each side = 4 total)
+  // Plus 2 for border characters = 6 total extra
+  // CRITICAL: Validate all computed widths are positive integers
+  const contentWidth = Math.max(10, maxContentWidth + 4);
 
-  const bgLine = (content: string) => {
-    const cleanLength = stripAnsi(content).length;
-    const padding = Math.max(0, contentWidth - cleanLength);
-    return chalk.bgBlack(content + " ".repeat(padding));
+  // Get background color chalk function - inverted for contrast
+  // In light mode (light terminal), use black background for popup
+  // In dark mode (dark terminal), use white background for popup
+  const bgColor = isLightMode() ? chalk.bgBlack : chalk.bgWhite;
+  const textColor = isLightMode() ? chalk.white : chalk.black;
+
+  // Helper to create background lines with proper padding including left/right margins
+  const createBgLine = (styledContent: string, plainContent: string) => {
+    const visibleLength = plainContent.length;
+    // CRITICAL: Validate repeat count is non-negative integer
+    const repeatCount = Math.max(
+      0,
+      Math.floor(maxContentWidth - visibleLength),
+    );
+    const rightPadding = " ".repeat(repeatCount);
+    // Apply background to left padding + content + right padding
+    return bgColor("  " + styledContent + rightPadding + "  ");
   };
 
-  // Render all lines with background
-  const lines = [
-    bgLine(chalk.cyan.bold(` ${figures.play} Quick Actions`)),
-    chalk.bgBlack(" ".repeat(contentWidth)),
-    ...operations.map((op, index) => {
-      const isSelected = index === selectedOperation;
-      const pointer = isSelected ? figures.pointer : " ";
-      const content = ` ${pointer} ${op.icon} ${op.label} [${op.shortcut}]`;
+  // Create empty line with full background
+  // CRITICAL: Validate repeat count is positive integer
+  const emptyLine = bgColor(" ".repeat(Math.max(1, Math.floor(contentWidth))));
 
-      let styled: string;
-      if (isSelected) {
-        const colorFn =
-          chalk[
-            op.color as "red" | "green" | "blue" | "yellow" | "magenta" | "cyan"
-          ];
-        styled =
-          typeof colorFn === "function"
-            ? colorFn.bold(content)
-            : chalk.white.bold(content);
-      } else {
-        styled = chalk.gray(content);
-      }
+  // Create border lines with background and integrated title
+  const title = `${figures.play} Quick Actions`;
 
-      return bgLine(styled);
-    }),
-    chalk.bgBlack(" ".repeat(contentWidth)),
-    bgLine(
-      chalk.gray.dim(` ${figures.arrowUp}${figures.arrowDown} Nav • [Enter]`),
+  // The content between ╭ and ╮ should be exactly contentWidth
+  // Format: "─ title ─────"
+  const titleWithSpaces = ` ${title} `;
+  const titleTotalLength = titleWithSpaces.length + 1; // +1 for leading dash
+  // CRITICAL: Validate repeat counts are non-negative integers
+  const remainingDashes = Math.max(
+    0,
+    Math.floor(contentWidth - titleTotalLength),
+  );
+
+  // Use theme primary color for borders to match theme
+  const borderColorFn = isLightMode() ? chalk.cyan : chalk.blue;
+
+  const borderTop = bgColor(
+    borderColorFn("╭─" + titleWithSpaces + "─".repeat(remainingDashes) + "╮"),
+  );
+  // CRITICAL: Validate contentWidth is a positive integer
+  const borderBottom = bgColor(
+    borderColorFn(
+      "╰" + "─".repeat(Math.max(1, Math.floor(contentWidth))) + "╯",
     ),
-    bgLine(chalk.gray.dim(` [Esc] Close`)),
-  ];
-
-  // Draw custom border with background to fill gaps
-  const borderTop = chalk.cyan("╭" + "─".repeat(contentWidth) + "╮");
-  const borderBottom = chalk.cyan("╰" + "─".repeat(contentWidth) + "╯");
+  );
+  const borderSide = (content: string) => {
+    return bgColor(borderColorFn("│") + content + borderColorFn("│"));
+  };
 
   return (
     <Box flexDirection="column" alignItems="center">
       <Box flexDirection="column">
         <Text>{borderTop}</Text>
-        {lines.map((line, i) => (
-          <Text key={i}>
-            {chalk.cyan("│")}
-            {line}
-            {chalk.cyan("│")}
-          </Text>
-        ))}
+        <Text>{borderSide(emptyLine)}</Text>
+
+        {operations.map((op, index) => {
+          const isSelected = index === selectedOperation;
+          const pointer = isSelected ? figures.pointer : " ";
+          const lineText = `${pointer} ${op.icon} ${op.label} [${op.shortcut}]`;
+
+          let styledLine: string;
+          if (isSelected) {
+            // Selected: use operation-specific color for icon and label
+            const opColor = op.color as
+              | "red"
+              | "green"
+              | "blue"
+              | "yellow"
+              | "magenta"
+              | "cyan";
+            const colorFn = chalk[opColor] || textColor;
+            styledLine = `${textColor(pointer)} ${colorFn(op.icon)} ${colorFn.bold(op.label)} ${textColor(`[${op.shortcut}]`)}`;
+          } else {
+            // Unselected: gray/dim text for everything
+            const dimFn = isLightMode() ? chalk.gray : chalk.gray;
+            styledLine = `${dimFn(pointer)} ${dimFn(op.icon)} ${dimFn(op.label)} ${dimFn(`[${op.shortcut}]`)}`;
+          }
+
+          return (
+            <Text key={op.key}>
+              {borderSide(createBgLine(styledLine, lineText))}
+            </Text>
+          );
+        })}
+
+        <Text>{borderSide(emptyLine)}</Text>
+        <Text>
+          {borderSide(
+            createBgLine(
+              textColor(
+                `${figures.arrowUp}${figures.arrowDown} Nav • [Enter] • [Esc] Close`,
+              ),
+              `${figures.arrowUp}${figures.arrowDown} Nav • [Enter] • [Esc] Close`,
+            ),
+          )}
+        </Text>
+        <Text>{borderSide(emptyLine)}</Text>
         <Text>{borderBottom}</Text>
       </Box>
     </Box>

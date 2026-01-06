@@ -2,18 +2,23 @@ import React from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
+import type {
+  DevboxCreateParams,
+  DevboxView,
+} from "@runloop/api-client/resources/devboxes/devboxes";
+import type { LaunchParameters } from "@runloop/api-client/resources/shared";
 import { getClient } from "../utils/client.js";
-import { Header } from "./Header.js";
 import { SpinnerComponent } from "./Spinner.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { SuccessMessage } from "./SuccessMessage.js";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { MetadataDisplay } from "./MetadataDisplay.js";
 import { colors } from "../utils/theme.js";
+import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 
 interface DevboxCreatePageProps {
   onBack: () => void;
-  onCreate?: (devbox: any) => void;
+  onCreate?: (devbox: DevboxView) => void;
   initialBlueprintId?: string;
 }
 
@@ -51,11 +56,11 @@ interface FormData {
   snapshot_id: string;
 }
 
-export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({
+export const DevboxCreatePage = ({
   onBack,
   onCreate,
   initialBlueprintId,
-}) => {
+}: DevboxCreatePageProps) => {
   const [currentField, setCurrentField] = React.useState<FormField>("create");
   const [formData, setFormData] = React.useState<FormData>({
     name: "",
@@ -77,7 +82,7 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({
   >(null);
   const [selectedMetadataIndex, setSelectedMetadataIndex] = React.useState(-1); // -1 means "add new" row
   const [creating, setCreating] = React.useState(false);
-  const [result, setResult] = React.useState<any>(null);
+  const [result, setResult] = React.useState<DevboxView | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
 
   const baseFields: Array<{
@@ -122,7 +127,7 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({
 
   const fields = [...baseFields, ...customFields, ...remainingFields];
 
-  const architectures = ["arm64", "x86_64"];
+  const architectures = ["arm64", "x86_64"] as const;
   const resourceSizes = [
     "X_SMALL",
     "SMALL",
@@ -131,9 +136,12 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({
     "X_LARGE",
     "XX_LARGE",
     "CUSTOM_SIZE",
-  ];
+  ] as const;
 
   const currentFieldIndex = fields.findIndex((f) => f.key === currentField);
+
+  // Handle Ctrl+C to exit
+  useExitOnCtrlC();
 
   useInput((input, key) => {
     // Handle result screen
@@ -166,7 +174,6 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({
 
     // Back to list
     if (input === "q" || key.escape) {
-      console.clear();
       onBack();
       return;
     }
@@ -316,13 +323,18 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({
           architecture: architectures[newIndex] as "arm64" | "x86_64",
         });
       } else if (currentField === "resource_size") {
-        const currentIndex = resourceSizes.indexOf(formData.resource_size);
+        // Find current index, defaulting to 0 if not found (e.g., empty string)
+        const currentSize = formData.resource_size || "SMALL";
+        const currentIndex = resourceSizes.indexOf(
+          currentSize as (typeof resourceSizes)[number],
+        );
+        const safeIndex = currentIndex === -1 ? 0 : currentIndex;
         const newIndex = key.leftArrow
-          ? Math.max(0, currentIndex - 1)
-          : Math.min(resourceSizes.length - 1, currentIndex + 1);
+          ? Math.max(0, safeIndex - 1)
+          : Math.min(resourceSizes.length - 1, safeIndex + 1);
         setFormData({
           ...formData,
-          resource_size: resourceSizes[newIndex] as any,
+          resource_size: resourceSizes[newIndex],
         });
       }
       return;
@@ -385,7 +397,7 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({
     try {
       const client = getClient();
 
-      const launchParameters: any = {};
+      const launchParameters: LaunchParameters = {};
 
       if (formData.architecture) {
         launchParameters.architecture = formData.architecture;
@@ -410,7 +422,7 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({
         );
       }
 
-      const createParams: any = {};
+      const createParams: DevboxCreateParams = {};
 
       if (formData.name) {
         createParams.name = formData.name;
@@ -448,10 +460,25 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({
         <Breadcrumb
           items={[{ label: "Devboxes" }, { label: "Create", active: true }]}
         />
-        <SuccessMessage
-          message="Devbox created successfully!"
-          details={`ID: ${result.id}\nName: ${result.name || "(none)"}\nStatus: ${result.status}`}
-        />
+        <SuccessMessage message="Devbox created successfully!" />
+        <Box marginLeft={2} flexDirection="column" marginTop={1}>
+          <Box>
+            <Text color={colors.textDim} dimColor>
+              ID:{" "}
+            </Text>
+            <Text color={colors.idColor}>{result.id}</Text>
+          </Box>
+          <Box>
+            <Text color={colors.textDim} dimColor>
+              Name: {result.name || "(none)"}
+            </Text>
+          </Box>
+          <Box>
+            <Text color={colors.textDim} dimColor>
+              Status: {result.status}
+            </Text>
+          </Box>
+        </Box>
         <Box marginTop={1}>
           <Text color={colors.textDim} dimColor>
             Press [Enter], [q], or [esc] to return to list
@@ -498,7 +525,7 @@ export const DevboxCreatePage: React.FC<DevboxCreatePageProps> = ({
       />
 
       <Box flexDirection="column" marginBottom={1}>
-        {fields.map((field, index) => {
+        {fields.map((field) => {
           const isActive = currentField === field.key;
           const fieldData = formData[field.key as keyof FormData];
 

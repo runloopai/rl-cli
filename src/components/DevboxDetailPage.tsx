@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text, useInput, useStdout } from "ink";
+import { Box, Text, useInput } from "ink";
 import figures from "figures";
 import { Header } from "./Header.js";
 import { StatusBadge } from "./StatusBadge.js";
@@ -7,13 +7,15 @@ import { MetadataDisplay } from "./MetadataDisplay.js";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { DevboxActionsMenu } from "./DevboxActionsMenu.js";
 import { getDevboxUrl } from "../utils/url.js";
-import type { SSHSessionConfig } from "../utils/sshSession.js";
 import { colors } from "../utils/theme.js";
+import { useViewportHeight } from "../hooks/useViewportHeight.js";
+import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
+import { getDevbox } from "../services/devboxService.js";
+import type { Devbox } from "../store/devboxStore.js";
 
 interface DevboxDetailPageProps {
-  devbox: any;
+  devbox: Devbox;
   onBack: () => void;
-  onSSHRequest?: (config: SSHSessionConfig) => void;
 }
 
 // Format time ago in a succinct way
@@ -38,18 +40,63 @@ const formatTimeAgo = (timestamp: number): string => {
   return `${years}y ago`;
 };
 
-export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
+export const DevboxDetailPage = ({
   devbox: initialDevbox,
   onBack,
-  onSSHRequest,
-}) => {
-  const { stdout } = useStdout();
+}: DevboxDetailPageProps) => {
+  const isMounted = React.useRef(true);
+
+  // Track mounted state
+  React.useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  // Local state for devbox data (updated by polling)
+  const [currentDevbox, setCurrentDevbox] = React.useState(initialDevbox);
+
   const [showDetailedInfo, setShowDetailedInfo] = React.useState(false);
   const [detailScroll, setDetailScroll] = React.useState(0);
   const [showActions, setShowActions] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(0);
 
-  const selectedDevbox = initialDevbox;
+  // Background polling for devbox details
+  React.useEffect(() => {
+    // Skip polling if showing actions, detailed info, or not mounted
+    if (showActions || showDetailedInfo) return;
+
+    const interval = setInterval(async () => {
+      // Only poll when not in actions/detail mode and component is mounted
+      if (!showActions && !showDetailedInfo && isMounted.current) {
+        try {
+          const updatedDevbox = await getDevbox(initialDevbox.id);
+
+          // Only update if still mounted
+          if (isMounted.current) {
+            setCurrentDevbox(updatedDevbox);
+          }
+        } catch {
+          // Silently ignore polling errors to avoid disrupting user experience
+        }
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [initialDevbox.id, showActions, showDetailedInfo]);
+
+  // Calculate viewport for detailed info view:
+  // - Breadcrumb (3 lines + marginBottom): 4 lines
+  // - Header (title + underline + marginBottom): 3 lines
+  // - Status box (content + marginBottom): 2 lines
+  // - Content box (marginTop + border + paddingY top/bottom + border + marginBottom): 6 lines
+  // - Help bar (marginTop + content): 2 lines
+  // - Safety buffer: 1 line
+  // Total: 18 lines
+  const detailViewport = useViewportHeight({ overhead: 18, minHeight: 10 });
+
+  const selectedDevbox = currentDevbox;
 
   const allOperations = [
     {
@@ -146,24 +193,21 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
       })
     : allOperations;
 
-  // Memoize time-based values to prevent re-rendering on every tick
-  const formattedCreateTime = React.useMemo(
-    () =>
-      selectedDevbox.create_time_ms
-        ? new Date(selectedDevbox.create_time_ms).toLocaleString()
-        : "",
-    [selectedDevbox.create_time_ms],
-  );
+  const formattedCreateTime = selectedDevbox.create_time_ms
+    ? new Date(selectedDevbox.create_time_ms).toLocaleString()
+    : "";
 
-  const createTimeAgo = React.useMemo(
-    () =>
-      selectedDevbox.create_time_ms
-        ? formatTimeAgo(selectedDevbox.create_time_ms)
-        : "",
-    [selectedDevbox.create_time_ms],
-  );
+  const createTimeAgo = selectedDevbox.create_time_ms
+    ? formatTimeAgo(selectedDevbox.create_time_ms)
+    : "";
+
+  // Handle Ctrl+C to exit
+  useExitOnCtrlC();
 
   useInput((input, key) => {
+    // Don't process input if unmounting
+    if (!isMounted.current) return;
+
     // Skip input handling when in actions view
     if (showActions) {
       return;
@@ -192,7 +236,6 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
 
     // Main view input handling
     if (input === "q" || key.escape) {
-      console.clear();
       onBack();
     } else if (input === "i") {
       setShowDetailedInfo(true);
@@ -202,7 +245,6 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
     } else if (key.downArrow && selectedOperation < operations.length - 1) {
       setSelectedOperation(selectedOperation + 1);
     } else if (key.return || input === "a") {
-      console.clear();
       setShowActions(true);
     } else if (input) {
       // Check if input matches any operation shortcut
@@ -211,7 +253,6 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
       );
       if (matchedOpIndex !== -1) {
         setSelectedOperation(matchedOpIndex);
-        console.clear();
         setShowActions(true);
       }
     }
@@ -243,8 +284,8 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
     : null;
 
   // Build detailed info lines for scrolling
-  const buildDetailLines = (): JSX.Element[] => {
-    const lines: JSX.Element[] = [];
+  const buildDetailLines = (): React.ReactElement[] => {
+    const lines: React.ReactElement[] = [];
 
     const capitalize = (str: string) =>
       str.charAt(0).toUpperCase() + str.slice(1);
@@ -256,7 +297,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
       </Text>,
     );
     lines.push(
-      <Text key="core-id" dimColor>
+      <Text key="core-id" color={colors.idColor}>
         {" "}
         ID: {selectedDevbox.id}
       </Text>,
@@ -273,12 +314,14 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
         Status: {capitalize(selectedDevbox.status)}
       </Text>,
     );
-    lines.push(
-      <Text key="core-created" dimColor>
-        {" "}
-        Created: {new Date(selectedDevbox.create_time_ms).toLocaleString()}
-      </Text>,
-    );
+    if (selectedDevbox.create_time_ms) {
+      lines.push(
+        <Text key="core-created" dimColor>
+          {" "}
+          Created: {new Date(selectedDevbox.create_time_ms).toLocaleString()}
+        </Text>,
+      );
+    }
     if (selectedDevbox.end_time_ms) {
       lines.push(
         <Text key="core-ended" dimColor>
@@ -391,14 +434,14 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
             Launch Commands:
           </Text>,
         );
-        lp.launch_commands.forEach((cmd: string, idx: number) => {
-          lines.push(
-            <Text key={`launch-cmd-${idx}`} dimColor>
-              {" "}
-              {figures.pointer} {cmd}
-            </Text>,
-          );
-        });
+        // lp.launch_commands.forEach((cmd: string, idx: number) => {
+        //   lines.push(
+        //     <Text key={`launch-cmd-${idx}`} dimColor>
+        //       {" "}
+        //       {figures.pointer} {cmd}
+        //     </Text>,
+        //   );
+        // });
       }
       if (lp.required_services && lp.required_services.length > 0) {
         lines.push(
@@ -444,17 +487,17 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
       );
       if (selectedDevbox.blueprint_id) {
         lines.push(
-          <Text key="source-bp" dimColor>
+          <Text key="source-bp" color={colors.idColor}>
             {" "}
-            Blueprint: {selectedDevbox.blueprint_id}
+            {selectedDevbox.blueprint_id}
           </Text>,
         );
       }
       if (selectedDevbox.snapshot_id) {
         lines.push(
-          <Text key="source-snap" dimColor>
+          <Text key="source-snap" color={colors.idColor}>
             {" "}
-            Snapshot: {selectedDevbox.snapshot_id}
+            {selectedDevbox.snapshot_id}
           </Text>,
         );
       }
@@ -476,7 +519,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
       );
       if (selectedDevbox.initiator_id) {
         lines.push(
-          <Text key="init-id" dimColor>
+          <Text key="init-id" color={colors.idColor}>
             {" "}
             ID: {selectedDevbox.initiator_id}
           </Text>,
@@ -542,17 +585,20 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
           State History
         </Text>,
       );
-      selectedDevbox.state_transitions.forEach(
-        (transition: any, idx: number) => {
-          const text = `${idx + 1}. ${capitalize(transition.status)}${transition.transition_time_ms ? ` at ${new Date(transition.transition_time_ms).toLocaleString()}` : ""}`;
-          lines.push(
-            <Text key={`state-${idx}`} dimColor>
-              {" "}
-              {text}
-            </Text>,
-          );
-        },
-      );
+      (
+        selectedDevbox.state_transitions as Array<{
+          status: string;
+          transition_time_ms?: number;
+        }>
+      ).forEach((transition, idx: number) => {
+        const text = `${idx + 1}. ${capitalize(transition.status)}${transition.transition_time_ms ? ` at ${new Date(transition.transition_time_ms).toLocaleString()}` : ""}`;
+        lines.push(
+          <Text key={`state-${idx}`} dimColor>
+            {" "}
+            {text}
+          </Text>,
+        );
+      });
       lines.push(<Text key="state-space"> </Text>);
     }
 
@@ -591,7 +637,6 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
         ]}
         initialOperation={selectedOp?.key}
         skipOperationsMenu={true}
-        onSSHRequest={onSSHRequest}
       />
     );
   }
@@ -599,8 +644,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
   // Detailed info mode - full screen
   if (showDetailedInfo) {
     const detailLines = buildDetailLines();
-    const terminalHeight = stdout?.rows || 30;
-    const viewportHeight = Math.max(10, terminalHeight - 12); // Reserve space for header/footer
+    const viewportHeight = detailViewport.viewportHeight;
     const maxScroll = Math.max(0, detailLines.length - viewportHeight);
     const actualScroll = Math.min(detailScroll, maxScroll);
     const visibleLines = detailLines.slice(
@@ -626,9 +670,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
           <Box marginBottom={1}>
             <StatusBadge status={selectedDevbox.status} />
             <Text> </Text>
-            <Text color={colors.textDim} dimColor>
-              {selectedDevbox.id}
-            </Text>
+            <Text color={colors.idColor}>{selectedDevbox.id}</Text>
           </Box>
         </Box>
 
@@ -642,25 +684,20 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
           paddingY={1}
         >
           <Box flexDirection="column">{visibleLines}</Box>
-          {hasLess && (
-            <Box marginTop={1}>
-              <Text color={colors.primary}>{figures.arrowUp} More above</Text>
-            </Box>
-          )}
-          {hasMore && (
-            <Box marginTop={hasLess ? 0 : 1}>
-              <Text color={colors.primary}>{figures.arrowDown} More below</Text>
-            </Box>
-          )}
         </Box>
 
         <Box marginTop={1}>
           <Text color={colors.textDim} dimColor>
             {figures.arrowUp}
-            {figures.arrowDown} Scroll • [q or esc] Back to Details • Line{" "}
-            {actualScroll + 1}-
+            {figures.arrowDown} Scroll • Line {actualScroll + 1}-
             {Math.min(actualScroll + viewportHeight, detailLines.length)} of{" "}
             {detailLines.length}
+          </Text>
+          {hasLess && <Text color={colors.primary}> {figures.arrowUp}</Text>}
+          {hasMore && <Text color={colors.primary}> {figures.arrowDown}</Text>}
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            • [q or esc] Back to Details
           </Text>
         </Box>
       </>
@@ -691,10 +728,7 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
           </Text>
           <Text> </Text>
           <StatusBadge status={selectedDevbox.status} />
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            • {selectedDevbox.id}
-          </Text>
+          <Text color={colors.idColor}> • {selectedDevbox.id}</Text>
         </Box>
         <Box>
           <Text color={colors.textDim} dimColor>
@@ -765,12 +799,20 @@ export const DevboxDetailPage: React.FC<DevboxDetailPageProps> = ({
             <Text color={colors.secondary} bold>
               {figures.circleFilled} Source
             </Text>
-            <Text dimColor>
-              {selectedDevbox.blueprint_id &&
-                `BP: ${selectedDevbox.blueprint_id}`}
-              {selectedDevbox.snapshot_id &&
-                `Snap: ${selectedDevbox.snapshot_id}`}
-            </Text>
+            {selectedDevbox.blueprint_id && (
+              <>
+                <Text dimColor>BP: </Text>
+                <Text color={colors.idColor}>
+                  {selectedDevbox.blueprint_id}
+                </Text>
+              </>
+            )}
+            {selectedDevbox.snapshot_id && (
+              <>
+                <Text dimColor>Snap: </Text>
+                <Text color={colors.idColor}>{selectedDevbox.snapshot_id}</Text>
+              </>
+            )}
           </Box>
         )}
       </Box>
