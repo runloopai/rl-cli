@@ -18,7 +18,7 @@ type OperationDef = {
 };
 
 interface BaseProps {
-  resource: any;
+  resource: { id: string; name?: string | null };
   onBack: () => void;
   breadcrumbItems?: Array<{ label: string; active?: boolean }>;
   initialOperation?: string;
@@ -28,7 +28,6 @@ interface BaseProps {
 
 type DevboxMenuProps = BaseProps & {
   resourceType: "devbox";
-  onSSHRequest?: (config: any) => void;
 };
 
 type BlueprintMenuProps = BaseProps & {
@@ -42,9 +41,7 @@ type BlueprintMenuProps = BaseProps & {
 
 type ResourceActionsMenuProps = DevboxMenuProps | BlueprintMenuProps;
 
-export const ResourceActionsMenu: React.FC<ResourceActionsMenuProps> = (
-  props,
-) => {
+export const ResourceActionsMenu = (props: ResourceActionsMenuProps) => {
   if (props.resourceType === "devbox") {
     const {
       resource,
@@ -53,7 +50,6 @@ export const ResourceActionsMenu: React.FC<ResourceActionsMenuProps> = (
       initialOperation,
       initialOperationIndex,
       skipOperationsMenu,
-      onSSHRequest,
     } = props;
 
     return (
@@ -64,7 +60,6 @@ export const ResourceActionsMenu: React.FC<ResourceActionsMenuProps> = (
         initialOperation={initialOperation}
         initialOperationIndex={initialOperationIndex}
         skipOperationsMenu={skipOperationsMenu}
-        onSSHRequest={onSSHRequest}
       />
     );
   }

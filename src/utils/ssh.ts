@@ -1,7 +1,6 @@
 import { exec } from "child_process";
 import { promisify } from "util";
-import { writeFile, mkdir, chmod, access } from "fs/promises";
-import { constants } from "fs";
+import { writeFile, mkdir, chmod } from "fs/promises";
 import { join } from "path";
 import { homedir } from "os";
 import { getClient } from "./client.js";
@@ -149,7 +148,9 @@ export function getSSHUrl(): string {
  */
 export function getProxyCommand(): string {
   const sshUrl = getSSHUrl();
-  return `openssl s_client -quiet -verify_quiet -servername %h -connect ${sshUrl} 2>/dev/null`;
+  // macOS openssl doesn't support -verify_quiet, use compatible flags
+  // servername should be %h (target hostname) - SSH will replace %h with the actual hostname from the SSH command
+  return `openssl s_client -quiet -servername %h -connect ${sshUrl} 2>/dev/null`;
 }
 
 /**

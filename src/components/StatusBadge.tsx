@@ -102,10 +102,7 @@ export const getStatusDisplay = (status: string): StatusDisplay => {
   }
 };
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({
-  status,
-  showText = true,
-}) => {
+export const StatusBadge = ({ status, showText = true }: StatusBadgeProps) => {
   const statusDisplay = getStatusDisplay(status);
 
   return (

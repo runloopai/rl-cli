@@ -1,7 +1,8 @@
 import React from "react";
-import { Box, Text, useInput, useApp, useStdout } from "ink";
+import { Box, Text, useInput, useApp } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
+import type { DevboxesCursorIDPage } from "@runloop/api-client/pagination";
 import { getClient } from "../../utils/client.js";
 import { SpinnerComponent } from "../../components/Spinner.js";
 import { ErrorMessage } from "../../components/ErrorMessage.js";
@@ -9,62 +10,138 @@ import { getStatusDisplay } from "../../components/StatusBadge.js";
 import { Breadcrumb } from "../../components/Breadcrumb.js";
 import { Table, createTextColumn } from "../../components/Table.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
-import { createExecutor } from "../../utils/CommandExecutor.js";
+import { output, outputError } from "../../utils/output.js";
 import { DevboxDetailPage } from "../../components/DevboxDetailPage.js";
 import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
-import { DevboxActionsMenu } from "../../components/DevboxActionsMenu.js";
 import { ResourceActionsMenu } from "../../components/ResourceActionsMenu.js";
 import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { getDevboxUrl } from "../../utils/url.js";
-import {
-  runSSHSession,
-  type SSHSessionConfig,
-} from "../../utils/sshSession.js";
+import { useViewportHeight } from "../../hooks/useViewportHeight.js";
+import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
+import { useCursorPagination } from "../../hooks/useCursorPagination.js";
 import { colors } from "../../utils/theme.js";
+import { useDevboxStore, type Devbox } from "../../store/devboxStore.js";
 
 interface ListOptions {
   status?: string;
+  limit?: string;
   output?: string;
 }
 
 const DEFAULT_PAGE_SIZE = 10;
 
-const ListDevboxesUI: React.FC<{
+const ListDevboxesUI = ({
+  status,
+  onBack,
+  onExit,
+  onNavigateToDetail,
+}: {
   status?: string;
-  onSSHRequest?: (config: SSHSessionConfig) => void;
-  focusDevboxId?: string;
   onBack?: () => void;
   onExit?: () => void;
-}> = ({ status, onSSHRequest, focusDevboxId, onBack, onExit }) => {
+  onNavigateToDetail?: (devboxId: string) => void;
+}) => {
   const { exit: inkExit } = useApp();
-  const { stdout } = useStdout();
-  const [initialLoading, setInitialLoading] = React.useState(true);
-  const [devboxes, setDevboxes] = React.useState<any[]>([]);
-  const [error, setError] = React.useState<Error | null>(null);
-  const [currentPage, setCurrentPage] = React.useState(0);
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showDetails, setShowDetails] = React.useState(false);
   const [showCreate, setShowCreate] = React.useState(false);
   const [showActions, setShowActions] = React.useState(false);
   const [showPopup, setShowPopup] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(0);
-  const [refreshing, setRefreshing] = React.useState(false);
-  const [refreshIcon, setRefreshIcon] = React.useState(0);
-  const isNavigating = React.useRef(false);
   const [searchMode, setSearchMode] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [totalCount, setTotalCount] = React.useState(0);
-  const [hasMore, setHasMore] = React.useState(false);
-  const pageCache = React.useRef<Map<number, any[]>>(new Map());
-  const lastIdCache = React.useRef<Map<number, string>>(new Map());
+  const [submittedSearchQuery, setSubmittedSearchQuery] = React.useState("");
 
-  // Calculate responsive dimensions
-  const terminalWidth = stdout?.columns || 120;
-  const terminalHeight = stdout?.rows || 30;
+  // Get devbox store setter to sync data for detail screen
+  const setDevboxesInStore = useDevboxStore((state) => state.setDevboxes);
 
-  // Calculate dynamic page size based on terminal height
-  // Account for: Banner (3-4 lines) + Breadcrumb (1) + Header (1) + Stats (2) + Help text (2) + Margins (2) + Header row (1) = ~12 lines
-  const PAGE_SIZE = Math.max(5, terminalHeight - 12);
+  // Calculate overhead for viewport height:
+  // - Breadcrumb (3 lines + marginBottom): 4 lines
+  // - Search bar (if visible, 1 line + marginBottom): 2 lines
+  // - Table (title + top border + header + bottom border): 4 lines
+  // - Stats bar (marginTop + content): 2 lines
+  // - Help bar (marginTop + content): 2 lines
+  // - Safety buffer for edge cases: 1 line
+  // Total: 13 lines base + 2 if searching
+  const overhead = 13 + (searchMode || submittedSearchQuery ? 2 : 0);
+  const { viewportHeight, terminalWidth } = useViewportHeight({
+    overhead,
+    minHeight: 5,
+  });
+
+  const PAGE_SIZE = viewportHeight;
+
+  // Fetch function for pagination hook
+  const fetchPage = React.useCallback(
+    async (params: { limit: number; startingAt?: string }) => {
+      const client = getClient();
+      const pageDevboxes: Devbox[] = [];
+
+      // Build query params
+      const queryParams: Record<string, unknown> = {
+        limit: params.limit,
+      };
+      if (params.startingAt) {
+        queryParams.starting_after = params.startingAt;
+      }
+      if (status) {
+        queryParams.status = status;
+      }
+      if (submittedSearchQuery) {
+        queryParams.search = submittedSearchQuery;
+      }
+
+      // Fetch ONE page only
+      const page = (await client.devboxes.list(
+        queryParams,
+      )) as unknown as DevboxesCursorIDPage<Devbox>;
+
+      // Extract data and create defensive copies using JSON serialization
+      if (page.devboxes && Array.isArray(page.devboxes)) {
+        page.devboxes.forEach((d: Devbox) => {
+          pageDevboxes.push(JSON.parse(JSON.stringify(d)) as Devbox);
+        });
+      }
+
+      const result = {
+        items: pageDevboxes,
+        hasMore: page.has_more || false,
+        totalCount: page.total_count || pageDevboxes.length,
+      };
+
+      return result;
+    },
+    [status, submittedSearchQuery],
+  );
+
+  // Use the shared pagination hook
+  const {
+    items: devboxes,
+    loading,
+    navigating,
+    error,
+    currentPage,
+    hasMore,
+    hasPrev,
+    totalCount,
+    nextPage,
+    prevPage,
+  } = useCursorPagination({
+    fetchPage,
+    pageSize: PAGE_SIZE,
+    getItemId: (devbox: Devbox) => devbox.id,
+    pollInterval: 2000,
+    pollingEnabled:
+      !showDetails && !showCreate && !showActions && !showPopup && !searchMode,
+    deps: [status, submittedSearchQuery, PAGE_SIZE],
+  });
+
+  // Sync devboxes to store for detail screen
+  React.useEffect(() => {
+    if (devboxes.length > 0) {
+      setDevboxesInStore(devboxes);
+    }
+  }, [devboxes, setDevboxesInStore]);
 
   const fixedWidth = 4; // pointer + spaces
   const statusIconWidth = 2;
@@ -76,9 +153,12 @@ const ListDevboxesUI: React.FC<{
   // ID is always full width (25 chars for dbx_31CYd5LLFbBxst8mqnUjO format)
   const idWidth = 26;
 
-  // Responsive layout based on terminal width
+  // Responsive layout based on terminal width (simplified like blueprint list)
   const showCapabilities = terminalWidth >= 140;
   const showSource = terminalWidth >= 120;
+
+  // CRITICAL: Absolute maximum column widths to prevent Yoga crashes
+  const ABSOLUTE_MAX_NAME_WIDTH = 80;
 
   // Name width is flexible and uses remaining space
   let nameWidth = 15;
@@ -93,7 +173,7 @@ const ListDevboxesUI: React.FC<{
       capabilitiesWidth -
       sourceWidth -
       12;
-    nameWidth = Math.max(15, remainingWidth);
+    nameWidth = Math.min(ABSOLUTE_MAX_NAME_WIDTH, Math.max(15, remainingWidth));
   } else if (terminalWidth >= 110) {
     const remainingWidth =
       terminalWidth -
@@ -104,7 +184,7 @@ const ListDevboxesUI: React.FC<{
       timeWidth -
       sourceWidth -
       10;
-    nameWidth = Math.max(12, remainingWidth);
+    nameWidth = Math.min(ABSOLUTE_MAX_NAME_WIDTH, Math.max(12, remainingWidth));
   } else {
     const remainingWidth =
       terminalWidth -
@@ -114,244 +194,244 @@ const ListDevboxesUI: React.FC<{
       statusTextWidth -
       timeWidth -
       10;
-    nameWidth = Math.max(8, remainingWidth);
+    nameWidth = Math.min(ABSOLUTE_MAX_NAME_WIDTH, Math.max(8, remainingWidth));
   }
 
-  // Define allOperations
-  const allOperations = [
-    {
-      key: "logs",
-      label: "View Logs",
-      color: colors.info,
-      icon: figures.info,
-      shortcut: "l",
-    },
-    {
-      key: "exec",
-      label: "Execute Command",
-      color: colors.success,
-      icon: figures.play,
-      shortcut: "e",
-    },
-    {
-      key: "upload",
-      label: "Upload File",
-      color: colors.success,
-      icon: figures.arrowUp,
-      shortcut: "u",
-    },
-    {
-      key: "snapshot",
-      label: "Create Snapshot",
-      color: colors.warning,
-      icon: figures.circleFilled,
-      shortcut: "n",
-    },
-    {
-      key: "ssh",
-      label: "SSH onto the box",
-      color: colors.primary,
-      icon: figures.arrowRight,
-      shortcut: "s",
-    },
-    {
-      key: "tunnel",
-      label: "Open Tunnel",
-      color: colors.secondary,
-      icon: figures.pointerSmall,
-      shortcut: "t",
-    },
-    {
-      key: "suspend",
-      label: "Suspend Devbox",
-      color: colors.warning,
-      icon: figures.squareSmallFilled,
-      shortcut: "p",
-    },
-    {
-      key: "resume",
-      label: "Resume Devbox",
-      color: colors.success,
-      icon: figures.play,
-      shortcut: "r",
-    },
-    {
-      key: "delete",
-      label: "Shutdown Devbox",
-      color: colors.error,
-      icon: figures.cross,
-      shortcut: "d",
-    },
-  ];
+  // Build responsive column list (memoized to prevent recreating on every render)
+  const tableColumns = React.useMemo(() => {
+    const ABSOLUTE_MAX_NAME = 80;
+    const ABSOLUTE_MAX_ID = 50;
 
-  // Check if we need to focus on a specific devbox after returning from SSH
-  React.useEffect(() => {
-    if (focusDevboxId && devboxes.length > 0 && !initialLoading) {
-      // Find the devbox in the current page
-      const devboxIndex = devboxes.findIndex((d) => d.id === focusDevboxId);
-      if (devboxIndex !== -1) {
-        setSelectedIndex(devboxIndex);
-        setShowDetails(true);
-      }
+    const columns = [
+      createTextColumn(
+        "name",
+        "Name",
+        (devbox: Devbox) => {
+          const name = String(devbox?.name || devbox?.id || "");
+          const safeMax = Math.min(nameWidth || 15, ABSOLUTE_MAX_NAME);
+          return name.length > safeMax
+            ? name.substring(0, Math.max(1, safeMax - 3)) + "..."
+            : name;
+        },
+        {
+          width: Math.min(nameWidth || 15, ABSOLUTE_MAX_NAME),
+          dimColor: false,
+        },
+      ),
+      createTextColumn(
+        "id",
+        "ID",
+        (devbox: Devbox) => {
+          const id = String(devbox?.id || "");
+          const safeMax = Math.min(idWidth || 26, ABSOLUTE_MAX_ID);
+          return id.length > safeMax
+            ? id.substring(0, Math.max(1, safeMax - 3)) + "..."
+            : id;
+        },
+        {
+          width: Math.min(idWidth || 26, ABSOLUTE_MAX_ID),
+          color: colors.idColor,
+          dimColor: false,
+          bold: false,
+        },
+      ),
+      createTextColumn(
+        "status",
+        "Status",
+        (devbox: Devbox) => {
+          const statusDisplay = getStatusDisplay(devbox?.status);
+          const text = String(statusDisplay?.text || "-");
+          return text.length > 20 ? text.substring(0, 17) + "..." : text;
+        },
+        {
+          width: statusTextWidth,
+          dimColor: false,
+        },
+      ),
+      createTextColumn(
+        "created",
+        "Created",
+        (devbox: Devbox) => {
+          const time = formatTimeAgo(devbox?.create_time_ms || Date.now());
+          const text = String(time || "-");
+          return text.length > 25 ? text.substring(0, 22) + "..." : text;
+        },
+        {
+          width: timeWidth,
+          color: colors.textDim,
+          dimColor: false,
+        },
+      ),
+    ];
+
+    if (showSource) {
+      columns.push(
+        createTextColumn(
+          "source",
+          "Source",
+          (devbox: Devbox) => {
+            if (devbox?.blueprint_id) {
+              const bpId = String(devbox.blueprint_id);
+              const truncated = bpId.slice(0, 16);
+              const text = `${truncated}`;
+              return text.length > 30 ? text.substring(0, 27) + "..." : text;
+            }
+            return "-";
+          },
+          {
+            width: sourceWidth,
+            color: colors.textDim,
+            dimColor: false,
+          },
+        ),
+      );
     }
-  }, [devboxes, initialLoading, focusDevboxId]);
 
-  // Clear cache when search query changes
-  React.useEffect(() => {
-    pageCache.current.clear();
-    lastIdCache.current.clear();
-    setCurrentPage(0);
-  }, [searchQuery]);
+    if (showCapabilities) {
+      columns.push(
+        createTextColumn(
+          "capabilities",
+          "Capabilities",
+          (devbox: Devbox) => {
+            const caps = devbox?.capabilities || [];
+            const text = caps.length > 0 ? caps.join(",") : "-";
+            return text.length > 20 ? text.substring(0, 17) + "..." : text;
+          },
+          {
+            width: capabilitiesWidth,
+            color: colors.textDim,
+            dimColor: false,
+          },
+        ),
+      );
+    }
 
+    return columns;
+  }, [
+    nameWidth,
+    idWidth,
+    statusTextWidth,
+    timeWidth,
+    showSource,
+    sourceWidth,
+    showCapabilities,
+    capabilitiesWidth,
+  ]);
+
+  // Define allOperations (memoized to prevent recreating on every render)
+  const allOperations = React.useMemo(
+    () => [
+      {
+        key: "logs",
+        label: "View Logs",
+        color: colors.info,
+        icon: figures.info,
+        shortcut: "l",
+      },
+      {
+        key: "exec",
+        label: "Execute Command",
+        color: colors.success,
+        icon: figures.play,
+        shortcut: "e",
+      },
+      {
+        key: "upload",
+        label: "Upload File",
+        color: colors.success,
+        icon: figures.arrowUp,
+        shortcut: "u",
+      },
+      {
+        key: "snapshot",
+        label: "Create Snapshot",
+        color: colors.warning,
+        icon: figures.circleFilled,
+        shortcut: "n",
+      },
+      {
+        key: "ssh",
+        label: "SSH onto the box",
+        color: colors.primary,
+        icon: figures.arrowRight,
+        shortcut: "s",
+      },
+      {
+        key: "tunnel",
+        label: "Open Tunnel",
+        color: colors.secondary,
+        icon: figures.pointerSmall,
+        shortcut: "t",
+      },
+      {
+        key: "suspend",
+        label: "Suspend Devbox",
+        color: colors.warning,
+        icon: figures.squareSmallFilled,
+        shortcut: "p",
+      },
+      {
+        key: "resume",
+        label: "Resume Devbox",
+        color: colors.success,
+        icon: figures.play,
+        shortcut: "r",
+      },
+      {
+        key: "delete",
+        label: "Shutdown Devbox",
+        color: colors.error,
+        icon: figures.cross,
+        shortcut: "d",
+      },
+    ],
+    [],
+  );
+
+  // Handle Ctrl+C to exit
+  useExitOnCtrlC();
+
+  // Ensure selected index is within bounds
   React.useEffect(() => {
-    const list = async (
-      isInitialLoad: boolean = false,
-      isBackgroundRefresh: boolean = false,
-    ) => {
-      try {
-        // Set navigating flag at the start (but not for background refresh)
-        if (!isBackgroundRefresh) {
-          isNavigating.current = true;
+    if (devboxes.length > 0 && selectedIndex >= devboxes.length) {
+      setSelectedIndex(Math.max(0, devboxes.length - 1));
+    }
+  }, [devboxes.length, selectedIndex]);
+
+  const selectedDevbox = devboxes[selectedIndex];
+
+  // Calculate pagination info for display
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const startIndex = currentPage * PAGE_SIZE;
+  const endIndex = startIndex + devboxes.length;
+
+  // Filter operations based on devbox status
+  const operations = selectedDevbox
+    ? allOperations.filter((op) => {
+        const devboxStatus = selectedDevbox.status;
+
+        if (devboxStatus === "suspended") {
+          return op.key === "resume" || op.key === "logs";
         }
 
-        // Only show refreshing indicator on initial load
-        if (isInitialLoad) {
-          setRefreshing(true);
-        }
-
-        // Check if we have cached data for this page
         if (
-          !isInitialLoad &&
-          !isBackgroundRefresh &&
-          pageCache.current.has(currentPage)
+          devboxStatus !== "running" &&
+          devboxStatus !== "provisioning" &&
+          devboxStatus !== "initializing"
         ) {
-          setDevboxes(pageCache.current.get(currentPage) || []);
-          isNavigating.current = false;
-          return;
+          return op.key === "logs";
         }
 
-        const client = getClient();
-        const pageDevboxes: any[] = [];
-
-        // Get starting_after cursor from previous page's last ID
-        const startingAfter =
-          currentPage > 0
-            ? lastIdCache.current.get(currentPage - 1)
-            : undefined;
-
-        // Build query params
-        const queryParams: any = {
-          limit: PAGE_SIZE,
-        };
-        if (startingAfter) {
-          queryParams.starting_after = startingAfter;
-        }
-        if (status) {
-          queryParams.status = status as
-            | "provisioning"
-            | "initializing"
-            | "running"
-            | "suspending"
-            | "suspended"
-            | "resuming"
-            | "failure"
-            | "shutdown";
-        }
-        if (searchQuery) {
-          queryParams.search = searchQuery;
+        if (devboxStatus === "running") {
+          return op.key !== "resume";
         }
 
-        // Fetch only the current page
-        const page = await client.devboxes.list(queryParams);
-
-        // Collect items from the page - only get PAGE_SIZE items, don't auto-paginate
-        let count = 0;
-        for await (const devbox of page) {
-          pageDevboxes.push(devbox);
-          count++;
-          // Break after getting PAGE_SIZE items to prevent auto-pagination
-          if (count >= PAGE_SIZE) {
-            break;
-          }
-        }
-
-        // Update pagination metadata from the page object
-        // These properties are on the page object itself
-        const total = (page as any).total_count || pageDevboxes.length;
-        const more = (page as any).has_more || false;
-
-        setTotalCount(total);
-        setHasMore(more);
-
-        // Cache the page data and last ID
-        if (pageDevboxes.length > 0) {
-          pageCache.current.set(currentPage, pageDevboxes);
-          lastIdCache.current.set(
-            currentPage,
-            pageDevboxes[pageDevboxes.length - 1].id,
-          );
-        }
-
-        // Update devboxes for current page
-        setDevboxes((prev) => {
-          const hasChanged =
-            JSON.stringify(prev) !== JSON.stringify(pageDevboxes);
-          return hasChanged ? pageDevboxes : prev;
-        });
-      } catch (err) {
-        setError(err as Error);
-      } finally {
-        if (!isBackgroundRefresh) {
-          isNavigating.current = false;
-        }
-        // Only set initialLoading to false after first successful load
-        if (isInitialLoad) {
-          setInitialLoading(false);
-          setTimeout(() => setRefreshing(false), 300);
-        }
-      }
-    };
-
-    // Only treat as initial load on first mount
-    const isFirstMount = initialLoading;
-    list(isFirstMount, false);
-
-    // Poll every 3 seconds (increased from 2), but only when in list view and not navigating
-    const interval = setInterval(() => {
-      if (
-        !showDetails &&
-        !showCreate &&
-        !showActions &&
-        !isNavigating.current
-      ) {
-        // Don't clear cache on background refresh - just update the current page
-        list(false, true);
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [showDetails, showCreate, showActions, currentPage, searchQuery]);
-
-  // Animate refresh icon only when in list view
-  React.useEffect(() => {
-    if (showDetails || showCreate || showActions) {
-      return; // Don't animate when not in list view
-    }
-
-    const interval = setInterval(() => {
-      setRefreshIcon((prev) => (prev + 1) % 10);
-    }, 80);
-    return () => clearInterval(interval);
-  }, [showDetails, showCreate, showActions]);
+        return op.key === "logs" || op.key === "delete";
+      })
+    : allOperations;
 
   useInput((input, key) => {
-    // Handle Ctrl+C to force exit
-    if (key.ctrl && input === "c") {
-      process.stdout.write("\x1b[?1049l"); // Exit alternate screen
-      process.exit(130);
-    }
-
-    const pageDevboxes = currentDevboxes.length;
+    const pageDevboxes = devboxes.length;
 
     // Skip input handling when in search mode - let TextInput handle it
     if (searchMode) {
@@ -362,17 +442,17 @@ const ListDevboxesUI: React.FC<{
       return;
     }
 
-    // Skip input handling when in details view - let DevboxDetailPage handle it
+    // Skip input handling when in details view
     if (showDetails) {
       return;
     }
 
-    // Skip input handling when in create view - let DevboxCreatePage handle it
+    // Skip input handling when in create view
     if (showCreate) {
       return;
     }
 
-    // Skip input handling when in actions view - let DevboxActionsMenu handle it
+    // Skip input handling when in actions view
     if (showActions) {
       return;
     }
@@ -380,7 +460,6 @@ const ListDevboxesUI: React.FC<{
     // Handle popup navigation
     if (showPopup) {
       if (key.escape || input === "q") {
-        console.clear();
         setShowPopup(false);
         setSelectedOperation(0);
       } else if (key.upArrow && selectedOperation > 0) {
@@ -388,18 +467,14 @@ const ListDevboxesUI: React.FC<{
       } else if (key.downArrow && selectedOperation < operations.length - 1) {
         setSelectedOperation(selectedOperation + 1);
       } else if (key.return) {
-        // Execute the selected operation
-        console.clear();
         setShowPopup(false);
         setShowActions(true);
       } else if (input) {
-        // Check for shortcut match
         const matchedOpIndex = operations.findIndex(
           (op) => op.shortcut === input,
         );
         if (matchedOpIndex !== -1) {
           setSelectedOperation(matchedOpIndex);
-          console.clear();
           setShowPopup(false);
           setShowActions(true);
         }
@@ -414,30 +489,32 @@ const ListDevboxesUI: React.FC<{
       setSelectedIndex(selectedIndex + 1);
     } else if (
       (input === "n" || key.rightArrow) &&
-      !isNavigating.current &&
-      currentPage < totalPages - 1
+      !loading &&
+      !navigating &&
+      hasMore
     ) {
-      setCurrentPage(currentPage + 1);
+      nextPage();
       setSelectedIndex(0);
     } else if (
       (input === "p" || key.leftArrow) &&
-      !isNavigating.current &&
-      currentPage > 0
+      !loading &&
+      !navigating &&
+      hasPrev
     ) {
-      setCurrentPage(currentPage - 1);
+      prevPage();
       setSelectedIndex(0);
     } else if (key.return) {
-      console.clear();
-      setShowDetails(true);
+      if (onNavigateToDetail && selectedDevbox) {
+        onNavigateToDetail(selectedDevbox.id);
+      } else {
+        setShowDetails(true);
+      }
     } else if (input === "a") {
-      console.clear();
       setShowPopup(true);
       setSelectedOperation(0);
     } else if (input === "c") {
-      console.clear();
       setShowCreate(true);
     } else if (input === "o" && selectedDevbox) {
-      // Open in browser
       const url = getDevboxUrl(selectedDevbox.id);
       const openBrowser = async () => {
         const { exec } = await import("child_process");
@@ -458,13 +535,11 @@ const ListDevboxesUI: React.FC<{
     } else if (input === "/") {
       setSearchMode(true);
     } else if (key.escape) {
-      if (searchQuery) {
-        // Clear search when Esc is pressed and there's an active search
+      if (submittedSearchQuery) {
+        setSubmittedSearchQuery("");
         setSearchQuery("");
-        setCurrentPage(0);
         setSelectedIndex(0);
       } else {
-        // Go back to home
         if (onBack) {
           onBack();
         } else if (onExit) {
@@ -476,52 +551,6 @@ const ListDevboxesUI: React.FC<{
     }
   });
 
-  // No client-side filtering - search is handled server-side
-  const currentDevboxes = devboxes;
-
-  // Ensure selected index is within bounds after filtering
-  React.useEffect(() => {
-    if (currentDevboxes.length > 0 && selectedIndex >= currentDevboxes.length) {
-      setSelectedIndex(Math.max(0, currentDevboxes.length - 1));
-    }
-  }, [currentDevboxes.length, selectedIndex]);
-
-  const selectedDevbox = currentDevboxes[selectedIndex];
-
-  // Calculate pagination info
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-  const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + currentDevboxes.length;
-
-  // Filter operations based on devbox status
-  const operations = selectedDevbox
-    ? allOperations.filter((op) => {
-        const status = selectedDevbox.status;
-
-        // When suspended: logs and resume
-        if (status === "suspended") {
-          return op.key === "resume" || op.key === "logs";
-        }
-
-        // When not running (shutdown, failure, etc): only logs
-        if (
-          status !== "running" &&
-          status !== "provisioning" &&
-          status !== "initializing"
-        ) {
-          return op.key === "logs";
-        }
-
-        // When running: everything except resume
-        if (status === "running") {
-          return op.key !== "resume";
-        }
-
-        // Default for transitional states (provisioning, initializing)
-        return op.key === "logs" || op.key === "delete";
-      })
-    : allOperations;
-
   // Create view
   if (showCreate) {
     return (
@@ -529,10 +558,8 @@ const ListDevboxesUI: React.FC<{
         onBack={() => {
           setShowCreate(false);
         }}
-        onCreate={(devbox) => {
-          // Refresh the list after creation
+        onCreate={() => {
           setShowCreate(false);
-          // The list will auto-refresh via the polling effect
         }}
       />
     );
@@ -555,7 +582,6 @@ const ListDevboxesUI: React.FC<{
         ]}
         initialOperation={selectedOp?.key}
         skipOperationsMenu={true}
-        onSSHRequest={onSSHRequest}
       />
     );
   }
@@ -566,168 +592,12 @@ const ListDevboxesUI: React.FC<{
       <DevboxDetailPage
         devbox={selectedDevbox}
         onBack={() => setShowDetails(false)}
-        onSSHRequest={onSSHRequest}
       />
     );
   }
 
-  // Show popup with table in background
-  if (showPopup && selectedDevbox) {
-    return (
-      <>
-        <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
-        {!initialLoading && !error && devboxes.length > 0 && (
-          <>
-            <Table
-              data={currentDevboxes}
-              keyExtractor={(devbox: any) => devbox.id}
-              selectedIndex={selectedIndex}
-              title={`devboxes[${totalCount}]`}
-              columns={[
-                {
-                  key: "statusIcon",
-                  label: "",
-                  width: statusIconWidth,
-                  render: (devbox: any, index: number, isSelected: boolean) => {
-                    const statusDisplay = getStatusDisplay(devbox.status);
-
-                    return (
-                      <Text
-                        color={isSelected ? "white" : statusDisplay.color}
-                        bold={true}
-                        inverse={isSelected}
-                        wrap="truncate"
-                      >
-                        {statusDisplay.icon}{" "}
-                      </Text>
-                    );
-                  },
-                },
-                createTextColumn("id", "ID", (devbox: any) => devbox.id, {
-                  width: idWidth,
-                  color: colors.textDim,
-                  dimColor: false,
-                  bold: false,
-                }),
-                {
-                  key: "statusText",
-                  label: "Status",
-                  width: statusTextWidth,
-                  render: (devbox: any, index: number, isSelected: boolean) => {
-                    const statusDisplay = getStatusDisplay(devbox.status);
-
-                    const truncated = statusDisplay.text.slice(
-                      0,
-                      statusTextWidth,
-                    );
-                    const padded = truncated.padEnd(statusTextWidth, " ");
-
-                    return (
-                      <Text
-                        color={isSelected ? "white" : statusDisplay.color}
-                        bold={true}
-                        inverse={isSelected}
-                        wrap="truncate"
-                      >
-                        {padded}
-                      </Text>
-                    );
-                  },
-                },
-                createTextColumn(
-                  "name",
-                  "Name",
-                  (devbox: any) => devbox.name || "",
-                  {
-                    width: nameWidth,
-                    dimColor: false,
-                  },
-                ),
-                createTextColumn(
-                  "capabilities",
-                  "Capabilities",
-                  (devbox: any) => {
-                    const hasCapabilities =
-                      devbox.capabilities &&
-                      devbox.capabilities.filter((c: string) => c !== "unknown")
-                        .length > 0;
-                    return hasCapabilities
-                      ? `[${devbox.capabilities
-                          .filter((c: string) => c !== "unknown")
-                          .map((c: string) =>
-                            c === "computer_usage"
-                              ? "comp"
-                              : c === "browser_usage"
-                                ? "browser"
-                                : c === "docker_in_docker"
-                                  ? "docker"
-                                  : c,
-                          )
-                          .join(",")}]`
-                      : "";
-                  },
-                  {
-                    width: capabilitiesWidth,
-                    color: colors.info,
-                    dimColor: false,
-                    bold: false,
-                    visible: showCapabilities,
-                  },
-                ),
-                createTextColumn(
-                  "source",
-                  "Source",
-                  (devbox: any) =>
-                    devbox.blueprint_id
-                      ? devbox.blueprint_id
-                      : devbox.snapshot_id
-                        ? devbox.snapshot_id
-                        : "",
-                  {
-                    width: sourceWidth,
-                    color: colors.info,
-                    dimColor: false,
-                    bold: false,
-                    visible: showSource,
-                  },
-                ),
-                createTextColumn(
-                  "created",
-                  "Created",
-                  (devbox: any) =>
-                    devbox.create_time_ms
-                      ? formatTimeAgo(devbox.create_time_ms)
-                      : "",
-                  {
-                    width: timeWidth,
-                    color: colors.textDim,
-                    dimColor: false,
-                    bold: false,
-                  },
-                ),
-              ]}
-            />
-          </>
-        )}
-
-        {/* Popup overlaying - use negative margin to pull it up over the table */}
-        <Box
-          marginTop={-Math.min(operations.length + 10, PAGE_SIZE + 5)}
-          justifyContent="center"
-        >
-          <ActionsPopup
-            devbox={selectedDevbox}
-            operations={operations}
-            selectedOperation={selectedOperation}
-            onClose={() => setShowPopup(false)}
-          />
-        </Box>
-      </>
-    );
-  }
-
-  // If initial loading or error, show that first
-  if (initialLoading) {
+  // Loading state (only on initial load)
+  if (loading && devboxes.length === 0) {
     return (
       <>
         <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
@@ -745,243 +615,157 @@ const ListDevboxesUI: React.FC<{
     );
   }
 
-  // List view with data (always show, even if empty)
+  // Main list view
   return (
     <>
       <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
-      {currentDevboxes && currentDevboxes.length >= 0 && (
-        <>
-          {searchMode && (
-            <Box marginBottom={1}>
-              <Text color={colors.primary}>
-                {figures.pointerSmall} Search:{" "}
-              </Text>
-              <TextInput
-                value={searchQuery}
-                onChange={setSearchQuery}
-                placeholder="Type to search (name, id, status)..."
-                onSubmit={() => {
-                  setSearchMode(false);
-                  setCurrentPage(0);
-                  setSelectedIndex(0);
-                }}
-              />
-              <Text color={colors.textDim} dimColor>
-                {" "}
-                [Esc to cancel]
-              </Text>
-            </Box>
-          )}
-          {!searchMode && searchQuery && (
-            <Box marginBottom={1}>
-              <Text color={colors.primary}>{figures.info} Searching for: </Text>
-              <Text color={colors.warning} bold>
-                {searchQuery}
-              </Text>
-              <Text color={colors.textDim} dimColor>
-                {" "}
-                ({totalCount} results) [/ to edit, Esc to clear]
-              </Text>
-            </Box>
-          )}
-          <Table
-            key={`table-${searchQuery}-${currentPage}`}
-            data={currentDevboxes}
-            keyExtractor={(devbox: any) => devbox.id}
-            selectedIndex={selectedIndex}
-            title={`devboxes[${totalCount}]`}
-            columns={[
-              {
-                key: "statusIcon",
-                label: "",
-                width: statusIconWidth,
-                render: (devbox: any, index: number, isSelected: boolean) => {
-                  const statusDisplay = getStatusDisplay(devbox.status);
 
-                  return (
-                    <Text
-                      color={isSelected ? "white" : statusDisplay.color}
-                      bold={true}
-                      inverse={isSelected}
-                      wrap="truncate"
-                    >
-                      {statusDisplay.icon}{" "}
-                    </Text>
-                  );
-                },
-              },
-              createTextColumn("id", "ID", (devbox: any) => devbox.id, {
-                width: idWidth,
-                color: colors.textDim,
-                dimColor: false,
-                bold: false,
-              }),
-              {
-                key: "statusText",
-                label: "Status",
-                width: statusTextWidth,
-                render: (devbox: any, index: number, isSelected: boolean) => {
-                  const statusDisplay = getStatusDisplay(devbox.status);
-
-                  const truncated = statusDisplay.text.slice(
-                    0,
-                    statusTextWidth,
-                  );
-                  const padded = truncated.padEnd(statusTextWidth, " ");
-
-                  return (
-                    <Text
-                      color={isSelected ? "white" : statusDisplay.color}
-                      bold={true}
-                      inverse={isSelected}
-                      wrap="truncate"
-                    >
-                      {padded}
-                    </Text>
-                  );
-                },
-              },
-              createTextColumn(
-                "name",
-                "Name",
-                (devbox: any) => devbox.name || "",
-                {
-                  width: nameWidth,
-                },
-              ),
-              createTextColumn(
-                "capabilities",
-                "Capabilities",
-                (devbox: any) => {
-                  const hasCapabilities =
-                    devbox.capabilities &&
-                    devbox.capabilities.filter((c: string) => c !== "unknown")
-                      .length > 0;
-                  return hasCapabilities
-                    ? `[${devbox.capabilities
-                        .filter((c: string) => c !== "unknown")
-                        .map((c: string) =>
-                          c === "computer_usage"
-                            ? "comp"
-                            : c === "browser_usage"
-                              ? "browser"
-                              : c === "docker_in_docker"
-                                ? "docker"
-                                : c,
-                        )
-                        .join(",")}]`
-                    : "";
-                },
-                {
-                  width: capabilitiesWidth,
-                  color: colors.info,
-                  dimColor: false,
-                  bold: false,
-                  visible: showCapabilities,
-                },
-              ),
-              createTextColumn(
-                "source",
-                "Source",
-                (devbox: any) =>
-                  devbox.blueprint_id
-                    ? devbox.blueprint_id
-                    : devbox.snapshot_id
-                      ? devbox.snapshot_id
-                      : "",
-                {
-                  width: sourceWidth,
-                  color: colors.info,
-                  dimColor: false,
-                  bold: false,
-                  visible: showSource,
-                },
-              ),
-              createTextColumn(
-                "created",
-                "Created",
-                (devbox: any) =>
-                  devbox.create_time_ms
-                    ? formatTimeAgo(devbox.create_time_ms)
-                    : "",
-                {
-                  width: timeWidth,
-                  color: colors.textDim,
-                  dimColor: false,
-                  bold: false,
-                },
-              ),
-            ]}
+      {/* Search bar */}
+      {searchMode && (
+        <Box marginBottom={1}>
+          <Text color={colors.primary}>{figures.pointerSmall} Search: </Text>
+          <TextInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Type to search..."
+            onSubmit={() => {
+              setSearchMode(false);
+              setSubmittedSearchQuery(searchQuery);
+              setSelectedIndex(0);
+            }}
           />
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            [Enter to search, Esc to cancel]
+          </Text>
+        </Box>
+      )}
+      {!searchMode && submittedSearchQuery && (
+        <Box marginBottom={1}>
+          <Text color={colors.primary}>{figures.info} Searching for: </Text>
+          <Text color={colors.warning} bold>
+            {submittedSearchQuery.length > 50
+              ? submittedSearchQuery.substring(0, 50) + "..."
+              : submittedSearchQuery}
+          </Text>
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            ({totalCount} results) [/ to edit, Esc to clear]
+          </Text>
+        </Box>
+      )}
 
-          {/* Statistics Bar */}
-          <Box marginTop={1} paddingX={1}>
-            <Text color={colors.primary} bold>
-              {figures.hamburger} {totalCount}
-            </Text>
-            <Text color={colors.textDim} dimColor>
-              {" "}
-              total
-            </Text>
-            {totalPages > 1 && (
-              <>
-                <Text color={colors.textDim} dimColor>
-                  {" "}
-                  •{" "}
+      {/* Table - hide when popup is shown */}
+      {!showPopup && (
+        <Table
+          data={devboxes}
+          keyExtractor={(devbox: Devbox) => devbox.id}
+          selectedIndex={selectedIndex}
+          title="devboxes"
+          columns={tableColumns}
+        />
+      )}
+
+      {/* Statistics Bar - hide when popup is shown */}
+      {!showPopup && (
+        <Box marginTop={1} paddingX={1}>
+          <Text color={colors.primary} bold>
+            {figures.hamburger} {totalCount}
+          </Text>
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            total
+          </Text>
+          {totalPages > 1 && (
+            <>
+              <Text color={colors.textDim} dimColor>
+                {" "}
+                •{" "}
+              </Text>
+              {navigating ? (
+                <Text color={colors.warning}>
+                  {figures.pointer} Loading page {currentPage + 1}...
                 </Text>
+              ) : (
                 <Text color={colors.textDim} dimColor>
                   Page {currentPage + 1} of {totalPages}
                 </Text>
-              </>
-            )}
-            <Text color={colors.textDim} dimColor>
-              {" "}
-              •{" "}
-            </Text>
-            <Text color={colors.textDim} dimColor>
-              Showing {startIndex + 1}-{endIndex} of {totalCount}
-            </Text>
-            {hasMore && (
+              )}
+            </>
+          )}
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            •{" "}
+          </Text>
+          <Text color={colors.textDim} dimColor>
+            Showing {startIndex + 1}-{endIndex} of {totalCount}
+          </Text>
+          {submittedSearchQuery && (
+            <>
               <Text color={colors.textDim} dimColor>
                 {" "}
-                (more available)
+                •{" "}
               </Text>
-            )}
-            <Text> </Text>
-            {refreshing ? (
-              <Text color={colors.primary}>
-                {
-                  ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"][
-                    refreshIcon % 10
-                  ]
-                }
+              <Text color={colors.warning}>
+                Filtered: &quot;{submittedSearchQuery}&quot;
               </Text>
-            ) : (
-              <Text color={colors.success}>{figures.circleFilled}</Text>
-            )}
-          </Box>
-
-          {/* Help Bar */}
-          <Box marginTop={1} paddingX={1}>
-            <Text color={colors.textDim} dimColor>
-              {figures.arrowUp}
-              {figures.arrowDown} Navigate
-            </Text>
-            {totalPages > 1 && (
-              <Text color={colors.textDim} dimColor>
-                {" "}
-                • {figures.arrowLeft}
-                {figures.arrowRight} Page
-              </Text>
-            )}
-            <Text color={colors.textDim} dimColor>
-              {" "}
-              • [Enter] Details • [a] Actions • [c] Create • [/] Search • [o]
-              Browser • [Esc] Back
-            </Text>
-          </Box>
-        </>
+            </>
+          )}
+        </Box>
       )}
+
+      {/* Actions Popup - show inline when triggered */}
+      {showPopup && selectedDevbox && (
+        <Box marginTop={2} justifyContent="center">
+          <ActionsPopup
+            devbox={selectedDevbox}
+            operations={operations}
+            selectedOperation={selectedOperation}
+            onClose={() => setShowPopup(false)}
+          />
+        </Box>
+      )}
+
+      {/* Help Bar */}
+      <Box marginTop={1} paddingX={1}>
+        <Text color={colors.textDim} dimColor>
+          {figures.arrowUp}
+          {figures.arrowDown} Navigate
+        </Text>
+        {(hasMore || hasPrev) && (
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            • {figures.arrowLeft}
+            {figures.arrowRight} Page
+          </Text>
+        )}
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          • [Enter] Details
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          • [a] Actions
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          • [c] Create
+        </Text>
+        {selectedDevbox && (
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            • [o] Open in Browser
+          </Text>
+        )}
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          • [/] Search
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          • [Esc] Back
+        </Text>
+      </Box>
     </>
   );
 };
@@ -989,49 +773,28 @@ const ListDevboxesUI: React.FC<{
 // Export the UI component for use in the main menu
 export { ListDevboxesUI };
 
-export async function listDevboxes(
-  options: ListOptions,
-  focusDevboxId?: string,
-) {
-  const executor = createExecutor(options);
+export async function listDevboxes(options: ListOptions) {
+  try {
+    const client = getClient();
 
-  let sshSessionConfig: SSHSessionConfig | null = null;
-
-  await executor.executeList(
-    async () => {
-      const client = executor.getClient();
-      return executor.fetchFromIterator(client.devboxes.list(), {
-        filter: options.status
-          ? (devbox: any) => devbox.status === options.status
-          : undefined,
-        limit: DEFAULT_PAGE_SIZE,
-      });
-    },
-    () => (
-      <ListDevboxesUI
-        status={options.status}
-        focusDevboxId={focusDevboxId}
-        onSSHRequest={(config) => {
-          sshSessionConfig = config;
-        }}
-      />
-    ),
-    DEFAULT_PAGE_SIZE,
-  );
-
-  // If SSH was requested, handle it now after Ink has exited
-  if (sshSessionConfig) {
-    const result = await runSSHSession(sshSessionConfig);
-
-    if (result.shouldRestart) {
-      console.clear();
-      console.log(`\nSSH session ended. Returning to CLI...\n`);
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Restart the list view with the devbox ID to focus on
-      await listDevboxes(options, result.returnToDevboxId);
-    } else {
-      process.exit(result.exitCode);
+    // Build query params
+    const queryParams: Record<string, unknown> = {
+      limit: options.limit ? parseInt(options.limit, 10) : DEFAULT_PAGE_SIZE,
+    };
+    if (options.status) {
+      queryParams.status = options.status;
     }
+
+    // Fetch devboxes
+    const page = (await client.devboxes.list(
+      queryParams,
+    )) as DevboxesCursorIDPage<{ id: string }>;
+
+    // Extract devboxes array
+    const devboxes = page.devboxes || [];
+
+    output(devboxes, { format: options.output, defaultFormat: "json" });
+  } catch (error) {
+    outputError("Failed to list devboxes", error);
   }
 }

@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text, useInput, useStdout, useApp } from "ink";
+import { Box, Text, useInput, useApp } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
 import { Breadcrumb, BreadcrumbItem } from "./Breadcrumb.js";
@@ -7,6 +7,8 @@ import { SpinnerComponent } from "./Spinner.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { Table, Column } from "./Table.js";
 import { colors } from "../utils/theme.js";
+import { useViewportHeight } from "../hooks/useViewportHeight.js";
+import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 
 // Format time ago in a succinct way
 export const formatTimeAgo = (timestamp: number): string => {
@@ -100,8 +102,17 @@ interface ResourceListViewProps<T> {
 }
 
 export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
-  const { stdout } = useStdout();
   const { exit: inkExit } = useApp();
+  const isMounted = React.useRef(true);
+
+  // Track mounted state
+  React.useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const [loading, setLoading] = React.useState(true);
   const [resources, setResources] = React.useState<T[]>([]);
   const [error, setError] = React.useState<Error | null>(null);
@@ -109,32 +120,41 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [searchMode, setSearchMode] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [refreshing, setRefreshing] = React.useState(false);
-  const [refreshIcon, setRefreshIcon] = React.useState(0);
 
-  const pageSize = config.pageSize || 10;
-  const maxFetch = config.maxFetch || 100;
+  // Calculate overhead for viewport height:
+  // - Breadcrumb (3 lines + marginBottom): 4 lines
+  // - Search bar (if visible, 1 line + marginBottom): 2 lines
+  // - Table (title + top border + header + bottom border): 4 lines
+  // - Stats bar (marginTop + content): 2 lines
+  // - Help bar (marginTop + content): 2 lines
+  // - Safety buffer for edge cases: 1 line
+  // Total: 13 lines base + 2 if searching
+  const overhead = 13 + (searchMode || searchQuery ? 2 : 0);
+  const { viewportHeight } = useViewportHeight({
+    overhead,
+    minHeight: 5,
+  });
 
-  // Calculate responsive dimensions
-  const terminalWidth = stdout?.columns || 120;
-  const terminalHeight = stdout?.rows || 30;
+  // Use viewport height for dynamic page size, or fall back to config
+  const pageSize = config.pageSize || viewportHeight;
 
   // Fetch resources
   const fetchData = React.useCallback(
-    async (isInitialLoad: boolean = false) => {
-      try {
-        if (isInitialLoad) {
-          setRefreshing(true);
-        }
+    async (_isInitialLoad: boolean = false) => {
+      if (!isMounted.current) return;
 
+      try {
         const data = await config.fetchResources();
-        setResources(data);
+        if (isMounted.current) {
+          setResources(data);
+        }
       } catch (err) {
-        setError(err as Error);
+        if (isMounted.current) {
+          setError(err as Error);
+        }
       } finally {
-        setLoading(false);
-        if (isInitialLoad) {
-          setTimeout(() => setRefreshing(false), 300);
+        if (isMounted.current) {
+          setLoading(false);
         }
       }
     },
@@ -156,13 +176,7 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
     }
   }, [config.autoRefresh, fetchData]);
 
-  // Animate refresh icon
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      setRefreshIcon((prev) => (prev + 1) % 10);
-    }, 80);
-    return () => clearInterval(interval);
-  }, []);
+  // Removed refresh icon animation to prevent constant re-renders and flashing
 
   // Filter resources based on search query
   const filteredResources = React.useMemo(() => {
@@ -195,13 +209,13 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
 
   const selectedResource = currentResources[selectedIndex];
 
+  // Handle Ctrl+C to exit
+  useExitOnCtrlC();
+
   // Input handling
   useInput((input, key) => {
-    // Handle Ctrl+C to force exit
-    if (key.ctrl && input === "c") {
-      process.stdout.write("\x1b[?1049l"); // Exit alternate screen
-      process.exit(130);
-    }
+    // Don't process input if unmounting
+    if (!isMounted.current) return;
 
     const pageResourcesCount = currentResources.length;
 
@@ -229,7 +243,6 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
       setCurrentPage(currentPage - 1);
       setSelectedIndex(0);
     } else if (key.return && selectedResource && config.onSelect) {
-      console.clear();
       config.onSelect(selectedResource);
     } else if (input === "/" && config.searchConfig?.enabled) {
       setSearchMode(true);
@@ -256,8 +269,8 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
     }
   });
 
-  // Calculate stats
-  const stats = React.useMemo(() => {
+  // Calculate stats (computed for potential future use)
+  const _stats = React.useMemo(() => {
     if (!config.statusConfig || !config.getStatus) {
       return null;
     }
@@ -430,17 +443,7 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
           Showing {startIndex + 1}-{endIndex} of {filteredResources.length}
         </Text>
         <Text> </Text>
-        {refreshing ? (
-          <Text color={colors.primary}>
-            {
-              ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"][
-                refreshIcon % 10
-              ]
-            }
-          </Text>
-        ) : (
-          <Text color={colors.success}>{figures.circleFilled}</Text>
-        )}
+        <Text color={colors.success}>{figures.circleFilled}</Text>
       </Box>
 
       {/* Help Bar */}

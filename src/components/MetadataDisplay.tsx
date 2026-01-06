@@ -1,6 +1,5 @@
 import React from "react";
 import { Box, Text } from "ink";
-import { Badge } from "@inkjs/ui";
 import figures from "figures";
 import { colors } from "../utils/theme.js";
 
@@ -10,6 +9,16 @@ interface MetadataDisplayProps {
   showBorder?: boolean;
   selectedKey?: string;
 }
+
+const renderKeyValueBadge = (keyText: string, value: string, color: string) => (
+  <Box borderStyle="round" borderColor={color} paddingX={1} marginRight={1}>
+    <Text color={color} bold>
+      {keyText}
+    </Text>
+    <Text color={color}>: </Text>
+    <Text color={color}>{value}</Text>
+  </Box>
+);
 
 // Generate color for each key based on hash
 const getColorForKey = (key: string, index: number): string => {
@@ -24,12 +33,12 @@ const getColorForKey = (key: string, index: number): string => {
   return colorList[index % colorList.length];
 };
 
-export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
+export const MetadataDisplay = ({
   metadata,
   title = "Metadata",
   showBorder = false,
   selectedKey,
-}) => {
+}: MetadataDisplayProps) => {
   const entries = Object.entries(metadata);
 
   if (entries.length === 0) {
@@ -37,11 +46,11 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
   }
 
   const content = (
-    <Box flexDirection="row" alignItems="center" flexWrap="wrap">
+    <Box flexDirection="row" alignItems="center" flexWrap="wrap" gap={1}>
       {title && (
         <>
           <Text color={colors.accent3} bold>
-            {figures.info} {title}
+            {figures.identical} {title}
           </Text>
           <Text> </Text>
         </>
@@ -56,9 +65,11 @@ export const MetadataDisplay: React.FC<MetadataDisplayProps> = ({
                 {figures.pointer}{" "}
               </Text>
             )}
-            <Badge
-              color={isSelected ? colors.primary : color}
-            >{`${key}: ${value}`}</Badge>
+            {renderKeyValueBadge(
+              key,
+              value as string,
+              isSelected ? colors.primary : color,
+            )}
           </Box>
         );
       })}

@@ -1,219 +1,272 @@
 import React from "react";
 
-export interface CursorPaginationConfig<T> {
-  /** Page size (items per page) */
-  pageSize: number;
-
-  /** Fetch function that takes query params and returns a page of results */
-  fetchPage: (params: {
-    limit: number;
-    starting_at?: string;
-    [key: string]: any;
-  }) => Promise<{
+/**
+ * Configuration for the paginated list hook
+ */
+export interface UsePaginatedListConfig<T> {
+  /**
+   * Fetch function that takes pagination params and returns a page of results
+   */
+  fetchPage: (params: { limit: number; startingAt?: string }) => Promise<{
     items: T[];
-    total_count?: number;
-    has_more?: boolean;
+    hasMore: boolean;
+    totalCount?: number;
   }>;
 
-  /** Additional query params (e.g., status filter) */
-  queryParams?: Record<string, any>;
+  /** Number of items per page */
+  pageSize: number;
 
-  /** Auto-refresh interval in milliseconds (0 to disable) */
-  refreshInterval?: number;
-
-  /** Key extractor to get ID from item */
+  /** Extract unique ID from an item (used for cursor tracking) */
   getItemId: (item: T) => string;
+
+  /** Polling interval in ms (default 2000, set to 0 to disable) */
+  pollInterval?: number;
+
+  /** Dependencies that reset pagination when changed (e.g., filters, search) */
+  deps?: unknown[];
+
+  /** Whether polling is enabled (can be used to pause during interactions) */
+  pollingEnabled?: boolean;
 }
 
-export interface CursorPaginationResult<T> {
+/**
+ * Result returned by the paginated list hook
+ */
+export interface UsePaginatedListResult<T> {
   /** Current page items */
   items: T[];
 
-  /** Loading state */
+  /** True during initial load only (no items yet) */
   loading: boolean;
 
-  /** Error state */
+  /** True when navigating between pages (shows existing items while loading) */
+  navigating: boolean;
+
+  /** Error from last fetch attempt */
   error: Error | null;
 
   /** Current page number (0-indexed) */
   currentPage: number;
 
+  /** Whether there are more pages after current */
+  hasMore: boolean;
+
+  /** Whether there are pages before current (currentPage > 0) */
+  hasPrev: boolean;
+
   /** Total count of items (if available from API) */
   totalCount: number;
 
-  /** Whether there are more pages */
-  hasMore: boolean;
-
-  /** Whether currently refreshing */
-  refreshing: boolean;
-
-  /** Go to next page */
+  /** Navigate to next page */
   nextPage: () => void;
 
-  /** Go to previous page */
+  /** Navigate to previous page */
   prevPage: () => void;
-
-  /** Go to specific page */
-  goToPage: (page: number) => void;
 
   /** Refresh current page */
   refresh: () => void;
-
-  /** Clear cache */
-  clearCache: () => void;
 }
 
+/**
+ * Hook for cursor-based pagination with polling.
+ *
+ * Design:
+ * - No caching: always fetches fresh data on navigation or poll
+ * - Cursor history: tracks the last item ID of each visited page
+ *   - cursorHistory[N] = last item ID of page N (used as startingAt for page N+1)
+ * - Polling: refreshes current page every pollInterval ms
+ *
+ * Navigation:
+ * - Page 0: startingAt = undefined
+ * - Page N: startingAt = cursorHistory[N-1]
+ * - Going back uses known cursor from history
+ */
 export function useCursorPagination<T>(
-  config: CursorPaginationConfig<T>,
-): CursorPaginationResult<T> {
+  config: UsePaginatedListConfig<T>,
+): UsePaginatedListResult<T> {
+  const {
+    fetchPage,
+    pageSize,
+    getItemId,
+    pollInterval = 2000,
+    deps = [],
+    pollingEnabled = true,
+  } = config;
+
+  // State
   const [items, setItems] = React.useState<T[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [navigating, setNavigating] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
   const [currentPage, setCurrentPage] = React.useState(0);
-  const [totalCount, setTotalCount] = React.useState(0);
   const [hasMore, setHasMore] = React.useState(false);
-  const [refreshing, setRefreshing] = React.useState(false);
+  const [totalCount, setTotalCount] = React.useState(0);
 
-  // Cache for page data and cursors
-  const pageCache = React.useRef<Map<number, T[]>>(new Map());
-  const lastIdCache = React.useRef<Map<number, string>>(new Map());
+  // Cursor history: cursorHistory[N] = last item ID of page N
+  // Used to determine startingAt for page N+1
+  const cursorHistoryRef = React.useRef<(string | undefined)[]>([]);
 
-  const fetchData = React.useCallback(
-    async (isInitialLoad: boolean = false) => {
+  // Track if component is mounted
+  const isMountedRef = React.useRef(true);
+
+  // Track if we're currently fetching (to prevent concurrent fetches)
+  const isFetchingRef = React.useRef(false);
+
+  // Store stable references to config
+  const fetchPageRef = React.useRef(fetchPage);
+  const getItemIdRef = React.useRef(getItemId);
+  const pageSizeRef = React.useRef(pageSize);
+
+  // Keep refs in sync
+  React.useEffect(() => {
+    fetchPageRef.current = fetchPage;
+  }, [fetchPage]);
+
+  React.useEffect(() => {
+    getItemIdRef.current = getItemId;
+  }, [getItemId]);
+
+  React.useEffect(() => {
+    pageSizeRef.current = pageSize;
+  }, [pageSize]);
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  /**
+   * Fetch a specific page
+   * @param page - Page number to fetch (0-indexed)
+   * @param isInitialLoad - Whether this is the initial load (shows loading state)
+   * @param isNavigation - Whether this is a page navigation (shows navigating state)
+   */
+  const fetchPageData = React.useCallback(
+    async (
+      page: number,
+      isInitialLoad: boolean = false,
+      isNavigation: boolean = false,
+    ) => {
+      if (!isMountedRef.current) return;
+      if (isFetchingRef.current) return;
+
+      isFetchingRef.current = true;
+
       try {
         if (isInitialLoad) {
-          setRefreshing(true);
+          setLoading(true);
         }
-        setLoading(true);
-
-        // Check cache first (skip on refresh)
-        if (!isInitialLoad && pageCache.current.has(currentPage)) {
-          setItems(pageCache.current.get(currentPage) || []);
-          setLoading(false);
-          return;
+        if (isNavigation) {
+          setNavigating(true);
         }
+        setError(null);
 
-        const pageItems: T[] = [];
-
-        // Get starting_at cursor from previous page's last ID
+        // Determine startingAt cursor:
+        // - Page 0: undefined
+        // - Page N: cursorHistory[N-1] (last item ID from previous page)
         const startingAt =
-          currentPage > 0
-            ? lastIdCache.current.get(currentPage - 1)
-            : undefined;
+          page > 0 ? cursorHistoryRef.current[page - 1] : undefined;
 
-        // Build query params
-        const queryParams: any = {
-          limit: config.pageSize,
-          ...config.queryParams,
-        };
-        if (startingAt) {
-          queryParams.starting_at = startingAt;
-        }
+        const result = await fetchPageRef.current({
+          limit: pageSizeRef.current,
+          startingAt,
+        });
 
-        // Fetch the page
-        const result = await config.fetchPage(queryParams);
+        if (!isMountedRef.current) return;
 
-        // Extract items (handle both array response and paginated response)
-        const fetchedItems = Array.isArray(result) ? result : result.items;
-        pageItems.push(...fetchedItems.slice(0, config.pageSize));
+        // Update items
+        setItems(result.items);
 
-        // Update pagination metadata
-        if (!Array.isArray(result)) {
-          setTotalCount(result.total_count || pageItems.length);
-          setHasMore(result.has_more || false);
-        } else {
-          setTotalCount(pageItems.length);
-          setHasMore(false);
-        }
-
-        // Cache the page data and last ID
-        if (pageItems.length > 0) {
-          pageCache.current.set(currentPage, pageItems);
-          lastIdCache.current.set(
-            currentPage,
-            config.getItemId(pageItems[pageItems.length - 1]),
+        // Update cursor history for this page
+        if (result.items.length > 0) {
+          const lastItemId = getItemIdRef.current(
+            result.items[result.items.length - 1],
           );
+          cursorHistoryRef.current[page] = lastItemId;
         }
 
-        // Update items for current page
-        setItems(pageItems);
+        // Update pagination state
+        setHasMore(result.hasMore);
+        if (result.totalCount !== undefined) {
+          setTotalCount(result.totalCount);
+        }
       } catch (err) {
+        if (!isMountedRef.current) return;
         setError(err as Error);
       } finally {
-        setLoading(false);
-        if (isInitialLoad) {
-          setTimeout(() => setRefreshing(false), 300);
+        if (isMountedRef.current) {
+          setLoading(false);
+          setNavigating(false);
         }
+        isFetchingRef.current = false;
       }
     },
-    [currentPage, config],
+    [], // No dependencies - uses refs for stability
   );
 
-  // Initial load and page changes
+  // Reset when deps change (e.g., filters, search)
+  const depsKey = JSON.stringify(deps);
   React.useEffect(() => {
-    fetchData(true);
-  }, [fetchData, currentPage]);
+    // Clear cursor history when deps change
+    cursorHistoryRef.current = [];
+    setCurrentPage(0);
+    setItems([]);
+    setHasMore(false);
+    setTotalCount(0);
+    // Fetch page 0
+    fetchPageData(0, true);
+  }, [depsKey, fetchPageData]);
 
-  // Auto-refresh
+  // Polling effect
   React.useEffect(() => {
-    if (!config.refreshInterval || config.refreshInterval <= 0) {
+    if (!pollInterval || pollInterval <= 0 || !pollingEnabled) {
       return;
     }
 
-    const interval = setInterval(() => {
-      // Clear cache on refresh
-      pageCache.current.clear();
-      lastIdCache.current.clear();
-      fetchData(false);
-    }, config.refreshInterval);
+    const timer = setInterval(() => {
+      if (isMountedRef.current && !isFetchingRef.current) {
+        fetchPageData(currentPage, false);
+      }
+    }, pollInterval);
 
-    return () => clearInterval(interval);
-  }, [config.refreshInterval, fetchData]);
+    return () => clearInterval(timer);
+  }, [pollInterval, pollingEnabled, currentPage, fetchPageData]);
 
+  // Navigation functions
   const nextPage = React.useCallback(() => {
-    if (!loading && hasMore) {
-      setCurrentPage((prev) => prev + 1);
+    if (!loading && !navigating && hasMore) {
+      const newPage = currentPage + 1;
+      setCurrentPage(newPage);
+      fetchPageData(newPage, false, true);
     }
-  }, [loading, hasMore]);
+  }, [loading, navigating, hasMore, currentPage, fetchPageData]);
 
   const prevPage = React.useCallback(() => {
-    if (!loading && currentPage > 0) {
-      setCurrentPage((prev) => prev - 1);
+    if (!loading && !navigating && currentPage > 0) {
+      const newPage = currentPage - 1;
+      setCurrentPage(newPage);
+      fetchPageData(newPage, false, true);
     }
-  }, [loading, currentPage]);
-
-  const goToPage = React.useCallback(
-    (page: number) => {
-      if (!loading && page >= 0) {
-        setCurrentPage(page);
-      }
-    },
-    [loading],
-  );
+  }, [loading, navigating, currentPage, fetchPageData]);
 
   const refresh = React.useCallback(() => {
-    pageCache.current.clear();
-    lastIdCache.current.clear();
-    fetchData(true);
-  }, [fetchData]);
-
-  const clearCache = React.useCallback(() => {
-    pageCache.current.clear();
-    lastIdCache.current.clear();
-  }, []);
+    fetchPageData(currentPage, false);
+  }, [currentPage, fetchPageData]);
 
   return {
     items,
     loading,
+    navigating,
     error,
     currentPage,
-    totalCount,
     hasMore,
-    refreshing,
+    hasPrev: currentPage > 0,
+    totalCount,
     nextPage,
     prevPage,
-    goToPage,
     refresh,
-    clearCache,
   };
 }

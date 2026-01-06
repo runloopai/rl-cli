@@ -1,6 +1,5 @@
 import React from "react";
 import { Box, Text } from "ink";
-import Gradient from "ink-gradient";
 import { colors } from "../utils/theme.js";
 
 interface HeaderProps {
@@ -8,27 +7,48 @@ interface HeaderProps {
   subtitle?: string;
 }
 
-export const Header: React.FC<HeaderProps> = React.memo(
-  ({ title, subtitle }) => {
-    return (
-      <Box flexDirection="column" marginBottom={1}>
-        <Box>
-          <Text bold color={colors.accent3}>
-            ▌{title}
-          </Text>
-          {subtitle && (
-            <>
-              <Text> </Text>
-              <Text color={colors.textDim} dimColor>
-                {subtitle}
-              </Text>
-            </>
-          )}
-        </Box>
-        <Box marginLeft={1}>
-          <Text color={colors.accent3}>{"─".repeat(title.length + 1)}</Text>
-        </Box>
+export const Header = ({ title, subtitle }: HeaderProps) => {
+  // Limit lengths to prevent Yoga layout engine errors
+  const MAX_TITLE_LENGTH = 100;
+  const MAX_SUBTITLE_LENGTH = 150;
+
+  const truncatedTitle =
+    title.length > MAX_TITLE_LENGTH
+      ? title.substring(0, MAX_TITLE_LENGTH) + "..."
+      : title;
+
+  const truncatedSubtitle =
+    subtitle && subtitle.length > MAX_SUBTITLE_LENGTH
+      ? subtitle.substring(0, MAX_SUBTITLE_LENGTH) + "..."
+      : subtitle;
+
+  return (
+    <Box flexDirection="column" marginBottom={1}>
+      <Box>
+        <Text bold color={colors.accent3}>
+          ▌{truncatedTitle}
+        </Text>
+        {truncatedSubtitle && (
+          <>
+            <Text> </Text>
+            <Text color={colors.textDim} dimColor>
+              {truncatedSubtitle}
+            </Text>
+          </>
+        )}
       </Box>
-    );
-  },
-);
+      <Box marginLeft={1}>
+        <Text color={colors.accent3}>
+          {"─".repeat(
+            Math.max(
+              0,
+              Math.floor(
+                Math.min(truncatedTitle.length + 1, MAX_TITLE_LENGTH + 1),
+              ),
+            ),
+          )}
+        </Text>
+      </Box>
+    </Box>
+  );
+};

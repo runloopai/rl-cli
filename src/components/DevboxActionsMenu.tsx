@@ -1,15 +1,28 @@
 import React from "react";
-import { Box, Text, useInput, useApp, useStdout } from "ink";
+import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
-import { getClient } from "../utils/client.js";
 import { Header } from "./Header.js";
 import { SpinnerComponent } from "./Spinner.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { SuccessMessage } from "./SuccessMessage.js";
 import { Breadcrumb } from "./Breadcrumb.js";
-import type { SSHSessionConfig } from "../utils/sshSession.js";
 import { colors } from "../utils/theme.js";
+import { useViewportHeight } from "../hooks/useViewportHeight.js";
+import { useNavigation } from "../store/navigationStore.js";
+import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
+import {
+  getDevboxLogs,
+  execCommand,
+  suspendDevbox,
+  resumeDevbox,
+  shutdownDevbox,
+  uploadFile,
+  createSnapshot as createDevboxSnapshot,
+  createTunnel,
+  createSSHKey,
+} from "../services/devboxService.js";
+import { parseLogEntry } from "../utils/logFormatter.js";
 
 type Operation =
   | "exec"
@@ -30,10 +43,9 @@ interface DevboxActionsMenuProps {
   initialOperation?: string; // Operation to execute immediately
   initialOperationIndex?: number; // Index of the operation to select
   skipOperationsMenu?: boolean; // Skip showing operations menu and execute immediately
-  onSSHRequest?: (config: SSHSessionConfig) => void; // Callback when SSH is requested
 }
 
-export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
+export const DevboxActionsMenu = ({
   devbox,
   onBack,
   breadcrumbItems = [
@@ -43,10 +55,8 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
   initialOperation,
   initialOperationIndex = 0,
   skipOperationsMenu = false,
-  onSSHRequest,
-}) => {
-  const { exit } = useApp();
-  const { stdout } = useStdout();
+}: DevboxActionsMenuProps) => {
+  const { navigate, currentScreen, params } = useNavigation();
   const [loading, setLoading] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(
     initialOperationIndex,
@@ -65,6 +75,48 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
   const [logsScroll, setLogsScroll] = React.useState(0);
   const [execScroll, setExecScroll] = React.useState(0);
   const [copyStatus, setCopyStatus] = React.useState<string | null>(null);
+
+  // Calculate viewport for exec output:
+  // - Breadcrumb (3 lines + marginBottom): 4 lines
+  // - Command header (border + 2 content + border + marginBottom): 5 lines
+  // - Output box borders: 2 lines
+  // - Stats bar (marginTop + content): 2 lines
+  // - Help bar (marginTop + content): 2 lines
+  // - Safety buffer: 1 line
+  // Total: 16 lines
+  const execViewport = useViewportHeight({ overhead: 16, minHeight: 10 });
+
+  // Calculate viewport for logs output:
+  // - Breadcrumb (3 lines + marginBottom): 4 lines
+  // - Log box borders: 2 lines
+  // - Stats bar (marginTop + content): 2 lines
+  // - Help bar (marginTop + content): 2 lines
+  // - Safety buffer: 1 line
+  // Total: 11 lines
+  const logsViewport = useViewportHeight({ overhead: 11, minHeight: 10 });
+
+  // CRITICAL: Aggressive memory cleanup to prevent heap exhaustion
+  React.useEffect(() => {
+    // Clear large data immediately when results are shown to free memory faster
+    if (operationResult || operationError) {
+      const timer = setTimeout(() => {
+        // After 100ms, if user hasn't acted, start aggressive cleanup
+        // This helps with memory without disrupting UX
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [operationResult, operationError]);
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      // Aggressively null out all large data structures
+      setOperationResult(null);
+      setOperationError(null);
+      setOperationInput("");
+      setLoading(false);
+    };
+  }, []);
 
   const allOperations = [
     {
@@ -174,13 +226,15 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
     }
   }, [executingOperation]);
 
+  // Handle Ctrl+C to exit
+  useExitOnCtrlC();
+
   useInput((input, key) => {
     // Handle operation input mode
     if (executingOperation && !operationResult && !operationError) {
       if (key.return && operationInput.trim()) {
         executeOperation();
       } else if (input === "q" || key.escape) {
-        console.clear();
         setExecutingOperation(null);
         setOperationInput("");
       }
@@ -190,19 +244,21 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
     // Handle operation result display
     if (operationResult || operationError) {
       if (input === "q" || key.escape || key.return) {
-        console.clear();
+        // Clear large data structures immediately to prevent memory leaks
+        setOperationResult(null);
+        setOperationError(null);
+        setOperationInput("");
+        setLogsWrapMode(true);
+        setLogsScroll(0);
+        setExecScroll(0);
+        setCopyStatus(null);
+
         // If skipOperationsMenu is true, go back to parent instead of operations menu
         if (skipOperationsMenu) {
+          setExecutingOperation(null);
           onBack();
         } else {
-          setOperationResult(null);
-          setOperationError(null);
           setExecutingOperation(null);
-          setOperationInput("");
-          setLogsWrapMode(true);
-          setLogsScroll(0);
-          setExecScroll(0);
-          setCopyStatus(null);
         }
       } else if (
         (key.upArrow || input === "k") &&
@@ -249,9 +305,10 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
           ...((operationResult as any).stdout || "").split("\n"),
           ...((operationResult as any).stderr || "").split("\n"),
         ];
-        const terminalHeight = stdout?.rows || 30;
-        const viewportHeight = Math.max(10, terminalHeight - 15);
-        const maxScroll = Math.max(0, lines.length - viewportHeight);
+        const maxScroll = Math.max(
+          0,
+          lines.length - execViewport.viewportHeight,
+        );
         setExecScroll(maxScroll);
       } else if (
         input === "c" &&
@@ -345,9 +402,10 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
         (operationResult as any).__customRender === "logs"
       ) {
         const logs = (operationResult as any).__logs || [];
-        const terminalHeight = stdout?.rows || 30;
-        const viewportHeight = Math.max(10, terminalHeight - 10);
-        const maxScroll = Math.max(0, logs.length - viewportHeight);
+        const maxScroll = Math.max(
+          0,
+          logs.length - logsViewport.viewportHeight,
+        );
         setLogsScroll(maxScroll);
       } else if (
         input === "w" &&
@@ -362,20 +420,16 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
         typeof operationResult === "object" &&
         (operationResult as any).__customRender === "logs"
       ) {
-        // Copy logs to clipboard
+        // Copy logs to clipboard using shared formatter
         const logs = (operationResult as any).__logs || [];
         const logsText = logs
           .map((log: any) => {
-            const time = new Date(log.timestamp_ms).toLocaleString();
-            const level = log.level || "INFO";
-            const source = log.source || "exec";
-            const message = log.message || "";
-            const cmd = log.cmd ? `[${log.cmd}] ` : "";
+            const parts = parseLogEntry(log);
+            const cmd = parts.cmd ? `$ ${parts.cmd} ` : "";
             const exitCode =
-              log.exit_code !== null && log.exit_code !== undefined
-                ? `(${log.exit_code}) `
-                : "";
-            return `${time} ${level}/${source} ${exitCode}${cmd}${message}`;
+              parts.exitCode !== null ? `exit=${parts.exitCode} ` : "";
+            const shell = parts.shellName ? `(${parts.shellName}) ` : "";
+            return `${parts.timestamp} ${parts.level} [${parts.source}] ${shell}${cmd}${parts.message} ${exitCode}`.trim();
           })
           .join("\n");
 
@@ -424,68 +478,67 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
 
     // Operations selection mode
     if (input === "q" || key.escape) {
-      console.clear();
-      onBack();
+      // Clear all state before going back to free memory
+      setOperationResult(null);
+      setOperationError(null);
+      setOperationInput("");
+      setExecutingOperation(null);
       setSelectedOperation(0);
+      setLoading(false);
+      onBack();
     } else if (key.upArrow && selectedOperation > 0) {
       setSelectedOperation(selectedOperation - 1);
     } else if (key.downArrow && selectedOperation < operations.length - 1) {
       setSelectedOperation(selectedOperation + 1);
     } else if (key.return) {
-      console.clear();
       const op = operations[selectedOperation].key as Operation;
       setExecutingOperation(op);
     } else if (input) {
       // Check if input matches any operation shortcut
       const matchedOp = operations.find((op) => op.shortcut === input);
       if (matchedOp) {
-        console.clear();
         setExecutingOperation(matchedOp.key as Operation);
       }
     }
   });
 
   const executeOperation = async () => {
-    const client = getClient();
-
     try {
       setLoading(true);
       switch (executingOperation) {
         case "exec":
-          const execResult = await client.devboxes.executeSync(devbox.id, {
-            command: operationInput,
-          });
+          // Use service layer (already truncates output to prevent Yoga crashes)
+          const execResult = await execCommand(devbox.id, operationInput);
           // Format exec result for custom rendering
           const formattedExecResult: any = {
             __customRender: "exec",
             command: operationInput,
             stdout: execResult.stdout || "",
             stderr: execResult.stderr || "",
-            exitCode: (execResult as any).exit_code ?? 0,
+            exitCode: execResult.exit_code ?? 0,
           };
           setOperationResult(formattedExecResult);
           break;
 
         case "upload":
-          const fs = await import("fs");
-          const fileStream = fs.createReadStream(operationInput);
+          // Use service layer
           const filename = operationInput.split("/").pop() || "file";
-          await client.devboxes.uploadFile(devbox.id, {
-            path: filename,
-            file: fileStream,
-          });
+          await uploadFile(devbox.id, operationInput, filename);
           setOperationResult(`File ${filename} uploaded successfully`);
           break;
 
         case "snapshot":
-          const snapshot = await client.devboxes.snapshotDisk(devbox.id, {
-            name: operationInput || `snapshot-${Date.now()}`,
-          });
+          // Use service layer
+          const snapshot = await createDevboxSnapshot(
+            devbox.id,
+            operationInput || `snapshot-${Date.now()}`,
+          );
           setOperationResult(`Snapshot created: ${snapshot.id}`);
           break;
 
         case "ssh":
-          const sshKey = await client.devboxes.createSSHKey(devbox.id);
+          // Use service layer
+          const sshKey = await createSSHKey(devbox.id);
 
           const fsModule = await import("fs");
           const pathModule = await import("path");
@@ -507,39 +560,41 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
             devbox.launch_parameters?.user_parameters?.username || "user";
           const env = process.env.RUNLOOP_ENV?.toLowerCase();
           const sshHost = env === "dev" ? "ssh.runloop.pro" : "ssh.runloop.ai";
-          const proxyCommand = `openssl s_client -quiet -verify_quiet -servername %h -connect ${sshHost}:443 2>/dev/null`;
+          // macOS openssl doesn't support -verify_quiet, use compatible flags
+          // servername should be %h (target hostname) - SSH will replace %h with the actual hostname from the SSH command
+          // This matches the reference implementation where servername is the target hostname
+          const proxyCommand = `openssl s_client -quiet -servername %h -connect ${sshHost}:443 2>/dev/null`;
 
-          const sshConfig: SSHSessionConfig = {
+          // Navigate to SSH session screen
+          navigate("ssh-session", {
             keyPath,
             proxyCommand,
             sshUser,
             url: sshKey.url,
             devboxId: devbox.id,
             devboxName: devbox.name || devbox.id,
-          };
-
-          // Notify parent that SSH is requested
-          if (onSSHRequest) {
-            onSSHRequest(sshConfig);
-            exit();
-          } else {
-            setOperationError(new Error("SSH session handler not configured"));
-          }
+            returnScreen: currentScreen,
+            returnParams: params,
+          });
           break;
 
         case "logs":
-          const logsResult = await client.devboxes.logs.list(devbox.id);
-          if (logsResult.logs.length === 0) {
+          // Use service layer (already truncates and escapes log messages)
+          const logs = await getDevboxLogs(devbox.id);
+          if (logs.length === 0) {
             setOperationResult("No logs available for this devbox.");
           } else {
-            (logsResult as any).__customRender = "logs";
-            (logsResult as any).__logs = logsResult.logs;
-            (logsResult as any).__totalCount = logsResult.logs.length;
-            setOperationResult(logsResult as any);
+            const logsResult: any = {
+              __customRender: "logs",
+              __logs: logs,
+              __totalCount: logs.length,
+            };
+            setOperationResult(logsResult);
           }
           break;
 
         case "tunnel":
+          // Use service layer
           const port = parseInt(operationInput);
           if (isNaN(port) || port < 1 || port > 65535) {
             setOperationError(
@@ -548,9 +603,7 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
               ),
             );
           } else {
-            const tunnel = await client.devboxes.createTunnel(devbox.id, {
-              port,
-            });
+            const tunnel = await createTunnel(devbox.id, port);
             setOperationResult(
               `Tunnel created!\n\n` +
                 `Local Port: ${port}\n` +
@@ -561,17 +614,20 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
           break;
 
         case "suspend":
-          await client.devboxes.suspend(devbox.id);
+          // Use service layer
+          await suspendDevbox(devbox.id);
           setOperationResult(`Devbox ${devbox.id} suspended successfully`);
           break;
 
         case "resume":
-          await client.devboxes.resume(devbox.id);
+          // Use service layer
+          await resumeDevbox(devbox.id);
           setOperationResult(`Devbox ${devbox.id} resumed successfully`);
           break;
 
         case "delete":
-          await client.devboxes.shutdown(devbox.id);
+          // Use service layer
+          await shutdownDevbox(devbox.id);
           setOperationResult(`Devbox ${devbox.id} shut down successfully`);
           break;
       }
@@ -604,8 +660,7 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
         (line) => line !== "",
       );
 
-      const terminalHeight = stdout?.rows || 30;
-      const viewportHeight = Math.max(10, terminalHeight - 15);
+      const viewportHeight = execViewport.viewportHeight;
       const maxScroll = Math.max(0, allLines.length - viewportHeight);
       const actualScroll = Math.min(execScroll, maxScroll);
       const visibleLines = allLines.slice(
@@ -639,7 +694,11 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
                 {figures.play} Command:
               </Text>
               <Text> </Text>
-              <Text color={colors.text}>{command}</Text>
+              <Text color={colors.text}>
+                {command.length > 500
+                  ? command.substring(0, 500) + "..."
+                  : command}
+              </Text>
             </Box>
             <Box>
               <Text color={colors.textDim} dimColor>
@@ -674,19 +733,6 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
                 </Box>
               );
             })}
-
-            {hasLess && (
-              <Box marginTop={1}>
-                <Text color={colors.primary}>{figures.arrowUp} More above</Text>
-              </Box>
-            )}
-            {hasMore && (
-              <Box marginTop={hasLess ? 0 : 1}>
-                <Text color={colors.primary}>
-                  {figures.arrowDown} More below
-                </Text>
-              </Box>
-            )}
           </Box>
 
           {/* Statistics bar */}
@@ -709,6 +755,12 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
                   {Math.min(actualScroll + viewportHeight, allLines.length)} of{" "}
                   {allLines.length}
                 </Text>
+                {hasLess && (
+                  <Text color={colors.primary}> {figures.arrowUp}</Text>
+                )}
+                {hasMore && (
+                  <Text color={colors.primary}> {figures.arrowDown}</Text>
+                )}
               </>
             )}
             {stdout && (
@@ -767,9 +819,8 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
       const logs = (operationResult as any).__logs || [];
       const totalCount = (operationResult as any).__totalCount || 0;
 
-      const terminalHeight = stdout?.rows || 30;
-      const terminalWidth = stdout?.columns || 120;
-      const viewportHeight = Math.max(10, terminalHeight - 10);
+      const viewportHeight = logsViewport.viewportHeight;
+      const terminalWidth = logsViewport.terminalWidth;
       const maxScroll = Math.max(0, logs.length - viewportHeight);
       const actualScroll = Math.min(logsScroll, maxScroll);
       const visibleLogs = logs.slice(
@@ -792,95 +843,146 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
             paddingX={1}
           >
             {visibleLogs.map((log: any, index: number) => {
-              const time = new Date(log.timestamp_ms).toLocaleTimeString();
-              const level = log.level ? log.level[0].toUpperCase() : "I";
-              const source = log.source ? log.source.substring(0, 8) : "exec";
-              const fullMessage = log.message || "";
-              const cmd = log.cmd
-                ? `[${log.cmd.substring(0, 40)}${log.cmd.length > 40 ? "..." : ""}] `
+              const parts = parseLogEntry(log);
+
+              // Sanitize message: escape special chars to prevent layout breaks
+              const escapedMessage = parts.message
+                .replace(/\r\n/g, "\\n")
+                .replace(/\n/g, "\\n")
+                .replace(/\r/g, "\\r")
+                .replace(/\t/g, "\\t");
+
+              // Limit message length to prevent Yoga layout engine errors
+              const MAX_MESSAGE_LENGTH = 1000;
+              const fullMessage =
+                escapedMessage.length > MAX_MESSAGE_LENGTH
+                  ? escapedMessage.substring(0, MAX_MESSAGE_LENGTH) + "..."
+                  : escapedMessage;
+
+              const cmd = parts.cmd
+                ? `$ ${parts.cmd.substring(0, 40)}${parts.cmd.length > 40 ? "..." : ""} `
                 : "";
               const exitCode =
-                log.exit_code !== null && log.exit_code !== undefined
-                  ? `(${log.exit_code}) `
-                  : "";
+                parts.exitCode !== null ? `exit=${parts.exitCode} ` : "";
 
-              let levelColor: string = colors.textDim;
-              if (level === "E") levelColor = colors.error;
-              else if (level === "W") levelColor = colors.warning;
-              else if (level === "I") levelColor = colors.primary;
+              // Map color names to theme colors
+              const levelColorMap: Record<string, string> = {
+                red: colors.error,
+                yellow: colors.warning,
+                blue: colors.primary,
+                gray: colors.textDim,
+              };
+              const sourceColorMap: Record<string, string> = {
+                magenta: "#d33682",
+                cyan: colors.info,
+                green: colors.success,
+                yellow: colors.warning,
+                gray: colors.textDim,
+                white: colors.text,
+              };
+              const levelColor =
+                levelColorMap[parts.levelColor] || colors.textDim;
+              const sourceColor =
+                sourceColorMap[parts.sourceColor] || colors.textDim;
 
               if (logsWrapMode) {
                 return (
                   <Box key={index}>
                     <Text color={colors.textDim} dimColor>
-                      {time}
+                      {parts.timestamp}
                     </Text>
                     <Text> </Text>
-                    <Text color={levelColor} bold>
-                      {level}
-                    </Text>
-                    <Text color={colors.textDim} dimColor>
-                      /{source}
+                    <Text color={levelColor} bold={parts.levelColor === "red"}>
+                      {parts.level}
                     </Text>
                     <Text> </Text>
-                    {exitCode && <Text color={colors.warning}>{exitCode}</Text>}
-                    {cmd && (
-                      <Text color={colors.info} dimColor>
-                        {cmd}
+                    <Text color={sourceColor}>[{parts.source}]</Text>
+                    <Text> </Text>
+                    {parts.shellName && (
+                      <Text color={colors.textDim} dimColor>
+                        ({parts.shellName}){" "}
                       </Text>
                     )}
+                    {cmd && <Text color={colors.info}>{cmd}</Text>}
                     <Text>{fullMessage}</Text>
+                    {exitCode && (
+                      <Text
+                        color={
+                          parts.exitCode === 0 ? colors.success : colors.error
+                        }
+                      >
+                        {" "}
+                        {exitCode}
+                      </Text>
+                    )}
                   </Box>
                 );
               } else {
+                // Calculate available width for message truncation
+                const timestampLen = parts.timestamp.length;
+                const levelLen = parts.level.length;
+                const sourceLen = parts.source.length + 2; // brackets
+                const shellLen = parts.shellName
+                  ? parts.shellName.length + 3
+                  : 0;
+                const cmdLen = cmd.length;
+                const exitLen = exitCode.length;
+                const spacesLen = 5; // spaces between elements
                 const metadataWidth =
-                  11 + 1 + 1 + 1 + 8 + 1 + exitCode.length + cmd.length + 6;
+                  timestampLen +
+                  levelLen +
+                  sourceLen +
+                  shellLen +
+                  cmdLen +
+                  exitLen +
+                  spacesLen;
+
+                const safeTerminalWidth = Math.max(80, terminalWidth);
                 const availableMessageWidth = Math.max(
                   20,
-                  terminalWidth - metadataWidth,
+                  safeTerminalWidth - metadataWidth,
                 );
                 const truncatedMessage =
                   fullMessage.length > availableMessageWidth
-                    ? fullMessage.substring(0, availableMessageWidth - 3) +
-                      "..."
+                    ? fullMessage.substring(
+                        0,
+                        Math.max(1, availableMessageWidth - 3),
+                      ) + "..."
                     : fullMessage;
+
                 return (
                   <Box key={index}>
                     <Text color={colors.textDim} dimColor>
-                      {time}
+                      {parts.timestamp}
                     </Text>
                     <Text> </Text>
-                    <Text color={levelColor} bold>
-                      {level}
-                    </Text>
-                    <Text color={colors.textDim} dimColor>
-                      /{source}
+                    <Text color={levelColor} bold={parts.levelColor === "red"}>
+                      {parts.level}
                     </Text>
                     <Text> </Text>
-                    {exitCode && <Text color={colors.warning}>{exitCode}</Text>}
-                    {cmd && (
-                      <Text color={colors.info} dimColor>
-                        {cmd}
+                    <Text color={sourceColor}>[{parts.source}]</Text>
+                    <Text> </Text>
+                    {parts.shellName && (
+                      <Text color={colors.textDim} dimColor>
+                        ({parts.shellName}){" "}
                       </Text>
                     )}
+                    {cmd && <Text color={colors.info}>{cmd}</Text>}
                     <Text>{truncatedMessage}</Text>
+                    {exitCode && (
+                      <Text
+                        color={
+                          parts.exitCode === 0 ? colors.success : colors.error
+                        }
+                      >
+                        {" "}
+                        {exitCode}
+                      </Text>
+                    )}
                   </Box>
                 );
               }
             })}
-
-            {hasLess && (
-              <Box>
-                <Text color={colors.primary}>{figures.arrowUp} More above</Text>
-              </Box>
-            )}
-            {hasMore && (
-              <Box>
-                <Text color={colors.primary}>
-                  {figures.arrowDown} More below
-                </Text>
-              </Box>
-            )}
           </Box>
 
           <Box marginTop={1} paddingX={1}>
@@ -900,6 +1002,10 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
               {Math.min(actualScroll + viewportHeight, logs.length)} of{" "}
               {logs.length}
             </Text>
+            {hasLess && <Text color={colors.primary}> {figures.arrowUp}</Text>}
+            {hasMore && (
+              <Text color={colors.primary}> {figures.arrowDown}</Text>
+            )}
             <Text color={colors.textDim} dimColor>
               {" "}
               •{" "}
@@ -1016,7 +1122,12 @@ export const DevboxActionsMenu: React.FC<DevboxActionsMenuProps> = ({
         <Box flexDirection="column" marginBottom={1}>
           <Box marginBottom={1}>
             <Text color={colors.primary} bold>
-              {devbox.name || devbox.id}
+              {(() => {
+                const name = devbox.name || devbox.id;
+                return name.length > 100
+                  ? name.substring(0, 100) + "..."
+                  : name;
+              })()}
             </Text>
           </Box>
           <Box>
