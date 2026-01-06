@@ -5,30 +5,37 @@
 import { getClient } from "../utils/client.js";
 import type { Devbox } from "../store/devboxStore.js";
 import type { DevboxesCursorIDPage } from "@runloop/api-client/pagination";
+import type {
+  DevboxListParams,
+  DevboxView,
+} from "@runloop/api-client/resources/devboxes/devboxes";
 
 /**
  * Recursively truncate all strings in an object to prevent Yoga crashes
  * CRITICAL: Must be applied to ALL data from API before storing/rendering
  */
-function truncateStrings(obj: any, maxLength: number = 200): any {
+function truncateStrings<T>(obj: T, maxLength: number = 200): T {
   if (obj === null || obj === undefined) return obj;
 
   if (typeof obj === "string") {
-    return obj.length > maxLength ? obj.substring(0, maxLength) : obj;
+    return (obj.length > maxLength ? obj.substring(0, maxLength) : obj) as T;
   }
 
   if (Array.isArray(obj)) {
-    return obj.map((item) => truncateStrings(item, maxLength));
+    return obj.map((item) => truncateStrings(item, maxLength)) as T;
   }
 
   if (typeof obj === "object") {
-    const result: any = {};
+    const result: Record<string, unknown> = {};
     for (const key in obj) {
       if (Object.hasOwn(obj, key)) {
-        result[key] = truncateStrings(obj[key], maxLength);
+        result[key] = truncateStrings(
+          (obj as Record<string, unknown>)[key],
+          maxLength,
+        );
       }
     }
-    return result;
+    return result as T;
   }
 
   return obj;
@@ -62,7 +69,7 @@ export async function listDevboxes(
 
   const client = getClient();
 
-  const queryParams: any = {
+  const queryParams: DevboxListParams & { name?: string } = {
     limit: options.limit,
   };
 
@@ -70,17 +77,17 @@ export async function listDevboxes(
     queryParams.starting_after = options.startingAfter;
   }
   if (options.status) {
-    queryParams.status = options.status;
+    queryParams.status = options.status as DevboxListParams["status"];
   }
   if (options.search) {
-    queryParams.search = options.search;
+    queryParams.name = options.search;
   }
 
   // Fetch ONE page only - never iterate
   const pagePromise = client.devboxes.list(queryParams);
 
   // Wrap in Promise.race to support abort
-  let page: DevboxesCursorIDPage<{ id: string }>;
+  let page: DevboxesCursorIDPage<DevboxView>;
   if (options.signal) {
     const abortPromise = new Promise<never>((_, reject) => {
       options.signal!.addEventListener("abort", () => {
@@ -91,7 +98,7 @@ export async function listDevboxes(
       page = (await Promise.race([
         pagePromise,
         abortPromise,
-      ])) as DevboxesCursorIDPage<{ id: string }>;
+      ])) as unknown as DevboxesCursorIDPage<DevboxView>;
     } catch (err) {
       // Re-throw abort errors, convert others
       if ((err as Error)?.name === "AbortError") {
@@ -100,7 +107,7 @@ export async function listDevboxes(
       throw err;
     }
   } else {
-    page = (await pagePromise) as DevboxesCursorIDPage<{ id: string }>;
+    page = (await pagePromise) as unknown as DevboxesCursorIDPage<DevboxView>;
   }
 
   // Check again after await (in case abort happened during request)
@@ -112,11 +119,11 @@ export async function listDevboxes(
   const devboxes: Devbox[] = [];
 
   if (page.devboxes && Array.isArray(page.devboxes)) {
-    page.devboxes.forEach((d: any) => {
+    page.devboxes.forEach((d: DevboxView) => {
       // CRITICAL: Recursively truncate ALL strings in the object to prevent Yoga crashes
       // This catches nested fields like launch_parameters.user_parameters.username
       const truncated = truncateStrings(d, 200);
-      devboxes.push(truncated as Devbox);
+      devboxes.push(truncated);
     });
   }
 
@@ -125,9 +132,6 @@ export async function listDevboxes(
     totalCount: page.total_count || devboxes.length,
     hasMore: page.has_more || false,
   };
-
-  // CRITICAL: Null out page reference to help GC
-  page = null as any;
 
   return result;
 }
@@ -280,7 +284,7 @@ export async function execCommand(
 export async function getDevboxLogs(id: string): Promise<any[]> {
   const client = getClient();
   const response = await client.devboxes.logs.list(id);
-  
+
   // Return the logs array directly - formatting is handled by logFormatter
   return response.logs || [];
 }

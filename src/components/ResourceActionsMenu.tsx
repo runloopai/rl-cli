@@ -18,7 +18,7 @@ type OperationDef = {
 };
 
 interface BaseProps {
-  resource: Record<string, unknown>;
+  resource: { id: string; name?: string | null };
   onBack: () => void;
   breadcrumbItems?: Array<{ label: string; active?: boolean }>;
   initialOperation?: string;

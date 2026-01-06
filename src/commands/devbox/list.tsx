@@ -94,23 +94,10 @@ const ListDevboxesUI = ({
       // Fetch ONE page only
       const page = (await client.devboxes.list(queryParams)) as unknown as DevboxesCursorIDPage<Devbox>;
 
-      // Extract data and create defensive copies
+      // Extract data and create defensive copies using JSON serialization
       if (page.devboxes && Array.isArray(page.devboxes)) {
         page.devboxes.forEach((d: Devbox) => {
-          const plain: Record<string, unknown> = {};
-          for (const key in d) {
-            const value = (d as unknown as Record<string, unknown>)[key];
-            if (value === null || value === undefined) {
-              plain[key] = value;
-            } else if (Array.isArray(value)) {
-              plain[key] = [...value];
-            } else if (typeof value === "object") {
-              plain[key] = JSON.parse(JSON.stringify(value));
-            } else {
-              plain[key] = value;
-            }
-          }
-          pageDevboxes.push(plain as Devbox);
+          pageDevboxes.push(JSON.parse(JSON.stringify(d)) as Devbox);
         });
       }
 
@@ -303,9 +290,7 @@ const ListDevboxesUI = ({
           "capabilities",
           "Capabilities",
           (devbox: Devbox) => {
-            const caps = [];
-            if (devbox?.entitlements?.network_enabled) caps.push("net");
-            if (devbox?.entitlements?.gpu_enabled) caps.push("gpu");
+            const caps = devbox?.capabilities || [];
             const text = caps.length > 0 ? caps.join(",") : "-";
             return text.length > 20 ? text.substring(0, 17) + "..." : text;
           },

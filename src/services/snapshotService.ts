@@ -3,6 +3,8 @@
  */
 import { getClient } from "../utils/client.js";
 import type { Snapshot } from "../store/snapshotStore.js";
+import type { DevboxListDiskSnapshotsParams, DevboxSnapshotView } from "@runloop/api-client/resources/devboxes/devboxes";
+import type { DiskSnapshotsCursorIDPage } from "@runloop/api-client/pagination";
 
 export interface ListSnapshotsOptions {
   limit: number;
@@ -24,7 +26,7 @@ export async function listSnapshots(
 ): Promise<ListSnapshotsResult> {
   const client = getClient();
 
-  const queryParams: any = {
+  const queryParams: DevboxListDiskSnapshotsParams = {
     limit: options.limit,
   };
 
@@ -36,23 +38,27 @@ export async function listSnapshots(
   }
 
   const pagePromise = client.devboxes.listDiskSnapshots(queryParams);
-  let page = (await pagePromise) as any;
+  const page = (await pagePromise) as unknown as DiskSnapshotsCursorIDPage<DevboxSnapshotView>;
 
   const snapshots: Snapshot[] = [];
 
-  if (page.disk_snapshots && Array.isArray(page.disk_snapshots)) {
-    page.disk_snapshots.forEach((s: any) => {
+  if (page.snapshots && Array.isArray(page.snapshots)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    page.snapshots.forEach((s: any) => {
       // CRITICAL: Truncate all strings to prevent Yoga crashes
       const MAX_ID_LENGTH = 100;
       const MAX_NAME_LENGTH = 200;
       const MAX_STATUS_LENGTH = 50;
 
+      // Status is constructed/available in API response but not in type definition
+      const snapshotView = s as DevboxSnapshotView & { status?: string };
+
       snapshots.push({
-        id: String(s.id || "").substring(0, MAX_ID_LENGTH),
-        name: s.name ? String(s.name).substring(0, MAX_NAME_LENGTH) : undefined,
-        devbox_id: String(s.devbox_id || "").substring(0, MAX_ID_LENGTH),
-        status: String(s.status || "").substring(0, MAX_STATUS_LENGTH),
-        create_time_ms: s.create_time_ms,
+        id: String(snapshotView.id || "").substring(0, MAX_ID_LENGTH),
+        name: snapshotView.name ? String(snapshotView.name).substring(0, MAX_NAME_LENGTH) : undefined,
+        devbox_id: String(snapshotView.source_devbox_id || "").substring(0, MAX_ID_LENGTH),
+        status: snapshotView.status ? String(snapshotView.status).substring(0, MAX_STATUS_LENGTH) : "",
+        create_time_ms: snapshotView.create_time_ms,
       });
     });
   }
@@ -62,8 +68,6 @@ export async function listSnapshots(
     totalCount: page.total_count || snapshots.length,
     hasMore: page.has_more || false,
   };
-
-  page = null as any;
 
   return result;
 }

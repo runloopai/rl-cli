@@ -3,6 +3,8 @@
  */
 import { getClient } from "../utils/client.js";
 import type { Blueprint } from "../store/blueprintStore.js";
+import type { BlueprintListParams, BlueprintView } from "@runloop/api-client/resources/blueprints";
+import type { BlueprintsCursorIDPage } from "@runloop/api-client/pagination";
 
 export interface ListBlueprintsOptions {
   limit: number;
@@ -24,7 +26,7 @@ export async function listBlueprints(
 ): Promise<ListBlueprintsResult> {
   const client = getClient();
 
-  const queryParams: any = {
+  const queryParams: BlueprintListParams = {
     limit: options.limit,
   };
 
@@ -32,16 +34,16 @@ export async function listBlueprints(
     queryParams.starting_after = options.startingAfter;
   }
   if (options.search) {
-    queryParams.search = options.search;
+    queryParams.name = options.search;
   }
 
   const pagePromise = client.blueprints.list(queryParams);
-  let page = (await pagePromise) as any;
+  const page = (await pagePromise) as unknown as BlueprintsCursorIDPage<BlueprintView>;
 
   const blueprints: Blueprint[] = [];
 
   if (page.blueprints && Array.isArray(page.blueprints)) {
-    page.blueprints.forEach((b: any) => {
+    page.blueprints.forEach((b: BlueprintView) => {
       // CRITICAL: Truncate all strings to prevent Yoga crashes
       const MAX_ID_LENGTH = 100;
       const MAX_NAME_LENGTH = 200;
@@ -49,19 +51,23 @@ export async function listBlueprints(
       const MAX_ARCH_LENGTH = 50;
       const MAX_RESOURCES_LENGTH = 100;
 
+      // Extract architecture and resources from launch_parameters
+      const architecture = b.parameters?.launch_parameters?.architecture;
+      const resources = b.parameters?.launch_parameters?.resource_size_request;
+
       blueprints.push({
         id: String(b.id || "").substring(0, MAX_ID_LENGTH),
         name: String(b.name || "").substring(0, MAX_NAME_LENGTH),
         status: String(b.status || "").substring(0, MAX_STATUS_LENGTH),
         create_time_ms: b.create_time_ms,
-        build_status: b.build_status
-          ? String(b.build_status).substring(0, MAX_STATUS_LENGTH)
+        build_status: b.status
+          ? String(b.status).substring(0, MAX_STATUS_LENGTH)
           : undefined,
-        architecture: b.architecture
-          ? String(b.architecture).substring(0, MAX_ARCH_LENGTH)
+        architecture: architecture
+          ? String(architecture).substring(0, MAX_ARCH_LENGTH)
           : undefined,
-        resources: b.resources
-          ? String(b.resources).substring(0, MAX_RESOURCES_LENGTH)
+        resources: resources
+          ? String(resources).substring(0, MAX_RESOURCES_LENGTH)
           : undefined,
       });
     });
@@ -72,8 +78,6 @@ export async function listBlueprints(
     totalCount: page.total_count || blueprints.length,
     hasMore: page.has_more || false,
   };
-
-  page = null as any;
 
   return result;
 }

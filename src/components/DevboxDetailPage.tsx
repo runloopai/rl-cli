@@ -11,9 +11,10 @@ import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { getDevbox } from "../services/devboxService.js";
+import type { Devbox } from "../store/devboxStore.js";
 
 interface DevboxDetailPageProps {
-  devbox: any;
+  devbox: Devbox;
   onBack: () => void;
 }
 
@@ -313,12 +314,14 @@ export const DevboxDetailPage = ({
         Status: {capitalize(selectedDevbox.status)}
       </Text>,
     );
-    lines.push(
-      <Text key="core-created" dimColor>
-        {" "}
-        Created: {new Date(selectedDevbox.create_time_ms).toLocaleString()}
-      </Text>,
-    );
+    if (selectedDevbox.create_time_ms) {
+      lines.push(
+        <Text key="core-created" dimColor>
+          {" "}
+          Created: {new Date(selectedDevbox.create_time_ms).toLocaleString()}
+        </Text>,
+      );
+    }
     if (selectedDevbox.end_time_ms) {
       lines.push(
         <Text key="core-ended" dimColor>
@@ -582,8 +585,8 @@ export const DevboxDetailPage = ({
           State History
         </Text>,
       );
-      selectedDevbox.state_transitions.forEach(
-        (transition: any, idx: number) => {
+      (selectedDevbox.state_transitions as Array<{ status: string; transition_time_ms?: number }>).forEach(
+        (transition, idx: number) => {
           const text = `${idx + 1}. ${capitalize(transition.status)}${transition.transition_time_ms ? ` at ${new Date(transition.transition_time_ms).toLocaleString()}` : ""}`;
           lines.push(
             <Text key={`state-${idx}`} dimColor>
