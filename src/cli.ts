@@ -77,12 +77,7 @@ config
 const devbox = program
   .command("devbox")
   .description("Manage devboxes")
-  .alias("d")
-  .action(async () => {
-    // Open interactive devbox list using the Router architecture
-    const { runMainMenu } = await import("./commands/menu.js");
-    await runMainMenu("devbox-list");
-  });
+  .alias("d");
 
 devbox
   .command("create")
@@ -376,12 +371,7 @@ devbox
 const snapshot = program
   .command("snapshot")
   .description("Manage devbox snapshots")
-  .alias("snap")
-  .action(async () => {
-    // Open interactive snapshot list using the Router architecture
-    const { runMainMenu } = await import("./commands/menu.js");
-    await runMainMenu("snapshot-list");
-  });
+  .alias("snap");
 
 snapshot
   .command("list")
@@ -450,12 +440,7 @@ snapshot
 const blueprint = program
   .command("blueprint")
   .description("Manage blueprints")
-  .alias("bp")
-  .action(async () => {
-    // Open interactive blueprint list using the Router architecture
-    const { runMainMenu } = await import("./commands/menu.js");
-    await runMainMenu("blueprint-list");
-  });
+  .alias("bp");
 
 blueprint
   .command("list")
