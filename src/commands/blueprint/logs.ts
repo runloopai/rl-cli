@@ -126,10 +126,6 @@ function formatLogs(response: BlueprintBuildLogsListView): void {
     return;
   }
 
-  console.log(
-    chalk.bold.underline(`Blueprint Build Logs (${response.blueprint_id})\n`),
-  );
-
   for (const log of logs) {
     console.log(formatLogEntry(log));
   }

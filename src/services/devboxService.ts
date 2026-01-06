@@ -275,40 +275,12 @@ export async function execCommand(
 
 /**
  * Get devbox logs
+ * Returns the raw logs array from the API response
  */
 export async function getDevboxLogs(id: string): Promise<any[]> {
   const client = getClient();
   const response = await client.devboxes.logs.list(id);
-
-  // CRITICAL: Truncate all strings to prevent Yoga crashes
-  const MAX_MESSAGE_LENGTH = 1000; // Match component truncation
-  const MAX_LEVEL_LENGTH = 20;
-
-  // Extract logs and create defensive copies with truncated strings
-  const logs: any[] = [];
-  if (response.logs && Array.isArray(response.logs)) {
-    response.logs.forEach((log: any) => {
-      // Truncate message and escape newlines to prevent layout breaks
-      let message = String(log.message || "");
-      if (message.length > MAX_MESSAGE_LENGTH) {
-        message = message.substring(0, MAX_MESSAGE_LENGTH) + "...";
-      }
-      // Escape newlines and special chars
-      message = message
-        .replace(/\r\n/g, "\\n")
-        .replace(/\n/g, "\\n")
-        .replace(/\r/g, "\\r")
-        .replace(/\t/g, "\\t");
-
-      logs.push({
-        timestamp: log.timestamp,
-        message,
-        level: log.level
-          ? String(log.level).substring(0, MAX_LEVEL_LENGTH)
-          : undefined,
-      });
-    });
-  }
-
-  return logs;
+  
+  // Return the logs array directly - formatting is handled by logFormatter
+  return response.logs || [];
 }
