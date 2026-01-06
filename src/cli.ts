@@ -469,7 +469,7 @@ blueprint
   .option("--user <user:uid>", "Run as this user (format: username:uid)")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: text)",
+    "Output format: text|json|yaml (default: json)",
   )
   .action(async (options) => {
     const { createBlueprint } = await import("./commands/blueprint/create.js");
@@ -477,11 +477,11 @@ blueprint
   });
 
 blueprint
-  .command("get <id>")
-  .description("Get blueprint details")
+  .command("get <name-or-id>")
+  .description("Get blueprint details by name or ID (IDs start with bpt_)")
   .option(
     "-o, --output [format]",
-    "Output format: text|json|yaml (default: text)",
+    "Output format: text|json|yaml (default: json)",
   )
   .action(async (id, options) => {
     const { getBlueprint } = await import("./commands/blueprint/get.js");
@@ -489,8 +489,8 @@ blueprint
   });
 
 blueprint
-  .command("logs <id>")
-  .description("Get blueprint build logs")
+  .command("logs <name-or-id>")
+  .description("Get blueprint build logs by name or ID (IDs start with bpt_)")
   .option(
     "-o, --output [format]",
     "Output format: text|json|yaml (default: text)",
