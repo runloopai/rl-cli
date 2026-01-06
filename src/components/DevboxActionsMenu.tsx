@@ -22,6 +22,7 @@ import {
   createTunnel,
   createSSHKey,
 } from "../services/devboxService.js";
+import { parseLogEntry, formatTimestamp } from "../utils/logFormatter.js";
 
 type Operation =
   | "exec"
@@ -419,20 +420,15 @@ export const DevboxActionsMenu = ({
         typeof operationResult === "object" &&
         (operationResult as any).__customRender === "logs"
       ) {
-        // Copy logs to clipboard
+        // Copy logs to clipboard using shared formatter
         const logs = (operationResult as any).__logs || [];
         const logsText = logs
           .map((log: any) => {
-            const time = new Date(log.timestamp_ms).toLocaleString();
-            const level = log.level || "INFO";
-            const source = log.source || "exec";
-            const message = log.message || "";
-            const cmd = log.cmd ? `[${log.cmd}] ` : "";
-            const exitCode =
-              log.exit_code !== null && log.exit_code !== undefined
-                ? `(${log.exit_code}) `
-                : "";
-            return `${time} ${level}/${source} ${exitCode}${cmd}${message}`;
+            const parts = parseLogEntry(log);
+            const cmd = parts.cmd ? `$ ${parts.cmd} ` : "";
+            const exitCode = parts.exitCode !== null ? `exit=${parts.exitCode} ` : "";
+            const shell = parts.shellName ? `(${parts.shellName}) ` : "";
+            return `${parts.timestamp} ${parts.level} [${parts.source}] ${shell}${cmd}${parts.message} ${exitCode}`.trim();
           })
           .join("\n");
 
@@ -846,94 +842,123 @@ export const DevboxActionsMenu = ({
             paddingX={1}
           >
             {visibleLogs.map((log: any, index: number) => {
-              const time = new Date(log.timestamp_ms).toLocaleTimeString();
-              const level = log.level ? log.level[0].toUpperCase() : "I";
-              const source = log.source ? log.source.substring(0, 8) : "exec";
-              // Sanitize message: escape special chars to prevent layout breaks while preserving visibility
-              const rawMessage = log.message || "";
-              const escapedMessage = rawMessage
-                .replace(/\r\n/g, "\\n") // Windows line endings
-                .replace(/\n/g, "\\n") // Unix line endings
-                .replace(/\r/g, "\\r") // Old Mac line endings
-                .replace(/\t/g, "\\t"); // Tabs
+              const parts = parseLogEntry(log);
+              
+              // Sanitize message: escape special chars to prevent layout breaks
+              const escapedMessage = parts.message
+                .replace(/\r\n/g, "\\n")
+                .replace(/\n/g, "\\n")
+                .replace(/\r/g, "\\r")
+                .replace(/\t/g, "\\t");
+              
               // Limit message length to prevent Yoga layout engine errors
               const MAX_MESSAGE_LENGTH = 1000;
               const fullMessage =
                 escapedMessage.length > MAX_MESSAGE_LENGTH
                   ? escapedMessage.substring(0, MAX_MESSAGE_LENGTH) + "..."
                   : escapedMessage;
-              const cmd = log.cmd
-                ? `[${log.cmd.substring(0, 40)}${log.cmd.length > 40 ? "..." : ""}] `
+              
+              const cmd = parts.cmd
+                ? `$ ${parts.cmd.substring(0, 40)}${parts.cmd.length > 40 ? "..." : ""} `
                 : "";
               const exitCode =
-                log.exit_code !== null && log.exit_code !== undefined
-                  ? `(${log.exit_code}) `
-                  : "";
+                parts.exitCode !== null ? `exit=${parts.exitCode} ` : "";
 
-              let levelColor: string = colors.textDim;
-              if (level === "E") levelColor = colors.error;
-              else if (level === "W") levelColor = colors.warning;
-              else if (level === "I") levelColor = colors.primary;
+              // Map color names to theme colors
+              const levelColorMap: Record<string, string> = {
+                red: colors.error,
+                yellow: colors.warning,
+                blue: colors.primary,
+                gray: colors.textDim,
+              };
+              const sourceColorMap: Record<string, string> = {
+                magenta: "#d33682",
+                cyan: colors.info,
+                green: colors.success,
+                yellow: colors.warning,
+                gray: colors.textDim,
+                white: colors.text,
+              };
+              const levelColor = levelColorMap[parts.levelColor] || colors.textDim;
+              const sourceColor = sourceColorMap[parts.sourceColor] || colors.textDim;
 
               if (logsWrapMode) {
                 return (
                   <Box key={index}>
                     <Text color={colors.textDim} dimColor>
-                      {time}
+                      {parts.timestamp}
                     </Text>
                     <Text> </Text>
-                    <Text color={levelColor} bold>
-                      {level}
-                    </Text>
-                    <Text color={colors.textDim} dimColor>
-                      /{source}
+                    <Text color={levelColor} bold={parts.levelColor === "red"}>
+                      {parts.level}
                     </Text>
                     <Text> </Text>
-                    {exitCode && <Text color={colors.warning}>{exitCode}</Text>}
+                    <Text color={sourceColor}>[{parts.source}]</Text>
+                    <Text> </Text>
+                    {parts.shellName && (
+                      <Text color={colors.textDim} dimColor>
+                        ({parts.shellName}){" "}
+                      </Text>
+                    )}
                     {cmd && (
-                      <Text color={colors.info} dimColor>
+                      <Text color={colors.info}>
                         {cmd}
                       </Text>
                     )}
                     <Text>{fullMessage}</Text>
+                    {exitCode && (
+                      <Text color={parts.exitCode === 0 ? colors.success : colors.error}>
+                        {" "}{exitCode}
+                      </Text>
+                    )}
                   </Box>
                 );
               } else {
-                // CRITICAL: Validate all lengths and ensure positive values for Yoga
-                const exitCodeLen = typeof exitCode === 'string' ? exitCode.length : 0;
-                const cmdLen = typeof cmd === 'string' ? cmd.length : 0;
-                const metadataWidth = 11 + 1 + 1 + 1 + 8 + 1 + exitCodeLen + cmdLen + 6;
-                // Ensure terminalWidth is valid and availableMessageWidth is always positive
+                // Calculate available width for message truncation
+                const timestampLen = parts.timestamp.length;
+                const levelLen = parts.level.length;
+                const sourceLen = parts.source.length + 2; // brackets
+                const shellLen = parts.shellName ? parts.shellName.length + 3 : 0;
+                const cmdLen = cmd.length;
+                const exitLen = exitCode.length;
+                const spacesLen = 5; // spaces between elements
+                const metadataWidth = timestampLen + levelLen + sourceLen + shellLen + cmdLen + exitLen + spacesLen;
+                
                 const safeTerminalWidth = Math.max(80, terminalWidth);
-                const availableMessageWidth = Math.max(
-                  20,
-                  Math.floor(safeTerminalWidth - metadataWidth),
-                );
+                const availableMessageWidth = Math.max(20, safeTerminalWidth - metadataWidth);
                 const truncatedMessage =
                   fullMessage.length > availableMessageWidth
-                    ? fullMessage.substring(0, Math.max(1, availableMessageWidth - 3)) +
-                      "..."
+                    ? fullMessage.substring(0, Math.max(1, availableMessageWidth - 3)) + "..."
                     : fullMessage;
+                
                 return (
                   <Box key={index}>
                     <Text color={colors.textDim} dimColor>
-                      {time}
+                      {parts.timestamp}
                     </Text>
                     <Text> </Text>
-                    <Text color={levelColor} bold>
-                      {level}
-                    </Text>
-                    <Text color={colors.textDim} dimColor>
-                      /{source}
+                    <Text color={levelColor} bold={parts.levelColor === "red"}>
+                      {parts.level}
                     </Text>
                     <Text> </Text>
-                    {exitCode && <Text color={colors.warning}>{exitCode}</Text>}
+                    <Text color={sourceColor}>[{parts.source}]</Text>
+                    <Text> </Text>
+                    {parts.shellName && (
+                      <Text color={colors.textDim} dimColor>
+                        ({parts.shellName}){" "}
+                      </Text>
+                    )}
                     {cmd && (
-                      <Text color={colors.info} dimColor>
+                      <Text color={colors.info}>
                         {cmd}
                       </Text>
                     )}
                     <Text>{truncatedMessage}</Text>
+                    {exitCode && (
+                      <Text color={parts.exitCode === 0 ? colors.success : colors.error}>
+                        {" "}{exitCode}
+                      </Text>
+                    )}
                   </Box>
                 );
               }
