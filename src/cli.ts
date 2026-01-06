@@ -453,8 +453,9 @@ blueprint
   });
 
 blueprint
-  .command("create <name>")
+  .command("create")
   .description("Create a new blueprint")
+  .requiredOption("--name <name>", "Blueprint name (required)")
   .option("--dockerfile <content>", "Dockerfile contents")
   .option("--dockerfile-path <path>", "Dockerfile path")
   .option("--system-setup-commands <commands...>", "System setup commands")
@@ -470,33 +471,9 @@ blueprint
     "-o, --output [format]",
     "Output format: text|json|yaml (default: text)",
   )
-  .action(async (name, options) => {
+  .action(async (options) => {
     const { createBlueprint } = await import("./commands/blueprint/create.js");
-    await createBlueprint({ name, ...options });
-  });
-
-blueprint
-  .command("preview <name>")
-  .description("Preview blueprint before creation")
-  .option("--dockerfile <content>", "Dockerfile contents")
-  .option("--system-setup-commands <commands...>", "System setup commands")
-  .option(
-    "--resources <size>",
-    "Resource size (X_SMALL, SMALL, MEDIUM, LARGE, X_LARGE, XX_LARGE)",
-  )
-  .option("--architecture <arch>", "Architecture (arm64, x86_64)")
-  .option("--available-ports <ports...>", "Available ports")
-  .option("--root", "Run as root")
-  .option("--user <user:uid>", "Run as this user (format: username:uid)")
-  .option(
-    "-o, --output [format]",
-    "Output format: text|json|yaml (default: text)",
-  )
-  .action(async (name, options) => {
-    const { previewBlueprint } = await import(
-      "./commands/blueprint/preview.js"
-    );
-    await previewBlueprint({ name, ...options });
+    await createBlueprint(options);
   });
 
 blueprint
