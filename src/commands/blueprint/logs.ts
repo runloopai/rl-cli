@@ -134,7 +134,27 @@ function formatLogs(response: BlueprintBuildLogsListView): void {
 export async function getBlueprintLogs(options: BlueprintLogsOptions) {
   try {
     const client = getClient();
-    const logs = await client.blueprints.logs(options.id);
+
+    let blueprintId = options.id;
+
+    // Check if it's an ID (starts with bpt_) or a name
+    if (!options.id.startsWith("bpt_")) {
+      // It's a name, search for it
+      const result = await client.blueprints.list({ name: options.id });
+      const blueprints = result.blueprints || [];
+
+      if (blueprints.length === 0) {
+        outputError(`Blueprint not found: ${options.id}`);
+        return;
+      }
+
+      // Use the first exact match, or first result if no exact match
+      const blueprint =
+        blueprints.find((b) => b.name === options.id) || blueprints[0];
+      blueprintId = blueprint.id;
+    }
+
+    const logs = await client.blueprints.logs(blueprintId);
 
     // Pretty print for text output, JSON for others
     if (!options.output || options.output === "text") {

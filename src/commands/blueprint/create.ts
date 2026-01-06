@@ -65,12 +65,8 @@ export async function createBlueprint(options: CreateBlueprintOptions) {
       launch_parameters: launchParameters as Parameters<typeof client.blueprints.create>[0]["launch_parameters"],
     });
 
-    // Default: just output the ID for easy scripting
-    if (!options.output || options.output === "text") {
-      console.log(blueprint.id);
-    } else {
-      output(blueprint, { format: options.output, defaultFormat: "json" });
-    }
+    // Default: output JSON
+    output(blueprint, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to create blueprint", error);
   }
