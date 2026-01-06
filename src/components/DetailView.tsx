@@ -1,6 +1,5 @@
 import React from "react";
 import { Box, Text } from "ink";
-import figures from "figures";
 import { colors } from "../utils/theme.js";
 
 interface DetailSection {

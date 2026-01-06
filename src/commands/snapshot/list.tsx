@@ -23,6 +23,16 @@ interface ListOptions {
   output?: string;
 }
 
+// Local interface for snapshot data used in this component
+interface SnapshotListItem {
+  id: string;
+  name?: string;
+  status?: string;
+  create_time_ms?: number;
+  source_devbox_id?: string;
+  [key: string]: unknown;
+}
+
 const DEFAULT_PAGE_SIZE = 10;
 
 const ListSnapshotsUI = ({
@@ -65,12 +75,10 @@ const ListSnapshotsUI = ({
   const fetchPage = React.useCallback(
     async (params: { limit: number; startingAt?: string }) => {
       const client = getClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pageSnapshots: any[] = [];
+      const pageSnapshots: SnapshotListItem[] = [];
 
       // Build query params
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const queryParams: any = {
+      const queryParams: Record<string, unknown> = {
         limit: params.limit,
       };
       if (params.startingAt) {
@@ -81,13 +89,13 @@ const ListSnapshotsUI = ({
       }
 
       // Fetch ONE page only
-      let page = (await client.devboxes.listDiskSnapshots(
+      const page = (await client.devboxes.listDiskSnapshots(
         queryParams,
-      )) as DiskSnapshotsCursorIDPage<{ id: string }>;
+      )) as unknown as DiskSnapshotsCursorIDPage<SnapshotListItem>;
 
       // Extract data and create defensive copies
       if (page.snapshots && Array.isArray(page.snapshots)) {
-        page.snapshots.forEach((s: any) => {
+        page.snapshots.forEach((s: SnapshotListItem) => {
           pageSnapshots.push({
             id: s.id,
             name: s.name,
@@ -103,9 +111,6 @@ const ListSnapshotsUI = ({
         hasMore: page.has_more || false,
         totalCount: page.total_count || pageSnapshots.length,
       };
-
-      // Help GC
-      page = null as any;
 
       return result;
     },
@@ -127,7 +132,7 @@ const ListSnapshotsUI = ({
   } = useCursorPagination({
     fetchPage,
     pageSize: PAGE_SIZE,
-    getItemId: (snapshot: any) => snapshot.id,
+    getItemId: (snapshot: SnapshotListItem) => snapshot.id,
     pollInterval: 2000,
     pollingEnabled: !showPopup && !executingOperation,
     deps: [devboxId, PAGE_SIZE],
@@ -149,7 +154,7 @@ const ListSnapshotsUI = ({
   // Build columns
   const columns = React.useMemo(
     () => [
-      createTextColumn("id", "ID", (snapshot: any) => snapshot.id, {
+      createTextColumn("id", "ID", (snapshot: SnapshotListItem) => snapshot.id, {
         width: idWidth,
         color: colors.idColor,
         dimColor: false,
@@ -158,7 +163,7 @@ const ListSnapshotsUI = ({
       createTextColumn(
         "name",
         "Name",
-        (snapshot: any) => snapshot.name || "(unnamed)",
+        (snapshot: SnapshotListItem) => snapshot.name || "(unnamed)",
         {
           width: nameWidth,
         },
@@ -166,7 +171,7 @@ const ListSnapshotsUI = ({
       createTextColumn(
         "devbox",
         "Devbox",
-        (snapshot: any) => snapshot.source_devbox_id || "",
+        (snapshot: SnapshotListItem) => snapshot.source_devbox_id || "",
         {
           width: devboxWidth,
           color: colors.idColor,
@@ -178,7 +183,7 @@ const ListSnapshotsUI = ({
       createTextColumn(
         "created",
         "Created",
-        (snapshot: any) =>
+        (snapshot: SnapshotListItem) =>
           snapshot.create_time_ms ? formatTimeAgo(snapshot.create_time_ms) : "",
         {
           width: timeWidth,
@@ -410,7 +415,7 @@ const ListSnapshotsUI = ({
       {!showPopup && (
         <Table
           data={snapshots}
-          keyExtractor={(snapshot: any) => snapshot.id}
+          keyExtractor={(snapshot: SnapshotListItem) => snapshot.id}
           selectedIndex={selectedIndex}
           title={`snapshots[${totalCount}]`}
           columns={columns}

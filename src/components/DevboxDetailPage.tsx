@@ -76,7 +76,7 @@ export const DevboxDetailPage = ({
           if (isMounted.current) {
             setCurrentDevbox(updatedDevbox);
           }
-        } catch (err) {
+        } catch {
           // Silently ignore polling errors to avoid disrupting user experience
         }
       }

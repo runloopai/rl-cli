@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text, useInput, useStdout, useApp } from "ink";
+import { Box, Text, useInput, useApp } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
 import { Breadcrumb, BreadcrumbItem } from "./Breadcrumb.js";
@@ -121,8 +121,6 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   const [searchMode, setSearchMode] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
 
-  const maxFetch = config.maxFetch || 100;
-
   // Calculate overhead for viewport height:
   // - Breadcrumb (3 lines + marginBottom): 4 lines
   // - Search bar (if visible, 1 line + marginBottom): 2 lines
@@ -132,7 +130,7 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
   // - Safety buffer for edge cases: 1 line
   // Total: 13 lines base + 2 if searching
   const overhead = 13 + (searchMode || searchQuery ? 2 : 0);
-  const { viewportHeight, terminalWidth } = useViewportHeight({
+  const { viewportHeight } = useViewportHeight({
     overhead,
     minHeight: 5,
   });
@@ -142,7 +140,7 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
 
   // Fetch resources
   const fetchData = React.useCallback(
-    async (isInitialLoad: boolean = false) => {
+    async (_isInitialLoad: boolean = false) => {
       if (!isMounted.current) return;
 
       try {
@@ -271,8 +269,8 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
     }
   });
 
-  // Calculate stats
-  const stats = React.useMemo(() => {
+  // Calculate stats (computed for potential future use)
+  const _stats = React.useMemo(() => {
     if (!config.statusConfig || !config.getStatus) {
       return null;
     }

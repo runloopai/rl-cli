@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text, useInput, useApp, Static } from "ink";
+import { Box, Text, useInput, useApp } from "ink";
 import figures from "figures";
 import { Banner } from "./Banner.js";
 import { Breadcrumb } from "./Breadcrumb.js";
