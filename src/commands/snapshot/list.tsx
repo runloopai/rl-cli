@@ -49,10 +49,18 @@ const ListSnapshotsUI = ({
   const [showPopup, setShowPopup] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(0);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedSnapshot, setSelectedSnapshot] = React.useState<any | null>(null);
-  const [executingOperation, setExecutingOperation] = React.useState<string | null>(null);
-  const [operationResult, setOperationResult] = React.useState<string | null>(null);
-  const [operationError, setOperationError] = React.useState<Error | null>(null);
+  const [selectedSnapshot, setSelectedSnapshot] = React.useState<any | null>(
+    null,
+  );
+  const [executingOperation, setExecutingOperation] = React.useState<
+    string | null
+  >(null);
+  const [operationResult, setOperationResult] = React.useState<string | null>(
+    null,
+  );
+  const [operationError, setOperationError] = React.useState<Error | null>(
+    null,
+  );
   const [operationLoading, setOperationLoading] = React.useState(false);
 
   // Calculate overhead for viewport height
@@ -154,16 +162,21 @@ const ListSnapshotsUI = ({
   // Build columns
   const columns = React.useMemo(
     () => [
-      createTextColumn("id", "ID", (snapshot: SnapshotListItem) => snapshot.id, {
-        width: idWidth,
-        color: colors.idColor,
-        dimColor: false,
-        bold: false,
-      }),
+      createTextColumn(
+        "id",
+        "ID",
+        (snapshot: SnapshotListItem) => snapshot.id,
+        {
+          width: idWidth + 1,
+          color: colors.idColor,
+          dimColor: false,
+          bold: false,
+        },
+      ),
       createTextColumn(
         "name",
         "Name",
-        (snapshot: SnapshotListItem) => snapshot.name || "(unnamed)",
+        (snapshot: SnapshotListItem) => snapshot.name || "",
         {
           width: nameWidth,
         },
@@ -279,10 +292,20 @@ const ListSnapshotsUI = ({
       setSelectedIndex(selectedIndex - 1);
     } else if (key.downArrow && selectedIndex < pageSnapshots - 1) {
       setSelectedIndex(selectedIndex + 1);
-    } else if ((input === "n" || key.rightArrow) && !loading && !navigating && hasMore) {
+    } else if (
+      (input === "n" || key.rightArrow) &&
+      !loading &&
+      !navigating &&
+      hasMore
+    ) {
       nextPage();
       setSelectedIndex(0);
-    } else if ((input === "p" || key.leftArrow) && !loading && !navigating && hasPrev) {
+    } else if (
+      (input === "p" || key.leftArrow) &&
+      !loading &&
+      !navigating &&
+      hasPrev
+    ) {
       prevPage();
       setSelectedIndex(0);
     } else if (input === "a" && selectedSnapshotItem) {
@@ -302,13 +325,17 @@ const ListSnapshotsUI = ({
   // Operation result display
   if (operationResult || operationError) {
     const operationLabel =
-      operations.find((o) => o.key === executingOperation)?.label || "Operation";
+      operations.find((o) => o.key === executingOperation)?.label ||
+      "Operation";
     return (
       <>
         <Breadcrumb
           items={[
             { label: "Snapshots" },
-            { label: selectedSnapshot?.name || selectedSnapshot?.id || "Snapshot" },
+            {
+              label:
+                selectedSnapshot?.name || selectedSnapshot?.id || "Snapshot",
+            },
             { label: operationLabel, active: true },
           ]}
         />
@@ -329,7 +356,8 @@ const ListSnapshotsUI = ({
   // Operation loading state
   if (operationLoading && selectedSnapshot) {
     const operationLabel =
-      operations.find((o) => o.key === executingOperation)?.label || "Operation";
+      operations.find((o) => o.key === executingOperation)?.label ||
+      "Operation";
     const messages: Record<string, string> = {
       delete: "Deleting snapshot...",
     };
@@ -357,7 +385,9 @@ const ListSnapshotsUI = ({
         <Breadcrumb
           items={[
             { label: "Snapshots", active: !devboxId },
-            ...(devboxId ? [{ label: `Devbox: ${devboxId}`, active: true }] : []),
+            ...(devboxId
+              ? [{ label: `Devbox: ${devboxId}`, active: true }]
+              : []),
           ]}
         />
         <SpinnerComponent message="Loading snapshots..." />
@@ -372,7 +402,9 @@ const ListSnapshotsUI = ({
         <Breadcrumb
           items={[
             { label: "Snapshots", active: !devboxId },
-            ...(devboxId ? [{ label: `Devbox: ${devboxId}`, active: true }] : []),
+            ...(devboxId
+              ? [{ label: `Devbox: ${devboxId}`, active: true }]
+              : []),
           ]}
         />
         <ErrorMessage message="Failed to list snapshots" error={error} />
@@ -387,7 +419,9 @@ const ListSnapshotsUI = ({
         <Breadcrumb
           items={[
             { label: "Snapshots", active: !devboxId },
-            ...(devboxId ? [{ label: `Devbox: ${devboxId}`, active: true }] : []),
+            ...(devboxId
+              ? [{ label: `Devbox: ${devboxId}`, active: true }]
+              : []),
           ]}
         />
         <Box>
@@ -509,7 +543,7 @@ export { ListSnapshotsUI };
 export async function listSnapshots(options: ListOptions) {
   try {
     const client = getClient();
-    
+
     // Build query params
     const queryParams: Record<string, unknown> = {
       limit: DEFAULT_PAGE_SIZE,
@@ -517,13 +551,15 @@ export async function listSnapshots(options: ListOptions) {
     if (options.devbox) {
       queryParams.devbox_id = options.devbox;
     }
-    
+
     // Fetch snapshots
-    const page = await client.devboxes.listDiskSnapshots(queryParams) as DiskSnapshotsCursorIDPage<{ id: string }>;
-    
+    const page = (await client.devboxes.listDiskSnapshots(
+      queryParams,
+    )) as DiskSnapshotsCursorIDPage<{ id: string }>;
+
     // Extract snapshots array
     const snapshots = page.snapshots || [];
-    
+
     output(snapshots, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to list snapshots", error);

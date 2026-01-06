@@ -233,7 +233,7 @@ const ListBlueprintsUI = ({
       createTextColumn(
         "name",
         "Name",
-        (blueprint: BlueprintListItem) => blueprint.name || "(unnamed)",
+        (blueprint: BlueprintListItem) => blueprint.name || "",
         {
           width: nameWidth,
         },
