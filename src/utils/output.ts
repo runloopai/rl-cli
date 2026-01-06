@@ -1,6 +1,6 @@
 /**
  * Utility for handling different output formats across CLI commands
- * 
+ *
  * Simple API:
  * - output(data, options) - outputs data in specified format
  * - outputError(message, error) - outputs error and exits
@@ -29,12 +29,14 @@ export interface SimpleOutputOptions {
  */
 function resolveFormat(options: SimpleOutputOptions): OutputFormat {
   const format = options.format || options.defaultFormat || "json";
-  
+
   if (format === "json" || format === "yaml" || format === "text") {
     return format;
   }
-  
-  console.error(`Unknown output format: ${format}. Valid options: text, json, yaml`);
+
+  console.error(
+    `Unknown output format: ${format}. Valid options: text, json, yaml`,
+  );
   process.exit(1);
 }
 
@@ -43,41 +45,48 @@ function resolveFormat(options: SimpleOutputOptions): OutputFormat {
  */
 function formatKeyValue(data: unknown, indent: number = 0): string {
   const prefix = "  ".repeat(indent);
-  
+
   if (data === null || data === undefined) {
     return `${prefix}(none)`;
   }
-  
-  if (typeof data === "string" || typeof data === "number" || typeof data === "boolean") {
+
+  if (
+    typeof data === "string" ||
+    typeof data === "number" ||
+    typeof data === "boolean"
+  ) {
     return String(data);
   }
-  
+
   if (Array.isArray(data)) {
     if (data.length === 0) {
       return `${prefix}(empty)`;
     }
     // For arrays of primitives, join them
-    if (data.every(item => typeof item !== "object" || item === null)) {
+    if (data.every((item) => typeof item !== "object" || item === null)) {
       return data.join(", ");
     }
     // For arrays of objects, format each with separator
-    return data.map((item) => {
-      if (typeof item === "object" && item !== null) {
-        const lines: string[] = [];
-        for (const [key, value] of Object.entries(item)) {
-          if (value !== null && value !== undefined) {
-            const formattedValue = typeof value === "object" 
-              ? formatKeyValue(value, indent + 1)
-              : String(value);
-            lines.push(`${prefix}${key}: ${formattedValue}`);
+    return data
+      .map((item) => {
+        if (typeof item === "object" && item !== null) {
+          const lines: string[] = [];
+          for (const [key, value] of Object.entries(item)) {
+            if (value !== null && value !== undefined) {
+              const formattedValue =
+                typeof value === "object"
+                  ? formatKeyValue(value, indent + 1)
+                  : String(value);
+              lines.push(`${prefix}${key}: ${formattedValue}`);
+            }
           }
+          return lines.join("\n");
         }
-        return lines.join("\n");
-      }
-      return `${prefix}${item}`;
-    }).join(`\n${prefix}---\n`);
+        return `${prefix}${item}`;
+      })
+      .join(`\n${prefix}---\n`);
   }
-  
+
   if (typeof data === "object") {
     const lines: string[] = [];
     for (const [key, value] of Object.entries(data)) {
@@ -94,52 +103,53 @@ function formatKeyValue(data: unknown, indent: number = 0): string {
     }
     return lines.join("\n");
   }
-  
+
   return String(data);
 }
 
 /**
  * Main output function - outputs data in the specified format
- * 
+ *
  * @param data - The data to output
  * @param options - Output options (format, defaultFormat)
- * 
+ *
  * @example
  * // Output a devbox as text (default for single items)
  * output(devbox, { format: options.output, defaultFormat: 'text' });
- * 
+ *
  * @example
  * // Output a list as JSON (default for lists)
  * output(devboxes, { format: options.output, defaultFormat: 'json' });
  */
 export function output(data: unknown, options: SimpleOutputOptions = {}): void {
   const format = resolveFormat(options);
-  
+
   if (format === "json") {
     console.log(JSON.stringify(data, null, 2));
     return;
   }
-  
+
   if (format === "yaml") {
     console.log(YAML.stringify(data));
     return;
   }
-  
+
   // Text format - key-value pairs
   console.log(formatKeyValue(data));
 }
 
 /**
  * Output an error message and exit
- * 
+ *
  * @param message - Human-readable error message
  * @param error - Optional Error object with details
- * 
+ *
  * @example
  * outputError('Failed to get devbox', error);
  */
 export function outputError(message: string, error?: Error | unknown): never {
-  const errorMessage = error instanceof Error ? error.message : String(error || message);
+  const errorMessage =
+    error instanceof Error ? error.message : String(error || message);
   console.error(`Error: ${message}`);
   if (error && errorMessage !== message) {
     console.error(`  ${errorMessage}`);
@@ -149,24 +159,44 @@ export function outputError(message: string, error?: Error | unknown): never {
 
 /**
  * Output a success message for action commands
- * 
+ *
  * @param message - Success message
  * @param data - Optional data to include
  * @param options - Output options
  */
-export function outputSuccess(message: string, data?: unknown, options: SimpleOutputOptions = {}): void {
+export function outputSuccess(
+  message: string,
+  data?: unknown,
+  options: SimpleOutputOptions = {},
+): void {
   const format = resolveFormat(options);
-  
+
   if (format === "json") {
-    console.log(JSON.stringify({ success: true, message, ...( data && typeof data === 'object' ? data : { data }) }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          success: true,
+          message,
+          ...(data && typeof data === "object" ? data : { data }),
+        },
+        null,
+        2,
+      ),
+    );
     return;
   }
-  
+
   if (format === "yaml") {
-    console.log(YAML.stringify({ success: true, message, ...( data && typeof data === 'object' ? data : { data }) }));
+    console.log(
+      YAML.stringify({
+        success: true,
+        message,
+        ...(data && typeof data === "object" ? data : { data }),
+      }),
+    );
     return;
   }
-  
+
   // Text format
   console.log(`✓ ${message}`);
   if (data) {

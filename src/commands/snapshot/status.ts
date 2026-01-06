@@ -13,10 +13,11 @@ interface SnapshotStatusOptions {
 export async function getSnapshotStatus(options: SnapshotStatusOptions) {
   try {
     const client = getClient();
-    const status = await client.devboxes.diskSnapshots.queryStatus(options.snapshotId);
+    const status = await client.devboxes.diskSnapshots.queryStatus(
+      options.snapshotId,
+    );
     output(status, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to get snapshot status", error);
   }
 }
-

@@ -26,7 +26,9 @@ export async function sshDevbox(devboxId: string, options: SSHOptions = {}) {
     // Check if SSH tools are available
     const sshToolsAvailable = await checkSSHTools();
     if (!sshToolsAvailable) {
-      outputError("SSH tools (ssh, scp, rsync, openssl) are not available on this system");
+      outputError(
+        "SSH tools (ssh, scp, rsync, openssl) are not available on this system",
+      );
     }
 
     const client = getClient();
@@ -67,21 +69,27 @@ export async function sshDevbox(devboxId: string, options: SSHOptions = {}) {
 
     // If output format is specified, just return the connection info
     if (options.output && options.output !== "text") {
-      output({
-        devboxId,
-        user,
-        keyfilePath: sshInfo!.keyfilePath,
-        url: sshInfo!.url,
-      }, { format: options.output, defaultFormat: "json" });
+      output(
+        {
+          devboxId,
+          user,
+          keyfilePath: sshInfo!.keyfilePath,
+          url: sshInfo!.url,
+        },
+        { format: options.output, defaultFormat: "json" },
+      );
       return;
     }
 
     // Actually start SSH session
     const proxyCommand = getProxyCommand();
     const sshArgs = [
-      "-i", sshInfo!.keyfilePath,
-      "-o", `ProxyCommand=${proxyCommand}`,
-      "-o", "StrictHostKeyChecking=no",
+      "-i",
+      sshInfo!.keyfilePath,
+      "-o",
+      `ProxyCommand=${proxyCommand}`,
+      "-o",
+      "StrictHostKeyChecking=no",
       `${user}@${sshInfo!.url}`,
     ];
 
@@ -100,4 +108,3 @@ export async function sshDevbox(devboxId: string, options: SSHOptions = {}) {
     outputError("Failed to setup SSH connection", error);
   }
 }
-

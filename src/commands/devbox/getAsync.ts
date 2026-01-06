@@ -22,4 +22,3 @@ export async function getAsync(devboxId: string, options: GetAsyncOptions) {
     outputError("Failed to get async execution status", error);
   }
 }
-

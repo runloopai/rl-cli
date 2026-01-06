@@ -47,7 +47,10 @@ export async function installMcpConfig() {
     console.log(`📍 rli command location: ${rliPath}\n`);
 
     // Read or create config
-    let config: { mcpServers: Record<string, unknown>; [key: string]: unknown } = { mcpServers: {} };
+    let config: {
+      mcpServers: Record<string, unknown>;
+      [key: string]: unknown;
+    } = { mcpServers: {} };
 
     if (existsSync(configPath)) {
       console.log("✓ Found existing Claude Desktop config");

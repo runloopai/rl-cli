@@ -70,7 +70,10 @@ export function formatTimestamp(timestampMs: number): string {
 /**
  * Get log level info (normalized name and color)
  */
-export function getLogLevelInfo(level: string): { name: string; color: string } {
+export function getLogLevelInfo(level: string): {
+  name: string;
+  color: string;
+} {
   const normalized = level.toUpperCase();
   switch (normalized) {
     case "ERROR":
@@ -91,7 +94,10 @@ export function getLogLevelInfo(level: string): { name: string; color: string } 
 /**
  * Get source info (abbreviated name and color)
  */
-export function getSourceInfo(source: string | null | undefined): { abbrev: string; color: string } {
+export function getSourceInfo(source: string | null | undefined): {
+  abbrev: string;
+  color: string;
+} {
   if (!source) {
     return { abbrev: "sys".padEnd(SOURCE_WIDTH), color: "gray" };
   }
@@ -102,9 +108,10 @@ export function getSourceInfo(source: string | null | undefined): { abbrev: stri
   }
 
   // Unknown source: truncate/pad to width
-  const abbrev = source.length > SOURCE_WIDTH 
-    ? source.slice(0, SOURCE_WIDTH) 
-    : source.padEnd(SOURCE_WIDTH);
+  const abbrev =
+    source.length > SOURCE_WIDTH
+      ? source.slice(0, SOURCE_WIDTH)
+      : source.padEnd(SOURCE_WIDTH);
   return { abbrev, color: "white" };
 }
 
@@ -140,24 +147,26 @@ export function formatLogEntryString(log: DevboxLog): string {
   result.push(chalk.dim(parts.timestamp));
 
   // Level (colored, bold for errors)
-  const levelChalk = parts.levelColor === "red" 
-    ? chalk.red.bold 
-    : parts.levelColor === "yellow"
-    ? chalk.yellow.bold
-    : parts.levelColor === "blue"
-    ? chalk.blue
-    : chalk.gray;
+  const levelChalk =
+    parts.levelColor === "red"
+      ? chalk.red.bold
+      : parts.levelColor === "yellow"
+        ? chalk.yellow.bold
+        : parts.levelColor === "blue"
+          ? chalk.blue
+          : chalk.gray;
   result.push(levelChalk(parts.level));
 
   // Source (colored, in brackets)
-  const sourceChalk = {
-    magenta: chalk.magenta,
-    cyan: chalk.cyan,
-    green: chalk.green,
-    yellow: chalk.yellow,
-    gray: chalk.gray,
-    white: chalk.white,
-  }[parts.sourceColor] || chalk.white;
+  const sourceChalk =
+    {
+      magenta: chalk.magenta,
+      cyan: chalk.cyan,
+      green: chalk.green,
+      yellow: chalk.yellow,
+      gray: chalk.gray,
+      white: chalk.white,
+    }[parts.sourceColor] || chalk.white;
   result.push(sourceChalk(`[${parts.source}]`));
 
   // Shell name if present
@@ -199,4 +208,3 @@ export function formatLogsForCLI(response: DevboxLogsListView): void {
     console.log(formatLogEntryString(log));
   }
 }
-

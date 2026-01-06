@@ -3,7 +3,10 @@
  */
 import { getClient } from "../utils/client.js";
 import type { Blueprint } from "../store/blueprintStore.js";
-import type { BlueprintListParams, BlueprintView } from "@runloop/api-client/resources/blueprints";
+import type {
+  BlueprintListParams,
+  BlueprintView,
+} from "@runloop/api-client/resources/blueprints";
 import type { BlueprintsCursorIDPage } from "@runloop/api-client/pagination";
 
 export interface ListBlueprintsOptions {
@@ -38,7 +41,8 @@ export async function listBlueprints(
   }
 
   const pagePromise = client.blueprints.list(queryParams);
-  const page = (await pagePromise) as unknown as BlueprintsCursorIDPage<BlueprintView>;
+  const page =
+    (await pagePromise) as unknown as BlueprintsCursorIDPage<BlueprintView>;
 
   const blueprints: Blueprint[] = [];
 

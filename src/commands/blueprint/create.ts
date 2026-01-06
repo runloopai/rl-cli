@@ -52,7 +52,9 @@ export async function createBlueprint(options: CreateBlueprintOptions) {
       launchParameters.architecture = options.architecture;
     }
     if (options.availablePorts) {
-      launchParameters.available_ports = options.availablePorts.map((port) => parseInt(port, 10));
+      launchParameters.available_ports = options.availablePorts.map((port) =>
+        parseInt(port, 10),
+      );
     }
     if (userParameters) {
       launchParameters.user_parameters = userParameters;
@@ -62,7 +64,9 @@ export async function createBlueprint(options: CreateBlueprintOptions) {
       name: options.name,
       dockerfile: dockerfileContents,
       system_setup_commands: options.systemSetupCommands,
-      launch_parameters: launchParameters as Parameters<typeof client.blueprints.create>[0]["launch_parameters"],
+      launch_parameters: launchParameters as Parameters<
+        typeof client.blueprints.create
+      >[0]["launch_parameters"],
     });
 
     // Default: output JSON

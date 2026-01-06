@@ -19,4 +19,3 @@ export async function deleteObject(options: DeleteObjectOptions) {
     outputError("Failed to delete object", error);
   }
 }
-

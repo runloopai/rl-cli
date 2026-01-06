@@ -21,7 +21,7 @@ export async function execCommand(
       command: command.join(" "),
       shell_name: options.shellName || undefined,
     });
-    
+
     // For text output, just print stdout/stderr directly
     if (!options.output || options.output === "text") {
       if (result.stdout) {
@@ -32,10 +32,9 @@ export async function execCommand(
       }
       return;
     }
-    
+
     output(result, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to execute command", error);
   }
 }
-

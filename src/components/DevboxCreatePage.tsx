@@ -2,7 +2,10 @@ import React from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
-import type { DevboxCreateParams, DevboxView } from "@runloop/api-client/resources/devboxes/devboxes";
+import type {
+  DevboxCreateParams,
+  DevboxView,
+} from "@runloop/api-client/resources/devboxes/devboxes";
 import type { LaunchParameters } from "@runloop/api-client/resources/shared";
 import { getClient } from "../utils/client.js";
 import { SpinnerComponent } from "./Spinner.js";
@@ -322,7 +325,9 @@ export const DevboxCreatePage = ({
       } else if (currentField === "resource_size") {
         // Find current index, defaulting to 0 if not found (e.g., empty string)
         const currentSize = formData.resource_size || "SMALL";
-        const currentIndex = resourceSizes.indexOf(currentSize as typeof resourceSizes[number]);
+        const currentIndex = resourceSizes.indexOf(
+          currentSize as (typeof resourceSizes)[number],
+        );
         const safeIndex = currentIndex === -1 ? 0 : currentIndex;
         const newIndex = key.leftArrow
           ? Math.max(0, safeIndex - 1)
@@ -458,7 +463,9 @@ export const DevboxCreatePage = ({
         <SuccessMessage message="Devbox created successfully!" />
         <Box marginLeft={2} flexDirection="column" marginTop={1}>
           <Box>
-            <Text color={colors.textDim} dimColor>ID: </Text>
+            <Text color={colors.textDim} dimColor>
+              ID:{" "}
+            </Text>
             <Text color={colors.idColor}>{result.id}</Text>
           </Box>
           <Box>

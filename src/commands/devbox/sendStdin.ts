@@ -26,7 +26,7 @@ export async function sendStdin(
     }
 
     const client = getClient();
-    
+
     // Build the request body
     const requestBody: Record<string, unknown> = {};
     if (options.text) {
@@ -47,7 +47,9 @@ export async function sendStdin(
       if (options.text) {
         console.log(`Sent text to execution ${executionId}`);
       } else {
-        console.log(`Sent ${options.signal} signal to execution ${executionId}`);
+        console.log(
+          `Sent ${options.signal} signal to execution ${executionId}`,
+        );
       }
     } else {
       output(result, { format: options.output, defaultFormat: "json" });
@@ -56,4 +58,3 @@ export async function sendStdin(
     outputError("Failed to send stdin", error);
   }
 }
-

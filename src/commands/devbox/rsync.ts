@@ -22,7 +22,9 @@ export async function rsyncFiles(devboxId: string, options: RsyncOptions) {
     // Check if SSH tools are available
     const sshToolsAvailable = await checkSSHTools();
     if (!sshToolsAvailable) {
-      outputError("SSH tools (ssh, rsync, openssl) are not available on this system");
+      outputError(
+        "SSH tools (ssh, rsync, openssl) are not available on this system",
+      );
     }
 
     const client = getClient();
@@ -43,7 +45,8 @@ export async function rsyncFiles(devboxId: string, options: RsyncOptions) {
     const rsyncCommand = [
       "rsync",
       "-vrz", // v: verbose, r: recursive, z: compress
-      "-e", `"ssh ${sshOptions}"`,
+      "-e",
+      `"ssh ${sshOptions}"`,
     ];
 
     if (options.rsyncOptions) {
@@ -64,15 +67,18 @@ export async function rsyncFiles(devboxId: string, options: RsyncOptions) {
     }
 
     await execAsync(rsyncCommand.join(" "));
-    
+
     // Default: just output the destination for easy scripting
     if (!options.output || options.output === "text") {
       console.log(options.dst);
     } else {
-      output({
-        source: options.src,
-        destination: options.dst,
-      }, { format: options.output, defaultFormat: "json" });
+      output(
+        {
+          source: options.src,
+          destination: options.dst,
+        },
+        { format: options.output, defaultFormat: "json" },
+      );
     }
   } catch (error) {
     outputError("Rsync operation failed", error);

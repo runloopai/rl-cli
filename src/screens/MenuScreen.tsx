@@ -9,20 +9,20 @@ export function MenuScreen() {
   const { navigate } = useNavigation();
 
   const handleSelect = (key: string) => {
-      switch (key) {
-        case "devboxes":
-          navigate("devbox-list");
-          break;
-        case "blueprints":
-          navigate("blueprint-list");
-          break;
-        case "snapshots":
-          navigate("snapshot-list");
-          break;
-        default:
-          // Fallback for any other screen names
-          navigate(key as ScreenName);
-      }
+    switch (key) {
+      case "devboxes":
+        navigate("devbox-list");
+        break;
+      case "blueprints":
+        navigate("blueprint-list");
+        break;
+      case "snapshots":
+        navigate("snapshot-list");
+        break;
+      default:
+        // Fallback for any other screen names
+        navigate(key as ScreenName);
+    }
   };
 
   return <MainMenu onSelect={handleSelect} />;

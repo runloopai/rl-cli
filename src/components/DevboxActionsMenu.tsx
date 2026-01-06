@@ -426,7 +426,8 @@ export const DevboxActionsMenu = ({
           .map((log: any) => {
             const parts = parseLogEntry(log);
             const cmd = parts.cmd ? `$ ${parts.cmd} ` : "";
-            const exitCode = parts.exitCode !== null ? `exit=${parts.exitCode} ` : "";
+            const exitCode =
+              parts.exitCode !== null ? `exit=${parts.exitCode} ` : "";
             const shell = parts.shellName ? `(${parts.shellName}) ` : "";
             return `${parts.timestamp} ${parts.level} [${parts.source}] ${shell}${cmd}${parts.message} ${exitCode}`.trim();
           })
@@ -843,21 +844,21 @@ export const DevboxActionsMenu = ({
           >
             {visibleLogs.map((log: any, index: number) => {
               const parts = parseLogEntry(log);
-              
+
               // Sanitize message: escape special chars to prevent layout breaks
               const escapedMessage = parts.message
                 .replace(/\r\n/g, "\\n")
                 .replace(/\n/g, "\\n")
                 .replace(/\r/g, "\\r")
                 .replace(/\t/g, "\\t");
-              
+
               // Limit message length to prevent Yoga layout engine errors
               const MAX_MESSAGE_LENGTH = 1000;
               const fullMessage =
                 escapedMessage.length > MAX_MESSAGE_LENGTH
                   ? escapedMessage.substring(0, MAX_MESSAGE_LENGTH) + "..."
                   : escapedMessage;
-              
+
               const cmd = parts.cmd
                 ? `$ ${parts.cmd.substring(0, 40)}${parts.cmd.length > 40 ? "..." : ""} `
                 : "";
@@ -879,8 +880,10 @@ export const DevboxActionsMenu = ({
                 gray: colors.textDim,
                 white: colors.text,
               };
-              const levelColor = levelColorMap[parts.levelColor] || colors.textDim;
-              const sourceColor = sourceColorMap[parts.sourceColor] || colors.textDim;
+              const levelColor =
+                levelColorMap[parts.levelColor] || colors.textDim;
+              const sourceColor =
+                sourceColorMap[parts.sourceColor] || colors.textDim;
 
               if (logsWrapMode) {
                 return (
@@ -900,15 +903,16 @@ export const DevboxActionsMenu = ({
                         ({parts.shellName}){" "}
                       </Text>
                     )}
-                    {cmd && (
-                      <Text color={colors.info}>
-                        {cmd}
-                      </Text>
-                    )}
+                    {cmd && <Text color={colors.info}>{cmd}</Text>}
                     <Text>{fullMessage}</Text>
                     {exitCode && (
-                      <Text color={parts.exitCode === 0 ? colors.success : colors.error}>
-                        {" "}{exitCode}
+                      <Text
+                        color={
+                          parts.exitCode === 0 ? colors.success : colors.error
+                        }
+                      >
+                        {" "}
+                        {exitCode}
                       </Text>
                     )}
                   </Box>
@@ -918,19 +922,34 @@ export const DevboxActionsMenu = ({
                 const timestampLen = parts.timestamp.length;
                 const levelLen = parts.level.length;
                 const sourceLen = parts.source.length + 2; // brackets
-                const shellLen = parts.shellName ? parts.shellName.length + 3 : 0;
+                const shellLen = parts.shellName
+                  ? parts.shellName.length + 3
+                  : 0;
                 const cmdLen = cmd.length;
                 const exitLen = exitCode.length;
                 const spacesLen = 5; // spaces between elements
-                const metadataWidth = timestampLen + levelLen + sourceLen + shellLen + cmdLen + exitLen + spacesLen;
-                
+                const metadataWidth =
+                  timestampLen +
+                  levelLen +
+                  sourceLen +
+                  shellLen +
+                  cmdLen +
+                  exitLen +
+                  spacesLen;
+
                 const safeTerminalWidth = Math.max(80, terminalWidth);
-                const availableMessageWidth = Math.max(20, safeTerminalWidth - metadataWidth);
+                const availableMessageWidth = Math.max(
+                  20,
+                  safeTerminalWidth - metadataWidth,
+                );
                 const truncatedMessage =
                   fullMessage.length > availableMessageWidth
-                    ? fullMessage.substring(0, Math.max(1, availableMessageWidth - 3)) + "..."
+                    ? fullMessage.substring(
+                        0,
+                        Math.max(1, availableMessageWidth - 3),
+                      ) + "..."
                     : fullMessage;
-                
+
                 return (
                   <Box key={index}>
                     <Text color={colors.textDim} dimColor>
@@ -948,15 +967,16 @@ export const DevboxActionsMenu = ({
                         ({parts.shellName}){" "}
                       </Text>
                     )}
-                    {cmd && (
-                      <Text color={colors.info}>
-                        {cmd}
-                      </Text>
-                    )}
+                    {cmd && <Text color={colors.info}>{cmd}</Text>}
                     <Text>{truncatedMessage}</Text>
                     {exitCode && (
-                      <Text color={parts.exitCode === 0 ? colors.success : colors.error}>
-                        {" "}{exitCode}
+                      <Text
+                        color={
+                          parts.exitCode === 0 ? colors.success : colors.error
+                        }
+                      >
+                        {" "}
+                        {exitCode}
                       </Text>
                     )}
                   </Box>
