@@ -4,10 +4,10 @@ import figures from "figures";
 import chalk from "chalk";
 import { isLightMode } from "../utils/theme.js";
 
-// Generic resource type - accepts any object with an id
+// Generic resource type - accepts any object with an id and optional name
 interface ResourceWithId {
   id: string;
-  [key: string]: unknown;
+  name?: string | null;
 }
 
 interface ActionsPopupProps {

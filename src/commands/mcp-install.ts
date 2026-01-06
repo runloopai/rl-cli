@@ -47,7 +47,7 @@ export async function installMcpConfig() {
     console.log(`📍 rli command location: ${rliPath}\n`);
 
     // Read or create config
-    let config: any = { mcpServers: {} };
+    let config: { mcpServers: Record<string, unknown>; [key: string]: unknown } = { mcpServers: {} };
 
     if (existsSync(configPath)) {
       console.log("✓ Found existing Claude Desktop config");
@@ -136,8 +136,9 @@ export async function installMcpConfig() {
     console.log(
       '\n💡 Tip: Make sure you\'ve run "rli auth" to configure your API key first!',
     );
-  } catch (error: any) {
-    console.error("\n❌ Error installing MCP configuration:", error.message);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("\n❌ Error installing MCP configuration:", errorMessage);
     console.error(
       "\n💡 You can manually add this configuration to your Claude Desktop config:",
     );

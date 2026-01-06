@@ -3,20 +3,10 @@
  * Replaces useState/useRef from ListDevboxesUI
  */
 import { create } from "zustand";
+import type { DevboxView } from "@runloop/api-client/resources/devboxes/devboxes";
 
-export interface Devbox {
-  id: string;
-  name?: string;
-  status: string;
-  create_time_ms?: number;
-  blueprint_id?: string;
-  entitlements?: {
-    network_enabled?: boolean;
-    gpu_enabled?: boolean;
-  };
-  launch_parameters?: any; // Can contain nested objects with user_parameters
-  [key: string]: any; // Allow other fields from API
-}
+// Re-export DevboxView as Devbox for compatibility with existing code
+export type Devbox = DevboxView;
 
 interface DevboxState {
   // List data
@@ -135,21 +125,8 @@ export const useDevboxStore = create<DevboxState>((set, get) => ({
 
     // Deep copy all fields to avoid SDK references
     const plainData = data.map((d) => {
-      // Create a deep copy of the entire devbox object
-      const plain: any = {};
-      for (const key in d) {
-        const value = d[key];
-        if (value === null || value === undefined) {
-          plain[key] = value;
-        } else if (Array.isArray(value)) {
-          plain[key] = [...value];
-        } else if (typeof value === 'object') {
-          plain[key] = JSON.parse(JSON.stringify(value));
-        } else {
-          plain[key] = value;
-        }
-      }
-      return plain;
+      // Create a deep copy using JSON serialization for safety
+      return JSON.parse(JSON.stringify(d)) as Devbox;
     });
 
     pageCache.set(page, plainData);

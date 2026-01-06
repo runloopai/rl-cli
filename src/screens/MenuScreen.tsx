@@ -2,7 +2,7 @@
  * MenuScreen - Main menu using navigation context
  */
 import React from "react";
-import { useNavigation } from "../store/navigationStore.js";
+import { useNavigation, type ScreenName } from "../store/navigationStore.js";
 import { MainMenu } from "../components/MainMenu.js";
 
 export function MenuScreen() {
@@ -20,7 +20,8 @@ export function MenuScreen() {
           navigate("snapshot-list");
           break;
         default:
-          navigate(key as any);
+          // Fallback for any other screen names
+          navigate(key as ScreenName);
       }
   };
 

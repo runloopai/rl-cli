@@ -4,7 +4,7 @@
  */
 import React from "react";
 import { useNavigation } from "../store/navigationStore.js";
-import { useDevboxStore } from "../store/devboxStore.js";
+import { useDevboxStore, type Devbox } from "../store/devboxStore.js";
 import { DevboxDetailPage } from "../components/DevboxDetailPage.js";
 import { getDevbox } from "../services/devboxService.js";
 import { SpinnerComponent } from "../components/Spinner.js";
@@ -22,7 +22,7 @@ export function DevboxDetailScreen({ devboxId }: DevboxDetailScreenProps) {
 
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
-  const [fetchedDevbox, setFetchedDevbox] = React.useState<any>(null);
+  const [fetchedDevbox, setFetchedDevbox] = React.useState<Devbox | null>(null);
 
   // Find devbox in store first
   const devboxFromStore = devboxes.find((d) => d.id === devboxId);
@@ -89,6 +89,11 @@ export function DevboxDetailScreen({ devboxId }: DevboxDetailScreenProps) {
         />
       </>
     );
+  }
+
+  // At this point devbox is guaranteed to exist (loading check above handles the null case)
+  if (!devbox) {
+    return null; // TypeScript guard - should never reach here
   }
 
   return <DevboxDetailPage devbox={devbox} onBack={goBack} />;

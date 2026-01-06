@@ -49,13 +49,13 @@ export const DetailView = ({ sections }: DetailViewProps) => {
  * Helper to build detail sections from an object
  */
 export function buildDetailSections(
-  data: Record<string, any>,
+  data: Record<string, unknown>,
   config: {
     [sectionName: string]: {
       fields: Array<{
         key: string;
         label: string;
-        formatter?: (value: any) => string | React.ReactNode;
+        formatter?: (value: unknown) => string | React.ReactNode;
         color?: string;
       }>;
     };

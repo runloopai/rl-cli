@@ -2,6 +2,8 @@ import React from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
+import type { DevboxCreateParams, DevboxView } from "@runloop/api-client/resources/devboxes/devboxes";
+import type { LaunchParameters } from "@runloop/api-client/resources/shared";
 import { getClient } from "../utils/client.js";
 import { SpinnerComponent } from "./Spinner.js";
 import { ErrorMessage } from "./ErrorMessage.js";
@@ -13,7 +15,7 @@ import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 
 interface DevboxCreatePageProps {
   onBack: () => void;
-  onCreate?: (devbox: any) => void;
+  onCreate?: (devbox: DevboxView) => void;
   initialBlueprintId?: string;
 }
 
@@ -77,7 +79,7 @@ export const DevboxCreatePage = ({
   >(null);
   const [selectedMetadataIndex, setSelectedMetadataIndex] = React.useState(-1); // -1 means "add new" row
   const [creating, setCreating] = React.useState(false);
-  const [result, setResult] = React.useState<any>(null);
+  const [result, setResult] = React.useState<DevboxView | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
 
   const baseFields: Array<{
@@ -122,7 +124,7 @@ export const DevboxCreatePage = ({
 
   const fields = [...baseFields, ...customFields, ...remainingFields];
 
-  const architectures = ["arm64", "x86_64"];
+  const architectures = ["arm64", "x86_64"] as const;
   const resourceSizes = [
     "X_SMALL",
     "SMALL",
@@ -131,7 +133,7 @@ export const DevboxCreatePage = ({
     "X_LARGE",
     "XX_LARGE",
     "CUSTOM_SIZE",
-  ];
+  ] as const;
 
   const currentFieldIndex = fields.findIndex((f) => f.key === currentField);
 
@@ -318,13 +320,16 @@ export const DevboxCreatePage = ({
           architecture: architectures[newIndex] as "arm64" | "x86_64",
         });
       } else if (currentField === "resource_size") {
-        const currentIndex = resourceSizes.indexOf(formData.resource_size);
+        // Find current index, defaulting to 0 if not found (e.g., empty string)
+        const currentSize = formData.resource_size || "SMALL";
+        const currentIndex = resourceSizes.indexOf(currentSize as typeof resourceSizes[number]);
+        const safeIndex = currentIndex === -1 ? 0 : currentIndex;
         const newIndex = key.leftArrow
-          ? Math.max(0, currentIndex - 1)
-          : Math.min(resourceSizes.length - 1, currentIndex + 1);
+          ? Math.max(0, safeIndex - 1)
+          : Math.min(resourceSizes.length - 1, safeIndex + 1);
         setFormData({
           ...formData,
-          resource_size: resourceSizes[newIndex] as any,
+          resource_size: resourceSizes[newIndex],
         });
       }
       return;
@@ -387,7 +392,7 @@ export const DevboxCreatePage = ({
     try {
       const client = getClient();
 
-      const launchParameters: any = {};
+      const launchParameters: LaunchParameters = {};
 
       if (formData.architecture) {
         launchParameters.architecture = formData.architecture;
@@ -412,7 +417,7 @@ export const DevboxCreatePage = ({
         );
       }
 
-      const createParams: any = {};
+      const createParams: DevboxCreateParams = {};
 
       if (formData.name) {
         createParams.name = formData.name;
