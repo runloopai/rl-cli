@@ -88,14 +88,20 @@ devbox
   .command("create")
   .description("Create a new devbox")
   .option("-n, --name <name>", "Devbox name")
-  .option("-t, --template <template>", "Template to use")
-  .option("--blueprint <blueprint>", "Blueprint ID to use")
+  .option("-t, --template <template>", "Snapshot ID to use (alias: --snapshot)")
+  .option("-s, --snapshot <snapshot>", "Snapshot ID to use")
+  .option("--blueprint <blueprint>", "Blueprint name or ID to use")
   .option(
     "--resources <size>",
     "Resource size (X_SMALL, SMALL, MEDIUM, LARGE, X_LARGE, XX_LARGE)",
   )
   .option("--architecture <arch>", "Architecture (arm64, x86_64)")
   .option("--entrypoint <command>", "Entrypoint command to run")
+  .option("--launch-commands <commands...>", "Initialization commands to run on startup")
+  .option("--env-vars <vars...>", "Environment variables (format: KEY=value)")
+  .option("--code-mounts <mounts...>", "Code mount configurations (JSON format)")
+  .option("--idle-time <seconds>", "Idle time in seconds before idle action")
+  .option("--idle-action <action>", "Action on idle (shutdown, suspend)")
   .option("--available-ports <ports...>", "Available ports")
   .option("--root", "Run as root")
   .option("--user <user:uid>", "Run as this user (format: username:uid)")
@@ -108,7 +114,11 @@ devbox
 devbox
   .command("list")
   .description("List all devboxes")
-  .option("-s, --status <status>", "Filter by status")
+  .option(
+    "-s, --status <status>",
+    "Filter by status (initializing, running, suspending, suspended, resuming, failure, shutdown)",
+  )
+  .option("-l, --limit <n>", "Max results", "20")
   .option(
     "-o, --output [format]",
     "Output format: text|json|yaml (default: json)",
@@ -130,6 +140,7 @@ devbox
 devbox
   .command("exec <id> <command...>")
   .description("Execute a command in a devbox")
+  .option("--shell-name <name>", "Shell name to use (optional)")
   .option(
     "-o, --output [format]",
     "Output format: text|json|yaml (default: text)",
@@ -330,6 +341,20 @@ devbox
   });
 
 devbox
+  .command("send-stdin <id> <execution-id>")
+  .description("Send stdin to a running async execution")
+  .option("--text <text>", "Text content to send to stdin")
+  .option("--signal <signal>", "Signal to send (EOF, INTERRUPT)")
+  .option(
+    "-o, --output [format]",
+    "Output format: text|json|yaml (default: text)",
+  )
+  .action(async (id, executionId, options) => {
+    const { sendStdin } = await import("./commands/devbox/sendStdin.js");
+    await sendStdin(id, executionId, options);
+  });
+
+devbox
   .command("logs <id>")
   .description("View devbox logs")
   .option(
@@ -417,6 +442,7 @@ const blueprint = program
 blueprint
   .command("list")
   .description("List all blueprints")
+  .option("-n, --name <name>", "Filter by blueprint name")
   .option(
     "-o, --output [format]",
     "Output format: text|json|yaml (default: json)",
