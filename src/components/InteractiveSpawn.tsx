@@ -6,7 +6,8 @@
 import React from "react";
 import { spawn, ChildProcess } from "child_process";
 import {
-  exitAlternateScreenBuffer,
+  showCursor,
+  clearScreen,
   enterAlternateScreenBuffer,
 } from "../utils/screen.js";
 
@@ -30,12 +31,31 @@ function releaseTerminal(): void {
   if (process.stdin.isTTY && process.stdin.setRawMode) {
     process.stdin.setRawMode(false);
   }
+
+  // Reset terminal attributes (SGR reset) - clears any colors/styles Ink may have set
+  if (process.stdout.isTTY) {
+    process.stdout.write("\x1b[0m");
+  }
+
+  // Show cursor - Ink may have hidden it, and subprocesses expect it to be visible
+  showCursor();
+
+  // Flush stdout to ensure all pending writes are complete before handoff
+  if (process.stdout.isTTY) {
+    process.stdout.write("");
+  }
 }
 
 /**
  * Restores terminal control to Ink after subprocess exits.
  */
 function restoreTerminal(): void {
+  // Clear the screen to remove subprocess output before Ink renders
+  clearScreen();
+
+  // Re-enter alternate screen buffer for Ink's fullscreen UI
+  enterAlternateScreenBuffer();
+
   // Re-enable raw mode for Ink's input handling
   if (process.stdin.isTTY && process.stdin.setRawMode) {
     process.stdin.setRawMode(true);
@@ -64,14 +84,12 @@ export const InteractiveSpawn: React.FC<InteractiveSpawnProps> = ({
     }
     hasSpawnedRef.current = true;
 
-    // Exit alternate screen so subprocess gets a clean terminal
-    exitAlternateScreenBuffer();
-
     // Release terminal from Ink's control
     releaseTerminal();
 
-    // Small delay to ensure terminal state is fully released
-    setTimeout(() => {
+    // Use setImmediate to ensure terminal state is released without noticeable delay
+    // This is faster than setTimeout and ensures the event loop has processed the release
+    setImmediate(() => {
       // Spawn the process with inherited stdio for proper TTY allocation
       const child = spawn(command, args, {
         stdio: "inherit", // This allows the process to use the terminal directly
@@ -88,9 +106,6 @@ export const InteractiveSpawn: React.FC<InteractiveSpawnProps> = ({
         // Restore terminal control to Ink
         restoreTerminal();
 
-        // Re-enter alternate screen after process exits
-        enterAlternateScreenBuffer();
-
         if (onExit) {
           onExit(code);
         }
@@ -104,14 +119,11 @@ export const InteractiveSpawn: React.FC<InteractiveSpawnProps> = ({
         // Restore terminal control to Ink
         restoreTerminal();
 
-        // Re-enter alternate screen on error
-        enterAlternateScreenBuffer();
-
         if (onError) {
           onError(error);
         }
       });
-    }, 50);
+    });
 
     // Cleanup function - kill the process if component unmounts
     return () => {
