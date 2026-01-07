@@ -22,10 +22,8 @@
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "test": "jest",
     "test:unit": "jest tests/__tests__/unit",
-    "test:integration": "jest tests/__tests__/integration",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:e2e": "RUN_E2E=1 jest tests/__tests__/integration",
     "test:components": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.components.config.js --coverage --forceExit"
   },
   "keywords": [
