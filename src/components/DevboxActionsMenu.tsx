@@ -84,7 +84,6 @@ export const DevboxActionsMenu = ({
   // Total: 16 lines
   const execViewport = useViewportHeight({ overhead: 16, minHeight: 10 });
 
-
   // CRITICAL: Aggressive memory cleanup to prevent heap exhaustion
   React.useEffect(() => {
     // Clear large data immediately when results are shown to free memory faster
@@ -696,7 +695,10 @@ export const DevboxActionsMenu = ({
       return (
         <LogsViewer
           logs={logs}
-          breadcrumbItems={[...breadcrumbItems, { label: "Logs", active: true }]}
+          breadcrumbItems={[
+            ...breadcrumbItems,
+            { label: "Logs", active: true },
+          ]}
           onBack={() => {
             // Clear large data structures immediately to prevent memory leaks
             setOperationResult(null);
