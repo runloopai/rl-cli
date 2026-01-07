@@ -12,7 +12,7 @@ export const Banner = React.memo(() => {
   const gradientName = isLightMode() ? "teen" : "vice";
 
   return (
-    <Box flexDirection="column" alignItems="flex-start" paddingX={2}>
+    <Box flexDirection="column" alignItems="flex-start" paddingX={1}>
       <Gradient name={gradientName}>
         <BigText text="RUNLOOP.ai" font="simple3d" />
       </Gradient>
