@@ -2,7 +2,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import figures from "figures";
 import chalk from "chalk";
-import { isLightMode, getChalkTextColor } from "../utils/theme.js";
+import { getChalkTextColor, getChalkColor } from "../utils/theme.js";
 
 // Generic resource type - accepts any object with an id and optional name
 interface ResourceWithId {
@@ -47,12 +47,10 @@ export const ActionsPopup = ({
   // CRITICAL: Validate all computed widths are positive integers
   const contentWidth = Math.max(10, maxContentWidth + 4);
 
-  // Get background color chalk function - inverted for contrast
-  // In light mode (light terminal), use dark background for popup (inverse of theme background)
-  // In dark mode (dark terminal), use light background for popup (inverse of theme background)
-  // Popup needs to stand out: light terminal → dark popup, dark terminal → light popup
-  const popupBgHex = isLightMode() ? "#000000" : "#FFFFFF"; // Dark bg in light mode, light bg in dark mode
-  const popupTextHex = isLightMode() ? "#FFFFFF" : "#000000"; // Light text in light mode, dark text in dark mode
+  // Get background color chalk function - use theme colors to match the theme mode
+  // In light mode, use light background; in dark mode, use dark background
+  const popupBgHex = getChalkColor("background");
+  const popupTextHex = getChalkColor("text");
   const bgColorFn = chalk.bgHex(popupBgHex);
   const textColorFn = chalk.hex(popupTextHex);
 

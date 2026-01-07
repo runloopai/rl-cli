@@ -17,6 +17,7 @@ import { DevboxDetailScreen } from "../screens/DevboxDetailScreen.js";
 import { DevboxActionsScreen } from "../screens/DevboxActionsScreen.js";
 import { DevboxCreateScreen } from "../screens/DevboxCreateScreen.js";
 import { BlueprintListScreen } from "../screens/BlueprintListScreen.js";
+import { BlueprintLogsScreen } from "../screens/BlueprintLogsScreen.js";
 import { SnapshotListScreen } from "../screens/SnapshotListScreen.js";
 import { SSHSessionScreen } from "../screens/SSHSessionScreen.js";
 
@@ -51,6 +52,7 @@ export function Router() {
 
         case "blueprint-list":
         case "blueprint-detail":
+        case "blueprint-logs":
           if (!currentScreen.startsWith("blueprint")) {
             useBlueprintStore.getState().clearAll();
           }
@@ -94,6 +96,9 @@ export function Router() {
       )}
       {currentScreen === "blueprint-detail" && (
         <BlueprintListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "blueprint-logs" && (
+        <BlueprintLogsScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "snapshot-list" && (
         <SnapshotListScreen key={currentScreen} {...params} />
