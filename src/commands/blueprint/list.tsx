@@ -322,12 +322,17 @@ const ListBlueprintsUI = ({
   const startIndex = currentPage * PAGE_SIZE;
   const endIndex = startIndex + blueprints.length;
 
-  const executeOperation = async (blueprintOverride?: BlueprintListItem) => {
+  const executeOperation = async (
+    blueprintOverride?: BlueprintListItem,
+    operationOverride?: OperationType,
+  ) => {
     const client = getClient();
     // Use override if provided, otherwise use selectedBlueprint from state
     // If neither is available, use selectedBlueprintItem as fallback
     const blueprint =
       blueprintOverride || selectedBlueprint || selectedBlueprintItem;
+    // Use operation override if provided (to avoid state timing issues)
+    const operation = operationOverride || executingOperation;
 
     if (!blueprint) {
       console.error("No blueprint selected for operation");
@@ -341,7 +346,7 @@ const ListBlueprintsUI = ({
 
     try {
       setOperationLoading(true);
-      switch (executingOperation) {
+      switch (operation) {
         case "view_logs":
           // Navigate to the logs screen
           setOperationLoading(false);
@@ -439,7 +444,10 @@ const ListBlueprintsUI = ({
         } else {
           setSelectedBlueprint(selectedBlueprintItem);
           setExecutingOperation(operationKey as OperationType);
-          executeOperation(selectedBlueprintItem);
+          executeOperation(
+            selectedBlueprintItem,
+            operationKey as OperationType,
+          );
         }
       } else if (key.escape || input === "q") {
         setShowPopup(false);
@@ -462,7 +470,7 @@ const ListBlueprintsUI = ({
           setShowPopup(false);
           setSelectedBlueprint(selectedBlueprintItem);
           setExecutingOperation("delete");
-          executeOperation(selectedBlueprintItem);
+          executeOperation(selectedBlueprintItem, "delete");
         }
       } else if (input === "l") {
         const logsIndex = allOperations.findIndex(
@@ -472,7 +480,7 @@ const ListBlueprintsUI = ({
           setShowPopup(false);
           setSelectedBlueprint(selectedBlueprintItem);
           setExecutingOperation("view_logs");
-          executeOperation();
+          executeOperation(selectedBlueprintItem, "view_logs");
         }
       }
       return;
@@ -507,7 +515,7 @@ const ListBlueprintsUI = ({
     } else if (input === "l" && selectedBlueprintItem) {
       setSelectedBlueprint(selectedBlueprintItem);
       setExecutingOperation("view_logs");
-      executeOperation(selectedBlueprintItem);
+      executeOperation(selectedBlueprintItem, "view_logs");
     } else if (input === "o" && blueprints[selectedIndex]) {
       const url = getBlueprintUrl(blueprints[selectedIndex].id);
       const openBrowser = async () => {

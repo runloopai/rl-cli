@@ -125,7 +125,9 @@ export async function getBlueprintLogs(id: string): Promise<any[]> {
         if (typeof normalizedLog.timestamp === "number") {
           normalizedLog.timestamp_ms = normalizedLog.timestamp;
         } else if (typeof normalizedLog.timestamp === "string") {
-          normalizedLog.timestamp_ms = new Date(normalizedLog.timestamp).getTime();
+          normalizedLog.timestamp_ms = new Date(
+            normalizedLog.timestamp,
+          ).getTime();
         }
       }
       return normalizedLog;
