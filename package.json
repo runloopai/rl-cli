@@ -21,7 +21,6 @@
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "test": "jest",
-    "test:unit": "jest tests/__tests__/unit",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:components": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.components.config.js --coverage --forceExit"
