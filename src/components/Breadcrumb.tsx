@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import { colors } from "../utils/theme.js";
+import { UpdateNotification } from "./UpdateNotification.js";
 
 export interface BreadcrumbItem {
   label: string;
@@ -9,9 +10,13 @@ export interface BreadcrumbItem {
 
 interface BreadcrumbProps {
   items: BreadcrumbItem[];
+  showVersionCheck?: boolean;
 }
 
-export const Breadcrumb = ({ items }: BreadcrumbProps) => {
+export const Breadcrumb = ({
+  items,
+  showVersionCheck = false,
+}: BreadcrumbProps) => {
   const env = process.env.RUNLOOP_ENV?.toLowerCase();
   const isDevEnvironment = env === "dev";
 
@@ -53,6 +58,11 @@ export const Breadcrumb = ({ items }: BreadcrumbProps) => {
           );
         })}
       </Box>
+      {showVersionCheck && (
+        <Box paddingX={2} marginTop={0}>
+          <UpdateNotification />
+        </Box>
+      )}
     </Box>
   );
 };

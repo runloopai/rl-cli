@@ -133,7 +133,10 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
 
   return (
     <Box flexDirection="column">
-      <Breadcrumb items={[{ label: "Home", active: true }]} />
+      <Breadcrumb
+        items={[{ label: "Home", active: true }]}
+        showVersionCheck={true}
+      />
 
       <Banner />
 
