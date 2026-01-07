@@ -21,10 +21,11 @@ import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
+import { useNavigation } from "../../store/navigationStore.js";
 
 const DEFAULT_PAGE_SIZE = 10;
 
-type OperationType = "create_devbox" | "delete" | null;
+type OperationType = "create_devbox" | "delete" | "view_logs" | null;
 
 // Local interface for blueprint data used in this component
 interface BlueprintListItem {
@@ -62,6 +63,7 @@ const ListBlueprintsUI = ({
   const [showCreateDevbox, setShowCreateDevbox] = React.useState(false);
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showPopup, setShowPopup] = React.useState(false);
+  const { navigate } = useNavigation();
 
   // Calculate overhead for viewport height
   const overhead = 13;
@@ -271,6 +273,14 @@ const ListBlueprintsUI = ({
   ): Operation[] => {
     const operations: Operation[] = [];
 
+    // View Logs is always available
+    operations.push({
+      key: "view_logs",
+      label: "View Logs",
+      color: colors.info,
+      icon: figures.info,
+    });
+
     if (
       blueprint &&
       (blueprint.status === "build_complete" ||
@@ -312,15 +322,36 @@ const ListBlueprintsUI = ({
   const startIndex = currentPage * PAGE_SIZE;
   const endIndex = startIndex + blueprints.length;
 
-  const executeOperation = async () => {
+  const executeOperation = async (blueprintOverride?: BlueprintListItem) => {
     const client = getClient();
-    const blueprint = selectedBlueprint;
+    // Use override if provided, otherwise use selectedBlueprint from state
+    // If neither is available, use selectedBlueprintItem as fallback
+    const blueprint =
+      blueprintOverride || selectedBlueprint || selectedBlueprintItem;
 
-    if (!blueprint) return;
+    if (!blueprint) {
+      console.error("No blueprint selected for operation");
+      return;
+    }
+
+    // Ensure selectedBlueprint is set in state if it wasn't already
+    if (!selectedBlueprint && blueprint) {
+      setSelectedBlueprint(blueprint);
+    }
 
     try {
       setOperationLoading(true);
       switch (executingOperation) {
+        case "view_logs":
+          // Navigate to the logs screen
+          setOperationLoading(false);
+          setExecutingOperation(null);
+          navigate("blueprint-logs", {
+            blueprintId: blueprint.id,
+            blueprintName: blueprint.name || blueprint.id,
+          });
+          return;
+
         case "create_devbox":
           setShowCreateDevbox(true);
           setExecutingOperation(null);
@@ -354,15 +385,20 @@ const ListBlueprintsUI = ({
   useInput((input, key) => {
     // Handle operation input mode
     if (executingOperation && !operationResult && !operationError) {
+      // Allow escape/q to cancel any operation, even during loading
+      if (input === "q" || key.escape) {
+        setExecutingOperation(null);
+        setOperationInput("");
+        setOperationLoading(false);
+        return;
+      }
+
       const currentOp = allOperations.find(
         (op) => op.key === executingOperation,
       );
       if (currentOp?.needsInput) {
         if (key.return) {
           executeOperation();
-        } else if (input === "q" || key.escape) {
-          setExecutingOperation(null);
-          setOperationInput("");
         }
       }
       return;
@@ -403,7 +439,7 @@ const ListBlueprintsUI = ({
         } else {
           setSelectedBlueprint(selectedBlueprintItem);
           setExecutingOperation(operationKey as OperationType);
-          executeOperation();
+          executeOperation(selectedBlueprintItem);
         }
       } else if (key.escape || input === "q") {
         setShowPopup(false);
@@ -426,6 +462,16 @@ const ListBlueprintsUI = ({
           setShowPopup(false);
           setSelectedBlueprint(selectedBlueprintItem);
           setExecutingOperation("delete");
+          executeOperation(selectedBlueprintItem);
+        }
+      } else if (input === "l") {
+        const logsIndex = allOperations.findIndex(
+          (op) => op.key === "view_logs",
+        );
+        if (logsIndex >= 0) {
+          setShowPopup(false);
+          setSelectedBlueprint(selectedBlueprintItem);
+          setExecutingOperation("view_logs");
           executeOperation();
         }
       }
@@ -458,6 +504,10 @@ const ListBlueprintsUI = ({
     } else if (input === "a") {
       setShowPopup(true);
       setSelectedOperation(0);
+    } else if (input === "l" && selectedBlueprintItem) {
+      setSelectedBlueprint(selectedBlueprintItem);
+      setExecutingOperation("view_logs");
+      executeOperation(selectedBlueprintItem);
     } else if (input === "o" && blueprints[selectedIndex]) {
       const url = getBlueprintUrl(blueprints[selectedIndex].id);
       const openBrowser = async () => {
@@ -523,24 +573,9 @@ const ListBlueprintsUI = ({
     const operationLabel = currentOp?.label || "Operation";
 
     if (operationLoading) {
-      return (
-        <>
-          <Breadcrumb
-            items={[
-              { label: "Blueprints" },
-              { label: selectedBlueprint.name || selectedBlueprint.id },
-              { label: operationLabel, active: true },
-            ]}
-          />
-          <Header title="Executing Operation" />
-          <SpinnerComponent message="Please wait..." />
-        </>
-      );
-    }
-
-    if (!needsInput) {
       const messages: Record<string, string> = {
         delete: "Deleting blueprint...",
+        view_logs: "Fetching logs...",
       };
       return (
         <>
@@ -555,44 +590,56 @@ const ListBlueprintsUI = ({
           <SpinnerComponent
             message={messages[executingOperation as string] || "Please wait..."}
           />
+          <Box marginTop={1} paddingX={1}>
+            <Text color={colors.textDim} dimColor>
+              Press [q] or [esc] to cancel
+            </Text>
+          </Box>
         </>
       );
     }
 
-    return (
-      <>
-        <Breadcrumb
-          items={[
-            { label: "Blueprints" },
-            { label: selectedBlueprint.name || selectedBlueprint.id },
-            { label: operationLabel, active: true },
-          ]}
-        />
-        <Header title={operationLabel} />
-        <Box flexDirection="column" marginBottom={1}>
-          <Box marginBottom={1}>
-            <Text color={colors.primary} bold>
-              {selectedBlueprint.name || selectedBlueprint.id}
-            </Text>
+    // Only show input screen if operation needs input
+    // Operations like view_logs navigate away and don't need this screen
+    if (needsInput) {
+      return (
+        <>
+          <Breadcrumb
+            items={[
+              { label: "Blueprints" },
+              { label: selectedBlueprint.name || selectedBlueprint.id },
+              { label: operationLabel, active: true },
+            ]}
+          />
+          <Header title={operationLabel} />
+          <Box flexDirection="column" marginBottom={1}>
+            <Box marginBottom={1}>
+              <Text color={colors.primary} bold>
+                {selectedBlueprint.name || selectedBlueprint.id}
+              </Text>
+            </Box>
+            <Box>
+              <Text color={colors.textDim}>
+                {currentOp?.inputPrompt || ""}{" "}
+              </Text>
+            </Box>
+            <Box marginTop={1}>
+              <TextInput
+                value={operationInput}
+                onChange={setOperationInput}
+                placeholder={currentOp?.inputPlaceholder || ""}
+              />
+            </Box>
+            <Box marginTop={1}>
+              <Text color={colors.textDim} dimColor>
+                Press [Enter] to execute • [q or esc] Cancel
+              </Text>
+            </Box>
           </Box>
-          <Box>
-            <Text color={colors.textDim}>{currentOp.inputPrompt} </Text>
-          </Box>
-          <Box marginTop={1}>
-            <TextInput
-              value={operationInput}
-              onChange={setOperationInput}
-              placeholder={currentOp.inputPlaceholder || ""}
-            />
-          </Box>
-          <Box marginTop={1}>
-            <Text color={colors.textDim} dimColor>
-              Press [Enter] to execute • [q or esc] Cancel
-            </Text>
-          </Box>
-        </Box>
-      </>
-    );
+        </>
+      );
+    }
+    // For operations that don't need input (like view_logs), fall through to list view
   }
 
   // Create devbox screen
@@ -716,7 +763,9 @@ const ListBlueprintsUI = ({
                   ? "c"
                   : op.key === "delete"
                     ? "d"
-                    : "",
+                    : op.key === "view_logs"
+                      ? "l"
+                      : "",
             }))}
             selectedOperation={selectedOperation}
             onClose={() => setShowPopup(false)}
