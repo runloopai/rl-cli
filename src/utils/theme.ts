@@ -107,25 +107,19 @@ export async function initializeTheme(): Promise<void> {
   let detectedTheme: ThemeMode | null = null;
 
   // Auto-detect if preference is 'auto'
+  // Always detect on startup to support different terminal profiles
+  // (users may have different terminal profiles with different themes)
   if (preference === "auto") {
-    // Check cache first - only detect if we haven't cached a result
-    const cachedTheme = getDetectedTheme();
-
-    if (cachedTheme) {
-      // Use cached detection result (no flashing!)
-      detectedTheme = cachedTheme;
-    } else {
-      // First time detection - run it and cache the result
-      try {
-        detectedTheme = await detectTerminalTheme();
-        if (detectedTheme) {
-          // Cache the result so we don't detect again
-          setDetectedTheme(detectedTheme);
-        }
-      } catch {
-        // Detection failed, fall back to dark mode
-        detectedTheme = null;
+    try {
+      detectedTheme = await detectTerminalTheme();
+      // Cache the result for reference, but we always re-detect on startup
+      if (detectedTheme) {
+        setDetectedTheme(detectedTheme);
       }
+    } catch {
+      // Detection failed, fall back to cached value or dark mode
+      const cachedTheme = getDetectedTheme();
+      detectedTheme = cachedTheme || null;
     }
   }
 
