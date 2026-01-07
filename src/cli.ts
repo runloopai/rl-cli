@@ -20,13 +20,14 @@ const packageJson = JSON.parse(
 export const VERSION = packageJson.version;
 
 import { exitAlternateScreenBuffer } from "./utils/screen.js";
+import { processUtils } from "./utils/processUtils.js";
 
 // Global Ctrl+C handler to ensure it always exits
-process.on("SIGINT", () => {
+processUtils.on("SIGINT", () => {
   // Force exit immediately, clearing alternate screen buffer
   exitAlternateScreenBuffer();
-  process.stdout.write("\n");
-  process.exit(130); // Standard exit code for SIGINT
+  processUtils.stdout.write("\n");
+  processUtils.exit(130); // Standard exit code for SIGINT
 });
 
 const program = new Command();
@@ -69,7 +70,7 @@ config
       console.error(
         `\n❌ Invalid theme mode: ${mode}\nValid options: auto, light, dark\n`,
       );
-      process.exit(1);
+      processUtils.exit(1);
     }
   });
 
@@ -666,7 +667,7 @@ program
     const config = getConfig();
     if (!config.apiKey) {
       console.error("\n❌ API key not configured. Run: rli auth\n");
-      process.exit(1);
+      processUtils.exit(1);
     }
   }
 

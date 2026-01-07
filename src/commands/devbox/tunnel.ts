@@ -5,6 +5,7 @@
 import { spawn } from "child_process";
 import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
+import { processUtils } from "../../utils/processUtils.js";
 import { getSSHKey, getProxyCommand, checkSSHTools } from "../../utils/ssh.js";
 
 interface TunnelOptions {
@@ -78,7 +79,7 @@ export async function createTunnel(devboxId: string, options: TunnelOptions) {
 
     tunnelProcess.on("close", (code) => {
       console.log("\nTunnel closed.");
-      process.exit(code || 0);
+      processUtils.exit(code || 0);
     });
 
     tunnelProcess.on("error", (err) => {

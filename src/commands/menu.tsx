@@ -4,6 +4,7 @@ import {
   enterAlternateScreenBuffer,
   exitAlternateScreenBuffer,
 } from "../utils/screen.js";
+import { processUtils } from "../utils/processUtils.js";
 
 import { Router } from "../router/Router.js";
 import { NavigationProvider } from "../store/navigationStore.js";
@@ -57,5 +58,5 @@ export async function runMainMenu(
 
   exitAlternateScreenBuffer();
 
-  process.exit(0);
+  processUtils.exit(0);
 }

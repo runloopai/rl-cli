@@ -7,13 +7,15 @@
  * the original screen content is restored.
  */
 
+import { processUtils } from "./processUtils.js";
+
 /**
  * Enter the alternate screen buffer.
  * This provides a fullscreen experience where content won't mix with
  * previous terminal output. Like vim or top.
  */
 export function enterAlternateScreenBuffer(): void {
-  process.stdout.write("\x1b[?1049h");
+  processUtils.stdout.write("\x1b[?1049h");
 }
 
 /**
@@ -21,7 +23,7 @@ export function enterAlternateScreenBuffer(): void {
  * This returns the terminal to its original state before enterAlternateScreen() was called.
  */
 export function exitAlternateScreenBuffer(): void {
-  process.stdout.write("\x1b[?1049l");
+  processUtils.stdout.write("\x1b[?1049l");
 }
 
 /**
@@ -30,7 +32,7 @@ export function exitAlternateScreenBuffer(): void {
  */
 export function clearScreen(): void {
   // Clear entire screen and move cursor to top-left
-  process.stdout.write("\x1b[2J\x1b[H");
+  processUtils.stdout.write("\x1b[2J\x1b[H");
 }
 
 /**
@@ -38,7 +40,7 @@ export function clearScreen(): void {
  * Uses ANSI escape sequence to make the cursor visible.
  */
 export function showCursor(): void {
-  process.stdout.write("\x1b[?25h");
+  processUtils.stdout.write("\x1b[?25h");
 }
 
 /**
@@ -46,7 +48,7 @@ export function showCursor(): void {
  * Uses ANSI escape sequence to make the cursor invisible.
  */
 export function hideCursor(): void {
-  process.stdout.write("\x1b[?25l");
+  processUtils.stdout.write("\x1b[?25l");
 }
 
 /**
@@ -58,9 +60,9 @@ export function resetTerminal(): void {
   exitAlternateScreenBuffer();
   clearScreen();
   // Reset terminal attributes (SGR reset)
-  process.stdout.write("\x1b[0m");
+  processUtils.stdout.write("\x1b[0m");
   // Move cursor to home position
-  process.stdout.write("\x1b[H");
+  processUtils.stdout.write("\x1b[H");
   // Show cursor to ensure it's visible
   showCursor();
 }
