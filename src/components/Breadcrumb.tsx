@@ -16,7 +16,7 @@ export const Breadcrumb = ({ items }: BreadcrumbProps) => {
   const isDevEnvironment = env === "dev";
 
   return (
-    <Box marginBottom={1} paddingX={1} paddingY={0}>
+    <Box marginBottom={1} paddingX={0} paddingY={0}>
       <Box
         borderStyle="round"
         borderColor={colors.primary}
