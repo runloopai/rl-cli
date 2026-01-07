@@ -4,6 +4,7 @@ import { writeFile, mkdir, chmod } from "fs/promises";
 import { join } from "path";
 import { homedir } from "os";
 import { getClient } from "./client.js";
+import { processUtils } from "./processUtils.js";
 
 const execAsync = promisify(exec);
 
@@ -139,7 +140,7 @@ export async function waitForReady(
  * Get SSH URL based on environment
  */
 export function getSSHUrl(): string {
-  const env = process.env.RUNLOOP_ENV?.toLowerCase();
+  const env = processUtils.env.RUNLOOP_ENV?.toLowerCase();
   return env === "dev" ? "ssh.runloop.pro:443" : "ssh.runloop.ai:443";
 }
 
@@ -182,7 +183,7 @@ export async function executeSSH(
     if (stderr) console.error(stderr);
   } catch (error) {
     console.error("SSH command failed:", error);
-    process.exit(1);
+    processUtils.exit(1);
   }
 }
 

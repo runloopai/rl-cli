@@ -32,6 +32,36 @@ global.console = {
   debug: jest.fn(),
 };
 
+// Mock processUtils to prevent actual process.exit calls in tests
+jest.mock("../src/utils/processUtils", () => ({
+  processUtils: {
+    exit: jest.fn((code?: number) => {
+      throw new Error(`process.exit(${code}) called`);
+    }),
+    stdout: {
+      write: jest.fn(() => true),
+      isTTY: false,
+    },
+    stderr: {
+      write: jest.fn(() => true),
+      isTTY: false,
+    },
+    stdin: {
+      isTTY: false,
+      setRawMode: jest.fn(),
+      on: jest.fn(),
+      removeListener: jest.fn(),
+    },
+    cwd: jest.fn(() => "/mock/cwd"),
+    on: jest.fn(),
+    off: jest.fn(),
+    env: process.env,
+  },
+  resetProcessUtils: jest.fn(),
+  createMockProcessUtils: jest.fn(),
+  installMockProcessUtils: jest.fn(),
+}));
+
 // Mock ESM-only dependencies that cause issues
 jest.mock("figures", () => ({
   __esModule: true,

@@ -5,6 +5,7 @@
 import { spawn } from "child_process";
 import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
+import { processUtils } from "../../utils/processUtils.js";
 import {
   getSSHKey,
   waitForReady,
@@ -98,7 +99,7 @@ export async function sshDevbox(devboxId: string, options: SSHOptions = {}) {
     });
 
     sshProcess.on("close", (code) => {
-      process.exit(code || 0);
+      processUtils.exit(code || 0);
     });
 
     sshProcess.on("error", (err) => {

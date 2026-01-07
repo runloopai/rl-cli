@@ -10,6 +10,7 @@ import {
   clearScreen,
   enterAlternateScreenBuffer,
 } from "../utils/screen.js";
+import { processUtils } from "../utils/processUtils.js";
 
 interface InteractiveSpawnProps {
   command: string;
@@ -28,21 +29,21 @@ function releaseTerminal(): void {
 
   // Disable raw mode so the subprocess can control terminal echo and line buffering
   // SSH needs to set its own terminal modes
-  if (process.stdin.isTTY && process.stdin.setRawMode) {
-    process.stdin.setRawMode(false);
+  if (processUtils.stdin.isTTY && processUtils.stdin.setRawMode) {
+    processUtils.stdin.setRawMode(false);
   }
 
   // Reset terminal attributes (SGR reset) - clears any colors/styles Ink may have set
-  if (process.stdout.isTTY) {
-    process.stdout.write("\x1b[0m");
+  if (processUtils.stdout.isTTY) {
+    processUtils.stdout.write("\x1b[0m");
   }
 
   // Show cursor - Ink may have hidden it, and subprocesses expect it to be visible
   showCursor();
 
   // Flush stdout to ensure all pending writes are complete before handoff
-  if (process.stdout.isTTY) {
-    process.stdout.write("");
+  if (processUtils.stdout.isTTY) {
+    processUtils.stdout.write("");
   }
 }
 
@@ -57,8 +58,8 @@ function restoreTerminal(): void {
   enterAlternateScreenBuffer();
 
   // Re-enable raw mode for Ink's input handling
-  if (process.stdin.isTTY && process.stdin.setRawMode) {
-    process.stdin.setRawMode(true);
+  if (processUtils.stdin.isTTY && processUtils.stdin.setRawMode) {
+    processUtils.stdin.setRawMode(true);
   }
 
   // Resume stdin so Ink can read input again

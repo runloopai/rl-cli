@@ -9,6 +9,7 @@ import {
 import Runloop from "@runloop/api-client";
 import { VERSION } from "@runloop/api-client/version.js";
 import Conf from "conf";
+import { processUtils } from "../utils/processUtils.js";
 
 // Client configuration
 interface Config {
@@ -509,5 +510,5 @@ main().catch((error) => {
     "[MCP] Stack trace:",
     error instanceof Error ? error.stack : "N/A",
   );
-  process.exit(1);
+  processUtils.exit(1);
 });
