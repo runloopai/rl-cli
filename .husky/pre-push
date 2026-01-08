@@ -1,0 +1,34 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Pre-push hook to ensure command docs are up to date
+# This hook runs docs:commands and fails if README.md needs to be committed
+
+echo "Running docs:commands to ensure README.md is up to date..."
+
+# Run the docs generation script
+npm run docs:commands
+
+# Check if README.md has uncommitted changes
+if ! git diff --quiet README.md; then
+  echo ""
+  echo "❌ README.md has uncommitted changes after running docs:commands"
+  echo "   Please commit the updated README.md before pushing:"
+  echo ""
+  echo "   git add README.md"
+  echo "   git commit -m 'docs: update command structure'"
+  echo ""
+  exit 1
+fi
+
+# Check if README.md has staged but uncommitted changes
+if ! git diff --cached --quiet README.md 2>/dev/null; then
+  echo ""
+  echo "⚠️  README.md has staged changes that need to be committed"
+  echo "   Please commit the staged README.md before pushing"
+  echo ""
+  exit 1
+fi
+
+echo "✅ README.md is up to date"
+exit 0

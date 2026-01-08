@@ -20,11 +20,12 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json}\"",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
+    "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",
+    "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage",
     "test:components": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.components.config.js --coverage --forceExit",
-    "docs:commands": "npm run build && node scripts/generate-command-docs.js"
+    "docs:commands": "npm run build && node scripts/generate-command-docs.js",
+    "prepare": "husky"
   },
   "keywords": [
     "runloop",
@@ -97,6 +98,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^6.1.1",
     "globals": "^16.4.0",
+    "husky": "^9.1.7",
     "ink-testing-library": "^4.0.0",
     "jest": "^29.7.0",
     "prettier": "^3.6.2",

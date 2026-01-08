@@ -119,42 +119,6 @@ rli mcp start                            # Start the MCP server
 rli mcp install                          # Install Runloop MCP server configurat...
 ```
 
-### Output Format
-
-All commands support the `--output` (or `-o`) parameter to control the output format. This is especially useful for scripting and automation:
-
-```bash
-# Output as JSON (default for list commands)
-rli devbox list --output json
-rli devbox list -o json
-
-# Output as YAML
-rli devbox get <id> --output yaml
-rli devbox get <id> -o yaml
-
-# Output as text (default for single item commands)
-rli devbox get <id> --output text
-rli devbox get <id> -o text
-```
-
-**Supported formats:**
-
-- `text` - Human-readable key-value pairs (default for single items)
-- `json` - JSON format (default for list commands)
-- `yaml` - YAML format
-
-**Examples:**
-
-```bash
-# Use JSON output for scripting
-DEVBOX_ID=$(rli devbox create --name my-devbox -o json | jq -r '.id')
-
-# Use YAML for configuration files
-rli devbox get <id> -o yaml > devbox-config.yaml
-
-# Use text for simple output
-rli devbox list -o text
-```
 
 ## MCP Server (AI Integration)
 
