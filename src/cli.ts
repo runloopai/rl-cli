@@ -7,18 +7,7 @@ import { deleteDevbox } from "./commands/devbox/delete.js";
 import { execCommand } from "./commands/devbox/exec.js";
 import { uploadFile } from "./commands/devbox/upload.js";
 import { getConfig } from "./utils/config.js";
-import { readFileSync } from "fs";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
-
-// Get version from package.json
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const packageJson = JSON.parse(
-  readFileSync(join(__dirname, "../package.json"), "utf8"),
-);
-export const VERSION = packageJson.version;
-
+import { VERSION } from "./version.js";
 import { exitAlternateScreenBuffer } from "./utils/screen.js";
 import { processUtils } from "./utils/processUtils.js";
 

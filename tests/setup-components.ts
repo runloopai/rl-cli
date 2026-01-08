@@ -211,8 +211,8 @@ jest.mock("../src/hooks/useExitOnCtrlC.ts", () => ({
   useExitOnCtrlC: jest.fn(),
 }));
 
-// Mock cli.ts VERSION export
-jest.mock("../src/cli.ts", () => ({
+// Mock version.ts VERSION export
+jest.mock("../src/version", () => ({
   VERSION: "0.1.0",
 }));
 
