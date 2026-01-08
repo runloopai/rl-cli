@@ -607,20 +607,24 @@ program
 
   // Check if API key is configured (except for mcp commands)
   const args = process.argv.slice(2);
-  if (
-    args[0] !== "mcp" &&
-    args[0] !== "mcp-server" &&
-    args[0] !== "--help" &&
-    args[0] !== "-h" &&
-    args.length > 0
-  ) {
-    const config = getConfig();
-    if (!config.apiKey) {
-      console.error(
-        "\n❌ API key not configured. Set RUNLOOP_API_KEY environment variable.\n",
-      );
-      processUtils.exit(1);
-    }
+  if (!process.env.RUNLOOP_API_KEY) {
+    console.error(`
+❌ API key not configured.
+
+To get started:
+1. Go to https://platform.runloop.ai/settings and create an API key
+2. Set the environment variable:
+
+   export RUNLOOP_API_KEY=your_api_key_here
+
+To make it permanent, add this line to your shell config:
+   • For zsh:  echo 'export RUNLOOP_API_KEY=your_api_key_here' >> ~/.zshrc
+   • For bash: echo 'export RUNLOOP_API_KEY=your_api_key_here' >> ~/.bashrc
+
+Then restart your terminal or run: source ~/.zshrc (or ~/.bashrc)
+`);
+    processUtils.exit(1);
+    return; // Ensure execution stops
   }
 
   // If no command provided, show main menu
