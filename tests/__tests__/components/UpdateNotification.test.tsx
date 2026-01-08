@@ -86,7 +86,7 @@ describe('UpdateNotification', () => {
     
     await new Promise((resolve) => setTimeout(resolve, 100));
     
-    expect(lastFrame()).toContain('npm install -g @runloop/rl-cli@latest');
+    expect(lastFrame()).toContain('npm i -g @runloop/rl-cli@latest');
   });
 
   it('handles non-ok response', async () => {
