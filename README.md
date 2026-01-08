@@ -53,7 +53,7 @@ export RUNLOOP_THEME=dark    # Force dark mode (light text on dark background)
 
 **How it works:**
 
-- **auto** (default): Uses dark mode by default
+- **auto** (default): Detects correct theme by default
 - **light**: Optimized for light-themed terminals (uses dark text colors)
 - **dark**: Optimized for dark-themed terminals (uses light text colors)
 
