@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/runloopai/rl-cli/compare/v0.8.0...v0.9.0) (2026-01-08)
+
+
+### Features
+
+* **devbox:** added state transition display to detail page ([#34](https://github.com/runloopai/rl-cli/issues/34)) ([80ad621](https://github.com/runloopai/rl-cli/commit/80ad621930bd1174cd395476a4cd6148848f792c))
+
 ## [0.8.0](https://github.com/runloopai/rl-cli/compare/v0.7.0...v0.8.0) (2026-01-08)
 
 
