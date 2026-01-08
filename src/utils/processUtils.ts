@@ -72,7 +72,7 @@ export interface ProcessUtils {
   /**
    * Environment variables (read-only access)
    */
-  env: NodeJS.ProcessEnv;
+  env: typeof process.env;
 }
 
 // Store original references for reset
