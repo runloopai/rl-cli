@@ -44,7 +44,6 @@ export default [
       'no-case-declarations': 'off',
       'no-control-regex': 'off',
       'react/display-name': 'off',
-      'require-component-tests/require-component-tests': 'error',
     },
     settings: {
       react: {
