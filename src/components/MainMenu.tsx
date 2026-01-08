@@ -3,7 +3,7 @@ import { Box, Text, useInput, useApp } from "ink";
 import figures from "figures";
 import { Banner } from "./Banner.js";
 import { Breadcrumb } from "./Breadcrumb.js";
-import { VERSION } from "../cli.js";
+import { VERSION } from "../version.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
@@ -133,7 +133,10 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
 
   return (
     <Box flexDirection="column">
-      <Breadcrumb items={[{ label: "Home", active: true }]} />
+      <Breadcrumb
+        items={[{ label: "Home", active: true }]}
+        showVersionCheck={true}
+      />
 
       <Banner />
 

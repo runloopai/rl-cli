@@ -4,12 +4,13 @@
  */
 import { useInput } from "ink";
 import { exitAlternateScreenBuffer } from "../utils/screen.js";
+import { processUtils } from "../utils/processUtils.js";
 
 export function useExitOnCtrlC(): void {
   useInput((input, key) => {
     if (key.ctrl && input === "c") {
       exitAlternateScreenBuffer();
-      process.exit(130); // Standard exit code for SIGINT
+      processUtils.exit(130); // Standard exit code for SIGINT
     }
   });
 }

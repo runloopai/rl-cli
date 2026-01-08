@@ -7,13 +7,15 @@
  * the original screen content is restored.
  */
 
+import { processUtils } from "./processUtils.js";
+
 /**
  * Enter the alternate screen buffer.
  * This provides a fullscreen experience where content won't mix with
  * previous terminal output. Like vim or top.
  */
 export function enterAlternateScreenBuffer(): void {
-  process.stdout.write("\x1b[?1049h");
+  processUtils.stdout.write("\x1b[?1049h");
 }
 
 /**
@@ -21,5 +23,46 @@ export function enterAlternateScreenBuffer(): void {
  * This returns the terminal to its original state before enterAlternateScreen() was called.
  */
 export function exitAlternateScreenBuffer(): void {
-  process.stdout.write("\x1b[?1049l");
+  processUtils.stdout.write("\x1b[?1049l");
+}
+
+/**
+ * Clear the terminal screen.
+ * Uses ANSI escape sequences to clear the screen and move cursor to top-left.
+ */
+export function clearScreen(): void {
+  // Clear entire screen and move cursor to top-left
+  processUtils.stdout.write("\x1b[2J\x1b[H");
+}
+
+/**
+ * Show the terminal cursor.
+ * Uses ANSI escape sequence to make the cursor visible.
+ */
+export function showCursor(): void {
+  processUtils.stdout.write("\x1b[?25h");
+}
+
+/**
+ * Hide the terminal cursor.
+ * Uses ANSI escape sequence to make the cursor invisible.
+ */
+export function hideCursor(): void {
+  processUtils.stdout.write("\x1b[?25l");
+}
+
+/**
+ * Reset terminal to a clean state.
+ * Exits alternate screen buffer, clears the screen, and resets cursor.
+ * Also resets terminal attributes to ensure clean state for subprocesses.
+ */
+export function resetTerminal(): void {
+  exitAlternateScreenBuffer();
+  clearScreen();
+  // Reset terminal attributes (SGR reset)
+  processUtils.stdout.write("\x1b[0m");
+  // Move cursor to home position
+  processUtils.stdout.write("\x1b[H");
+  // Show cursor to ensure it's visible
+  showCursor();
 }

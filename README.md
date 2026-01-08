@@ -253,16 +253,6 @@ npm run dev
 npm start -- <command>
 ```
 
-## Tech Stack
-
-- [Ink](https://github.com/vadimdemedes/ink) - React for CLIs
-- [Ink Gradient](https://github.com/sindresorhus/ink-gradient) - Gradient text
-- [Ink Big Text](https://github.com/sindresorhus/ink-big-text) - ASCII art
-- [Commander.js](https://github.com/tj/commander.js) - CLI framework
-- [@runloop/api-client](https://github.com/runloopai/api-client-ts) - Runloop API client
-- TypeScript - Type safety
-- [Figures](https://github.com/sindresorhus/figures) - Unicode symbols
-
 ## Publishing
 
 To publish a new version to npm:

@@ -19,7 +19,7 @@ export default {
   
   // Test discovery
   roots: ['<rootDir>/tests'],
-  testMatch: ['**/__tests__/**/*.test.ts'],
+  testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
   
   // Coverage configuration
   collectCoverageFrom: [
@@ -42,9 +42,9 @@ export default {
       useESM: true 
     }),
       // Mock problematic ESM modules
-      '^figures$': '<rootDir>/tests/__mocks__/figures.js',
-      '^is-unicode-supported$': '<rootDir>/tests/__mocks__/is-unicode-supported.js',
-      '^conf$': '<rootDir>/tests/__mocks__/conf.js',
+      '^figures$': '<rootDir>/tests/__mocks__/figures.ts',
+      '^is-unicode-supported$': '<rootDir>/tests/__mocks__/is-unicode-supported.ts',
+      '^conf$': '<rootDir>/tests/__mocks__/conf.ts',
   },
   
   // Transform configuration
@@ -65,7 +65,7 @@ export default {
   
   // Transform ignore patterns for node_modules
   transformIgnorePatterns: [
-    'node_modules/(?!(conf|@runloop|ink|react|ink-big-text|ink-gradient|ink-spinner|ink-text-input|ink-select-input|ink-box|ink-text|figures|is-unicode-supported)/)'
+    'node_modules/(?!(conf|@runloop|ink|react|ink-big-text|ink-gradient|ink-spinner|ink-text-input|ink-select-input|ink-box|ink-text|ink-testing-library|figures|is-unicode-supported)/)'
   ],
   
   // Treat these extensions as ESM
@@ -81,6 +81,13 @@ export default {
       functions: 80,
       lines: 80,
       statements: 80,
+    },
+    // Require all component files to have test coverage
+    './src/components/': {
+      branches: 50,
+      functions: 50,
+      lines: 50,
+      statements: 50,
     },
   },
   

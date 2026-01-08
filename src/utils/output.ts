@@ -7,6 +7,7 @@
  */
 
 import YAML from "yaml";
+import { processUtils } from "./processUtils.js";
 
 export type OutputFormat = "text" | "json" | "yaml";
 
@@ -37,7 +38,7 @@ function resolveFormat(options: SimpleOutputOptions): OutputFormat {
   console.error(
     `Unknown output format: ${format}. Valid options: text, json, yaml`,
   );
-  process.exit(1);
+  processUtils.exit(1);
 }
 
 /**
@@ -154,7 +155,7 @@ export function outputError(message: string, error?: Error | unknown): never {
   if (error && errorMessage !== message) {
     console.error(`  ${errorMessage}`);
   }
-  process.exit(1);
+  processUtils.exit(1);
 }
 
 /**
@@ -269,5 +270,5 @@ export function validateOutputFormat(format?: string): OutputFormat {
   console.error(
     `Unknown output format: ${format}. Valid options: text, json, yaml`,
   );
-  process.exit(1);
+  processUtils.exit(1);
 }

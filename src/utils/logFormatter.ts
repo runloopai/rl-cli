@@ -4,8 +4,13 @@
 
 import chalk from "chalk";
 import type { DevboxLogsListView } from "@runloop/api-client/resources/devboxes/logs";
+import type { BlueprintBuildLog } from "@runloop/api-client/resources/blueprints";
 
 export type DevboxLog = DevboxLogsListView["logs"][number];
+export type BlueprintLog = BlueprintBuildLog;
+
+// Union type for both log types
+export type AnyLog = DevboxLog | BlueprintLog;
 
 // Source abbreviations for consistent display
 const SOURCE_CONFIG: Record<string, { abbrev: string; color: string }> = {
@@ -116,7 +121,7 @@ export function getSourceInfo(source: string | null | undefined): {
 }
 
 /**
- * Parse a log entry into formatted parts (for use in Ink UI)
+ * Parse a devbox log entry into formatted parts (for use in Ink UI)
  */
 export function parseLogEntry(log: DevboxLog): FormattedLogParts {
   const levelInfo = getLogLevelInfo(log.level);
@@ -134,6 +139,53 @@ export function parseLogEntry(log: DevboxLog): FormattedLogParts {
     exitCode: log.exit_code ?? null,
     exitCodeColor: log.exit_code === 0 ? "green" : "red",
   };
+}
+
+/**
+ * Parse a blueprint log entry into formatted parts (for use in Ink UI)
+ * Blueprint logs have a simpler structure (no source, shell_name, cmd, exit_code)
+ */
+export function parseBlueprintLogEntry(log: BlueprintLog): FormattedLogParts {
+  const levelInfo = getLogLevelInfo(log.level);
+  // Blueprint logs don't have a source, use "build" as default
+  const sourceInfo = getSourceInfo("build");
+
+  // Handle timestamp - may be timestamp_ms or timestamp
+  let timestampMs: number;
+  if (log.timestamp_ms !== undefined) {
+    timestampMs = log.timestamp_ms;
+  } else if ((log as any).timestamp !== undefined) {
+    const ts = (log as any).timestamp;
+    timestampMs = typeof ts === "number" ? ts : new Date(ts).getTime();
+  } else {
+    // Fallback to current time if no timestamp
+    timestampMs = Date.now();
+  }
+
+  return {
+    timestamp: formatTimestamp(timestampMs),
+    level: levelInfo.name,
+    levelColor: levelInfo.color,
+    source: sourceInfo.abbrev,
+    sourceColor: sourceInfo.color,
+    shellName: null,
+    cmd: null,
+    message: log.message || "",
+    exitCode: null,
+    exitCodeColor: "gray",
+  };
+}
+
+/**
+ * Parse any log entry (devbox or blueprint) into formatted parts
+ */
+export function parseAnyLogEntry(log: AnyLog): FormattedLogParts {
+  // Check if it's a devbox log by looking for source field
+  if ("source" in log || "shell_name" in log || "cmd" in log) {
+    return parseLogEntry(log as DevboxLog);
+  } else {
+    return parseBlueprintLogEntry(log as BlueprintLog);
+  }
 }
 
 /**
