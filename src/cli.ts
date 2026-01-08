@@ -15,7 +15,6 @@ processUtils.on("SIGINT", () => {
 
 const program = createProgram();
 
-
 // Main CLI entry point
 (async () => {
   // Initialize theme system early (before any UI rendering)

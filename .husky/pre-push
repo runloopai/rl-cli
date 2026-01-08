@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Pre-push hook to ensure command docs are up to date
 # This hook runs docs:commands and fails if README.md needs to be committed
 
