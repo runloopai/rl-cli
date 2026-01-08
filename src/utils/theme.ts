@@ -9,6 +9,7 @@ import {
   getDetectedTheme,
   setDetectedTheme,
 } from "./config.js";
+import chalk from "chalk";
 
 // Color palette structure
 type ColorPalette = {
@@ -106,25 +107,19 @@ export async function initializeTheme(): Promise<void> {
   let detectedTheme: ThemeMode | null = null;
 
   // Auto-detect if preference is 'auto'
+  // Always detect on startup to support different terminal profiles
+  // (users may have different terminal profiles with different themes)
   if (preference === "auto") {
-    // Check cache first - only detect if we haven't cached a result
-    const cachedTheme = getDetectedTheme();
-
-    if (cachedTheme) {
-      // Use cached detection result (no flashing!)
-      detectedTheme = cachedTheme;
-    } else {
-      // First time detection - run it and cache the result
-      try {
-        detectedTheme = await detectTerminalTheme();
-        if (detectedTheme) {
-          // Cache the result so we don't detect again
-          setDetectedTheme(detectedTheme);
-        }
-      } catch {
-        // Detection failed, fall back to dark mode
-        detectedTheme = null;
+    try {
+      detectedTheme = await detectTerminalTheme();
+      // Cache the result for reference, but we always re-detect on startup
+      if (detectedTheme) {
+        setDetectedTheme(detectedTheme);
       }
+    } catch {
+      // Detection failed, fall back to cached value or dark mode
+      const cachedTheme = getDetectedTheme();
+      detectedTheme = cachedTheme || null;
     }
   }
 
@@ -157,11 +152,33 @@ export type ColorName = keyof ColorPalette;
 export type ColorValue = ColorPalette[ColorName];
 
 /**
- * Get chalk function for a color name
+ * Get hex color value for a color name
  * Useful for applying colors dynamically
  */
 export function getChalkColor(colorName: ColorName): string {
   return activeColors[colorName];
+}
+
+/**
+ * Get chalk text color function for a color name
+ * Converts hex color to chalk function for text coloring
+ * @param colorName - Name of the color from the palette
+ * @returns Chalk function that can be used to color text
+ */
+export function getChalkTextColor(colorName: ColorName) {
+  const hexColor = activeColors[colorName];
+  return chalk.hex(hexColor);
+}
+
+/**
+ * Get chalk background color function for a color name
+ * Converts hex color to chalk function for background coloring
+ * @param colorName - Name of the color from the palette
+ * @returns Chalk function that can be used to color backgrounds
+ */
+export function getChalkBgColor(colorName: ColorName) {
+  const hexColor = activeColors[colorName];
+  return chalk.bgHex(hexColor);
 }
 
 /**

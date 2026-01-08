@@ -125,11 +125,3 @@ export async function commandName(args, options: OutputOptions = {}) {
   await waitUntilExit();
 }
 ```
-
-## Benefits
-
-1. **Scriptable**: All commands can be used in scripts and automation
-2. **Composable**: JSON output works perfectly with `jq`, `jc`, and other tools
-3. **Consistent**: All commands use the same output utility
-4. **Backwards Compatible**: Default behavior unchanged (interactive UI)
-5. **Extensible**: Easy to add new output formats (yaml, table, etc)

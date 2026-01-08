@@ -2,7 +2,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import figures from "figures";
 import chalk from "chalk";
-import { isLightMode } from "../utils/theme.js";
+import { getChalkTextColor, getChalkColor } from "../utils/theme.js";
 
 // Generic resource type - accepts any object with an id and optional name
 interface ResourceWithId {
@@ -47,11 +47,12 @@ export const ActionsPopup = ({
   // CRITICAL: Validate all computed widths are positive integers
   const contentWidth = Math.max(10, maxContentWidth + 4);
 
-  // Get background color chalk function - inverted for contrast
-  // In light mode (light terminal), use black background for popup
-  // In dark mode (dark terminal), use white background for popup
-  const bgColor = isLightMode() ? chalk.bgBlack : chalk.bgWhite;
-  const textColor = isLightMode() ? chalk.white : chalk.black;
+  // Get background color chalk function - use theme colors to match the theme mode
+  // In light mode, use light background; in dark mode, use dark background
+  const popupBgHex = getChalkColor("background");
+  const popupTextHex = getChalkColor("text");
+  const bgColorFn = chalk.bgHex(popupBgHex);
+  const textColorFn = chalk.hex(popupTextHex);
 
   // Helper to create background lines with proper padding including left/right margins
   const createBgLine = (styledContent: string, plainContent: string) => {
@@ -63,12 +64,14 @@ export const ActionsPopup = ({
     );
     const rightPadding = " ".repeat(repeatCount);
     // Apply background to left padding + content + right padding
-    return bgColor("  " + styledContent + rightPadding + "  ");
+    return bgColorFn("  " + styledContent + rightPadding + "  ");
   };
 
   // Create empty line with full background
   // CRITICAL: Validate repeat count is positive integer
-  const emptyLine = bgColor(" ".repeat(Math.max(1, Math.floor(contentWidth))));
+  const emptyLine = bgColorFn(
+    " ".repeat(Math.max(1, Math.floor(contentWidth))),
+  );
 
   // Create border lines with background and integrated title
   const title = `${figures.play} Quick Actions`;
@@ -84,19 +87,19 @@ export const ActionsPopup = ({
   );
 
   // Use theme primary color for borders to match theme
-  const borderColorFn = isLightMode() ? chalk.cyan : chalk.blue;
+  const borderColorFn = getChalkTextColor("primary");
 
-  const borderTop = bgColor(
+  const borderTop = bgColorFn(
     borderColorFn("╭─" + titleWithSpaces + "─".repeat(remainingDashes) + "╮"),
   );
   // CRITICAL: Validate contentWidth is a positive integer
-  const borderBottom = bgColor(
+  const borderBottom = bgColorFn(
     borderColorFn(
       "╰" + "─".repeat(Math.max(1, Math.floor(contentWidth))) + "╯",
     ),
   );
   const borderSide = (content: string) => {
-    return bgColor(borderColorFn("│") + content + borderColorFn("│"));
+    return bgColorFn(borderColorFn("│") + content + borderColorFn("│"));
   };
 
   return (
@@ -120,11 +123,11 @@ export const ActionsPopup = ({
               | "yellow"
               | "magenta"
               | "cyan";
-            const colorFn = chalk[opColor] || textColor;
-            styledLine = `${textColor(pointer)} ${colorFn(op.icon)} ${colorFn.bold(op.label)} ${textColor(`[${op.shortcut}]`)}`;
+            const colorFn = chalk[opColor] || textColorFn;
+            styledLine = `${textColorFn(pointer)} ${colorFn(op.icon)} ${colorFn.bold(op.label)} ${textColorFn(`[${op.shortcut}]`)}`;
           } else {
-            // Unselected: gray/dim text for everything
-            const dimFn = isLightMode() ? chalk.gray : chalk.gray;
+            // Unselected: use theme's textDim color for dimmed text
+            const dimFn = getChalkTextColor("textDim");
             styledLine = `${dimFn(pointer)} ${dimFn(op.icon)} ${dimFn(op.label)} ${dimFn(`[${op.shortcut}]`)}`;
           }
 
@@ -139,7 +142,7 @@ export const ActionsPopup = ({
         <Text>
           {borderSide(
             createBgLine(
-              textColor(
+              textColorFn(
                 `${figures.arrowUp}${figures.arrowDown} Nav • [Enter] • [Esc] Close`,
               ),
               `${figures.arrowUp}${figures.arrowDown} Nav • [Enter] • [Esc] Close`,

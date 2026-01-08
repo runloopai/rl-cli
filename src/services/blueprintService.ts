@@ -106,38 +106,33 @@ export async function getBlueprint(id: string): Promise<Blueprint> {
 
 /**
  * Get blueprint logs
+ * Returns the raw logs array from the API response
+ * Similar to getDevboxLogs - formatting is handled by logFormatter
  */
 export async function getBlueprintLogs(id: string): Promise<any[]> {
   const client = getClient();
   const response = await client.blueprints.logs(id);
 
-  // CRITICAL: Truncate all strings to prevent Yoga crashes
-  const MAX_MESSAGE_LENGTH = 1000;
-  const MAX_LEVEL_LENGTH = 20;
-
-  const logs: any[] = [];
+  // Return the logs array directly - formatting is handled by logFormatter
+  // Ensure timestamp_ms is present (API may return timestamp or timestamp_ms)
   if (response.logs && Array.isArray(response.logs)) {
-    response.logs.forEach((log: any) => {
-      // Truncate message and escape newlines
-      let message = String(log.message || "");
-      if (message.length > MAX_MESSAGE_LENGTH) {
-        message = message.substring(0, MAX_MESSAGE_LENGTH) + "...";
+    return response.logs.map((log: any) => {
+      // Normalize timestamp field to timestamp_ms if needed
+      // Create a new object to avoid mutating the original
+      const normalizedLog = { ...log };
+      if (normalizedLog.timestamp && !normalizedLog.timestamp_ms) {
+        // If timestamp is a number, use it directly; if it's a string, parse it
+        if (typeof normalizedLog.timestamp === "number") {
+          normalizedLog.timestamp_ms = normalizedLog.timestamp;
+        } else if (typeof normalizedLog.timestamp === "string") {
+          normalizedLog.timestamp_ms = new Date(
+            normalizedLog.timestamp,
+          ).getTime();
+        }
       }
-      message = message
-        .replace(/\r\n/g, "\\n")
-        .replace(/\n/g, "\\n")
-        .replace(/\r/g, "\\r")
-        .replace(/\t/g, "\\t");
-
-      logs.push({
-        timestamp: log.timestamp,
-        message,
-        level: log.level
-          ? String(log.level).substring(0, MAX_LEVEL_LENGTH)
-          : undefined,
-      });
+      return normalizedLog;
     });
   }
 
-  return logs;
+  return [];
 }

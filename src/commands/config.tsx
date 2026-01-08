@@ -9,6 +9,7 @@ import {
 import { Header } from "../components/Header.js";
 import { SuccessMessage } from "../components/SuccessMessage.js";
 import { colors, getCurrentTheme, setThemeMode } from "../utils/theme.js";
+import { processUtils } from "../utils/processUtils.js";
 
 interface ThemeOption {
   value: "auto" | "light" | "dark";
@@ -217,9 +218,9 @@ const StaticConfigUI = ({ action, value }: StaticConfigUIProps) => {
       }
 
       setSaved(true);
-      setTimeout(() => process.exit(0), 1500);
+      setTimeout(() => processUtils.exit(0), 1500);
     } else if (action === "get" || !action) {
-      setTimeout(() => process.exit(0), 2000);
+      setTimeout(() => processUtils.exit(0), 2000);
     }
   }, [action, value]);
 

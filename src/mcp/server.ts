@@ -7,7 +7,9 @@ import {
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 import Runloop from "@runloop/api-client";
+import { VERSION } from "@runloop/api-client/version.js";
 import Conf from "conf";
+import { processUtils } from "../utils/processUtils.js";
 
 // Client configuration
 interface Config {
@@ -71,6 +73,9 @@ function getClient(): Runloop {
     baseURL,
     timeout: 10000, // 10 seconds instead of default 30 seconds
     maxRetries: 2, // 2 retries instead of default 5 (only for retryable errors)
+    defaultHeaders: {
+      "User-Agent": `Runloop/JS ${VERSION} - CLI MCP`,
+    },
   });
 }
 
@@ -505,5 +510,5 @@ main().catch((error) => {
     "[MCP] Stack trace:",
     error instanceof Error ? error.stack : "N/A",
   );
-  process.exit(1);
+  processUtils.exit(1);
 });

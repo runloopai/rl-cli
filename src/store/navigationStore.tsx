@@ -8,6 +8,7 @@ export type ScreenName =
   | "devbox-create"
   | "blueprint-list"
   | "blueprint-detail"
+  | "blueprint-logs"
   | "snapshot-list"
   | "snapshot-detail"
   | "ssh-session";
@@ -15,6 +16,7 @@ export type ScreenName =
 export interface RouteParams {
   devboxId?: string;
   blueprintId?: string;
+  blueprintName?: string;
   snapshotId?: string;
   operation?: string;
   focusDevboxId?: string;

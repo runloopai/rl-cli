@@ -8,6 +8,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { getClient } from "../utils/client.js";
 import express from "express";
+import { processUtils } from "../utils/processUtils.js";
 
 // Define available tools for the MCP server
 const TOOLS: Tool[] = [
@@ -449,5 +450,5 @@ async function main() {
 
 main().catch((error) => {
   console.error("Fatal error in main():", error);
-  process.exit(1);
+  processUtils.exit(1);
 });

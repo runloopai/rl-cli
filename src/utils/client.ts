@@ -1,4 +1,5 @@
 import Runloop from "@runloop/api-client";
+import { VERSION } from "@runloop/api-client/version.js";
 import { getConfig } from "./config.js";
 
 /**
@@ -30,5 +31,8 @@ export function getClient(): Runloop {
   return new Runloop({
     bearerToken: config.apiKey,
     baseURL,
+    defaultHeaders: {
+      "User-Agent": `Runloop/JS ${VERSION} - CLI`,
+    },
   });
 }

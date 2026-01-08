@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { homedir, platform } from "os";
 import { join } from "path";
 import { execSync } from "child_process";
+import { processUtils } from "../utils/processUtils.js";
 
 function getClaudeConfigPath(): string {
   const plat = platform();
@@ -16,7 +17,7 @@ function getClaudeConfigPath(): string {
       "claude_desktop_config.json",
     );
   } else if (plat === "win32") {
-    const appData = process.env.APPDATA;
+    const appData = processUtils.env.APPDATA;
     if (!appData) {
       throw new Error("APPDATA environment variable not found");
     }
@@ -67,7 +68,7 @@ export async function installMcpConfig() {
         console.error(
           "Please fix the file manually or delete it to create a new one",
         );
-        process.exit(1);
+        processUtils.exit(1);
       }
     } else {
       console.log("✓ No existing config found, will create new one");
@@ -91,22 +92,22 @@ export async function installMcpConfig() {
       console.log("\n❓ Do you want to overwrite it? (y/N): ");
 
       // For non-interactive mode, just exit
-      if (process.stdin.isTTY) {
+      if (processUtils.stdin.isTTY) {
         const response = await new Promise<string>((resolve) => {
-          process.stdin.once("data", (data) => {
-            resolve(data.toString().trim().toLowerCase());
+          processUtils.stdin.on("data", (data) => {
+            resolve((data as Buffer).toString().trim().toLowerCase());
           });
         });
 
         if (response !== "y" && response !== "yes") {
           console.log("\n✓ Keeping existing configuration");
-          process.exit(0);
+          processUtils.exit(0);
         }
       } else {
         console.log(
           "\n✓ Keeping existing configuration (non-interactive mode)",
         );
-        process.exit(0);
+        processUtils.exit(0);
       }
     }
 
@@ -161,6 +162,6 @@ export async function installMcpConfig() {
         2,
       ),
     );
-    process.exit(1);
+    processUtils.exit(1);
   }
 }

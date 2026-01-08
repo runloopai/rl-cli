@@ -7,6 +7,7 @@ import { Banner } from "../components/Banner.js";
 import { SuccessMessage } from "../components/SuccessMessage.js";
 import { getSettingsUrl } from "../utils/url.js";
 import { colors } from "../utils/theme.js";
+import { processUtils } from "../utils/processUtils.js";
 
 const AuthUI = () => {
   const [apiKey, setApiKeyInput] = React.useState("");
@@ -16,7 +17,7 @@ const AuthUI = () => {
     if (key.return && apiKey.trim()) {
       setApiKey(apiKey.trim());
       setSaved(true);
-      setTimeout(() => process.exit(0), 1000);
+      setTimeout(() => processUtils.exit(0), 1000);
     }
   });
 
