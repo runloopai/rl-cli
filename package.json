@@ -23,7 +23,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:components": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.components.config.js --coverage --forceExit"
+    "test:components": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.components.config.js --coverage --forceExit",
+    "docs:commands": "npm run build && node scripts/generate-command-docs.js"
   },
   "keywords": [
     "runloop",
