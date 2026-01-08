@@ -1,5 +1,23 @@
-# Pre-push hook to ensure command docs are up to date
-# This hook runs docs:commands and fails if README.md needs to be committed
+# Pre-push hook to ensure code quality and docs are up to date
+# This hook runs format:check, lint, and docs:commands
+
+echo "Running format:check..."
+if ! npm run format:check; then
+  echo ""
+  echo "❌ Code formatting check failed"
+  echo "   Please run 'npm run format' to fix formatting issues"
+  echo ""
+  exit 1
+fi
+
+echo "Running lint..."
+if ! npm run lint; then
+  echo ""
+  echo "❌ Linting failed"
+  echo "   Please run 'npm run lint:fix' to fix linting issues"
+  echo ""
+  exit 1
+fi
 
 echo "Running docs:commands to ensure README.md is up to date..."
 

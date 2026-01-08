@@ -28,7 +28,10 @@ export function createProgram(): Command {
     .command("create")
     .description("Create a new devbox")
     .option("-n, --name <name>", "Devbox name")
-    .option("-t, --template <template>", "Snapshot ID to use (alias: --snapshot)")
+    .option(
+      "-t, --template <template>",
+      "Snapshot ID to use (alias: --snapshot)",
+    )
     .option("-s, --snapshot <snapshot>", "Snapshot ID to use")
     .option("--blueprint <blueprint>", "Blueprint name or ID to use")
     .option(
@@ -377,7 +380,9 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: text)",
     )
     .action(async (snapshotId, options) => {
-      const { getSnapshotStatus } = await import("../commands/snapshot/status.js");
+      const { getSnapshotStatus } = await import(
+        "../commands/snapshot/status.js"
+      );
       await getSnapshotStatus({ snapshotId, ...options });
     });
 
@@ -420,7 +425,9 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: json)",
     )
     .action(async (options) => {
-      const { createBlueprint } = await import("../commands/blueprint/create.js");
+      const { createBlueprint } = await import(
+        "../commands/blueprint/create.js"
+      );
       await createBlueprint(options);
     });
 
@@ -444,7 +451,9 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: text)",
     )
     .action(async (id, options) => {
-      const { getBlueprintLogs } = await import("../commands/blueprint/logs.js");
+      const { getBlueprintLogs } = await import(
+        "../commands/blueprint/logs.js"
+      );
       await getBlueprintLogs({ id, ...options });
     });
 
@@ -461,7 +470,10 @@ export function createProgram(): Command {
     .option("--starting-after <id>", "Starting point for pagination")
     .option("--name <name>", "Filter by name (partial match supported)")
     .option("--content-type <type>", "Filter by content type")
-    .option("--state <state>", "Filter by state (UPLOADING, READ_ONLY, DELETED)")
+    .option(
+      "--state <state>",
+      "Filter by state (UPLOADING, READ_ONLY, DELETED)",
+    )
     .option("--search <query>", "Search by object ID or name")
     .option("--public", "List public objects only")
     .option(
