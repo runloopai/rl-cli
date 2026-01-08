@@ -5,8 +5,10 @@ import { Banner } from "./Banner.js";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { VERSION } from "../version.js";
 import { colors } from "../utils/theme.js";
+import { execCommand } from "../utils/exec.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
+import { useUpdateCheck } from "../hooks/useUpdateCheck.js";
 
 interface MenuItem {
   key: string;
@@ -51,6 +53,9 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
   // Use centralized viewport hook for consistent layout
   const { terminalHeight } = useViewportHeight({ overhead: 0 });
 
+  // Check for updates
+  const { updateAvailable } = useUpdateCheck();
+
   // Handle Ctrl+C to exit
   useExitOnCtrlC();
 
@@ -69,6 +74,12 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       onSelect("blueprints");
     } else if (input === "s" || input === "3") {
       onSelect("snapshots");
+    } else if (input === "u" && updateAvailable) {
+      // Release terminal and exec into update command (never returns)
+      execCommand("sh", [
+        "-c",
+        "npm install -g @runloop/rl-cli@latest && exec rli",
+      ]);
     }
   });
 
@@ -125,6 +136,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
             {figures.arrowUp}
             {figures.arrowDown} Navigate • [1-3] Quick select • [Enter] Select •
             [Esc] Quit
+            {updateAvailable && " • [u] Update"}
           </Text>
         </Box>
       </Box>
@@ -204,6 +216,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
             {figures.arrowUp}
             {figures.arrowDown} Navigate • [1-3] Quick select • [Enter] Select •
             [Esc] Quit
+            {updateAvailable && " • [u] Update"}
           </Text>
         </Box>
       </Box>
