@@ -131,13 +131,11 @@ Example for Claude Code or other MCP clients supporting HTTP:
 
 ## Authentication
 
-The MCP server uses the same API key configuration as the CLI. Make sure you've authenticated first:
+The MCP server uses the same API key configuration as the CLI. Set your API key:
 
 ```bash
-rli auth
+export RUNLOOP_API_KEY=your_api_key_here
 ```
-
-The server will automatically use your stored API credentials.
 
 ## Example Usage with Claude
 
@@ -162,7 +160,7 @@ Claude will use the MCP tools to interact with your Runloop account and provide 
 
 If the stdio MCP server isn't working:
 
-1. Make sure you've run `rli auth` to configure your API key
+1. Make sure `RUNLOOP_API_KEY` environment variable is set
 2. Check that the `rli` command is in your PATH
 3. Restart Claude Desktop after updating the configuration
 4. Check Claude's logs for any error messages
@@ -171,7 +169,7 @@ If the stdio MCP server isn't working:
 
 If the HTTP MCP server isn't working:
 
-1. Make sure you've run `rli auth` to configure your API key
+1. Make sure `RUNLOOP_API_KEY` environment variable is set
 2. Check that the port isn't already in use
 3. Verify the server is running: `curl http://localhost:3000/sse`
 4. Check your firewall settings if connecting remotely
@@ -179,7 +177,7 @@ If the HTTP MCP server isn't working:
 
 ### Common Issues
 
-- **"API key not configured"**: Run `rli auth` to set up your credentials
+- **"API key not configured"**: Set `RUNLOOP_API_KEY` environment variable
 - **Port already in use**: Stop other services or use a different port with `--port`
 - **Connection refused**: Make sure the server is running and accessible
 
