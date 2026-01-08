@@ -1,4 +1,5 @@
 // Load environment variables from .env file if it exists
+import { jest } from "@jest/globals";
 import { config } from "dotenv";
 import { existsSync } from "fs";
 import { join } from "path";

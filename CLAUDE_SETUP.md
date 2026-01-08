@@ -197,4 +197,4 @@ Claude will automatically use these tools when you ask questions about your Runl
 
 ---
 
-**Need help?** Open an issue at https://github.com/runloop/rl-cli-node/issues
+**Need help?** Open an issue at https://github.com/runloopai/rl-cli/issues

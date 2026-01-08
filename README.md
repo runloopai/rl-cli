@@ -1,14 +1,29 @@
 # Runloop CLI
 
-A beautiful, interactive CLI for managing Runloop devboxes built with Ink and TypeScript.
+[![npm version](https://img.shields.io/npm/v/@runloop/rl-cli)](https://www.npmjs.com/package/@runloop/rl-cli)
+[![CI](https://github.com/runloopai/rl-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/runloopai/rl-cli/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+A beautiful CLI for managing Runloop built with Ink and TypeScript. Use it as an **interactive command-line application** with rich UI components, or as a **traditional CLI** for scripting and automation.
+
+## Quick Example
+
+```bash
+# Interactive mode - launches a beautiful UI menu
+rli
+
+# Traditional CLI mode - perfect for scripts
+rli devbox list                    # Outputs JSON/text
+rli devbox create --name my-devbox
+rli devbox exec <devbox-id> echo "Hello World"
+rli devbox delete <devbox-id>
+```
 
 ## Features
 
-- 🎨 Beautiful terminal UI with colors and gradients
 - ⚡ Fast and responsive with pagination
 - 📦 Manage devboxes, snapshots, and blueprints
 - 🚀 Execute commands in devboxes
-- 📤 Upload files to devboxes
 - 🎯 Organized command structure with aliases
 - 🤖 **Model Context Protocol (MCP) server for AI integration**
 
@@ -18,16 +33,6 @@ Install globally via npm:
 
 ```bash
 npm install -g @runloop/rl-cli
-```
-
-Or install from source:
-
-```bash
-git clone https://github.com/runloop/rl-cli-node.git
-cd rl-cli-node
-npm install
-npm run build
-npm link
 ```
 
 ## Setup
@@ -42,100 +47,78 @@ Get your API key from [https://runloop.ai/settings](https://runloop.ai/settings)
 
 ## Usage
 
-### Theme Configuration
-
-The CLI supports both light and dark terminal themes. Set the theme via environment variable:
+### Interactive CLI
 
 ```bash
-export RUNLOOP_THEME=light   # Force light mode (dark text on light background)
-export RUNLOOP_THEME=dark    # Force dark mode (light text on dark background)
-```
-
-**How it works:**
-
-- **auto** (default): Detects correct theme by default
-- **light**: Optimized for light-themed terminals (uses dark text colors)
-- **dark**: Optimized for dark-themed terminals (uses light text colors)
-
-### Devbox Commands
-
-```bash
-# Create devboxes
-rli devbox create                           # Create with auto-generated name
-rli devbox create --name my-devbox          # Create with custom name
-rli devbox create --template nodejs         # Create from template
-rli d create -n my-devbox                   # Short alias
-
-# List devboxes (paginated)
-rli devbox list                             # List all devboxes
-rli devbox list --status running            # Filter by status
-rli d list                                  # Short alias
-
-# Execute commands
-rli devbox exec <devbox-id> echo "Hello"    # Run a command
-rli devbox exec <devbox-id> ls -la          # List files
-rli d exec <id> <command>                   # Short alias
-
-# Upload files
-rli devbox upload <devbox-id> ./file.txt    # Upload to home
-rli devbox upload <id> ./file.txt -p /path  # Upload to specific path
-rli d upload <id> <file>                    # Short alias
-
-# Delete devboxes
-rli devbox delete <devbox-id>               # Shutdown a devbox
-rli devbox rm <devbox-id>                   # Alias
-rli d delete <id>                           # Short alias
-```
-
-### Snapshot Commands
-
-```bash
-# Create snapshots
-rli snapshot create <devbox-id>             # Create snapshot
-rli snapshot create <id> --name backup-1    # Create with name
-rli snap create <id>                        # Short alias
-
-# List snapshots (paginated)
-rli snapshot list                           # List all snapshots
-rli snapshot list --devbox <id>             # Filter by devbox
-rli snap list                               # Short alias
-
-# Delete snapshots
-rli snapshot delete <snapshot-id>           # Delete snapshot
-rli snapshot rm <snapshot-id>               # Alias
-rli snap delete <id>                        # Short alias
-```
-
-### Blueprint Commands
-
-```bash
-# List blueprints
-rli blueprint list                          # List blueprints (coming soon)
-rli bp list                                 # Short alias
+rli                    # Run the interactive console
+rli --help             # See help information
 ```
 
 ## Command Structure
 
 The CLI is organized into command buckets:
 
-- **`devbox` (alias: `d`)** - Manage devboxes
-  - `create` - Create new devboxes
-  - `list` - List devboxes with pagination
-  - `exec` - Execute commands
-  - `upload` - Upload files
-  - `delete` (alias: `rm`) - Shutdown devboxes
+### Devbox Commands (alias: `d`)
 
-- **`snapshot` (alias: `snap`)** - Manage snapshots
-  - `create` - Create snapshots
-  - `list` - List snapshots with pagination
-  - `delete` (alias: `rm`) - Delete snapshots
+```bash
+rli devbox create                        # Create a new devbox
+rli devbox list                          # List all devboxes
+rli devbox delete <id>                   # Shutdown a devbox
+rli devbox exec <id> <command...>        # Execute a command in a devbox
+rli devbox exec-async <id> <command...>  # Execute a command asynchronously on a...
+rli devbox upload <id> <file>            # Upload a file to a devbox
+rli devbox get <id>                      # Get devbox details
+rli devbox get-async <id> <execution-id> # Get status of an async execution
+rli devbox suspend <id>                  # Suspend a devbox
+rli devbox resume <id>                   # Resume a suspended devbox
+rli devbox shutdown <id>                 # Shutdown a devbox
+rli devbox ssh <id>                      # SSH into a devbox
+rli devbox scp <id> <src> <dst>          # Copy files to/from a devbox using scp
+rli devbox rsync <id> <src> <dst>        # Sync files to/from a devbox using rsync
+rli devbox tunnel <id> <ports>           # Create a port-forwarding tunnel to a ...
+rli devbox read <id>                     # Read a file from a devbox using the API
+rli devbox write <id>                    # Write a file to a devbox using the API
+rli devbox download <id>                 # Download a file from a devbox
+rli devbox send-stdin <id> <execution-id> # Send stdin to a running async execution
+rli devbox logs <id>                     # View devbox logs
+```
 
-- **`blueprint` (alias: `bp`)** - Manage blueprints
-  - `list` - List blueprints (coming soon)
+### Snapshot Commands (alias: `snap`)
 
-- **`mcp`** - Model Context Protocol server for AI integration
-  - `install` - Install MCP configuration in Claude Desktop
-  - `start` - Start the MCP server (stdio or HTTP mode)
+```bash
+rli snapshot list                        # List all snapshots
+rli snapshot create <devbox-id>          # Create a snapshot of a devbox
+rli snapshot delete <id>                 # Delete a snapshot
+rli snapshot get <id>                    # Get snapshot details
+rli snapshot status <snapshot-id>        # Get snapshot operation status
+```
+
+### Blueprint Commands (alias: `bp`)
+
+```bash
+rli blueprint list                       # List all blueprints
+rli blueprint create                     # Create a new blueprint
+rli blueprint get <name-or-id>           # Get blueprint details by name or ID (...
+rli blueprint logs <name-or-id>          # Get blueprint build logs by name or I...
+```
+
+### Object Commands (alias: `obj`)
+
+```bash
+rli object list                          # List objects
+rli object get <id>                      # Get object details
+rli object download <id> <path>          # Download object to local file
+rli object upload <path>                 # Upload a file as an object
+rli object delete <id>                   # Delete an object (irreversible)
+```
+
+### Mcp Commands
+
+```bash
+rli mcp start                            # Start the MCP server
+rli mcp install                          # Install Runloop MCP server configurat...
+```
+
 
 ## MCP Server (AI Integration)
 
@@ -163,19 +146,14 @@ rli mcp start --http --port 8080
 ```
 
 **Documentation:**
+
 - [CLAUDE_SETUP.md](./CLAUDE_SETUP.md) - Complete setup guide for Claude Desktop
 - [MCP_README.md](./MCP_README.md) - Full MCP documentation
 - [MCP_COMMANDS.md](./MCP_COMMANDS.md) - Quick command reference
 
-## Interactive Features
+## Theme Configuration
 
-- **Pagination** - Lists show 10 items per page with keyboard navigation
-  - `n` - Next page
-  - `p` - Previous page
-  - `q` - Quit
-- **Beautiful UI** - Gradient text, colored borders, Unicode icons
-- **Real-time Status** - Spinners and progress indicators
-- **Summary Stats** - Count running, stopped, and total resources
+The CLI supports both light and dark terminal themes and will automatically select the appropriate theme.
 
 ## Development
 
@@ -189,20 +167,9 @@ npm run build
 # Watch mode
 npm run dev
 
-# Run CLI
-npm start -- <command>
-```
+## Contributing
 
-## Publishing
-
-To publish a new version to npm:
-
-```bash
-npm run build
-npm publish
-```
-
-**Note:** Make sure you're logged in to npm with access to the `@runloop` organization.
+We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to contribute to this project.
 
 ## License
 

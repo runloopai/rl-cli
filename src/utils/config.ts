@@ -100,3 +100,25 @@ export function setDetectedTheme(theme: "light" | "dark"): void {
 export function clearDetectedTheme(): void {
   config.delete("detectedTheme");
 }
+
+/**
+ * Returns the detailed error message for when the API key is not configured.
+ * This message provides instructions on how to set up the API key.
+ */
+export function getApiKeyErrorMessage(): string {
+  return `
+❌ API key not configured.
+
+To get started:
+1. Go to https://platform.runloop.ai/settings and create an API key
+2. Set the environment variable:
+
+   export RUNLOOP_API_KEY=your_api_key_here
+
+To make it permanent, add this line to your shell config:
+   • For zsh:  echo 'export RUNLOOP_API_KEY=your_api_key_here' >> ~/.zshrc
+   • For bash: echo 'export RUNLOOP_API_KEY=your_api_key_here' >> ~/.bashrc
+
+Then restart your terminal or run: source ~/.zshrc (or ~/.bashrc)
+`;
+}

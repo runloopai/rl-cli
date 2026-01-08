@@ -1,0 +1,49 @@
+# Pre-push hook to ensure code quality and docs are up to date
+# This hook runs format:check, lint, and docs:commands
+
+echo "Running format:check..."
+if ! npm run format:check; then
+  echo ""
+  echo "❌ Code formatting check failed"
+  echo "   Please run 'npm run format' to fix formatting issues"
+  echo ""
+  exit 1
+fi
+
+echo "Running lint..."
+if ! npm run lint; then
+  echo ""
+  echo "❌ Linting failed"
+  echo "   Please run 'npm run lint:fix' to fix linting issues"
+  echo ""
+  exit 1
+fi
+
+echo "Running docs:commands to ensure README.md is up to date..."
+
+# Run the docs generation script
+npm run docs:commands
+
+# Check if README.md has uncommitted changes
+if ! git diff --quiet README.md; then
+  echo ""
+  echo "❌ README.md has uncommitted changes after running docs:commands"
+  echo "   Please commit the updated README.md before pushing:"
+  echo ""
+  echo "   git add README.md"
+  echo "   git commit -m 'docs: update command structure'"
+  echo ""
+  exit 1
+fi
+
+# Check if README.md has staged but uncommitted changes
+if ! git diff --cached --quiet README.md 2>/dev/null; then
+  echo ""
+  echo "⚠️  README.md has staged changes that need to be committed"
+  echo "   Please commit the staged README.md before pushing"
+  echo ""
+  exit 1
+fi
+
+echo "✅ README.md is up to date"
+exit 0
