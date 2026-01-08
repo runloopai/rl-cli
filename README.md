@@ -54,63 +54,6 @@ rli                    # Run the interactive console
 rli --help             # See help information
 ```
 
-#### Devbox Management
-
-```bash
-# Create devboxes
-rli devbox create                           # Create with auto-generated name
-rli devbox create --name my-devbox          # Create with custom name
-rli devbox create --template nodejs         # Create from template
-rli d create -n my-devbox                   # Short alias
-
-# List devboxes (paginated)
-rli devbox list                             # List all devboxes
-rli devbox list --status running            # Filter by status
-rli d list                                  # Short alias
-
-# Execute commands
-rli devbox exec <devbox-id> echo "Hello"    # Run a command
-rli devbox exec <devbox-id> ls -la          # List files
-rli d exec <id> <command>                   # Short alias
-
-# Upload files
-rli devbox upload <devbox-id> ./file.txt    # Upload to home
-rli devbox upload <id> ./file.txt -p /path  # Upload to specific path
-rli d upload <id> <file>                    # Short alias
-
-# Delete devboxes
-rli devbox delete <devbox-id>               # Shutdown a devbox
-rli devbox rm <devbox-id>                   # Alias
-rli d delete <id>                           # Short alias
-```
-
-#### Snapshot Management
-
-```bash
-# Create snapshots
-rli snapshot create <devbox-id>             # Create snapshot
-rli snapshot create <id> --name backup-1    # Create with name
-rli snap create <id>                        # Short alias
-
-# List snapshots (paginated)
-rli snapshot list                           # List all snapshots
-rli snapshot list --devbox <id>             # Filter by devbox
-rli snap list                               # Short alias
-
-# Delete snapshots
-rli snapshot delete <snapshot-id>           # Delete snapshot
-rli snapshot rm <snapshot-id>               # Alias
-rli snap delete <id>                        # Short alias
-```
-
-#### Blueprint Management
-
-```bash
-# List blueprints
-rli blueprint list                          # List blueprints
-rli bp list                                 # Short alias
-```
-
 ## Command Structure
 
 The CLI is organized into command buckets:
