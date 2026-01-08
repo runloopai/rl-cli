@@ -43,6 +43,7 @@ export default {
     "^figures$": "<rootDir>/tests/__mocks__/figures.ts",
     "^is-unicode-supported$": "<rootDir>/tests/__mocks__/is-unicode-supported.ts",
     "^conf$": "<rootDir>/tests/__mocks__/conf.ts",
+    "^signal-exit$": "<rootDir>/tests/__mocks__/signal-exit.ts",
   },
 
   // Transform configuration
