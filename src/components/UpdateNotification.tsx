@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import { colors } from "../utils/theme.js";
-import { VERSION } from "../cli.js";
+import { VERSION } from "../version.js";
 
 /**
  * Version check component that checks npm for updates and displays a notification
