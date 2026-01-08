@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: runloopai/checkout@main
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: runloopai/setup-node@main
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
@@ -27,10 +27,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: runloopai/checkout@main
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: runloopai/setup-node@main
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
@@ -45,10 +45,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: runloopai/checkout@main
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: runloopai/setup-node@main
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
@@ -64,10 +64,10 @@ jobs:
     needs: build
     steps:
       - name: Checkout code
-        uses: runloopai/checkout@main
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: runloopai/setup-node@main
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"

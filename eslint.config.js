@@ -4,7 +4,6 @@ import tsparser from '@typescript-eslint/parser';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
-import requireComponentTests from './eslint-plugins/require-component-tests.js';
 
 export default [
   eslint.configs.recommended,
@@ -29,7 +28,6 @@ export default [
       '@typescript-eslint': tseslint,
       react: react,
       'react-hooks': reactHooks,
-      'require-component-tests': requireComponentTests,
     },
     rules: {
       ...tseslint.configs.recommended.rules,

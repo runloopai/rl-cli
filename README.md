@@ -1,5 +1,9 @@
 # Runloop CLI
 
+[![npm version](https://img.shields.io/npm/v/@runloop/rl-cli)](https://www.npmjs.com/package/@runloop/rl-cli)
+[![CI](https://github.com/runloopai/rl-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/runloopai/rl-cli/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A beautiful, interactive CLI for managing Runloop built with Ink and TypeScript.
 
 ## Features
@@ -168,6 +172,9 @@ npm run build
 # Watch mode
 npm run dev
 
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to contribute to this project.
 
 ## License
 
