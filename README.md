@@ -144,6 +144,7 @@ rli devbox get <id> -o text
 - `yaml` - YAML format
 
 **Examples:**
+
 ```bash
 # Use JSON output for scripting
 DEVBOX_ID=$(rli devbox create --name my-devbox -o json | jq -r '.id')
@@ -154,7 +155,6 @@ rli devbox get <id> -o yaml > devbox-config.yaml
 # Use text for simple output
 rli devbox list -o text
 ```
-
 
 ## MCP Server (AI Integration)
 
