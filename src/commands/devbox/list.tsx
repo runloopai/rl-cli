@@ -558,8 +558,12 @@ const ListDevboxesUI = ({
         onBack={() => {
           setShowCreate(false);
         }}
-        onCreate={() => {
+        onCreate={(devbox) => {
           setShowCreate(false);
+          // Navigate to the newly created devbox's detail page
+          if (onNavigateToDetail) {
+            onNavigateToDetail(devbox.id);
+          }
         }}
       />
     );
