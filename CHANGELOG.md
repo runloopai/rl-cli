@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/runloopai/rl-cli/compare/v0.7.0...v0.8.0) (2026-01-08)
+
+
+### Features
+
+* prepared repo for open source contributions! ([#29](https://github.com/runloopai/rl-cli/issues/29)) ([a6d91c5](https://github.com/runloopai/rl-cli/commit/a6d91c5d4bf8bd737e7bdcec41991e0b817f3f3d))
+
 ## [0.7.0](https://github.com/runloopai/rl-cli-node/compare/v0.6.1...v0.7.0) (2026-01-08)
 
 
