@@ -1,0 +1,51 @@
+name: PR Title Check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Configure which types are allowed
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          # Require scope to be provided
+          requireScope: false
+          # Configure which scopes are allowed (empty = any scope allowed)
+          scopes: |
+            cli
+            mcp
+            devbox
+            blueprint
+            snapshot
+            config
+            auth
+            ui
+            deps
+          # Ensure the subject starts with a lowercase letter
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: |
+            The subject "{subject}" found in the pull request title "{title}"
+            should start with a lowercase letter.
+            
+            Examples:
+            - feat: add new devbox command
+            - fix(cli): resolve argument parsing issue
+            - docs: update README with usage examples
+

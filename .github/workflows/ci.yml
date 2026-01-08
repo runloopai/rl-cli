@@ -87,3 +87,19 @@ jobs:
           name: component-coverage
           path: coverage/
           retention-days: 7
+
+  ready-to-merge:
+    runs-on: ubuntu-latest
+    needs: [format, lint, build, test]
+    if: always()
+    steps:
+      - name: Check all jobs passed
+        run: |
+          if [[ "${{ needs.format.result }}" != "success" ]] || \
+             [[ "${{ needs.lint.result }}" != "success" ]] || \
+             [[ "${{ needs.build.result }}" != "success" ]] || \
+             [[ "${{ needs.test.result }}" != "success" ]]; then
+            echo "One or more required jobs failed"
+            exit 1
+          fi
+          echo "All required jobs passed!"
