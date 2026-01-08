@@ -46,12 +46,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/runloopai/rl-cli-node.git"
+    "url": "https://github.com/runloopai/rl-cli.git"
   },
   "bugs": {
-    "url": "https://github.com/runloopai/rl-cli-node/issues"
+    "url": "https://github.com/runloopai/rl-cli/issues"
   },
-  "homepage": "https://github.com/runloopai/rl-cli-node#readme",
+  "homepage": "https://github.com/runloopai/rl-cli#readme",
   "engines": {
     "node": ">=18.0.0"
   },
