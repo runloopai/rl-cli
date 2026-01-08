@@ -658,9 +658,10 @@ const ListBlueprintsUI = ({
           setShowCreateDevbox(false);
           setSelectedBlueprint(null);
         }}
-        onCreate={() => {
+        onCreate={(devbox) => {
           setShowCreateDevbox(false);
           setSelectedBlueprint(null);
+          navigate("devbox-detail", { devboxId: devbox.id });
         }}
         initialBlueprintId={selectedBlueprint.id}
       />
