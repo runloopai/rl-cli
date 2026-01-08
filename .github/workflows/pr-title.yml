@@ -33,19 +33,18 @@ jobs:
             mcp
             devbox
             blueprint
+            main
             snapshot
             config
             auth
-            ui
             deps
           # Ensure the subject starts with a lowercase letter
           subjectPattern: ^(?![A-Z]).+$
           subjectPatternError: |
             The subject "{subject}" found in the pull request title "{title}"
             should start with a lowercase letter.
-            
+
             Examples:
             - feat: add new devbox command
             - fix(cli): resolve argument parsing issue
             - docs: update README with usage examples
-
