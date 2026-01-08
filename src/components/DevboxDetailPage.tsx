@@ -6,6 +6,7 @@ import { StatusBadge } from "./StatusBadge.js";
 import { MetadataDisplay } from "./MetadataDisplay.js";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { DevboxActionsMenu } from "./DevboxActionsMenu.js";
+import { StateHistory } from "./StateHistory.js";
 import { getDevboxUrl } from "../utils/url.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
@@ -39,6 +40,7 @@ const formatTimeAgo = (timestamp: number): string => {
   const years = Math.floor(months / 12);
   return `${years}y ago`;
 };
+
 
 export const DevboxDetailPage = ({
   devbox: initialDevbox,
@@ -839,6 +841,9 @@ export const DevboxDetailPage = ({
           </Text>
         </Box>
       )}
+
+      {/* State History */}
+      <StateHistory stateTransitions={selectedDevbox.state_transitions} />
 
       {/* Operations - inline display */}
       <Box flexDirection="column" marginTop={1}>
