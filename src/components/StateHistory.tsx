@@ -45,19 +45,24 @@ const formatDuration = (milliseconds: number): string => {
 };
 
 // Capitalize first letter of a string
-const capitalize = (str: string) =>
-  str.charAt(0).toUpperCase() + str.slice(1);
+const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
 export const StateHistory = ({ stateTransitions }: StateHistoryProps) => {
-  if (!stateTransitions || !Array.isArray(stateTransitions) || stateTransitions.length === 0) {
+  if (
+    !stateTransitions ||
+    !Array.isArray(stateTransitions) ||
+    stateTransitions.length === 0
+  ) {
     return null;
   }
 
   // Get last 3 transitions (most recent first)
-  const lastThree = (stateTransitions as Array<{
-    status: string;
-    transition_time_ms?: number;
-  }>)
+  const lastThree = (
+    stateTransitions as Array<{
+      status: string;
+      transition_time_ms?: number;
+    }>
+  )
     .slice(-3)
     .reverse()
     .map((transition, idx, arr) => {
@@ -102,9 +107,7 @@ export const StateHistory = ({ stateTransitions }: StateHistoryProps) => {
               {state.transitionTime && (
                 <>
                   {" "}
-                  at{" "}
-                  {new Date(state.transitionTime).toLocaleString()}
-                  {" "}
+                  at {new Date(state.transitionTime).toLocaleString()}{" "}
                   <Text color={colors.textDim} dimColor>
                     ({formatTimeAgo(state.transitionTime)})
                   </Text>

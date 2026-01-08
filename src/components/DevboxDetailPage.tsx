@@ -41,7 +41,6 @@ const formatTimeAgo = (timestamp: number): string => {
   return `${years}y ago`;
 };
 
-
 export const DevboxDetailPage = ({
   devbox: initialDevbox,
   onBack,
