@@ -23,4 +23,3 @@ export function execCommand(command: string, args: string[]): never {
   // Exit with the command's exit code
   process.exit(result.status ?? 0);
 }
-
