@@ -43,7 +43,7 @@ const darkColors: ColorPalette = {
 
   // UI colors
   text: "#FFFFFF", // White
-  textDim: "#9CA3AF", // Gray
+  textDim: "#B8C2D0", // Brighter gray for better visibility in dark mode
   border: "#6B7280", // Medium gray
   background: "#000000", // Black
 
