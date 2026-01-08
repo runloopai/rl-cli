@@ -20,6 +20,7 @@ interface DevboxCreatePageProps {
   onBack: () => void;
   onCreate?: (devbox: DevboxView) => void;
   initialBlueprintId?: string;
+  initialSnapshotId?: string;
 }
 
 type FormField =
@@ -60,6 +61,7 @@ export const DevboxCreatePage = ({
   onBack,
   onCreate,
   initialBlueprintId,
+  initialSnapshotId,
 }: DevboxCreatePageProps) => {
   const [currentField, setCurrentField] = React.useState<FormField>("create");
   const [formData, setFormData] = React.useState<FormData>({
@@ -72,7 +74,7 @@ export const DevboxCreatePage = ({
     keep_alive: "3600",
     metadata: {},
     blueprint_id: initialBlueprintId || "",
-    snapshot_id: "",
+    snapshot_id: initialSnapshotId || "",
   });
   const [metadataKey, setMetadataKey] = React.useState("");
   const [metadataValue, setMetadataValue] = React.useState("");
