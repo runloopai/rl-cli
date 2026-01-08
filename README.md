@@ -1,14 +1,12 @@
 # Runloop CLI
 
-A beautiful, interactive CLI for managing Runloop devboxes built with Ink and TypeScript.
+A beautiful, interactive CLI for managing Runloop built with Ink and TypeScript.
 
 ## Features
 
-- 🎨 Beautiful terminal UI with colors and gradients
 - ⚡ Fast and responsive with pagination
 - 📦 Manage devboxes, snapshots, and blueprints
 - 🚀 Execute commands in devboxes
-- 📤 Upload files to devboxes
 - 🎯 Organized command structure with aliases
 - 🤖 **Model Context Protocol (MCP) server for AI integration**
 
@@ -20,15 +18,6 @@ Install globally via npm:
 npm install -g @runloop/rl-cli
 ```
 
-Or install from source:
-
-```bash
-git clone https://github.com/runloop/rl-cli-node.git
-cd rl-cli-node
-npm install
-npm run build
-npm link
-```
 
 ## Setup
 
@@ -44,18 +33,7 @@ Get your API key from [https://runloop.ai/settings](https://runloop.ai/settings)
 
 ### Theme Configuration
 
-The CLI supports both light and dark terminal themes. Set the theme via environment variable:
-
-```bash
-export RUNLOOP_THEME=light   # Force light mode (dark text on light background)
-export RUNLOOP_THEME=dark    # Force dark mode (light text on dark background)
-```
-
-**How it works:**
-
-- **auto** (default): Detects correct theme by default
-- **light**: Optimized for light-themed terminals (uses dark text colors)
-- **dark**: Optimized for dark-themed terminals (uses light text colors)
+The CLI supports both light and dark terminal themes and will automatically select the appropriate theme.
 
 ### Devbox Commands
 
@@ -163,6 +141,7 @@ rli mcp start --http --port 8080
 ```
 
 **Documentation:**
+
 - [CLAUDE_SETUP.md](./CLAUDE_SETUP.md) - Complete setup guide for Claude Desktop
 - [MCP_README.md](./MCP_README.md) - Full MCP documentation
 - [MCP_COMMANDS.md](./MCP_COMMANDS.md) - Quick command reference
@@ -189,20 +168,6 @@ npm run build
 # Watch mode
 npm run dev
 
-# Run CLI
-npm start -- <command>
-```
-
-## Publishing
-
-To publish a new version to npm:
-
-```bash
-npm run build
-npm publish
-```
-
-**Note:** Make sure you're logged in to npm with access to the `@runloop` organization.
 
 ## License
 
