@@ -218,6 +218,14 @@ jest.mock("../src/hooks/useExitOnCtrlC.ts", () => ({
   useExitOnCtrlC: jest.fn(),
 }));
 
+jest.mock("../src/hooks/useUpdateCheck.ts", () => ({
+  useUpdateCheck: jest.fn(() => ({
+    isChecking: false,
+    updateAvailable: null,
+    currentVersion: "0.1.0",
+  })),
+}));
+
 // Mock version.ts VERSION export
 jest.mock("../src/version", () => ({
   VERSION: "0.1.0",
@@ -286,6 +294,11 @@ jest.mock("../src/utils/screen.ts", () => ({
   showCursor: jest.fn(),
   clearScreen: jest.fn(),
   enterAlternateScreenBuffer: jest.fn(),
+}));
+
+// Mock exec utility
+jest.mock("../src/utils/exec.ts", () => ({
+  execCommand: jest.fn(),
 }));
 
 // Mock Banner component (uses ink-big-text which is ESM)
