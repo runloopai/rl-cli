@@ -5,7 +5,7 @@ This guide will walk you through connecting the Runloop MCP server to Claude Des
 ## Prerequisites
 
 1. Make sure you have Claude Desktop installed
-2. Authenticate with Runloop: `rli auth`
+2. Set your API key: `export RUNLOOP_API_KEY=your_api_key_here`
 3. Make sure `rli` is installed globally and in your PATH
 
 ## Quick Setup (Automatic)
@@ -108,7 +108,7 @@ If not found:
 
 ### "API key not configured"
 
-Run `rli auth` to configure your API key before using the MCP server.
+Set the `RUNLOOP_API_KEY` environment variable before using the MCP server.
 
 ### Claude doesn't show Runloop tools
 

@@ -148,7 +148,7 @@ If you get "command not found: rli":
 
 ### API key not configured
 
-Run `rli auth` before using the MCP server.
+Set the `RUNLOOP_API_KEY` environment variable before using the MCP server.
 
 ### Port already in use
 

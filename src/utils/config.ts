@@ -11,6 +11,7 @@ interface Config {
 
 const config = new Conf<Config>({
   projectName: "runloop-cli",
+  cwd: join(homedir(), ".runloop"),
 });
 
 export function getConfig(): Config {
@@ -43,7 +44,7 @@ export function sshUrl(): string {
 }
 
 export function getCacheDir(): string {
-  return join(homedir(), ".cache", "rl-cli");
+  return join(homedir(), ".runloop", "rl-cli");
 }
 
 export function shouldCheckForUpdates(): boolean {

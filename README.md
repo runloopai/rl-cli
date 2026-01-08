@@ -6,7 +6,6 @@ A beautiful, interactive CLI for managing Runloop devboxes built with Ink and Ty
 
 - 🎨 Beautiful terminal UI with colors and gradients
 - ⚡ Fast and responsive with pagination
-- 🔐 Secure API key management
 - 📦 Manage devboxes, snapshots, and blueprints
 - 🚀 Execute commands in devboxes
 - 📤 Upload files to devboxes
@@ -33,89 +32,30 @@ npm link
 
 ## Setup
 
-Configure your API key using either method:
-
-### Option 1: Environment Variable (Recommended for CI/CD)
+Configure your API key:
 
 ```bash
 export RUNLOOP_API_KEY=your_api_key_here
-```
-
-### Option 2: Interactive Setup
-
-```bash
-rli auth
 ```
 
 Get your API key from [https://runloop.ai/settings](https://runloop.ai/settings)
 
 ## Usage
 
-### Authentication
-
-```bash
-# Interactive setup (stores API key locally)
-rli auth
-
-# Or use environment variable
-export RUNLOOP_API_KEY=your_api_key_here
-```
-
-The CLI will automatically use `RUNLOOP_API_KEY` if set, otherwise it will use the stored configuration.
-
 ### Theme Configuration
 
-The CLI supports both light and dark terminal themes with automatic detection:
+The CLI supports both light and dark terminal themes. Set the theme via environment variable:
 
 ```bash
-# Interactive theme selector with live preview
-rli config theme
-
-# Or set theme directly
-rli config theme auto    # Auto-detect terminal background (default)
-rli config theme light   # Force light mode (dark text on light background)
-rli config theme dark    # Force dark mode (light text on dark background)
-
-# Or use environment variable
-export RUNLOOP_THEME=light
+export RUNLOOP_THEME=light   # Force light mode (dark text on light background)
+export RUNLOOP_THEME=dark    # Force dark mode (light text on dark background)
 ```
-
-**Interactive Mode:**
-
-- When you run `rli config theme` without arguments, you get an interactive selector
-- Use arrow keys to navigate between auto/light/dark options
-- See live preview of colors as you navigate
-- Press Enter to save, Esc to cancel
 
 **How it works:**
 
-- **auto** (default): Uses dark mode by default (theme detection is disabled to prevent terminal flashing)
+- **auto** (default): Uses dark mode by default
 - **light**: Optimized for light-themed terminals (uses dark text colors)
 - **dark**: Optimized for dark-themed terminals (uses light text colors)
-
-**Terminal Compatibility:**
-
-- Works with all modern terminals (iTerm2, Terminal.app, VS Code integrated terminal, tmux)
-- The CLI defaults to dark mode for the best experience
-- You can manually set light or dark mode based on your terminal theme
-
-**Note on Auto-Detection:**
-
-- Auto theme detection is **disabled by default** to prevent screen flashing
-- To enable it, set `RUNLOOP_ENABLE_THEME_DETECTION=1`
-- If you use a light terminal, we recommend setting: `rli config theme light`
-- The result is cached, so subsequent runs are instant (no flashing!)
-- If you change your terminal theme, you can re-detect by running:
-
-  ```bash
-  rli config theme auto
-  ```
-- To manually set your theme without detection:
-  ```bash
-  export RUNLOOP_THEME=dark  # or light
-  # Or disable auto-detection entirely:
-  export RUNLOOP_DISABLE_THEME_DETECTION=1
-  ```
 
 ### Devbox Commands
 

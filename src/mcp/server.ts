@@ -62,7 +62,7 @@ function getClient(): Runloop {
 
   if (!config.apiKey) {
     throw new Error(
-      "API key not configured. Please set RUNLOOP_API_KEY environment variable or run: rli auth",
+      "API key not configured. Please set RUNLOOP_API_KEY environment variable.",
     );
   }
 

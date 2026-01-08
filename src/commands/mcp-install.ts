@@ -138,7 +138,7 @@ export async function installMcpConfig() {
       '2. Ask Claude: "List my devboxes" or "What Runloop tools do you have?"',
     );
     console.log(
-      '\n💡 Tip: Make sure you\'ve run "rli auth" to configure your API key first!',
+      "\n💡 Tip: Make sure RUNLOOP_API_KEY environment variable is set!",
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
