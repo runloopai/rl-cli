@@ -34,7 +34,7 @@ export function getClient(): Runloop {
     bearerToken: config.apiKey,
     baseURL,
     defaultHeaders: {
-      "User-Agent": `Runloop/JS ${VERSION} - CLI`,
+      "User-Agent": `Runloop/JS - CLI ${VERSION}`,
     },
   });
 }

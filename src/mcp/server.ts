@@ -74,7 +74,7 @@ function getClient(): Runloop {
     timeout: 10000, // 10 seconds instead of default 30 seconds
     maxRetries: 2, // 2 retries instead of default 5 (only for retryable errors)
     defaultHeaders: {
-      "User-Agent": `Runloop/JS ${VERSION} - CLI MCP`,
+      "User-Agent": `Runloop/JS - CLI MCP ${VERSION}`,
     },
   });
 }
