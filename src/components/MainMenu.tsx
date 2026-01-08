@@ -1,37 +1,14 @@
 import React from "react";
 import { Box, Text, useInput, useApp } from "ink";
-import { spawnSync } from "child_process";
 import figures from "figures";
 import { Banner } from "./Banner.js";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { VERSION } from "../version.js";
 import { colors } from "../utils/theme.js";
+import { execCommand } from "../utils/exec.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { useUpdateCheck } from "../hooks/useUpdateCheck.js";
-import { showCursor } from "../utils/screen.js";
-import { processUtils } from "../utils/processUtils.js";
-
-/**
- * Release terminal from Ink and exec into a new command (one-way, no return)
- */
-function execCommand(command: string, args: string[]): never {
-  // Release terminal from Ink's control
-  process.stdin.pause();
-  if (processUtils.stdin.isTTY && processUtils.stdin.setRawMode) {
-    processUtils.stdin.setRawMode(false);
-  }
-  if (processUtils.stdout.isTTY) {
-    processUtils.stdout.write("\x1b[0m"); // SGR reset
-  }
-  showCursor();
-
-  // Run the command synchronously - this blocks until complete
-  const result = spawnSync(command, args, { stdio: "inherit" });
-
-  // Exit with the command's exit code
-  process.exit(result.status ?? 0);
-}
 
 interface MenuItem {
   key: string;
