@@ -17,6 +17,8 @@ import { colors } from "../../utils/theme.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
+import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
+import { useNavigation } from "../../store/navigationStore.js";
 
 interface ListOptions {
   devbox?: string;
@@ -45,6 +47,7 @@ const ListSnapshotsUI = ({
   onExit?: () => void;
 }) => {
   const { exit: inkExit } = useApp();
+  const { navigate } = useNavigation();
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showPopup, setShowPopup] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(0);
@@ -62,6 +65,7 @@ const ListSnapshotsUI = ({
     null,
   );
   const [operationLoading, setOperationLoading] = React.useState(false);
+  const [showCreateDevbox, setShowCreateDevbox] = React.useState(false);
 
   // Calculate overhead for viewport height
   const overhead = 13;
@@ -142,13 +146,19 @@ const ListSnapshotsUI = ({
     pageSize: PAGE_SIZE,
     getItemId: (snapshot: SnapshotListItem) => snapshot.id,
     pollInterval: 2000,
-    pollingEnabled: !showPopup && !executingOperation,
+    pollingEnabled: !showPopup && !executingOperation && !showCreateDevbox,
     deps: [devboxId, PAGE_SIZE],
   });
 
   // Operations for snapshots
   const operations: Operation[] = React.useMemo(
     () => [
+      {
+        key: "create_devbox",
+        label: "Create Devbox from Snapshot",
+        color: colors.success,
+        icon: figures.play,
+      },
       {
         key: "delete",
         label: "Delete Snapshot",
@@ -259,6 +269,11 @@ const ListSnapshotsUI = ({
       return;
     }
 
+    // Handle create devbox view
+    if (showCreateDevbox) {
+      return;
+    }
+
     // Handle popup navigation
     if (showPopup) {
       if (key.upArrow && selectedOperation > 0) {
@@ -268,13 +283,24 @@ const ListSnapshotsUI = ({
       } else if (key.return) {
         setShowPopup(false);
         const operationKey = operations[selectedOperation].key;
-        setSelectedSnapshot(selectedSnapshotItem);
-        setExecutingOperation(operationKey);
-        // Execute immediately after state update
-        setTimeout(() => executeOperation(), 0);
+
+        if (operationKey === "create_devbox") {
+          setSelectedSnapshot(selectedSnapshotItem);
+          setShowCreateDevbox(true);
+        } else {
+          setSelectedSnapshot(selectedSnapshotItem);
+          setExecutingOperation(operationKey);
+          // Execute immediately after state update
+          setTimeout(() => executeOperation(), 0);
+        }
       } else if (key.escape || input === "q") {
         setShowPopup(false);
         setSelectedOperation(0);
+      } else if (input === "c") {
+        // Create devbox hotkey
+        setShowPopup(false);
+        setSelectedSnapshot(selectedSnapshotItem);
+        setShowCreateDevbox(true);
       } else if (input === "d") {
         // Delete hotkey
         setShowPopup(false);
@@ -375,6 +401,24 @@ const ListSnapshotsUI = ({
           message={messages[executingOperation as string] || "Please wait..."}
         />
       </>
+    );
+  }
+
+  // Create devbox screen
+  if (showCreateDevbox && selectedSnapshot) {
+    return (
+      <DevboxCreatePage
+        onBack={() => {
+          setShowCreateDevbox(false);
+          setSelectedSnapshot(null);
+        }}
+        onCreate={(devbox) => {
+          setShowCreateDevbox(false);
+          setSelectedSnapshot(null);
+          navigate("devbox-detail", { devboxId: devbox.id });
+        }}
+        initialSnapshotId={selectedSnapshot.id}
+      />
     );
   }
 
@@ -503,7 +547,12 @@ const ListSnapshotsUI = ({
               label: op.label,
               color: op.color,
               icon: op.icon,
-              shortcut: op.key === "delete" ? "d" : "",
+              shortcut:
+                op.key === "create_devbox"
+                  ? "c"
+                  : op.key === "delete"
+                    ? "d"
+                    : "",
             }))}
             selectedOperation={selectedOperation}
             onClose={() => setShowPopup(false)}
