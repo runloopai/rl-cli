@@ -220,9 +220,9 @@ export function useCursorPagination<T>(
     fetchPageData(0, true);
   }, [depsKey, fetchPageData]);
 
-  // Polling effect
+  // Polling effect - STOP polling when there's an error to avoid flickering
   React.useEffect(() => {
-    if (!pollInterval || pollInterval <= 0 || !pollingEnabled) {
+    if (!pollInterval || pollInterval <= 0 || !pollingEnabled || error) {
       return;
     }
 
@@ -233,7 +233,7 @@ export function useCursorPagination<T>(
     }, pollInterval);
 
     return () => clearInterval(timer);
-  }, [pollInterval, pollingEnabled, currentPage, fetchPageData]);
+  }, [pollInterval, pollingEnabled, currentPage, fetchPageData, error]);
 
   // Navigation functions
   const nextPage = React.useCallback(() => {
