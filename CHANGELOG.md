@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/runloopai/rl-cli-node/compare/v0.5.0...v0.6.0) (2026-01-08)
+
+
+### Features
+
+* **devbox:** navigates to devbox detail after create  ([#22](https://github.com/runloopai/rl-cli-node/issues/22)) ([731681f](https://github.com/runloopai/rl-cli-node/commit/731681f3fbd63fb4cabbeb7cd32439aa8fc488c6))
+
 ## [0.5.0](https://github.com/runloopai/rl-cli-node/compare/v0.4.0...v0.5.0) (2026-01-08)
 
 
