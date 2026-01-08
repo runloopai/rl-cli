@@ -62,6 +62,13 @@ jest.mock("../src/utils/processUtils", () => ({
   installMockProcessUtils: jest.fn(),
 }));
 
+// Mock signal-exit to avoid ESM teardown issues
+jest.mock("signal-exit", () => ({
+  __esModule: true,
+  default: jest.fn(() => () => {}),
+  onExit: jest.fn(() => () => {}),
+}));
+
 // Mock ESM-only dependencies that cause issues
 jest.mock("figures", () => ({
   __esModule: true,
