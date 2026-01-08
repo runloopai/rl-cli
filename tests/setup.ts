@@ -1,19 +1,13 @@
 // Load environment variables from .env file if it exists
-import { config } from 'dotenv';
-import { existsSync } from 'fs';
-import { join } from 'path';
+import { config } from "dotenv";
+import { existsSync } from "fs";
+import { join } from "path";
 
 // Load .env file if it exists
-const envPath = join(process.cwd(), '.env');
+const envPath = join(process.cwd(), ".env");
 if (existsSync(envPath)) {
   config({ path: envPath });
 }
-
-// Set default test environment variables
-process.env.RUNLOOP_ENV = process.env.RUNLOOP_ENV || 'dev';
-process.env.RUNLOOP_API_KEY = process.env.RUNLOOP_API_KEY || 'ak_30tbdSzn9RNLxkrgpeT81';
-process.env.RUNLOOP_BASE_URL = process.env.RUNLOOP_BASE_URL || 'https://api.runloop.pro';
-process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 
 // Mock console methods for cleaner test output (only for unit tests)
 if (!process.env.RUN_E2E) {
@@ -36,11 +30,11 @@ if (!process.env.RUN_E2E) {
 
 // Add pending function for integration tests
 global.pending = (reason?: string) => {
-  throw new Error(`Test pending: ${reason || 'No reason provided'}`);
+  throw new Error(`Test pending: ${reason || "No reason provided"}`);
 };
 
 // Mock interactive command runner to prevent Ink issues in tests
-jest.mock('../src/utils/interactiveCommand.js', () => ({
+jest.mock("../src/utils/interactiveCommand.js", () => ({
   runInteractiveCommand: jest.fn(async (fn) => {
     // Just run the function directly without Ink
     return await fn();
@@ -48,7 +42,7 @@ jest.mock('../src/utils/interactiveCommand.js', () => ({
 }));
 
 // Mock Ink components to prevent raw mode issues
-jest.mock('ink', () => ({
+jest.mock("ink", () => ({
   render: jest.fn(),
   Box: ({ children }: any) => children,
   Text: ({ children }: any) => children,
@@ -63,12 +57,27 @@ jest.mock('ink', () => ({
 }));
 
 // Mock ESM-only Ink dependencies so Jest doesn't parse their ESM bundles
-jest.mock('ink-big-text', () => ({ __esModule: true, default: () => null }));
-jest.mock('ink-gradient', () => ({ __esModule: true, default: () => null }));
+jest.mock("ink-big-text", () => ({ __esModule: true, default: () => null }));
+jest.mock("ink-gradient", () => ({ __esModule: true, default: () => null }));
 
 // Mock app UI components that import Ink deps, to avoid pulling in ESM from node_modules
-jest.mock('../src/components/Banner.tsx', () => ({ __esModule: true, Banner: () => null }));
-jest.mock('../src/components/Header.tsx', () => ({ __esModule: true, Header: () => null }));
-jest.mock('../src/components/Spinner.tsx', () => ({ __esModule: true, SpinnerComponent: () => null }));
-jest.mock('../src/components/SuccessMessage.tsx', () => ({ __esModule: true, SuccessMessage: () => null }));
-jest.mock('../src/components/ErrorMessage.tsx', () => ({ __esModule: true, ErrorMessage: () => null }));
+jest.mock("../src/components/Banner.tsx", () => ({
+  __esModule: true,
+  Banner: () => null,
+}));
+jest.mock("../src/components/Header.tsx", () => ({
+  __esModule: true,
+  Header: () => null,
+}));
+jest.mock("../src/components/Spinner.tsx", () => ({
+  __esModule: true,
+  SpinnerComponent: () => null,
+}));
+jest.mock("../src/components/SuccessMessage.tsx", () => ({
+  __esModule: true,
+  SuccessMessage: () => null,
+}));
+jest.mock("../src/components/ErrorMessage.tsx", () => ({
+  __esModule: true,
+  ErrorMessage: () => null,
+}));
