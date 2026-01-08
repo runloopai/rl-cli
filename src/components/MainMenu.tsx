@@ -99,7 +99,10 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       onSelect("snapshots");
     } else if (input === "u" && updateAvailable) {
       // Release terminal and exec into update command (never returns)
-      execCommand("sh", ["-c", "npm install -g @runloop/rl-cli@latest && exec rli"]);
+      execCommand("sh", [
+        "-c",
+        "npm install -g @runloop/rl-cli@latest && exec rli",
+      ]);
     }
   });
 
