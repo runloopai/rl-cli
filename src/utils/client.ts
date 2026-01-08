@@ -23,7 +23,9 @@ export function getClient(): Runloop {
   const config = getConfig();
 
   if (!config.apiKey) {
-    throw new Error("API key not configured. Run: rli auth");
+    throw new Error(
+      "API key not configured. Set RUNLOOP_API_KEY environment variable.",
+    );
   }
 
   const baseURL = getBaseUrl();

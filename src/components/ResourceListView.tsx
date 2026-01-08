@@ -166,15 +166,15 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
     fetchData(true);
   }, [fetchData]);
 
-  // Auto-refresh
+  // Auto-refresh - STOP refreshing when there's an error to avoid flickering
   React.useEffect(() => {
-    if (config.autoRefresh?.enabled) {
+    if (config.autoRefresh?.enabled && !error) {
       const interval = setInterval(() => {
         fetchData(false);
       }, config.autoRefresh.interval || 3000);
       return () => clearInterval(interval);
     }
-  }, [config.autoRefresh, fetchData]);
+  }, [config.autoRefresh, fetchData, error]);
 
   // Removed refresh icon animation to prevent constant re-renders and flashing
 
