@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/runloopai/rl-cli-node/compare/v0.6.0...v0.6.1) (2026-01-08)
+
+
+### Bug Fixes
+
+* update repo info ([#25](https://github.com/runloopai/rl-cli-node/issues/25)) ([1db1235](https://github.com/runloopai/rl-cli-node/commit/1db1235f8281256b5793af7a81994d289f97c4e2))
+
 ## [0.6.0](https://github.com/runloopai/rl-cli-node/compare/v0.5.0...v0.6.0) (2026-01-08)
 
 
