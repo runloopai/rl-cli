@@ -8,6 +8,7 @@ import { SpinnerComponent } from "../../components/Spinner.js";
 import { ErrorMessage } from "../../components/ErrorMessage.js";
 import { getStatusDisplay } from "../../components/StatusBadge.js";
 import { Breadcrumb } from "../../components/Breadcrumb.js";
+import type { Column } from "../../components/Table.js";
 import { Table, createTextColumn } from "../../components/Table.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
 import { output, outputError } from "../../utils/output.js";
@@ -202,12 +203,36 @@ const ListDevboxesUI = ({
     const ABSOLUTE_MAX_NAME = 80;
     const ABSOLUTE_MAX_ID = 50;
 
-    const columns = [
+    const columns: Column<Devbox>[] = [
+      // Status icon column - visual indicator for quick scanning
+      {
+        key: "statusIcon",
+        label: "",
+        width: statusIconWidth,
+        render: (devbox: Devbox, _index: number, isSelected: boolean) => {
+          const statusDisplay = getStatusDisplay(devbox?.status);
+          const statusColor =
+            statusDisplay.color === colors.textDim
+              ? colors.info
+              : statusDisplay.color;
+          return (
+            <Text
+              color={isSelected ? "white" : statusColor}
+              bold={true}
+              dimColor={false}
+              inverse={isSelected}
+              wrap="truncate"
+            >
+              {statusDisplay.icon}{" "}
+            </Text>
+          );
+        },
+      },
       createTextColumn(
         "name",
         "Name",
         (devbox: Devbox) => {
-          const name = String(devbox?.name || devbox?.id || "");
+          const name = String(devbox?.name || "");
           const safeMax = Math.min(nameWidth || 15, ABSOLUTE_MAX_NAME);
           return name.length > safeMax
             ? name.substring(0, Math.max(1, safeMax - 3)) + "..."
@@ -235,19 +260,33 @@ const ListDevboxesUI = ({
           bold: false,
         },
       ),
-      createTextColumn(
-        "status",
-        "Status",
-        (devbox: Devbox) => {
+      // Status text column with color matching the icon
+      {
+        key: "status",
+        label: "Status",
+        width: statusTextWidth,
+        render: (devbox: Devbox, _index: number, isSelected: boolean) => {
           const statusDisplay = getStatusDisplay(devbox?.status);
-          const text = String(statusDisplay?.text || "-");
-          return text.length > 20 ? text.substring(0, 17) + "..." : text;
+          const statusColor =
+            statusDisplay.color === colors.textDim
+              ? colors.info
+              : statusDisplay.color;
+          const safeWidth = Math.max(1, statusTextWidth);
+          const truncated = statusDisplay.text.slice(0, safeWidth);
+          const padded = truncated.padEnd(safeWidth, " ");
+          return (
+            <Text
+              color={isSelected ? "white" : statusColor}
+              bold={true}
+              dimColor={false}
+              inverse={isSelected}
+              wrap="truncate"
+            >
+              {padded}
+            </Text>
+          );
         },
-        {
-          width: statusTextWidth,
-          dimColor: false,
-        },
-      ),
+      },
       createTextColumn(
         "created",
         "Created",
@@ -308,6 +347,7 @@ const ListDevboxesUI = ({
 
     return columns;
   }, [
+    statusIconWidth,
     nameWidth,
     idWidth,
     statusTextWidth,

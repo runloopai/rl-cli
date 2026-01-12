@@ -727,13 +727,16 @@ export const DevboxDetailPage = ({
           <Text color={colors.primary} bold>
             {selectedDevbox.name || selectedDevbox.id}
           </Text>
-          <Text> </Text>
-          <StatusBadge status={selectedDevbox.status} />
-          <Text color={colors.idColor}> • {selectedDevbox.id}</Text>
+          {/* Only show ID separately if there's a name */}
+          {selectedDevbox.name && (
+            <Text color={colors.idColor}> • {selectedDevbox.id}</Text>
+          )}
         </Box>
         <Box>
+          <StatusBadge status={selectedDevbox.status} fullText />
           <Text color={colors.textDim} dimColor>
-            {formattedCreateTime}
+            {" "}
+            • {formattedCreateTime}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -748,12 +751,6 @@ export const DevboxDetailPage = ({
                 ? `${uptime}m`
                 : `${Math.floor(uptime / 60)}h ${uptime % 60}m`}
             </Text>
-            {lp?.keep_alive_time_seconds && (
-              <Text color={colors.textDim} dimColor>
-                {" "}
-                • Keep-alive: {Math.floor(lp.keep_alive_time_seconds / 60)}m
-              </Text>
-            )}
           </Box>
         )}
       </Box>
@@ -765,7 +762,9 @@ export const DevboxDetailPage = ({
           lp?.custom_cpu_cores ||
           lp?.custom_gb_memory ||
           lp?.custom_disk_size ||
-          lp?.architecture) && (
+          lp?.architecture ||
+          lp?.keep_alive_time_seconds ||
+          lp?.user_parameters) && (
           <Box flexDirection="column" paddingX={1} flexGrow={1}>
             <Text color={colors.warning} bold>
               {figures.squareSmallFilled} Resources
@@ -777,6 +776,63 @@ export const DevboxDetailPage = ({
               {lp?.custom_gb_memory && ` • ${lp.custom_gb_memory}GB RAM`}
               {lp?.custom_disk_size && ` • ${lp.custom_disk_size}GB DISC`}
             </Text>
+            {lp?.keep_alive_time_seconds && (
+              <Box>
+                <Text dimColor>
+                  Max Lifetime:{" "}
+                  {lp.keep_alive_time_seconds < 3600
+                    ? `${Math.floor(lp.keep_alive_time_seconds / 60)}m`
+                    : `${Math.floor(lp.keep_alive_time_seconds / 3600)}h ${Math.floor((lp.keep_alive_time_seconds % 3600) / 60)}m`}
+                </Text>
+                {uptime !== null && selectedDevbox.status === "running" && (
+                  <Text>
+                    {" "}
+                    •{" "}
+                    {(() => {
+                      const maxLifetimeMinutes = Math.floor(
+                        lp.keep_alive_time_seconds / 60,
+                      );
+                      const remainingMinutes = maxLifetimeMinutes - uptime;
+                      if (remainingMinutes <= 0) {
+                        return <Text color={colors.error}>Expired</Text>;
+                      } else if (remainingMinutes < 5) {
+                        return (
+                          <Text color={colors.error}>
+                            {remainingMinutes}m remaining
+                          </Text>
+                        );
+                      } else if (remainingMinutes < 15) {
+                        return (
+                          <Text color={colors.warning}>
+                            {remainingMinutes}m remaining
+                          </Text>
+                        );
+                      } else if (remainingMinutes < 60) {
+                        return (
+                          <Text color={colors.success}>
+                            {remainingMinutes}m remaining
+                          </Text>
+                        );
+                      } else {
+                        const hours = Math.floor(remainingMinutes / 60);
+                        const mins = remainingMinutes % 60;
+                        return (
+                          <Text color={colors.success}>
+                            {hours}h {mins}m remaining
+                          </Text>
+                        );
+                      }
+                    })()}
+                  </Text>
+                )}
+              </Box>
+            )}
+            {lp?.user_parameters && (
+              <Text dimColor>
+                User: {lp.user_parameters.username || "default"}
+                {lp.user_parameters.uid && ` (UID: ${lp.user_parameters.uid})`}
+              </Text>
+            )}
           </Box>
         )}
 
@@ -842,7 +898,10 @@ export const DevboxDetailPage = ({
       )}
 
       {/* State History */}
-      <StateHistory stateTransitions={selectedDevbox.state_transitions} />
+      <StateHistory
+        stateTransitions={selectedDevbox.state_transitions}
+        shutdownReason={selectedDevbox.shutdown_reason ?? undefined}
+      />
 
       {/* Operations - inline display */}
       <Box flexDirection="column" marginTop={1}>

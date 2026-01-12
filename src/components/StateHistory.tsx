@@ -2,10 +2,47 @@ import React from "react";
 import { Box, Text } from "ink";
 import figures from "figures";
 import { colors } from "../utils/theme.js";
+import { getStatusDisplay } from "./StatusBadge.js";
+import type { DevboxView } from "@runloop/api-client/resources/devboxes/devboxes";
+
+type DevboxStatus = DevboxView["status"];
+type StateTransition = DevboxView.StateTransition;
 
 interface StateHistoryProps {
-  stateTransitions?: any;
+  stateTransitions?: StateTransition[];
+  shutdownReason?: string;
 }
+
+// Format shutdown reason into human-readable text
+const formatShutdownReason = (reason: string): string => {
+  switch (reason) {
+    case "api_shutdown":
+      return "API call";
+    case "idle_timeout":
+      return "Idle timeout";
+    case "keep_alive_timeout":
+      return "Max lifetime expired";
+    case "max_lifetime":
+    case "max_lifetime_exceeded":
+      return "Max lifetime exceeded";
+    case "user_initiated":
+      return "User initiated";
+    case "system_maintenance":
+      return "System maintenance";
+    case "resource_limit":
+      return "Resource limits";
+    case "entrypoint_exit":
+      return "Entrypoint exited";
+    case "idle":
+      return "Idle";
+    case "error":
+    case "failure":
+      return "Error";
+    default:
+      // Convert snake_case to readable text
+      return reason.replace(/_/g, " ");
+  }
+};
 
 // Format time ago in a succinct way
 const formatTimeAgo = (timestamp: number): string => {
@@ -47,36 +84,40 @@ const formatDuration = (milliseconds: number): string => {
 // Capitalize first letter of a string
 const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
-export const StateHistory = ({ stateTransitions }: StateHistoryProps) => {
-  if (
-    !stateTransitions ||
-    !Array.isArray(stateTransitions) ||
-    stateTransitions.length === 0
-  ) {
+// Terminal states that don't need duration shown (no new state coming)
+const TERMINAL_STATES: DevboxStatus[] = ["shutdown", "failure"];
+
+export const StateHistory = ({
+  stateTransitions,
+  shutdownReason,
+}: StateHistoryProps) => {
+  if (!stateTransitions || stateTransitions.length === 0) {
     return null;
   }
 
-  // Get last 3 transitions (most recent first)
-  const lastThree = (
-    stateTransitions as Array<{
-      status: string;
-      transition_time_ms?: number;
-    }>
-  )
-    .slice(-3)
-    .reverse()
+  // Check if there are more than 5 transitions
+  const totalTransitions = stateTransitions.length;
+  const hasMore = totalTransitions > 5;
+
+  // Get last 5 transitions (oldest first - chronological order)
+  const lastFive = stateTransitions
+    .slice(-5)
     .map((transition, idx, arr) => {
-      const transitionTime = transition.transition_time_ms;
-      // Calculate duration: time until next transition, or until now if it's the current state
+      const transitionTime = transition.transition_time_ms as
+        | number
+        | undefined;
+      // Calculate duration: time until next transition, or until now if it's the last state
       let duration = 0;
       if (transitionTime) {
-        if (idx === 0) {
+        if (idx === arr.length - 1) {
           // Most recent state - duration is from transition time to now
           duration = Date.now() - transitionTime;
         } else {
-          // Previous state - duration is from this transition to the next one
-          const nextTransition = arr[idx - 1];
-          const nextTransitionTime = nextTransition.transition_time_ms;
+          // Earlier state - duration is from this transition to the next one
+          const nextTransition = arr[idx + 1];
+          const nextTransitionTime = nextTransition.transition_time_ms as
+            | number
+            | undefined;
           if (nextTransitionTime) {
             duration = nextTransitionTime - transitionTime;
           }
@@ -90,7 +131,7 @@ export const StateHistory = ({ stateTransitions }: StateHistoryProps) => {
     })
     .filter((state) => state.transitionTime); // Only show states with valid timestamps
 
-  if (lastThree.length === 0) {
+  if (lastFive.length === 0) {
     return null;
   }
 
@@ -98,33 +139,55 @@ export const StateHistory = ({ stateTransitions }: StateHistoryProps) => {
     <Box flexDirection="column" marginBottom={1} paddingX={1}>
       <Text color={colors.info} bold>
         {figures.circleFilled} State History
+        {hasMore && (
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            ({totalTransitions - 5} earlier states not shown)
+          </Text>
+        )}
       </Text>
       <Box flexDirection="column">
-        {lastThree.map((state, idx) => (
-          <Box key={idx} flexDirection="column">
-            <Text dimColor>
-              {capitalize(state.status)}
-              {state.transitionTime && (
-                <>
-                  {" "}
-                  at {new Date(state.transitionTime).toLocaleString()}{" "}
-                  <Text color={colors.textDim} dimColor>
-                    ({formatTimeAgo(state.transitionTime)})
-                  </Text>
-                  {state.duration > 0 && (
-                    <>
-                      {" "}
-                      • Duration:{" "}
-                      <Text color={colors.info}>
-                        {formatDuration(state.duration)}
-                      </Text>
-                    </>
-                  )}
-                </>
-              )}
-            </Text>
-          </Box>
-        ))}
+        {lastFive.map((state, idx) => {
+          const statusDisplay = getStatusDisplay(state.status || "");
+          const isLastState = idx === lastFive.length - 1;
+          const isTerminalState = TERMINAL_STATES.includes(
+            state.status as DevboxStatus,
+          );
+          const showDuration =
+            state.duration > 0 && !(isLastState && isTerminalState);
+
+          return (
+            <Box key={idx} flexDirection="column">
+              <Text dimColor>
+                <Text color={statusDisplay.color}>{statusDisplay.icon}</Text>{" "}
+                {capitalize(state.status || "unknown")}
+                {state.transitionTime && (
+                  <>
+                    {" "}
+                    at {new Date(state.transitionTime).toLocaleString()}{" "}
+                    <Text color={colors.textDim} dimColor>
+                      ({formatTimeAgo(state.transitionTime)})
+                    </Text>
+                    {showDuration && (
+                      <>
+                        {" "}
+                        • Duration:{" "}
+                        <Text color={colors.info}>
+                          {formatDuration(state.duration)}
+                        </Text>
+                      </>
+                    )}
+                  </>
+                )}
+              </Text>
+            </Box>
+          );
+        })}
+        {shutdownReason && (
+          <Text color={colors.warning} dimColor>
+            Shutdown reason: {formatShutdownReason(shutdownReason)}
+          </Text>
+        )}
       </Box>
     </Box>
   );
