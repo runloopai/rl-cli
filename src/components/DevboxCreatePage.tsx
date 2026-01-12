@@ -632,6 +632,7 @@ export const DevboxCreatePage = ({
                       <MetadataDisplay
                         metadata={formData.metadata}
                         showBorder={false}
+                        compact
                       />
                     </Box>
                   )}

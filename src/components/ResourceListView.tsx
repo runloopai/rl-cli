@@ -10,26 +10,44 @@ import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 
-// Format time ago in a succinct way
+// Format time ago - concise with ISO-style date for older items
 export const formatTimeAgo = (timestamp: number): string => {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  const date = new Date(timestamp);
+  const now = new Date();
 
-  if (seconds < 60) return `${seconds}s ago`;
+  // Format time as HH:MM:SS (24h)
+  const time = date.toTimeString().slice(0, 8);
+
+  // Less than 1 minute
+  if (seconds < 60) return `${time} (${seconds}s ago)`;
 
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  // Less than 1 hour
+  if (minutes < 60) return `${time} (${minutes}m ago)`;
 
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  // Less than 24 hours - show time + relative
+  if (hours < 24) return `${time} (${hours}hr ago)`;
 
   const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
+  const sameYear = date.getFullYear() === now.getFullYear();
 
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
+  // Format date parts
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const year = date.getFullYear();
 
-  const years = Math.floor(months / 12);
-  return `${years}y ago`;
+  // Date format: MM-DD or YYYY-MM-DD if different year
+  const dateStr = `${month}-${day}`;
+
+  // 1-7 days - show date + time + relative
+  if (days <= 7) {
+    return `${dateStr} ${time} (${days}d)`;
+  }
+
+  // More than 7 days - just date + time, no relative
+  return `${dateStr} ${time}`;
 };
 
 export interface ResourceListConfig<T> {

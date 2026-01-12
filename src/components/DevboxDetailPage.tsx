@@ -767,7 +767,7 @@ export const DevboxDetailPage = ({
           lp?.user_parameters) && (
           <Box flexDirection="column" paddingX={1} flexGrow={1}>
             <Text color={colors.warning} bold>
-              {figures.squareSmallFilled} Resources
+              {figures.squareSmallFilled} Details
             </Text>
             <Text dimColor>
               {lp?.resource_size_request && `${lp.resource_size_request}`}
@@ -858,7 +858,6 @@ export const DevboxDetailPage = ({
             </Text>
             {selectedDevbox.blueprint_id && (
               <>
-                <Text dimColor>BP: </Text>
                 <Text color={colors.idColor}>
                   {selectedDevbox.blueprint_id}
                 </Text>
@@ -866,7 +865,6 @@ export const DevboxDetailPage = ({
             )}
             {selectedDevbox.snapshot_id && (
               <>
-                <Text dimColor>Snap: </Text>
                 <Text color={colors.idColor}>{selectedDevbox.snapshot_id}</Text>
               </>
             )}
@@ -881,6 +879,7 @@ export const DevboxDetailPage = ({
             <MetadataDisplay
               metadata={selectedDevbox.metadata}
               showBorder={false}
+              compact
             />
           </Box>
         )}
