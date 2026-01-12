@@ -41,6 +41,12 @@ const formatTimeAgo = (timestamp: number): string => {
   return `${years}y ago`;
 };
 
+// Truncate long strings to prevent layout issues
+const truncateString = (str: string, maxLength: number): string => {
+  if (str.length <= maxLength) return str;
+  return str.substring(0, maxLength - 3) + "...";
+};
+
 export const DevboxDetailPage = ({
   devbox: initialDevbox,
   onBack,
@@ -723,9 +729,12 @@ export const DevboxDetailPage = ({
 
       {/* Main info section */}
       <Box flexDirection="column" marginTop={1} marginBottom={1} paddingX={1}>
-        <Box>
+        <Box flexDirection="row" flexWrap="wrap">
           <Text color={colors.primary} bold>
-            {selectedDevbox.name || selectedDevbox.id}
+            {truncateString(
+              selectedDevbox.name || selectedDevbox.id,
+              Math.max(20, detailViewport.terminalWidth - 35),
+            )}
           </Text>
           {/* Only show ID separately if there's a name */}
           {selectedDevbox.name && (
@@ -830,7 +839,9 @@ export const DevboxDetailPage = ({
             {lp?.user_parameters && (
               <Text dimColor>
                 User: {lp.user_parameters.username || "default"}
-                {lp.user_parameters.uid && ` (UID: ${lp.user_parameters.uid})`}
+                {lp.user_parameters.uid != null &&
+                  lp.user_parameters.uid !== 0 &&
+                  ` (UID: ${lp.user_parameters.uid})`}
               </Text>
             )}
           </Box>
