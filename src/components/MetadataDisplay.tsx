@@ -31,9 +31,9 @@ const renderCompactKeyValue = (
     <Text color={color} bold>
       {keyText}
     </Text>
-    <Text color={colors.muted}>=</Text>
+    <Text color={colors.textDim}>=</Text>
     <Text color={color}>{value}</Text>
-    {!isLast && <Text color={colors.muted}> · </Text>}
+    {!isLast && <Text color={colors.textDim}> · </Text>}
   </Text>
 );
 

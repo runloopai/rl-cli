@@ -881,6 +881,18 @@ export const DevboxDetailPage = ({
             )}
           </Box>
         )}
+
+        {/* Initiator */}
+        {selectedDevbox.initiator_type && (
+          <Box flexDirection="column" paddingX={1} flexGrow={1}>
+            <Text color={colors.accent3 || colors.info} bold>
+              {figures.pointer} Initiator
+            </Text>
+            {selectedDevbox.initiator_id && (
+              <Text color={colors.idColor}>{selectedDevbox.initiator_id}</Text>
+            )}
+          </Box>
+        )}
       </Box>
 
       {/* Metadata */}
