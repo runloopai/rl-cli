@@ -123,20 +123,6 @@ rli mcp start                            # Start the MCP server
 rli mcp install                          # Install Runloop MCP server configurat...
 ```
 
-### Output Formats
-
-Most commands support the `-o` flag to specify the output format (`json`, `yaml`, or `text`):
-
-```bash
-# Get all devbox IDs using jq
-rli devbox list -o json | jq -r '.[].id'
-# dbx_abc123
-# dbx_def456
-
-# Get the status of a specific devbox
-rli devbox get <id> -o json | jq -r '.status'
-# running
-```
 
 ## MCP Server (AI Integration)
 
