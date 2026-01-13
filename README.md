@@ -4,7 +4,7 @@
 [![CI](https://github.com/runloopai/rl-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/runloopai/rl-cli/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A beautiful CLI for managing Runloop built with Ink and TypeScript. Use it as an **interactive command-line application** with rich UI components, or as a **traditional CLI** for scripting and automation.
+An interactive CLI for interacting with the [Runloop.ai](https://runloop.ai) platform. Use it as an **interactive command-line application** with rich UI components, or as a **traditional CLI** for scripting and automation.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/runloopai/rl-cli/main/misc/demo.gif" alt="Runloop CLI Demo" width="800">
@@ -27,8 +27,8 @@ rli devbox delete <devbox-id>
 
 - ⚡ Fast and responsive with pagination
 - 📦 Manage devboxes, snapshots, and blueprints
-- 🚀 Execute commands in devboxes
-- 🎯 Organized command structure with aliases
+- 🚀 Execute commands, ssh, view logs in devboxes
+- 🎯 Traditional CLI with text, json, and yaml output modes.
 - 🤖 **Model Context Protocol (MCP) server for AI integration**
 
 ## Installation
