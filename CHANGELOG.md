@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.0](https://github.com/runloopai/rl-cli/compare/v0.9.0...v0.10.0) (2026-01-13)
+
+
+### Features
+
+* **devbox:** style improvements ([#36](https://github.com/runloopai/rl-cli/issues/36)) ([4563c19](https://github.com/runloopai/rl-cli/commit/4563c1981e01ffa046639d8880e88a7f55fdda77))
+
+
+### Bug Fixes
+
+* **devbox:** devbox correctly renders metadata without the header ([#38](https://github.com/runloopai/rl-cli/issues/38)) ([88c9c7c](https://github.com/runloopai/rl-cli/commit/88c9c7cde23a5eb8352c1f8f118baceba427ed45))
+
 ## [0.9.0](https://github.com/runloopai/rl-cli/compare/v0.8.0...v0.9.0) (2026-01-08)
 
 
