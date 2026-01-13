@@ -6,6 +6,10 @@
 
 A beautiful CLI for managing Runloop built with Ink and TypeScript. Use it as an **interactive command-line application** with rich UI components, or as a **traditional CLI** for scripting and automation.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/runloopai/rl-cli/main/misc/demo.gif" alt="Runloop CLI Demo" width="800">
+</p>
+
 ## Quick Example
 
 ```bash
