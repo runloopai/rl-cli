@@ -3,7 +3,6 @@ import { Box, Text, useInput } from "ink";
 import figures from "figures";
 import { Header } from "./Header.js";
 import { StatusBadge } from "./StatusBadge.js";
-import { MetadataDisplay } from "./MetadataDisplay.js";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { DevboxActionsMenu } from "./DevboxActionsMenu.js";
 import { StateHistory } from "./StateHistory.js";
@@ -554,7 +553,7 @@ export const DevboxDetailPage = ({
         lines.push(
           <Text key="status-shut" dimColor>
             {" "}
-            Shutdown Reason: {selectedDevbox.shutdown_reason}
+            Shutdown Initiator: {selectedDevbox.shutdown_reason}
           </Text>,
         );
       }
@@ -743,52 +742,89 @@ export const DevboxDetailPage = ({
         </Box>
         <Box>
           <StatusBadge status={selectedDevbox.status} fullText />
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            • {formattedCreateTime}
-          </Text>
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            ({createTimeAgo})
-          </Text>
-        </Box>
-        {uptime !== null && selectedDevbox.status === "running" && (
-          <Box>
+          {uptime !== null && selectedDevbox.status === "running" && (
             <Text color={colors.success} dimColor>
-              Uptime:{" "}
+              {" "}
+              • Uptime:{" "}
               {uptime < 60
                 ? `${uptime}m`
                 : `${Math.floor(uptime / 60)}h ${uptime % 60}m`}
             </Text>
-          </Box>
-        )}
+          )}
+          {selectedDevbox.status !== "running" &&
+            selectedDevbox.create_time_ms &&
+            selectedDevbox.end_time_ms && (
+              <Text color={colors.textDim} dimColor>
+                {" "}
+                • Ran for:{" "}
+                {(() => {
+                  const runtime = Math.floor(
+                    (selectedDevbox.end_time_ms -
+                      selectedDevbox.create_time_ms) /
+                      1000,
+                  );
+                  if (runtime < 60) return `${runtime}s`;
+                  const mins = Math.floor(runtime / 60);
+                  if (mins < 60) return `${mins}m ${runtime % 60}s`;
+                  const hours = Math.floor(mins / 60);
+                  return `${hours}h ${mins % 60}m`;
+                })()}
+              </Text>
+            )}
+        </Box>
       </Box>
 
-      {/* Resources + capabilities + source in one row */}
-      <Box flexDirection="row" gap={1} marginBottom={1}>
+      {/* Details section */}
+      <Box flexDirection="column" marginBottom={1}>
+        <Text color={colors.warning} bold>
+          {figures.squareSmallFilled} Details
+        </Text>
+        <Box flexDirection="column" paddingLeft={2}>
+          {/* Created / Ended */}
+        {selectedDevbox.create_time_ms && (
+          <Box>
+            <Text color={colors.textDim}>Created    </Text>
+            <Text dimColor>{formattedCreateTime}</Text>
+            {selectedDevbox.end_time_ms ? (
+              <Text dimColor>
+                {" "}
+                {figures.arrowRight} {new Date(selectedDevbox.end_time_ms).toLocaleString()}
+              </Text>
+            ) : (
+              <Text dimColor> ({createTimeAgo})</Text>
+            )}
+          </Box>
+        )}
+
         {/* Resources */}
         {(lp?.resource_size_request ||
           lp?.custom_cpu_cores ||
           lp?.custom_gb_memory ||
           lp?.custom_disk_size ||
-          lp?.architecture ||
-          lp?.keep_alive_time_seconds ||
-          lp?.user_parameters) && (
-          <Box flexDirection="column" paddingX={1} flexGrow={1}>
-            <Text color={colors.warning} bold>
-              {figures.squareSmallFilled} Details
-            </Text>
+          lp?.architecture) && (
+          <Box>
+            <Text color={colors.textDim}>Resources  </Text>
             <Text dimColor>
-              {lp?.resource_size_request && `${lp.resource_size_request}`}
-              {lp?.architecture && ` • ${lp.architecture}`}
-              {lp?.custom_cpu_cores && ` • ${lp.custom_cpu_cores}VCPU`}
-              {lp?.custom_gb_memory && ` • ${lp.custom_gb_memory}GB RAM`}
-              {lp?.custom_disk_size && ` • ${lp.custom_disk_size}GB DISC`}
+              {[
+                lp?.resource_size_request,
+                lp?.architecture,
+                lp?.custom_cpu_cores && `${lp.custom_cpu_cores}VCPU`,
+                lp?.custom_gb_memory && `${lp.custom_gb_memory}GB RAM`,
+                lp?.custom_disk_size && `${lp.custom_disk_size}GB DISC`,
+              ]
+                .filter(Boolean)
+                .join(" • ")}
             </Text>
+          </Box>
+        )}
+
+        {/* Lifetime and User on same line */}
+        {(lp?.keep_alive_time_seconds || lp?.user_parameters) && (
+          <Box>
             {lp?.keep_alive_time_seconds && (
-              <Box>
+              <>
+                <Text color={colors.textDim}>Lifetime   </Text>
                 <Text dimColor>
-                  Max Lifetime:{" "}
                   {lp.keep_alive_time_seconds < 3600
                     ? `${Math.floor(lp.keep_alive_time_seconds / 60)}m`
                     : `${Math.floor(lp.keep_alive_time_seconds / 3600)}h ${Math.floor((lp.keep_alive_time_seconds % 3600) / 60)}m`}
@@ -834,88 +870,90 @@ export const DevboxDetailPage = ({
                     })()}
                   </Text>
                 )}
-              </Box>
+                {lp?.user_parameters && (
+                  <Text color={colors.textDim}> • </Text>
+                )}
+              </>
             )}
             {lp?.user_parameters && (
-              <Text dimColor>
-                User: {lp.user_parameters.username || "default"}
-                {lp.user_parameters.uid != null &&
-                  lp.user_parameters.uid !== 0 &&
-                  ` (UID: ${lp.user_parameters.uid})`}
-              </Text>
+              <>
+                {!lp?.keep_alive_time_seconds && (
+                  <Text color={colors.textDim}>User       </Text>
+                )}
+                <Text color={colors.textDim}>User: </Text>
+                <Text dimColor>
+                  {lp.user_parameters.username || "default"}
+                  {lp.user_parameters.uid != null &&
+                    lp.user_parameters.uid !== 0 &&
+                    ` (UID: ${lp.user_parameters.uid})`}
+                </Text>
+              </>
             )}
-          </Box>
-        )}
-
-        {/* Capabilities */}
-        {hasCapabilities && (
-          <Box flexDirection="column" paddingX={1} flexGrow={1}>
-            <Text color={colors.info} bold>
-              {figures.tick} Capabilities
-            </Text>
-            <Text dimColor>
-              {selectedDevbox.capabilities
-                .filter((c: string) => c !== "unknown")
-                .join(", ")}
-            </Text>
           </Box>
         )}
 
         {/* Source */}
         {(selectedDevbox.blueprint_id || selectedDevbox.snapshot_id) && (
-          <Box flexDirection="column" paddingX={1} flexGrow={1}>
-            <Text color={colors.secondary} bold>
-              {figures.circleFilled} Source
+          <Box>
+            <Text color={colors.textDim}>Source     </Text>
+            <Text color={colors.idColor}>
+              {selectedDevbox.blueprint_id || selectedDevbox.snapshot_id}
             </Text>
-            {selectedDevbox.blueprint_id && (
-              <>
-                <Text color={colors.idColor}>
-                  {selectedDevbox.blueprint_id}
-                </Text>
-              </>
-            )}
-            {selectedDevbox.snapshot_id && (
-              <>
-                <Text color={colors.idColor}>{selectedDevbox.snapshot_id}</Text>
-              </>
-            )}
           </Box>
         )}
 
         {/* Initiator */}
-        {selectedDevbox.initiator_type && (
-          <Box flexDirection="column" paddingX={1} flexGrow={1}>
-            <Text color={colors.accent3 || colors.info} bold>
-              {figures.pointer} Initiator
-            </Text>
-            {selectedDevbox.initiator_id && (
-              <Text color={colors.idColor}>{selectedDevbox.initiator_id}</Text>
-            )}
+        {selectedDevbox.initiator_id && (
+          <Box>
+            <Text color={colors.textDim}>Initiator  </Text>
+            <Text color={colors.idColor}>{selectedDevbox.initiator_id}</Text>
           </Box>
         )}
+
+          {/* Capabilities */}
+          {hasCapabilities && (
+            <Box>
+              <Text color={colors.textDim}>Capabilities </Text>
+              <Text dimColor>
+                {selectedDevbox.capabilities
+                  .filter((c: string) => c !== "unknown")
+                  .join(", ")}
+              </Text>
+            </Box>
+          )}
+        </Box>
       </Box>
 
-      {/* Metadata */}
+      {/* Metadata section */}
       {selectedDevbox.metadata &&
         Object.keys(selectedDevbox.metadata).length > 0 && (
-          <Box marginBottom={1} paddingX={1}>
-            <MetadataDisplay
-              metadata={selectedDevbox.metadata}
-              showBorder={false}
-              compact
-            />
+          <Box flexDirection="column" marginBottom={1}>
+            <Text color={colors.info} bold>
+              {figures.identical} Metadata
+            </Text>
+            <Box flexDirection="column" paddingLeft={2}>
+              {Object.entries(selectedDevbox.metadata).map(([key, value]) => (
+                <Box key={key}>
+                  <Text color={colors.primary}>{key}</Text>
+                  <Text color={colors.textDim}>=</Text>
+                  <Text color={colors.idColor}>{value as string}</Text>
+                </Box>
+              ))}
+            </Box>
           </Box>
         )}
 
       {/* Failure */}
       {selectedDevbox.failure_reason && (
-        <Box marginBottom={1} paddingX={1}>
+        <Box flexDirection="column" marginBottom={1}>
           <Text color={colors.error} bold>
-            {figures.cross}{" "}
+            {figures.cross} Error
           </Text>
-          <Text color={colors.error} dimColor>
-            {selectedDevbox.failure_reason}
-          </Text>
+          <Box paddingLeft={2}>
+            <Text color={colors.error}>
+              {selectedDevbox.failure_reason}
+            </Text>
+          </Box>
         </Box>
       )}
 
@@ -925,12 +963,12 @@ export const DevboxDetailPage = ({
         shutdownReason={selectedDevbox.shutdown_reason ?? undefined}
       />
 
-      {/* Operations - inline display */}
+      {/* Actions section */}
       <Box flexDirection="column" marginTop={1}>
         <Text color={colors.primary} bold>
           {figures.play} Actions
         </Text>
-        <Box flexDirection="column">
+        <Box flexDirection="column" paddingLeft={1}>
           {operations.map((op, index) => {
             const isSelected = index === selectedOperation;
             return (

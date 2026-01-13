@@ -136,17 +136,17 @@ export const StateHistory = ({
   }
 
   return (
-    <Box flexDirection="column" marginBottom={1} paddingX={1}>
+    <Box flexDirection="column" marginBottom={1}>
       <Text color={colors.info} bold>
         {figures.circleFilled} State History
         {hasMore && (
           <Text color={colors.textDim} dimColor>
             {" "}
-            ({totalTransitions - 5} earlier states not shown)
+            ({totalTransitions - 5} earlier)
           </Text>
         )}
       </Text>
-      <Box flexDirection="column">
+      <Box flexDirection="column" paddingLeft={1}>
         {lastFive.map((state, idx) => {
           const statusDisplay = getStatusDisplay(state.status || "");
           const isLastState = idx === lastFive.length - 1;
@@ -155,17 +155,20 @@ export const StateHistory = ({
           );
           const showDuration =
             state.duration > 0 && !(isLastState && isTerminalState);
+          const isShutdownState = state.status === "shutdown";
 
           return (
-            <Box key={idx} flexDirection="column">
-              <Text dimColor>
-                <Text color={statusDisplay.color}>{statusDisplay.icon}</Text>{" "}
+            <Box key={idx} flexDirection="row">
+              <Text color={statusDisplay.color}>{statusDisplay.icon} </Text>
+              <Text color={isLastState ? statusDisplay.color : colors.textDim} bold={isLastState}>
                 {capitalize(state.status || "unknown")}
-                {state.transitionTime && (
-                  <>
+              </Text>
+              {state.transitionTime && (
+                <>
+                  <Text dimColor>
                     {" "}
                     at {new Date(state.transitionTime).toLocaleString()}{" "}
-                    <Text color={colors.textDim} dimColor>
+                    <Text color={colors.textDim}>
                       ({formatTimeAgo(state.transitionTime)})
                     </Text>
                     {showDuration && (
@@ -177,17 +180,20 @@ export const StateHistory = ({
                         </Text>
                       </>
                     )}
-                  </>
-                )}
-              </Text>
+                  </Text>
+                  {isShutdownState && shutdownReason && (
+                    <>
+                      <Text color={colors.textDim}> due to </Text>
+                      <Text color={colors.warning}>
+                        {formatShutdownReason(shutdownReason)}
+                      </Text>
+                    </>
+                  )}
+                </>
+              )}
             </Box>
           );
         })}
-        {shutdownReason && (
-          <Text color={colors.warning} dimColor>
-            Shutdown reason: {formatShutdownReason(shutdownReason)}
-          </Text>
-        )}
       </Box>
     </Box>
   );
