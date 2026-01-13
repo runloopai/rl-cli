@@ -5,7 +5,7 @@ on:
     types: [opened, edited, synchronize, reopened]
 
 jobs:
-  lint:
+  pr-title-check:
     runs-on: ubuntu-latest
     steps:
       - uses: amannn/action-semantic-pull-request@v5

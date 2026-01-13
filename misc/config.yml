@@ -15,12 +15,12 @@ env:
 # Explicitly set the number of columns
 # or use `auto` to take the current
 # number of columns of your shell
-cols: auto
+cols: 135
 
 # Explicitly set the number of rows
 # or use `auto` to take the current
 # number of rows of your shell
-rows: auto
+rows: 34
 
 # Amount of times to repeat GIF
 # If value is -1, play once
