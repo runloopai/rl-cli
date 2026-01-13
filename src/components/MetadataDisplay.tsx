@@ -16,7 +16,7 @@ const renderKeyValueBadge = (keyText: string, value: string, color: string) => (
     <Text color={color} bold>
       {keyText}
     </Text>
-    <Text color={color}>: </Text>
+    <Text color={color}>= </Text>
     <Text color={color}>{value}</Text>
   </Box>
 );

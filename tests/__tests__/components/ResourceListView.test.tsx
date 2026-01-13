@@ -102,31 +102,43 @@ describe("ResourceListView", () => {
 describe("formatTimeAgo", () => {
   it("formats seconds ago", () => {
     const timestamp = Date.now() - 30 * 1000;
-    expect(formatTimeAgo(timestamp)).toBe("30s ago");
+    const result = formatTimeAgo(timestamp);
+    // New format includes time + relative: "HH:MM:SS (30s ago)"
+    expect(result).toContain("30s ago");
   });
 
   it("formats minutes ago", () => {
     const timestamp = Date.now() - 5 * 60 * 1000;
-    expect(formatTimeAgo(timestamp)).toBe("5m ago");
+    const result = formatTimeAgo(timestamp);
+    // New format includes time + relative: "HH:MM:SS (5m ago)"
+    expect(result).toContain("5m ago");
   });
 
   it("formats hours ago", () => {
     const timestamp = Date.now() - 3 * 60 * 60 * 1000;
-    expect(formatTimeAgo(timestamp)).toBe("3h ago");
+    const result = formatTimeAgo(timestamp);
+    // New format includes time + relative: "HH:MM:SS (3hr ago)"
+    expect(result).toContain("3hr ago");
   });
 
   it("formats days ago", () => {
     const timestamp = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    expect(formatTimeAgo(timestamp)).toBe("7d ago");
+    const result = formatTimeAgo(timestamp);
+    // New format includes date + time + relative: "MM-DD HH:MM:SS (7d)"
+    expect(result).toMatch(/\d{2}-\d{2}.*\(7d\)/);
   });
 
-  it("formats months ago", () => {
+  it("formats older dates without relative", () => {
     const timestamp = Date.now() - 60 * 24 * 60 * 60 * 1000;
-    expect(formatTimeAgo(timestamp)).toBe("2mo ago");
+    const result = formatTimeAgo(timestamp);
+    // More than 7 days just shows date + time, no relative
+    expect(result).toMatch(/\d{2}-\d{2} \d{2}:\d{2}:\d{2}/);
   });
 
-  it("formats years ago", () => {
+  it("formats very old dates without relative", () => {
     const timestamp = Date.now() - 400 * 24 * 60 * 60 * 1000;
-    expect(formatTimeAgo(timestamp)).toBe("1y ago");
+    const result = formatTimeAgo(timestamp);
+    // Very old dates just show date + time
+    expect(result).toMatch(/\d{2}-\d{2} \d{2}:\d{2}:\d{2}/);
   });
 });

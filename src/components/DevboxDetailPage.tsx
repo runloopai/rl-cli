@@ -897,7 +897,7 @@ export const DevboxDetailPage = ({
           {(selectedDevbox.blueprint_id || selectedDevbox.snapshot_id) && (
             <Box>
               <Text color={colors.textDim}>Source </Text>
-              <Text color={colors.idColor}>
+              <Text color={colors.success}>
                 {selectedDevbox.blueprint_id || selectedDevbox.snapshot_id}
               </Text>
             </Box>
@@ -907,7 +907,9 @@ export const DevboxDetailPage = ({
           {selectedDevbox.initiator_id && (
             <Box>
               <Text color={colors.textDim}>Initiator </Text>
-              <Text color={colors.idColor}>{selectedDevbox.initiator_id}</Text>
+              <Text color={colors.secondary}>
+                {selectedDevbox.initiator_id}
+              </Text>
             </Box>
           )}
 
@@ -929,15 +931,17 @@ export const DevboxDetailPage = ({
       {selectedDevbox.metadata &&
         Object.keys(selectedDevbox.metadata).length > 0 && (
           <Box flexDirection="column" marginBottom={1}>
-            <Text color={colors.info} bold>
+            <Text color={colors.secondary} bold>
               {figures.identical} Metadata
             </Text>
             <Box flexDirection="column" paddingLeft={2}>
               {Object.entries(selectedDevbox.metadata).map(([key, value]) => (
                 <Box key={key}>
-                  <Text color={colors.primary}>{key}</Text>
-                  <Text color={colors.textDim}>=</Text>
-                  <Text color={colors.idColor}>{value as string}</Text>
+                  <Text color={colors.textDim}>{key}</Text>
+                  <Text color={colors.textDim}>: </Text>
+                  <Text color={colors.textDim} dimColor>
+                    {value as string}
+                  </Text>
                 </Box>
               ))}
             </Box>

@@ -137,8 +137,8 @@ export const StateHistory = ({
 
   return (
     <Box flexDirection="column" marginBottom={1}>
-      <Text color={colors.info} bold>
-        {figures.circleFilled} State History
+      <Text color={colors.success} bold>
+        {figures.info} State History
         {hasMore && (
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -178,7 +178,7 @@ export const StateHistory = ({
                       <>
                         {" "}
                         • Duration:{" "}
-                        <Text color={colors.info}>
+                        <Text color={colors.secondary}>
                           {formatDuration(state.duration)}
                         </Text>
                       </>
