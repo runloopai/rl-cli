@@ -781,134 +781,135 @@ export const DevboxDetailPage = ({
         </Text>
         <Box flexDirection="column" paddingLeft={2}>
           {/* Created / Ended */}
-        {selectedDevbox.create_time_ms && (
-          <Box>
-            <Text color={colors.textDim}>Created    </Text>
-            <Text dimColor>{formattedCreateTime}</Text>
-            {selectedDevbox.end_time_ms ? (
+          {selectedDevbox.create_time_ms && (
+            <Box>
+              <Text color={colors.textDim}>Created </Text>
+              <Text dimColor>{formattedCreateTime}</Text>
+              {selectedDevbox.end_time_ms ? (
+                <Text dimColor>
+                  {" "}
+                  {figures.arrowRight}{" "}
+                  {new Date(selectedDevbox.end_time_ms).toLocaleString()}
+                </Text>
+              ) : (
+                <Text dimColor> ({createTimeAgo})</Text>
+              )}
+            </Box>
+          )}
+
+          {/* Resources */}
+          {(lp?.resource_size_request ||
+            lp?.custom_cpu_cores ||
+            lp?.custom_gb_memory ||
+            lp?.custom_disk_size ||
+            lp?.architecture) && (
+            <Box>
+              <Text color={colors.textDim}>Resources </Text>
               <Text dimColor>
-                {" "}
-                {figures.arrowRight} {new Date(selectedDevbox.end_time_ms).toLocaleString()}
+                {[
+                  lp?.resource_size_request,
+                  lp?.architecture,
+                  lp?.custom_cpu_cores && `${lp.custom_cpu_cores}VCPU`,
+                  lp?.custom_gb_memory && `${lp.custom_gb_memory}GB RAM`,
+                  lp?.custom_disk_size && `${lp.custom_disk_size}GB DISC`,
+                ]
+                  .filter(Boolean)
+                  .join(" • ")}
               </Text>
-            ) : (
-              <Text dimColor> ({createTimeAgo})</Text>
-            )}
-          </Box>
-        )}
+            </Box>
+          )}
 
-        {/* Resources */}
-        {(lp?.resource_size_request ||
-          lp?.custom_cpu_cores ||
-          lp?.custom_gb_memory ||
-          lp?.custom_disk_size ||
-          lp?.architecture) && (
-          <Box>
-            <Text color={colors.textDim}>Resources  </Text>
-            <Text dimColor>
-              {[
-                lp?.resource_size_request,
-                lp?.architecture,
-                lp?.custom_cpu_cores && `${lp.custom_cpu_cores}VCPU`,
-                lp?.custom_gb_memory && `${lp.custom_gb_memory}GB RAM`,
-                lp?.custom_disk_size && `${lp.custom_disk_size}GB DISC`,
-              ]
-                .filter(Boolean)
-                .join(" • ")}
-            </Text>
-          </Box>
-        )}
-
-        {/* Lifetime and User on same line */}
-        {(lp?.keep_alive_time_seconds || lp?.user_parameters) && (
-          <Box>
-            {lp?.keep_alive_time_seconds && (
-              <>
-                <Text color={colors.textDim}>Lifetime   </Text>
-                <Text dimColor>
-                  {lp.keep_alive_time_seconds < 3600
-                    ? `${Math.floor(lp.keep_alive_time_seconds / 60)}m`
-                    : `${Math.floor(lp.keep_alive_time_seconds / 3600)}h ${Math.floor((lp.keep_alive_time_seconds % 3600) / 60)}m`}
-                </Text>
-                {uptime !== null && selectedDevbox.status === "running" && (
-                  <Text>
-                    {" "}
-                    •{" "}
-                    {(() => {
-                      const maxLifetimeMinutes = Math.floor(
-                        lp.keep_alive_time_seconds / 60,
-                      );
-                      const remainingMinutes = maxLifetimeMinutes - uptime;
-                      if (remainingMinutes <= 0) {
-                        return <Text color={colors.error}>Expired</Text>;
-                      } else if (remainingMinutes < 5) {
-                        return (
-                          <Text color={colors.error}>
-                            {remainingMinutes}m remaining
-                          </Text>
-                        );
-                      } else if (remainingMinutes < 15) {
-                        return (
-                          <Text color={colors.warning}>
-                            {remainingMinutes}m remaining
-                          </Text>
-                        );
-                      } else if (remainingMinutes < 60) {
-                        return (
-                          <Text color={colors.success}>
-                            {remainingMinutes}m remaining
-                          </Text>
-                        );
-                      } else {
-                        const hours = Math.floor(remainingMinutes / 60);
-                        const mins = remainingMinutes % 60;
-                        return (
-                          <Text color={colors.success}>
-                            {hours}h {mins}m remaining
-                          </Text>
-                        );
-                      }
-                    })()}
+          {/* Lifetime and User on same line */}
+          {(lp?.keep_alive_time_seconds || lp?.user_parameters) && (
+            <Box>
+              {lp?.keep_alive_time_seconds && (
+                <>
+                  <Text color={colors.textDim}>Lifetime </Text>
+                  <Text dimColor>
+                    {lp.keep_alive_time_seconds < 3600
+                      ? `${Math.floor(lp.keep_alive_time_seconds / 60)}m`
+                      : `${Math.floor(lp.keep_alive_time_seconds / 3600)}h ${Math.floor((lp.keep_alive_time_seconds % 3600) / 60)}m`}
                   </Text>
-                )}
-                {lp?.user_parameters && (
-                  <Text color={colors.textDim}> • </Text>
-                )}
-              </>
-            )}
-            {lp?.user_parameters && (
-              <>
-                {!lp?.keep_alive_time_seconds && (
-                  <Text color={colors.textDim}>User       </Text>
-                )}
-                <Text color={colors.textDim}>User: </Text>
-                <Text dimColor>
-                  {lp.user_parameters.username || "default"}
-                  {lp.user_parameters.uid != null &&
-                    lp.user_parameters.uid !== 0 &&
-                    ` (UID: ${lp.user_parameters.uid})`}
-                </Text>
-              </>
-            )}
-          </Box>
-        )}
+                  {uptime !== null && selectedDevbox.status === "running" && (
+                    <Text>
+                      {" "}
+                      •{" "}
+                      {(() => {
+                        const maxLifetimeMinutes = Math.floor(
+                          lp.keep_alive_time_seconds / 60,
+                        );
+                        const remainingMinutes = maxLifetimeMinutes - uptime;
+                        if (remainingMinutes <= 0) {
+                          return <Text color={colors.error}>Expired</Text>;
+                        } else if (remainingMinutes < 5) {
+                          return (
+                            <Text color={colors.error}>
+                              {remainingMinutes}m remaining
+                            </Text>
+                          );
+                        } else if (remainingMinutes < 15) {
+                          return (
+                            <Text color={colors.warning}>
+                              {remainingMinutes}m remaining
+                            </Text>
+                          );
+                        } else if (remainingMinutes < 60) {
+                          return (
+                            <Text color={colors.success}>
+                              {remainingMinutes}m remaining
+                            </Text>
+                          );
+                        } else {
+                          const hours = Math.floor(remainingMinutes / 60);
+                          const mins = remainingMinutes % 60;
+                          return (
+                            <Text color={colors.success}>
+                              {hours}h {mins}m remaining
+                            </Text>
+                          );
+                        }
+                      })()}
+                    </Text>
+                  )}
+                  {lp?.user_parameters && (
+                    <Text color={colors.textDim}> • </Text>
+                  )}
+                </>
+              )}
+              {lp?.user_parameters && (
+                <>
+                  {!lp?.keep_alive_time_seconds && (
+                    <Text color={colors.textDim}>User </Text>
+                  )}
+                  <Text color={colors.textDim}>User: </Text>
+                  <Text dimColor>
+                    {lp.user_parameters.username || "default"}
+                    {lp.user_parameters.uid != null &&
+                      lp.user_parameters.uid !== 0 &&
+                      ` (UID: ${lp.user_parameters.uid})`}
+                  </Text>
+                </>
+              )}
+            </Box>
+          )}
 
-        {/* Source */}
-        {(selectedDevbox.blueprint_id || selectedDevbox.snapshot_id) && (
-          <Box>
-            <Text color={colors.textDim}>Source     </Text>
-            <Text color={colors.idColor}>
-              {selectedDevbox.blueprint_id || selectedDevbox.snapshot_id}
-            </Text>
-          </Box>
-        )}
+          {/* Source */}
+          {(selectedDevbox.blueprint_id || selectedDevbox.snapshot_id) && (
+            <Box>
+              <Text color={colors.textDim}>Source </Text>
+              <Text color={colors.idColor}>
+                {selectedDevbox.blueprint_id || selectedDevbox.snapshot_id}
+              </Text>
+            </Box>
+          )}
 
-        {/* Initiator */}
-        {selectedDevbox.initiator_id && (
-          <Box>
-            <Text color={colors.textDim}>Initiator  </Text>
-            <Text color={colors.idColor}>{selectedDevbox.initiator_id}</Text>
-          </Box>
-        )}
+          {/* Initiator */}
+          {selectedDevbox.initiator_id && (
+            <Box>
+              <Text color={colors.textDim}>Initiator </Text>
+              <Text color={colors.idColor}>{selectedDevbox.initiator_id}</Text>
+            </Box>
+          )}
 
           {/* Capabilities */}
           {hasCapabilities && (
@@ -950,9 +951,7 @@ export const DevboxDetailPage = ({
             {figures.cross} Error
           </Text>
           <Box paddingLeft={2}>
-            <Text color={colors.error}>
-              {selectedDevbox.failure_reason}
-            </Text>
+            <Text color={colors.error}>{selectedDevbox.failure_reason}</Text>
           </Box>
         </Box>
       )}

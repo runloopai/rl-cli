@@ -160,7 +160,10 @@ export const StateHistory = ({
           return (
             <Box key={idx} flexDirection="row">
               <Text color={statusDisplay.color}>{statusDisplay.icon} </Text>
-              <Text color={isLastState ? statusDisplay.color : colors.textDim} bold={isLastState}>
+              <Text
+                color={isLastState ? statusDisplay.color : colors.textDim}
+                bold={isLastState}
+              >
                 {capitalize(state.status || "unknown")}
               </Text>
               {state.transitionTime && (
