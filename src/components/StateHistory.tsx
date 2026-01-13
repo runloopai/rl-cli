@@ -146,7 +146,7 @@ export const StateHistory = ({
           </Text>
         )}
       </Text>
-      <Box flexDirection="column" paddingLeft={1}>
+      <Box flexDirection="column" paddingLeft={2}>
         {lastFive.map((state, idx) => {
           const statusDisplay = getStatusDisplay(state.status || "");
           const isLastState = idx === lastFive.length - 1;

@@ -967,7 +967,7 @@ export const DevboxDetailPage = ({
         <Text color={colors.primary} bold>
           {figures.play} Actions
         </Text>
-        <Box flexDirection="column" paddingLeft={1}>
+        <Box flexDirection="column" paddingLeft={2}>
           {operations.map((op, index) => {
             const isSelected = index === selectedOperation;
             return (
