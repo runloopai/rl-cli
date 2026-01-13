@@ -55,7 +55,7 @@ describe('DevboxDetailPage', () => {
         onBack={() => {}}
       />
     );
-    expect(lastFrame()).toContain('RUNNING');
+    expect(lastFrame()).toContain('Running');
   });
 
   it('shows Actions section', () => {

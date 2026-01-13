@@ -89,7 +89,7 @@ describe('getStatusDisplay', () => {
   it('returns correct display for provisioning', () => {
     const display = getStatusDisplay('provisioning');
     expect(display.text.trim()).toBe('PROVISION');
-    expect(display.icon).toBe('…');
+    expect(display.icon).toBe('↑');
   });
 
   it('returns correct display for initializing', () => {

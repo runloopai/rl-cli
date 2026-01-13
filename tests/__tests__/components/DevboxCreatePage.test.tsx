@@ -45,7 +45,7 @@ describe('DevboxCreatePage', () => {
     const { lastFrame } = render(
       <DevboxCreatePage onBack={() => {}} />
     );
-    expect(lastFrame()).toContain('arm64');
+    expect(lastFrame()).toContain('x86_64');
   });
 
   it('displays default resource size value', () => {

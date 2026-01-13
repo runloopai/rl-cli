@@ -8,6 +8,7 @@ interface MetadataDisplayProps {
   title?: string;
   showBorder?: boolean;
   selectedKey?: string;
+  compact?: boolean;
 }
 
 const renderKeyValueBadge = (keyText: string, value: string, color: string) => (
@@ -15,9 +16,25 @@ const renderKeyValueBadge = (keyText: string, value: string, color: string) => (
     <Text color={color} bold>
       {keyText}
     </Text>
-    <Text color={color}>: </Text>
+    <Text color={color}>= </Text>
     <Text color={color}>{value}</Text>
   </Box>
+);
+
+const renderCompactKeyValue = (
+  keyText: string,
+  value: string,
+  color: string,
+  isLast: boolean,
+) => (
+  <Text>
+    <Text color={color} bold>
+      {keyText}
+    </Text>
+    <Text color={colors.textDim}>=</Text>
+    <Text color={color}>{value}</Text>
+    {!isLast && <Text color={colors.textDim}> · </Text>}
+  </Text>
 );
 
 // Generate color for each key based on hash
@@ -38,11 +55,46 @@ export const MetadataDisplay = ({
   title = "Metadata",
   showBorder = false,
   selectedKey,
+  compact = false,
 }: MetadataDisplayProps) => {
   const entries = Object.entries(metadata);
 
   if (entries.length === 0) {
     return null;
+  }
+
+  if (compact) {
+    return (
+      <Box flexDirection="column">
+        {title && (
+          <Text color={colors.accent3} bold>
+            {figures.identical} {title}
+          </Text>
+        )}
+        <Box flexDirection="row" flexWrap="wrap">
+          {entries.map(([key, value], index) => {
+            const color = getColorForKey(key, index);
+            const isSelected = selectedKey === key;
+            const isLast = index === entries.length - 1;
+            return (
+              <React.Fragment key={key}>
+                {isSelected && (
+                  <Text color={colors.primary} bold>
+                    {figures.pointer}
+                  </Text>
+                )}
+                {renderCompactKeyValue(
+                  key,
+                  value as string,
+                  isSelected ? colors.primary : color,
+                  isLast,
+                )}
+              </React.Fragment>
+            );
+          })}
+        </Box>
+      </Box>
+    );
   }
 
   const content = (

@@ -66,12 +66,12 @@ export const DevboxCreatePage = ({
   const [currentField, setCurrentField] = React.useState<FormField>("create");
   const [formData, setFormData] = React.useState<FormData>({
     name: "",
-    architecture: "arm64",
+    architecture: "x86_64",
     resource_size: "SMALL",
     custom_cpu: "",
     custom_memory: "",
     custom_disk: "",
-    keep_alive: "3600",
+    keep_alive: "3600", // 1 hour
     metadata: {},
     blueprint_id: initialBlueprintId || "",
     snapshot_id: initialSnapshotId || "",
@@ -632,6 +632,7 @@ export const DevboxCreatePage = ({
                       <MetadataDisplay
                         metadata={formData.metadata}
                         showBorder={false}
+                        compact
                       />
                     </Box>
                   )}
