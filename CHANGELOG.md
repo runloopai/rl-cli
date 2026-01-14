@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/runloopai/rl-cli/compare/v0.10.0...v1.0.0) (2026-01-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* added documentation and more gif videos of the cli in action ([#43](https://github.com/runloopai/rl-cli/issues/43))
+
+### Features
+
+* added documentation and more gif videos of the cli in action ([#43](https://github.com/runloopai/rl-cli/issues/43)) ([83609ba](https://github.com/runloopai/rl-cli/commit/83609ba56c71b8882d21707b41bec45f2382029e))
+
 ## [0.10.0](https://github.com/runloopai/rl-cli/compare/v0.9.0...v0.10.0) (2026-01-13)
 
 
