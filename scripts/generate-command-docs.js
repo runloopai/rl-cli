@@ -354,6 +354,14 @@ export RUNLOOP_API_KEY=your_api_key_here
       <img src="https://raw.githubusercontent.com/runloopai/rl-cli/main/misc/demo.gif" alt="Runloop CLI Interactive Mode" />
     </Frame>
     
+    ### Search Devboxes
+    
+    Press \`/\` to search and filter through your devboxes by name or ID.
+    
+    <Frame>
+      <img src="https://raw.githubusercontent.com/runloopai/rl-cli/main/misc/rli-demo-search.gif" alt="Search devboxes in interactive mode" />
+    </Frame>
+    
     ### SSH to Devbox
     
     From the interactive menu, select a devbox and choose **SSH** to open a secure shell session directly into your devbox. The CLI handles all the SSH key setup and connection details automatically.
