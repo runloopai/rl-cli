@@ -1,5 +1,5 @@
 /**
- * Hook to handle Ctrl+C (SIGINT) consistently across all screens
+ * Hook to handle Ctrl+C (SIGINT) and Ctrl+D (EOF) consistently across all screens
  * Exits the program with proper cleanup of alternate screen buffer
  */
 import { useInput } from "ink";
@@ -11,6 +11,11 @@ export function useExitOnCtrlC(): void {
     if (key.ctrl && input === "c") {
       exitAlternateScreenBuffer();
       processUtils.exit(130); // Standard exit code for SIGINT
+    }
+    // Handle Ctrl+D (EOF) same as Ctrl+C
+    if (key.ctrl && input === "d") {
+      exitAlternateScreenBuffer();
+      processUtils.exit(0); // Clean exit for EOF
     }
   });
 }

@@ -69,7 +69,7 @@ export function SSHSessionScreen() {
           {figures.play} Connecting to {devboxName}...
         </Text>
         <Text color={colors.textDim} dimColor>
-          Press Ctrl+C or type exit to disconnect
+          Press Ctrl+C, Ctrl+D, or type exit to disconnect
         </Text>
       </Box>
       <InteractiveSpawn
