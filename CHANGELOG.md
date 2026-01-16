@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/runloopai/rl-cli/compare/v1.0.0...v1.1.0) (2026-01-16)
+
+
+### Features
+
+* control d now exits the rli process ([#45](https://github.com/runloopai/rl-cli/issues/45)) ([bf77722](https://github.com/runloopai/rl-cli/commit/bf7772206f8f000444c49d352937d85fc702a6d3))
+
 ## [1.0.0](https://github.com/runloopai/rl-cli/compare/v0.10.0...v1.0.0) (2026-01-14)
 
 
