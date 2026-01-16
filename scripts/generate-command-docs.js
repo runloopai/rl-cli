@@ -133,10 +133,10 @@ function generateDetailedCommandDocs(program) {
     const commandName = command.name();
     const commandAlias = command.aliases()[0] || null;
     const sectionTitleBase = commandName.charAt(0).toUpperCase() + commandName.slice(1);
-    const aliasNote = commandAlias ? ` (alias: \`${commandAlias}\`)` : "";
     
     const lines = [];
-    lines.push(`### ${sectionTitleBase} Commands${aliasNote}`);
+    // Use simple header text for predictable anchor slugs (e.g., "devbox-commands")
+    lines.push(`### ${sectionTitleBase} Commands`);
     lines.push("");
     lines.push("<AccordionGroup>");
 
@@ -417,16 +417,16 @@ export RUNLOOP_API_KEY=your_api_key_here
 ## Command Groups
 
 <CardGroup cols={2}>
-  <Card title="Devbox" icon="server" href="#devbox-commands-alias-d">
+  <Card title="Devbox" icon="server" href="#devbox-commands">
     Create, manage, and interact with devboxes
   </Card>
-  <Card title="Snapshot" icon="camera" href="#snapshot-commands-alias-snap">
+  <Card title="Snapshot" icon="camera" href="#snapshot-commands">
     Create and manage devbox snapshots
   </Card>
-  <Card title="Blueprint" icon="diagram-project" href="#blueprint-commands-alias-bp">
+  <Card title="Blueprint" icon="diagram-project" href="#blueprint-commands">
     Manage reusable devbox templates
   </Card>
-  <Card title="Object" icon="box-archive" href="#object-commands-alias-obj">
+  <Card title="Object" icon="box-archive" href="#object-commands">
     Upload and manage file objects
   </Card>
 </CardGroup>
