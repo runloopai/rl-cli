@@ -457,6 +457,23 @@ export function createProgram(): Command {
       await getBlueprintLogs({ id, ...options });
     });
 
+  blueprint
+    .command("prune <name>")
+    .description("Delete old blueprint builds, keeping only recent successful ones")
+    .option("--dry-run", "Show what would be deleted without actually deleting")
+    .option("-y, --yes", "Skip confirmation prompt")
+    .option("--keep <n>", "Number of successful builds to keep", "1")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (name, options) => {
+      const { pruneBlueprints } = await import(
+        "../commands/blueprint/prune.js"
+      );
+      await pruneBlueprints(name, options);
+    });
+
   // Object storage commands
   const object = program
     .command("object")
