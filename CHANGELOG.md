@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/runloopai/rl-cli/compare/v1.1.0...v1.2.0) (2026-01-17)
+
+
+### Features
+
+* **blueprint:** add prune command ([#47](https://github.com/runloopai/rl-cli/issues/47)) ([96be7fa](https://github.com/runloopai/rl-cli/commit/96be7fa1cc73330addc9c10f76d6f43140761d66))
+
 ## [1.1.0](https://github.com/runloopai/rl-cli/compare/v1.0.0...v1.1.0) (2026-01-16)
 
 
