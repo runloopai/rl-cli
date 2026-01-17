@@ -28,9 +28,7 @@ interface PruneResult {
 /**
  * Fetch all blueprints with a given name (handles pagination)
  */
-async function fetchAllBlueprintsWithName(
-  name: string,
-): Promise<Blueprint[]> {
+async function fetchAllBlueprintsWithName(name: string): Promise<Blueprint[]> {
   const client = getClient();
   const allBlueprints: Blueprint[] = [];
   let hasMore = true;
@@ -132,8 +130,12 @@ function displaySummary(
 
   console.log(`\nAnalyzing blueprints named "${name}"...`);
   console.log(`\nFound ${total} blueprint${total !== 1 ? "s" : ""}:`);
-  console.log(`  ✓ ${result.successful.length} successful build${result.successful.length !== 1 ? "s" : ""}`);
-  console.log(`  ✗ ${result.failed.length} failed build${result.failed.length !== 1 ? "s" : ""}`);
+  console.log(
+    `  ✓ ${result.successful.length} successful build${result.successful.length !== 1 ? "s" : ""}`,
+  );
+  console.log(
+    `  ✗ ${result.failed.length} failed build${result.failed.length !== 1 ? "s" : ""}`,
+  );
 
   // Show what will be kept
   console.log(`\nKeeping (${result.toKeep.length} most recent successful):`);
@@ -213,9 +215,7 @@ async function confirmDeletion(count: number): Promise<boolean> {
       `\nDelete ${count} blueprint${count !== 1 ? "s" : ""}? (y/N): `,
       (answer) => {
         rl.close();
-        resolve(
-          answer.toLowerCase() === "y" || answer.toLowerCase() === "yes",
-        );
+        resolve(answer.toLowerCase() === "y" || answer.toLowerCase() === "yes");
       },
     );
   });
@@ -322,7 +322,9 @@ export async function pruneBlueprints(
     }
 
     // Perform deletions
-    console.log(`\nDeleting ${categorized.toDelete.length} blueprint${categorized.toDelete.length !== 1 ? "s" : ""}...`);
+    console.log(
+      `\nDeleting ${categorized.toDelete.length} blueprint${categorized.toDelete.length !== 1 ? "s" : ""}...`,
+    );
     const deletionResults = await deleteBlueprintsWithTracking(
       categorized.toDelete,
     );
