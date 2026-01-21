@@ -71,9 +71,9 @@ rli devbox list -o json              # JSON output
 rli devbox list -o yaml              # YAML output
 ```
 
-## CLI Commands
+## Command Structure
 
-The CLI is organized into command groups:
+The CLI is organized into command buckets:
 
 ### Devbox Commands (alias: `d`)
 
