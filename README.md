@@ -4,7 +4,7 @@
 [![CI](https://github.com/runloopai/rl-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/runloopai/rl-cli/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An interactive CLI for interacting with the [Runloop.ai](https://runloop.ai) platform. Use it as an **interactive command-line application** with rich UI components, or as a **traditional CLI** for scripting and automation.
+A **TUI + CLI** for the [Runloop.ai](https://runloop.ai) platform. Use it as an **interactive TUI** (Terminal User Interface) with rich UI components, or as a **traditional CLI** for scripting and automation.
 
 📖 **[Full Documentation](https://docs.runloop.ai/docs/tools/cli)**
 
@@ -15,10 +15,10 @@ An interactive CLI for interacting with the [Runloop.ai](https://runloop.ai) pla
 ## Quick Example
 
 ```bash
-# Interactive mode - launches a beautiful UI menu
+# TUI mode - launches an interactive terminal UI
 rli
 
-# Traditional CLI mode - perfect for scripts
+# CLI mode - perfect for scripts and automation
 rli devbox list                    # Outputs JSON/text
 rli devbox create --name my-devbox
 rli devbox exec <devbox-id> echo "Hello World"
@@ -27,10 +27,11 @@ rli devbox delete <devbox-id>
 
 ## Features
 
+- 🖥️ **TUI mode** — Interactive terminal UI with menus, tables, and real-time updates
+- 🎯 **CLI mode** — Traditional commands with text, JSON, and YAML output for scripting
 - ⚡ Fast and responsive with pagination
 - 📦 Manage devboxes, snapshots, and blueprints
-- 🚀 Execute commands, ssh, view logs in devboxes
-- 🎯 Traditional CLI with text, json, and yaml output modes.
+- 🚀 Execute commands, SSH, view logs in devboxes
 - 🤖 **Model Context Protocol (MCP) server for AI integration**
 
 ## Installation
@@ -53,11 +54,21 @@ Get your API key from [https://runloop.ai/settings](https://runloop.ai/settings)
 
 ## Usage
 
-### Interactive CLI
+### TUI (Interactive Mode)
 
 ```bash
-rli                    # Run the interactive console
+rli                    # Launch the interactive TUI
 rli --help             # See help information
+```
+
+### CLI (Scripting Mode)
+
+All commands support `--output` (`-o`) for format control:
+
+```bash
+rli devbox list                      # Default text output
+rli devbox list -o json              # JSON output
+rli devbox list -o yaml              # YAML output
 ```
 
 ## Command Structure
@@ -160,7 +171,7 @@ rli mcp start --http --port 8080
 
 ## Theme Configuration
 
-The CLI supports both light and dark terminal themes and will automatically select the appropriate theme.
+The TUI supports both light and dark terminal themes and will automatically select the appropriate theme.
 
 ## Development
 
