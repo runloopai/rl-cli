@@ -88,10 +88,7 @@ export const Banner = React.memo(() => {
   }, [colors.length]);
 
   // Create a subtle shimmer by shifting the color array
-  const rotatedColors = [
-    ...colors.slice(offset),
-    ...colors.slice(0, offset),
-  ];
+  const rotatedColors = [...colors.slice(offset), ...colors.slice(0, offset)];
 
   return (
     <Box flexDirection="column" alignItems="flex-start" paddingX={1}>
