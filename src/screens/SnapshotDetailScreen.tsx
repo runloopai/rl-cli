@@ -339,7 +339,7 @@ export function SnapshotDetailScreen({
       resourceType="Snapshots"
       getDisplayName={(snap) => snap.name || snap.id}
       getId={(snap) => snap.id}
-      getStatus={(snap) => snap.status}
+      getStatus={(snap) => snap.status || "unknown"}
       detailSections={detailSections}
       operations={operations}
       onOperation={handleOperation}

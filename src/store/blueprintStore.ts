@@ -2,36 +2,21 @@
  * Blueprint Store - Manages blueprint list state, pagination, and caching
  */
 import { create } from "zustand";
+import type {
+  BlueprintView,
+  BlueprintBuildParameters,
+} from "@runloop/api-client/resources/blueprints";
 
-export interface BlueprintParameters {
-  launch_parameters?: {
-    architecture?: string;
-    resource_size_request?: string;
-    custom_cpu_cores?: number;
-    custom_gb_memory?: number;
-    custom_disk_size?: number;
-    keep_alive_time_seconds?: number;
-    available_ports?: number[];
-    launch_commands?: string[];
-    required_services?: string[];
-  };
-  dockerfile?: string;
-  system_setup_commands?: string[];
-  file_mounts?: Record<string, string>;
-}
-
-export interface Blueprint {
-  id: string;
-  name?: string;
-  status: string;
-  create_time_ms?: number;
-  build_status?: string;
+// Extended type with UI-specific convenience fields
+export interface Blueprint extends BlueprintView {
+  // Convenience field for architecture (extracted from parameters.launch_parameters)
   architecture?: string;
+  // Convenience field for resource size (extracted from parameters.launch_parameters)
   resources?: string;
-  // Extended fields for detail view
-  parameters?: BlueprintParameters;
-  description?: string;
 }
+
+// Re-export for compatibility with existing code
+export type BlueprintParameters = BlueprintBuildParameters;
 
 interface BlueprintState {
   // List data
@@ -124,16 +109,10 @@ export const useBlueprintStore = create<BlueprintState>((set, get) => ({
       }
     }
 
-    // Create plain data objects to avoid SDK references
-    const plainData = data.map((b) => ({
-      id: b.id,
-      name: b.name,
-      status: b.status,
-      create_time_ms: b.create_time_ms,
-      build_status: b.build_status,
-      architecture: b.architecture,
-      resources: b.resources,
-    }));
+    // Deep copy all fields to avoid SDK references
+    const plainData = data.map((d) => {
+      return JSON.parse(JSON.stringify(d)) as Blueprint;
+    });
 
     pageCache.set(page, plainData);
     lastIdCache.set(page, lastId);

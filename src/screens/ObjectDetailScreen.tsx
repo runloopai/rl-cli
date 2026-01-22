@@ -224,6 +224,35 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
     });
   }
 
+  // TTL / Expires - show remaining time before auto-deletion
+  if (storageObject.delete_after_time_ms) {
+    const now = Date.now();
+    const remainingMs = storageObject.delete_after_time_ms - now;
+
+    let ttlValue: string;
+    let ttlColor = colors.text;
+
+    if (remainingMs <= 0) {
+      ttlValue = "Expired";
+      ttlColor = colors.error;
+    } else {
+      const remainingMinutes = Math.floor(remainingMs / 60000);
+      if (remainingMinutes < 60) {
+        ttlValue = `${remainingMinutes}m remaining`;
+        ttlColor = remainingMinutes < 10 ? colors.warning : colors.text;
+      } else {
+        const hours = Math.floor(remainingMinutes / 60);
+        const mins = remainingMinutes % 60;
+        ttlValue = `${hours}h ${mins}m remaining`;
+      }
+    }
+
+    basicFields.push({
+      label: "Expires",
+      value: <Text color={ttlColor}>{ttlValue}</Text>,
+    });
+  }
+
   if (basicFields.length > 0) {
     detailSections.push({
       title: "Details",
@@ -374,6 +403,31 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
         <Text key="core-created" dimColor>
           {" "}
           Created: {new Date(obj.create_time_ms).toLocaleString()}
+        </Text>,
+      );
+    }
+    if (obj.delete_after_time_ms) {
+      const now = Date.now();
+      const remainingMs = obj.delete_after_time_ms - now;
+      let expiresText: string;
+
+      if (remainingMs <= 0) {
+        expiresText = "Expired";
+      } else {
+        const remainingMinutes = Math.floor(remainingMs / 60000);
+        if (remainingMinutes < 60) {
+          expiresText = `${remainingMinutes}m remaining`;
+        } else {
+          const hours = Math.floor(remainingMinutes / 60);
+          const mins = remainingMinutes % 60;
+          expiresText = `${hours}h ${mins}m remaining`;
+        }
+      }
+
+      lines.push(
+        <Text key="core-expires" color={remainingMs <= 0 ? colors.error : colors.warning}>
+          {" "}
+          Expires: {expiresText}
         </Text>,
       );
     }

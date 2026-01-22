@@ -62,11 +62,11 @@ export async function listBlueprints(
       blueprints.push({
         id: String(b.id || "").substring(0, MAX_ID_LENGTH),
         name: String(b.name || "").substring(0, MAX_NAME_LENGTH),
-        status: String(b.status || "").substring(0, MAX_STATUS_LENGTH),
+        status: b.status,
+        state: b.state,
         create_time_ms: b.create_time_ms,
-        build_status: b.status
-          ? String(b.status).substring(0, MAX_STATUS_LENGTH)
-          : undefined,
+        parameters: b.parameters,
+        // UI-specific convenience fields
         architecture: architecture
           ? String(architecture).substring(0, MAX_ARCH_LENGTH)
           : undefined,
@@ -93,43 +93,15 @@ export async function getBlueprint(id: string): Promise<Blueprint> {
   const client = getClient();
   const blueprint = await client.blueprints.retrieve(id);
 
-  // Extract architecture and resources from launch_parameters
+  // Extract architecture and resources from launch_parameters for convenience
   const launchParams = blueprint.parameters?.launch_parameters;
 
   return {
-    id: blueprint.id,
-    name: blueprint.name,
-    status: blueprint.status,
-    create_time_ms: blueprint.create_time_ms,
-    build_status: (blueprint as any).build_status,
+    // Spread all API fields
+    ...blueprint,
+    // UI-specific convenience fields
     architecture: launchParams?.architecture ?? undefined,
     resources: launchParams?.resource_size_request ?? undefined,
-    parameters: blueprint.parameters
-      ? {
-          launch_parameters: launchParams
-            ? {
-                architecture: launchParams.architecture ?? undefined,
-                resource_size_request:
-                  launchParams.resource_size_request ?? undefined,
-                custom_cpu_cores: launchParams.custom_cpu_cores ?? undefined,
-                custom_gb_memory: launchParams.custom_gb_memory ?? undefined,
-                custom_disk_size: launchParams.custom_disk_size ?? undefined,
-                keep_alive_time_seconds:
-                  launchParams.keep_alive_time_seconds ?? undefined,
-                available_ports: launchParams.available_ports ?? undefined,
-                launch_commands: launchParams.launch_commands ?? undefined,
-                required_services: launchParams.required_services ?? undefined,
-              }
-            : undefined,
-          dockerfile: blueprint.parameters.dockerfile ?? undefined,
-          system_setup_commands:
-            blueprint.parameters.system_setup_commands ?? undefined,
-          file_mounts:
-            (blueprint.parameters.file_mounts as
-              | Record<string, string>
-              | undefined) ?? undefined,
-        }
-      : undefined,
   };
 }
 

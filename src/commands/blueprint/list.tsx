@@ -170,13 +170,9 @@ const ListBlueprintsUI = ({
           isSelected: boolean,
         ) => {
           const statusDisplay = getStatusDisplay(blueprint.status || "");
-          const statusColor =
-            statusDisplay.color === colors.textDim
-              ? colors.info
-              : statusDisplay.color;
           return (
             <Text
-              color={isSelected ? "white" : statusColor}
+              color={isSelected ? "white" : statusDisplay.color}
               bold={true}
               dimColor={false}
               inverse={isSelected}
@@ -223,16 +219,12 @@ const ListBlueprintsUI = ({
           isSelected: boolean,
         ) => {
           const statusDisplay = getStatusDisplay(blueprint.status || "");
-          const statusColor =
-            statusDisplay.color === colors.textDim
-              ? colors.info
-              : statusDisplay.color;
           const safeWidth = Math.max(1, statusTextWidth);
           const truncated = statusDisplay.text.slice(0, safeWidth);
           const padded = truncated.padEnd(safeWidth, " ");
           return (
             <Text
-              color={isSelected ? "white" : statusColor}
+              color={isSelected ? "white" : statusDisplay.color}
               bold={true}
               dimColor={false}
               inverse={isSelected}

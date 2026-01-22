@@ -2,21 +2,11 @@
  * Network Policy Store - Manages network policy list state, pagination, and caching
  */
 import { create } from "zustand";
+import type { NetworkPolicyView } from "@runloop/api-client/resources/network-policies";
 
-export interface NetworkPolicyEgress {
-  allow_all: boolean;
-  allow_devbox_to_devbox: boolean;
-  allowed_hostnames: string[];
-}
-
-export interface NetworkPolicy {
-  id: string;
-  name: string;
-  description?: string;
-  create_time_ms: number;
-  update_time_ms: number;
-  egress: NetworkPolicyEgress;
-}
+// Re-export for compatibility with existing code
+export type NetworkPolicy = NetworkPolicyView;
+export type NetworkPolicyEgress = NetworkPolicyView.Egress;
 
 interface NetworkPolicyState {
   // List data
@@ -109,19 +99,10 @@ export const useNetworkPolicyStore = create<NetworkPolicyState>((set, get) => ({
       }
     }
 
-    // Create plain data objects to avoid SDK references
-    const plainData = data.map((p) => ({
-      id: p.id,
-      name: p.name,
-      description: p.description,
-      create_time_ms: p.create_time_ms,
-      update_time_ms: p.update_time_ms,
-      egress: {
-        allow_all: p.egress.allow_all,
-        allow_devbox_to_devbox: p.egress.allow_devbox_to_devbox,
-        allowed_hostnames: [...p.egress.allowed_hostnames],
-      },
-    }));
+    // Deep copy all fields to avoid SDK references
+    const plainData = data.map((d) => {
+      return JSON.parse(JSON.stringify(d)) as NetworkPolicy;
+    });
 
     pageCache.set(page, plainData);
     lastIdCache.set(page, lastId);

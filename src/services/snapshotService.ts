@@ -62,6 +62,13 @@ export async function listSnapshots(
         name: snapshotView.name
           ? String(snapshotView.name).substring(0, MAX_NAME_LENGTH)
           : undefined,
+        create_time_ms: snapshotView.create_time_ms,
+        metadata: snapshotView.metadata || {},
+        source_devbox_id: String(snapshotView.source_devbox_id || "").substring(
+          0,
+          MAX_ID_LENGTH,
+        ),
+        // UI-specific extended fields
         devbox_id: String(snapshotView.source_devbox_id || "").substring(
           0,
           MAX_ID_LENGTH,
@@ -69,7 +76,6 @@ export async function listSnapshots(
         status: snapshotView.status
           ? String(snapshotView.status).substring(0, MAX_STATUS_LENGTH)
           : "",
-        create_time_ms: snapshotView.create_time_ms,
       });
     });
   }
@@ -107,6 +113,9 @@ export async function getSnapshot(id: string): Promise<Snapshot> {
     // If no snapshot data yet, return minimal info based on operation status
     return {
       id: id,
+      create_time_ms: Date.now(),
+      metadata: {},
+      source_devbox_id: "",
       status: operationStatus === "in_progress" ? "pending" : operationStatus,
     };
   }
@@ -114,10 +123,12 @@ export async function getSnapshot(id: string): Promise<Snapshot> {
   return {
     id: snapshot.id,
     name: snapshot.name || undefined,
+    create_time_ms: snapshot.create_time_ms,
+    metadata: snapshot.metadata || {},
+    source_devbox_id: snapshot.source_devbox_id || "",
+    // UI-specific extended fields
     devbox_id: snapshot.source_devbox_id || undefined,
     status: operationStatus === "complete" ? "ready" : operationStatus,
-    create_time_ms: snapshot.create_time_ms,
-    metadata: snapshot.metadata as Record<string, string> | undefined,
   };
 }
 
@@ -136,9 +147,12 @@ export async function createSnapshot(
   return {
     id: snapshot.id,
     name: snapshot.name || undefined,
-    devbox_id: (snapshot as any).devbox_id || devboxId,
-    status: (snapshot as any).status || "pending",
-    create_time_ms: (snapshot as any).create_time_ms,
+    create_time_ms: snapshot.create_time_ms,
+    metadata: snapshot.metadata || {},
+    source_devbox_id: snapshot.source_devbox_id || devboxId,
+    // UI-specific extended fields
+    devbox_id: snapshot.source_devbox_id || devboxId,
+    status: "pending",
   };
 }
 

@@ -39,6 +39,7 @@ interface ObjectListItem {
   state?: string;
   is_public?: boolean;
   create_time_ms?: number;
+  delete_after_time_ms?: number | null;
   [key: string]: unknown;
 }
 
@@ -88,8 +89,30 @@ const ListObjectsUI = ({
   const typeWidth = 15;
   const sizeWidth = 12;
   const timeWidth = 15;
+  const ttlWidth = 14;
   const showTypeColumn = terminalWidth >= 100;
   const showSizeColumn = terminalWidth >= 80;
+  const showTtlColumn = terminalWidth >= 110;
+
+  // Helper to format TTL remaining time
+  const formatTtl = (deleteAfterMs?: number | null): string => {
+    if (!deleteAfterMs) return "";
+    const now = Date.now();
+    const remainingMs = deleteAfterMs - now;
+    if (remainingMs <= 0) return "Expired";
+    const remainingMinutes = Math.floor(remainingMs / 60000);
+    if (remainingMinutes < 60) {
+      return `${remainingMinutes}m left`;
+    }
+    const hours = Math.floor(remainingMinutes / 60);
+    const mins = remainingMinutes % 60;
+    if (hours < 24) {
+      return `${hours}h ${mins}m left`;
+    }
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+    return `${days}d ${remainingHours}h left`;
+  };
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
@@ -255,6 +278,18 @@ const ListObjectsUI = ({
           bold: false,
         },
       ),
+      createTextColumn(
+        "ttl",
+        "Expires",
+        (obj: ObjectListItem) => formatTtl(obj.delete_after_time_ms),
+        {
+          width: ttlWidth,
+          color: colors.warning,
+          dimColor: false,
+          bold: false,
+          visible: showTtlColumn,
+        },
+      ),
     ],
     [
       idWidth,
@@ -263,8 +298,11 @@ const ListObjectsUI = ({
       typeWidth,
       sizeWidth,
       timeWidth,
+      ttlWidth,
       showTypeColumn,
       showSizeColumn,
+      showTtlColumn,
+      formatTtl,
     ],
   );
 

@@ -62,18 +62,14 @@ export async function listObjects(
 
       objects.push({
         id: String(obj.id || "").substring(0, MAX_ID_LENGTH),
-        name: obj.name
-          ? String(obj.name).substring(0, MAX_NAME_LENGTH)
-          : undefined,
-        content_type: obj.content_type
-          ? String(obj.content_type).substring(0, MAX_CONTENT_TYPE_LENGTH)
-          : undefined,
+        name: String(obj.name || "").substring(0, MAX_NAME_LENGTH),
+        content_type: obj.content_type || "unspecified",
+        create_time_ms: obj.create_time_ms || 0,
+        state: obj.state || "UPLOADING",
         size_bytes: obj.size_bytes,
-        state: obj.state
-          ? String(obj.state).substring(0, MAX_STATE_LENGTH)
-          : undefined,
+        delete_after_time_ms: obj.delete_after_time_ms,
+        // UI-specific extended fields
         is_public: obj.is_public,
-        create_time_ms: obj.create_time_ms,
       });
     });
   }
@@ -102,12 +98,14 @@ export async function getObject(id: string): Promise<StorageObject> {
 
   return {
     id: obj.id,
-    name: obj.name || undefined,
-    content_type: obj.content_type || undefined,
+    name: obj.name || "",
+    content_type: obj.content_type || "unspecified",
+    create_time_ms: obj.create_time_ms || 0,
+    state: obj.state || "UPLOADING",
     size_bytes: obj.size_bytes,
-    state: obj.state || undefined,
+    delete_after_time_ms: obj.delete_after_time_ms,
+    // UI-specific extended fields
     is_public: obj.is_public,
-    create_time_ms: obj.create_time_ms,
     download_url: obj.download_url || undefined,
     metadata: obj.metadata as Record<string, string> | undefined,
   };

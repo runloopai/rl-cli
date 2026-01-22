@@ -2,18 +2,17 @@
  * Object Store - Manages storage object list state, pagination, and caching
  */
 import { create } from "zustand";
+import type { ObjectView } from "@runloop/api-client/resources/objects";
 
-export interface StorageObject {
-  id: string;
-  name?: string;
-  content_type?: string;
-  size_bytes?: number;
-  state?: string;
-  is_public?: boolean;
-  create_time_ms?: number;
-  // Extended fields for detail view
+// Extended type with UI-specific fields
+// The service transforms API responses to add computed/fetched fields
+export interface StorageObject extends ObjectView {
+  // Presigned download URL (fetched separately via download endpoint)
   download_url?: string;
+  // User-defined metadata
   metadata?: Record<string, string>;
+  // Public visibility flag
+  is_public?: boolean;
 }
 
 interface ObjectState {
@@ -120,16 +119,10 @@ export const useObjectStore = create<ObjectState>((set, get) => ({
       }
     }
 
-    // Create plain data objects to avoid SDK references
-    const plainData = data.map((obj) => ({
-      id: obj.id,
-      name: obj.name,
-      content_type: obj.content_type,
-      size_bytes: obj.size_bytes,
-      state: obj.state,
-      is_public: obj.is_public,
-      create_time_ms: obj.create_time_ms,
-    }));
+    // Deep copy all fields to avoid SDK references
+    const plainData = data.map((d) => {
+      return JSON.parse(JSON.stringify(d)) as StorageObject;
+    });
 
     pageCache.set(page, plainData);
     lastIdCache.set(page, lastId);
