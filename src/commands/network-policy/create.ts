@@ -21,11 +21,9 @@ export async function createNetworkPolicy(options: CreateOptions) {
     const policy = await client.networkPolicies.create({
       name: options.name,
       description: options.description,
-      egress: {
-        allow_all: options.allowAll ?? false,
-        allow_devbox_to_devbox: options.allowDevboxToDevbox ?? false,
-        allowed_hostnames: options.allowedHostnames ?? [],
-      },
+      allow_all: options.allowAll ?? false,
+      allow_devbox_to_devbox: options.allowDevboxToDevbox ?? false,
+      allowed_hostnames: options.allowedHostnames ?? [],
     });
 
     // Default: just output the ID for easy scripting

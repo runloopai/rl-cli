@@ -261,9 +261,7 @@ export const DevboxDetailPage = ({
     if (lp?.network_policy_id) {
       detailFields.push({
         label: "Network Policy",
-        value: (
-          <Text color={colors.info}>{lp.network_policy_id}</Text>
-        ),
+        value: <Text color={colors.info}>{lp.network_policy_id}</Text>,
       });
     }
 

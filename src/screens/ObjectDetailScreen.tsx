@@ -425,7 +425,10 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
       }
 
       lines.push(
-        <Text key="core-expires" color={remainingMs <= 0 ? colors.error : colors.warning}>
+        <Text
+          key="core-expires"
+          color={remainingMs <= 0 ? colors.error : colors.warning}
+        >
           {" "}
           Expires: {expiresText}
         </Text>,
