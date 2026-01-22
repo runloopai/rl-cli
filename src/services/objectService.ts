@@ -122,7 +122,7 @@ export async function deleteObject(id: string): Promise<void> {
 /**
  * Format file size in human-readable format
  */
-export function formatFileSize(bytes: number | undefined): string {
+export function formatFileSize(bytes: number | null | undefined): string {
   if (bytes === undefined || bytes === null) return "Unknown";
 
   const units = ["B", "KB", "MB", "GB", "TB"];
