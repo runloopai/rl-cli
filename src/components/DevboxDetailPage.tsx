@@ -257,6 +257,16 @@ export const DevboxDetailPage = ({
       });
     }
 
+    // Network Policy
+    if (lp?.network_policy_id) {
+      detailFields.push({
+        label: "Network Policy",
+        value: (
+          <Text color={colors.info}>{lp.network_policy_id}</Text>
+        ),
+      });
+    }
+
     // Initiator
     if (devbox.initiator_id) {
       detailFields.push({

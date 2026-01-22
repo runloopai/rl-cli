@@ -477,7 +477,7 @@ export const DevboxCreatePage = ({
       }
 
       if (formData.network_policy_id) {
-        createParams.network_policy_id = formData.network_policy_id;
+        launchParameters.network_policy_id = formData.network_policy_id;
       }
 
       if (Object.keys(launchParameters).length > 0) {
