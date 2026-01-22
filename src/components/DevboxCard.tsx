@@ -28,7 +28,7 @@ export const DevboxCard = ({
       case "suspended":
         return { icon: figures.circle, color: colors.textDim };
       case "failed":
-        return { icon: figures.cross, color: colors.error };
+        return { icon: figures.warning, color: colors.error };
       default:
         return { icon: figures.circle, color: colors.textDim };
     }

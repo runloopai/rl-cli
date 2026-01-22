@@ -83,8 +83,8 @@ const ListObjectsUI = ({
   const PAGE_SIZE = viewportHeight;
 
   // All width constants
+  const fixedWidth = 6; // border + padding
   const idWidth = 25;
-  const nameWidth = Math.max(15, terminalWidth >= 120 ? 30 : 20);
   const stateWidth = 12;
   const typeWidth = 15;
   const sizeWidth = 12;
@@ -93,6 +93,15 @@ const ListObjectsUI = ({
   const showTypeColumn = terminalWidth >= 100;
   const showSizeColumn = terminalWidth >= 80;
   const showTtlColumn = terminalWidth >= 110;
+
+  // Name width uses remaining space after fixed columns
+  const baseWidth = fixedWidth + idWidth + stateWidth + timeWidth;
+  const optionalWidth =
+    (showTypeColumn ? typeWidth : 0) +
+    (showSizeColumn ? sizeWidth : 0) +
+    (showTtlColumn ? ttlWidth : 0);
+  const remainingWidth = terminalWidth - baseWidth - optionalWidth;
+  const nameWidth = Math.min(80, Math.max(15, remainingWidth));
 
   // Helper to format TTL remaining time
   const formatTtl = (deleteAfterMs?: number | null): string => {

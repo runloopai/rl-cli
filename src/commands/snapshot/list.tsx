@@ -79,11 +79,17 @@ const ListSnapshotsUI = ({
   const PAGE_SIZE = viewportHeight;
 
   // All width constants
+  const fixedWidth = 6; // border + padding
   const idWidth = 25;
-  const nameWidth = Math.max(15, terminalWidth >= 120 ? 30 : 25);
   const devboxWidth = 15;
   const timeWidth = 20;
   const showDevboxIdColumn = terminalWidth >= 100 && !devboxId;
+
+  // Name width uses remaining space after fixed columns
+  const baseWidth = fixedWidth + idWidth + timeWidth;
+  const optionalWidth = showDevboxIdColumn ? devboxWidth : 0;
+  const remainingWidth = terminalWidth - baseWidth - optionalWidth;
+  const nameWidth = Math.min(80, Math.max(15, remainingWidth));
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(

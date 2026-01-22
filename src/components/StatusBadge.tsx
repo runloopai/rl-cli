@@ -90,7 +90,7 @@ export const getStatusDisplay = (status: string): StatusDisplay => {
     // === ERROR STATES ===
     case "failure":
       return {
-        icon: figures.cross,
+        icon: figures.warning,
         color: colors.error,
         text: "FAILED    ",
         label: "Failed",
@@ -98,7 +98,7 @@ export const getStatusDisplay = (status: string): StatusDisplay => {
     case "build_failed":
     case "failed":
       return {
-        icon: figures.cross,
+        icon: figures.warning,
         color: colors.error,
         text: "FAILED    ",
         label: "Failed",

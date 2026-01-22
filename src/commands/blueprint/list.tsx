@@ -82,13 +82,20 @@ const ListBlueprintsUI = ({
   const PAGE_SIZE = viewportHeight;
 
   // All width constants
+  const fixedWidth = 6; // border + padding
   const statusIconWidth = 2;
   const statusTextWidth = 10;
   const idWidth = 25;
-  const nameWidth = Math.max(15, terminalWidth >= 120 ? 30 : 25);
   const descriptionWidth = 40;
   const timeWidth = 20;
   const showDescription = terminalWidth >= 120;
+
+  // Name width uses remaining space after fixed columns
+  const baseWidth =
+    fixedWidth + statusIconWidth + statusTextWidth + idWidth + timeWidth;
+  const optionalWidth = showDescription ? descriptionWidth : 0;
+  const remainingWidth = terminalWidth - baseWidth - optionalWidth;
+  const nameWidth = Math.min(80, Math.max(15, remainingWidth));
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(

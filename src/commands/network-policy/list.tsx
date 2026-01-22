@@ -105,12 +105,18 @@ const ListNetworkPoliciesUI = ({
   const PAGE_SIZE = viewportHeight;
 
   // All width constants
+  const fixedWidth = 6; // border + padding
   const idWidth = 25;
-  const nameWidth = Math.max(15, terminalWidth >= 120 ? 30 : 20);
-  const descriptionWidth = Math.max(20, terminalWidth >= 140 ? 40 : 25);
   const egressWidth = 15;
   const timeWidth = 15;
   const showDescription = terminalWidth >= 100;
+  const descriptionWidth = Math.max(20, terminalWidth >= 140 ? 40 : 25);
+
+  // Name width uses remaining space after fixed columns
+  const baseWidth = fixedWidth + idWidth + egressWidth + timeWidth;
+  const optionalWidth = showDescription ? descriptionWidth : 0;
+  const remainingWidth = terminalWidth - baseWidth - optionalWidth;
+  const nameWidth = Math.min(80, Math.max(15, remainingWidth));
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(

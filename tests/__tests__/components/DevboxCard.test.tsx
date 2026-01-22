@@ -64,7 +64,7 @@ describe('DevboxCard', () => {
         status="failed"
       />
     );
-    expect(lastFrame()).toContain('✗'); // cross for failed
+    expect(lastFrame()).toContain('⚠'); // warning for failed
   });
 
   it('displays created date when provided', () => {

@@ -154,7 +154,7 @@ function displaySummary(
   } else {
     // Show all blueprints without summarizing
     for (const blueprint of result.toDelete) {
-      const icon = blueprint.status === "build_complete" ? "✓" : "✗";
+      const icon = blueprint.status === "build_complete" ? "✓" : "⚠";
       const statusLabel =
         blueprint.status === "build_complete" ? "successful" : "failed";
       console.log(
@@ -174,7 +174,7 @@ function displayDeletedBlueprints(deleted: Blueprint[]) {
 
   console.log("\nDeleted blueprints:");
   for (const blueprint of deleted) {
-    const icon = blueprint.status === "build_complete" ? "✓" : "✗";
+    const icon = blueprint.status === "build_complete" ? "✓" : "⚠";
     const statusLabel =
       blueprint.status === "build_complete" ? "successful" : "failed";
     console.log(

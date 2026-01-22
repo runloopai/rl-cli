@@ -105,7 +105,7 @@ describe('getStatusDisplay', () => {
   it('returns correct display for failure', () => {
     const display = getStatusDisplay('failure');
     expect(display.text.trim()).toBe('FAILED');
-    expect(display.icon).toBe('✗');
+    expect(display.icon).toBe('⚠');
   });
 
   it('returns correct display for resuming', () => {

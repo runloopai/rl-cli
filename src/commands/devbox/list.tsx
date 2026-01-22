@@ -162,41 +162,21 @@ const ListDevboxesUI = ({
   const ABSOLUTE_MAX_NAME_WIDTH = 80;
 
   // Name width is flexible and uses remaining space
-  let nameWidth = 15;
-  if (terminalWidth >= 120) {
-    const remainingWidth =
-      terminalWidth -
-      fixedWidth -
-      statusIconWidth -
-      idWidth -
-      statusTextWidth -
-      timeWidth -
-      capabilitiesWidth -
-      sourceWidth -
-      12;
-    nameWidth = Math.min(ABSOLUTE_MAX_NAME_WIDTH, Math.max(15, remainingWidth));
-  } else if (terminalWidth >= 110) {
-    const remainingWidth =
-      terminalWidth -
-      fixedWidth -
-      statusIconWidth -
-      idWidth -
-      statusTextWidth -
-      timeWidth -
-      sourceWidth -
-      10;
-    nameWidth = Math.min(ABSOLUTE_MAX_NAME_WIDTH, Math.max(12, remainingWidth));
-  } else {
-    const remainingWidth =
-      terminalWidth -
-      fixedWidth -
-      statusIconWidth -
-      idWidth -
-      statusTextWidth -
-      timeWidth -
-      10;
-    nameWidth = Math.min(ABSOLUTE_MAX_NAME_WIDTH, Math.max(8, remainingWidth));
-  }
+  // Only subtract widths of columns that are actually shown
+  const baseWidth =
+    fixedWidth +
+    statusIconWidth +
+    idWidth +
+    statusTextWidth +
+    timeWidth +
+    6; // border + padding
+  const optionalWidth =
+    (showSource ? sourceWidth : 0) + (showCapabilities ? capabilitiesWidth : 0);
+  const remainingWidth = terminalWidth - baseWidth - optionalWidth;
+  const nameWidth = Math.min(
+    ABSOLUTE_MAX_NAME_WIDTH,
+    Math.max(15, remainingWidth),
+  );
 
   // Build responsive column list (memoized to prevent recreating on every render)
   const tableColumns = React.useMemo(() => {
