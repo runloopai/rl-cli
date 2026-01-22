@@ -40,7 +40,8 @@ type FormField =
   | "keep_alive"
   | "metadata"
   | "blueprint_id"
-  | "snapshot_id";
+  | "snapshot_id"
+  | "network_policy_id";
 
 interface FormData {
   name: string;
@@ -61,6 +62,7 @@ interface FormData {
   metadata: Record<string, string>;
   blueprint_id: string;
   snapshot_id: string;
+  network_policy_id: string;
 }
 
 const architectures = ["arm64", "x86_64"] as const;
@@ -92,6 +94,7 @@ export const DevboxCreatePage = ({
     metadata: {},
     blueprint_id: initialBlueprintId || "",
     snapshot_id: initialSnapshotId || "",
+    network_policy_id: "",
   });
   const [metadataKey, setMetadataKey] = React.useState("");
   const [metadataValue, setMetadataValue] = React.useState("");
@@ -169,6 +172,12 @@ export const DevboxCreatePage = ({
       label: "Snapshot ID (optional)",
       type: "text",
       placeholder: "snp_xxx",
+    },
+    {
+      key: "network_policy_id",
+      label: "Network Policy ID (optional)",
+      type: "text",
+      placeholder: "np_xxx",
     },
     { key: "metadata", label: "Metadata (optional)", type: "metadata" },
   ];
@@ -465,6 +474,10 @@ export const DevboxCreatePage = ({
 
       if (formData.snapshot_id) {
         createParams.snapshot_id = formData.snapshot_id;
+      }
+
+      if (formData.network_policy_id) {
+        createParams.network_policy_id = formData.network_policy_id;
       }
 
       if (Object.keys(launchParameters).length > 0) {
