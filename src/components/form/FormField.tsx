@@ -23,7 +23,11 @@ export const FormField = ({
 }: FormFieldProps) => {
   return (
     <Box marginBottom={0}>
-      <Text color={error ? colors.error : isActive ? colors.primary : colors.textDim}>
+      <Text
+        color={
+          error ? colors.error : isActive ? colors.primary : colors.textDim
+        }
+      >
         {isActive ? figures.pointer : " "} {label}:{" "}
       </Text>
       {children}

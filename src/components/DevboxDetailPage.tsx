@@ -261,9 +261,7 @@ export const DevboxDetailPage = ({
     if (devbox.initiator_id) {
       detailFields.push({
         label: "Initiator",
-        value: (
-          <Text color={colors.secondary}>{devbox.initiator_id}</Text>
-        ),
+        value: <Text color={colors.secondary}>{devbox.initiator_id}</Text>,
       });
     }
 

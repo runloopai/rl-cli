@@ -124,9 +124,10 @@ export async function getBlueprint(id: string): Promise<Blueprint> {
           dockerfile: blueprint.parameters.dockerfile ?? undefined,
           system_setup_commands:
             blueprint.parameters.system_setup_commands ?? undefined,
-          file_mounts: (blueprint.parameters.file_mounts as
-            | Record<string, string>
-            | undefined) ?? undefined,
+          file_mounts:
+            (blueprint.parameters.file_mounts as
+              | Record<string, string>
+              | undefined) ?? undefined,
         }
       : undefined,
   };

@@ -201,9 +201,7 @@ export const FormListManager = ({
         <>
           {/* Add new option */}
           <Box marginTop={1}>
-            <Text
-              color={selectedIndex === 0 ? colors.primary : colors.textDim}
-            >
+            <Text color={selectedIndex === 0 ? colors.primary : colors.textDim}>
               {selectedIndex === 0 ? figures.pointer : " "}{" "}
             </Text>
             <Text
@@ -240,12 +238,16 @@ export const FormListManager = ({
           {/* Done option */}
           <Box marginTop={1}>
             <Text
-              color={selectedIndex === maxIndex ? colors.primary : colors.textDim}
+              color={
+                selectedIndex === maxIndex ? colors.primary : colors.textDim
+              }
             >
               {selectedIndex === maxIndex ? figures.pointer : " "}{" "}
             </Text>
             <Text
-              color={selectedIndex === maxIndex ? colors.success : colors.textDim}
+              color={
+                selectedIndex === maxIndex ? colors.success : colors.textDim
+              }
               bold={selectedIndex === maxIndex}
             >
               {figures.tick} Done

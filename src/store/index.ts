@@ -21,3 +21,6 @@ export type { Blueprint } from "./blueprintStore.js";
 
 export { useSnapshotStore } from "./snapshotStore.js";
 export type { Snapshot } from "./snapshotStore.js";
+
+export { useObjectStore } from "./objectStore.js";
+export type { StorageObject } from "./objectStore.js";

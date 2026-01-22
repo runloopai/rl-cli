@@ -47,6 +47,13 @@ const menuItems: MenuItem[] = [
     icon: "◇",
     color: colors.info,
   },
+  {
+    key: "objects",
+    label: "Objects",
+    description: "Manage storage objects and files",
+    icon: "▤",
+    color: colors.secondary,
+  },
 ];
 
 interface MainMenuProps {
@@ -83,6 +90,8 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       onSelect("snapshots");
     } else if (input === "n" || input === "4") {
       onSelect("network-policies");
+    } else if (input === "o" || input === "5") {
+      onSelect("objects");
     } else if (input === "u" && updateAvailable) {
       // Release terminal and exec into update command (never returns)
       execCommand("sh", [
@@ -143,7 +152,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
         <Box paddingX={2} marginTop={1}>
           <Text color={colors.textDim} dimColor>
             {figures.arrowUp}
-            {figures.arrowDown} Navigate • [1-4] Quick select • [Enter] Select •
+            {figures.arrowDown} Navigate • [1-5] Quick select • [Enter] Select •
             [Esc] Quit
             {updateAvailable && " • [u] Update"}
           </Text>
@@ -223,7 +232,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
         <Box paddingX={1}>
           <Text color={colors.textDim} dimColor>
             {figures.arrowUp}
-            {figures.arrowDown} Navigate • [1-4] Quick select • [Enter] Select •
+            {figures.arrowDown} Navigate • [1-5] Quick select • [Enter] Select •
             [Esc] Quit
             {updateAvailable && " • [u] Update"}
           </Text>

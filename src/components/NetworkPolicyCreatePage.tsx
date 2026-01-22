@@ -59,7 +59,9 @@ export const NetworkPolicyCreatePage = ({
   const [creating, setCreating] = React.useState(false);
   const [result, setResult] = React.useState<NetworkPolicyView | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
-  const [validationError, setValidationError] = React.useState<string | null>(null);
+  const [validationError, setValidationError] = React.useState<string | null>(
+    null,
+  );
 
   const allFields: Array<{
     key: FormField;
@@ -70,14 +72,19 @@ export const NetworkPolicyCreatePage = ({
     { key: "name", label: "Name (required)", type: "text" },
     { key: "description", label: "Description", type: "text" },
     { key: "allow_all", label: "Allow All Egress", type: "select" },
-    { key: "allow_devbox_to_devbox", label: "Allow Devbox-to-Devbox", type: "select" },
+    {
+      key: "allow_devbox_to_devbox",
+      label: "Allow Devbox-to-Devbox",
+      type: "select",
+    },
     { key: "allowed_hostnames", label: "Allowed Hostnames", type: "list" },
   ];
 
   // Hide allowed_hostnames when allow_all is enabled
-  const fields = formData.allow_all === "Yes"
-    ? allFields.filter((f) => f.key !== "allowed_hostnames")
-    : allFields;
+  const fields =
+    formData.allow_all === "Yes"
+      ? allFields.filter((f) => f.key !== "allowed_hostnames")
+      : allFields;
 
   const currentFieldIndex = fields.findIndex((f) => f.key === currentField);
 
@@ -210,7 +217,8 @@ export const NetworkPolicyCreatePage = ({
       }
 
       createParams.allow_all = formData.allow_all === "Yes";
-      createParams.allow_devbox_to_devbox = formData.allow_devbox_to_devbox === "Yes";
+      createParams.allow_devbox_to_devbox =
+        formData.allow_devbox_to_devbox === "Yes";
 
       if (formData.allowed_hostnames.length > 0) {
         createParams.allowed_hostnames = formData.allowed_hostnames;

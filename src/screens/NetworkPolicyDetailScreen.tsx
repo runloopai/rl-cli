@@ -57,9 +57,7 @@ export function NetworkPolicyDetailScreen({
   const [deleting, setDeleting] = React.useState(false);
 
   // Find policy in store first
-  const policyFromStore = networkPolicies.find(
-    (p) => p.id === networkPolicyId,
-  );
+  const policyFromStore = networkPolicies.find((p) => p.id === networkPolicyId);
 
   // Fetch policy from API if not in store or missing full details
   React.useEffect(() => {
@@ -307,7 +305,8 @@ export function NetworkPolicyDetailScreen({
     lines.push(
       <Text key="egress-devbox" dimColor>
         {" "}
-        Allow Devbox-to-Devbox: {np.egress.allow_devbox_to_devbox ? "Yes" : "No"}
+        Allow Devbox-to-Devbox:{" "}
+        {np.egress.allow_devbox_to_devbox ? "Yes" : "No"}
       </Text>,
     );
     lines.push(<Text key="egress-space"> </Text>);

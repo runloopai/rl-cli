@@ -31,8 +31,9 @@ export function SnapshotDetailScreen({
 
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
-  const [fetchedSnapshot, setFetchedSnapshot] =
-    React.useState<Snapshot | null>(null);
+  const [fetchedSnapshot, setFetchedSnapshot] = React.useState<Snapshot | null>(
+    null,
+  );
   const [deleting, setDeleting] = React.useState(false);
 
   // Find snapshot in store first
@@ -88,10 +89,7 @@ export function SnapshotDetailScreen({
         <Breadcrumb
           items={[{ label: "Snapshots" }, { label: "Error", active: true }]}
         />
-        <ErrorMessage
-          message="Failed to load snapshot details"
-          error={error}
-        />
+        <ErrorMessage message="Failed to load snapshot details" error={error} />
       </>
     );
   }
@@ -125,9 +123,7 @@ export function SnapshotDetailScreen({
   if (snapshot.devbox_id) {
     basicFields.push({
       label: "Source Devbox",
-      value: (
-        <Text color={colors.idColor}>{snapshot.devbox_id}</Text>
-      ),
+      value: <Text color={colors.idColor}>{snapshot.devbox_id}</Text>,
     });
   }
   if (snapshot.disk_size_bytes) {
@@ -321,9 +317,7 @@ export function SnapshotDetailScreen({
       onOperation={handleOperation}
       onBack={goBack}
       buildDetailLines={buildDetailLines}
-      pollResource={
-        snapshot.status === "pending" ? pollSnapshot : undefined
-      }
+      pollResource={snapshot.status === "pending" ? pollSnapshot : undefined}
     />
   );
 }

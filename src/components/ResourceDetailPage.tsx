@@ -326,7 +326,9 @@ export function ResourceDetailPage<T>({
           </Text>
           <Box flexDirection="column" paddingLeft={2}>
             {section.fields
-              .filter((field) => field.value !== undefined && field.value !== null)
+              .filter(
+                (field) => field.value !== undefined && field.value !== null,
+              )
               .map((field, fieldIndex) => (
                 <Box key={fieldIndex}>
                   <Text color={colors.textDim}>{field.label} </Text>

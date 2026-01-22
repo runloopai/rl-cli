@@ -6,10 +6,7 @@ import React from "react";
 import { Text } from "ink";
 import figures from "figures";
 import { useNavigation } from "../store/navigationStore.js";
-import {
-  useBlueprintStore,
-  type Blueprint,
-} from "../store/blueprintStore.js";
+import { useBlueprintStore, type Blueprint } from "../store/blueprintStore.js";
 import {
   ResourceDetailPage,
   formatTimestamp,
@@ -105,7 +102,10 @@ export function BlueprintDetailScreen({
     return (
       <>
         <Breadcrumb
-          items={[{ label: "Blueprints" }, { label: "Not Found", active: true }]}
+          items={[
+            { label: "Blueprints" },
+            { label: "Not Found", active: true },
+          ]}
         />
         <ErrorMessage
           message={`Blueprint ${blueprintId || "unknown"} not found`}
@@ -175,8 +175,7 @@ export function BlueprintDetailScreen({
       const hours = Math.floor(minutes / 60);
       lpFields.push({
         label: "Keep Alive",
-        value:
-          hours > 0 ? `${hours}h ${minutes % 60}m` : `${minutes}m`,
+        value: hours > 0 ? `${hours}h ${minutes % 60}m` : `${minutes}m`,
       });
     }
     if (lp.available_ports && lp.available_ports.length > 0) {
@@ -210,11 +209,7 @@ export function BlueprintDetailScreen({
       const lineCount = params.dockerfile.split("\n").length;
       setupFields.push({
         label: "Dockerfile",
-        value: (
-          <Text dimColor>
-            {lineCount} lines
-          </Text>
-        ),
+        value: <Text dimColor>{lineCount} lines</Text>,
       });
     }
     if (
@@ -517,9 +512,7 @@ export function BlueprintDetailScreen({
       onOperation={handleOperation}
       onBack={goBack}
       buildDetailLines={buildDetailLines}
-      pollResource={
-        blueprint.status === "building" ? pollBlueprint : undefined
-      }
+      pollResource={blueprint.status === "building" ? pollBlueprint : undefined}
     />
   );
 }

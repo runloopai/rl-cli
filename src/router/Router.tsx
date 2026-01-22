@@ -8,6 +8,7 @@ import { useDevboxStore } from "../store/devboxStore.js";
 import { useBlueprintStore } from "../store/blueprintStore.js";
 import { useSnapshotStore } from "../store/snapshotStore.js";
 import { useNetworkPolicyStore } from "../store/networkPolicyStore.js";
+import { useObjectStore } from "../store/objectStore.js";
 import { ErrorBoundary } from "../components/ErrorBoundary.js";
 import type { ScreenName } from "../router/types.js";
 
@@ -25,6 +26,8 @@ import { SnapshotDetailScreen } from "../screens/SnapshotDetailScreen.js";
 import { NetworkPolicyListScreen } from "../screens/NetworkPolicyListScreen.js";
 import { NetworkPolicyDetailScreen } from "../screens/NetworkPolicyDetailScreen.js";
 import { NetworkPolicyCreateScreen } from "../screens/NetworkPolicyCreateScreen.js";
+import { ObjectListScreen } from "../screens/ObjectListScreen.js";
+import { ObjectDetailScreen } from "../screens/ObjectDetailScreen.js";
 import { SSHSessionScreen } from "../screens/SSHSessionScreen.js";
 
 /**
@@ -78,6 +81,13 @@ export function Router() {
             useNetworkPolicyStore.getState().clearAll();
           }
           break;
+
+        case "object-list":
+        case "object-detail":
+          if (!currentScreen.startsWith("object")) {
+            useObjectStore.getState().clearAll();
+          }
+          break;
       }
     }
 
@@ -128,6 +138,12 @@ export function Router() {
       )}
       {currentScreen === "network-policy-create" && (
         <NetworkPolicyCreateScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "object-list" && (
+        <ObjectListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "object-detail" && (
+        <ObjectDetailScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "ssh-session" && (
         <SSHSessionScreen key={currentScreen} {...params} />

@@ -25,7 +25,12 @@ import { useNavigation } from "../../store/navigationStore.js";
 
 const DEFAULT_PAGE_SIZE = 10;
 
-type OperationType = "create_devbox" | "delete" | "view_logs" | "view_details" | null;
+type OperationType =
+  | "create_devbox"
+  | "delete"
+  | "view_logs"
+  | "view_details"
+  | null;
 
 // Local interface for blueprint data used in this component
 interface BlueprintListItem {

@@ -33,7 +33,9 @@ export const FormTextInput = ({
           placeholder={placeholder}
         />
       ) : (
-        <Text color={error ? colors.error : colors.text}>{value || "(empty)"}</Text>
+        <Text color={error ? colors.error : colors.text}>
+          {value || "(empty)"}
+        </Text>
       )}
     </FormField>
   );

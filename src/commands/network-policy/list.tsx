@@ -275,7 +275,14 @@ const ListNetworkPoliciesUI = ({
         },
       ),
     ],
-    [idWidth, nameWidth, descriptionWidth, egressWidth, timeWidth, showDescription],
+    [
+      idWidth,
+      nameWidth,
+      descriptionWidth,
+      egressWidth,
+      timeWidth,
+      showDescription,
+    ],
   );
 
   // Handle Ctrl+C to exit
@@ -581,7 +588,14 @@ const ListNetworkPoliciesUI = ({
               label: op.label,
               color: op.color,
               icon: op.icon,
-              shortcut: op.key === "create" ? "c" : op.key === "view_details" ? "v" : op.key === "delete" ? "d" : "",
+              shortcut:
+                op.key === "create"
+                  ? "c"
+                  : op.key === "view_details"
+                    ? "v"
+                    : op.key === "delete"
+                      ? "d"
+                      : "",
             }))}
             selectedOperation={selectedOperation}
             onClose={() => setShowPopup(false)}

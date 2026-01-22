@@ -125,9 +125,24 @@ export const DevboxCreatePage = ({
   }> =
     formData.resource_size === "CUSTOM_SIZE"
       ? [
-          { key: "custom_cpu", label: "CPU Cores (2-16, even)", type: "text", placeholder: "4" },
-          { key: "custom_memory", label: "Memory GB (2-64, even)", type: "text", placeholder: "8" },
-          { key: "custom_disk", label: "Disk GB (2-64, even)", type: "text", placeholder: "16" },
+          {
+            key: "custom_cpu",
+            label: "CPU Cores (2-16, even)",
+            type: "text",
+            placeholder: "4",
+          },
+          {
+            key: "custom_memory",
+            label: "Memory GB (2-64, even)",
+            type: "text",
+            placeholder: "8",
+          },
+          {
+            key: "custom_disk",
+            label: "Disk GB (2-64, even)",
+            type: "text",
+            placeholder: "16",
+          },
         ]
       : [];
 
@@ -137,9 +152,24 @@ export const DevboxCreatePage = ({
     type: "text" | "select" | "metadata" | "action";
     placeholder?: string;
   }> = [
-    { key: "keep_alive", label: "Keep Alive (seconds)", type: "text", placeholder: "3600" },
-    { key: "blueprint_id", label: "Blueprint ID (optional)", type: "text", placeholder: "bpt_xxx" },
-    { key: "snapshot_id", label: "Snapshot ID (optional)", type: "text", placeholder: "snp_xxx" },
+    {
+      key: "keep_alive",
+      label: "Keep Alive (seconds)",
+      type: "text",
+      placeholder: "3600",
+    },
+    {
+      key: "blueprint_id",
+      label: "Blueprint ID (optional)",
+      type: "text",
+      placeholder: "bpt_xxx",
+    },
+    {
+      key: "snapshot_id",
+      label: "Snapshot ID (optional)",
+      type: "text",
+      placeholder: "snp_xxx",
+    },
     { key: "metadata", label: "Metadata (optional)", type: "metadata" },
   ];
 
@@ -540,7 +570,9 @@ export const DevboxCreatePage = ({
                 key={field.key}
                 label={field.label}
                 value={String(fieldData || "")}
-                onChange={(value) => setFormData({ ...formData, [field.key]: value })}
+                onChange={(value) =>
+                  setFormData({ ...formData, [field.key]: value })
+                }
                 isActive={isActive}
                 placeholder={field.placeholder}
               />
@@ -554,8 +586,12 @@ export const DevboxCreatePage = ({
                 key={field.key}
                 label={field.label}
                 value={value || ""}
-                options={field.key === "architecture" ? architectures : resourceSizes}
-                onChange={(newValue) => setFormData({ ...formData, [field.key]: newValue })}
+                options={
+                  field.key === "architecture" ? architectures : resourceSizes
+                }
+                onChange={(newValue) =>
+                  setFormData({ ...formData, [field.key]: newValue })
+                }
                 isActive={isActive}
               />
             );
