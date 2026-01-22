@@ -41,18 +41,18 @@ const menuItems: MenuItem[] = [
     color: colors.accent3,
   },
   {
-    key: "network-policies",
-    label: "Network Policies",
-    description: "Manage egress network access rules",
-    icon: "◇",
-    color: colors.info,
-  },
-  {
     key: "objects",
     label: "Storage Objects",
     description: "Manage files and data in cloud storage",
     icon: "▤",
     color: colors.secondary,
+  },
+  {
+    key: "network-policies",
+    label: "Network Policies",
+    description: "Manage egress network access rules",
+    icon: "◇",
+    color: colors.info,
   },
 ];
 
@@ -88,10 +88,10 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       onSelect("blueprints");
     } else if (input === "s" || input === "3") {
       onSelect("snapshots");
-    } else if (input === "n" || input === "4") {
-      onSelect("network-policies");
-    } else if (input === "o" || input === "5") {
+    } else if (input === "o" || input === "4") {
       onSelect("objects");
+    } else if (input === "n" || input === "5") {
+      onSelect("network-policies");
     } else if (input === "u" && updateAvailable) {
       // Release terminal and exec into update command (never returns)
       execCommand("sh", [
