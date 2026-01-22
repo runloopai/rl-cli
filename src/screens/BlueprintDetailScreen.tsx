@@ -18,6 +18,7 @@ import { getClient } from "../utils/client.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
+import { ConfirmationPrompt } from "../components/ConfirmationPrompt.js";
 import { colors } from "../utils/theme.js";
 
 interface BlueprintDetailScreenProps {
@@ -35,6 +36,7 @@ export function BlueprintDetailScreen({
   const [fetchedBlueprint, setFetchedBlueprint] =
     React.useState<Blueprint | null>(null);
   const [deleting, setDeleting] = React.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   // Find blueprint in store first
   const blueprintFromStore = blueprints.find((b) => b.id === blueprintId);
@@ -273,18 +275,44 @@ export function BlueprintDetailScreen({
         navigate("devbox-create", { blueprintId: resource.id });
         break;
       case "delete":
-        setDeleting(true);
-        try {
-          const client = getClient();
-          await client.blueprints.delete(resource.id);
-          goBack();
-        } catch (err) {
-          setError(err as Error);
-          setDeleting(false);
-        }
+        // Show confirmation dialog
+        setShowDeleteConfirm(true);
         break;
     }
   };
+
+  // Execute delete after confirmation
+  const executeDelete = async () => {
+    if (!blueprint) return;
+    setShowDeleteConfirm(false);
+    setDeleting(true);
+    try {
+      const client = getClient();
+      await client.blueprints.delete(blueprint.id);
+      goBack();
+    } catch (err) {
+      setError(err as Error);
+      setDeleting(false);
+    }
+  };
+
+  // Show delete confirmation
+  if (showDeleteConfirm && blueprint) {
+    return (
+      <ConfirmationPrompt
+        title="Delete Blueprint"
+        message={`Are you sure you want to delete "${blueprint.name || blueprint.id}"?`}
+        details="This action cannot be undone."
+        breadcrumbItems={[
+          { label: "Blueprints" },
+          { label: blueprint.name || blueprint.id },
+          { label: "Delete", active: true },
+        ]}
+        onConfirm={executeDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+    );
+  }
 
   // Show deleting state
   if (deleting) {

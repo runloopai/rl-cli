@@ -19,6 +19,7 @@ import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
 import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
 import { useNavigation } from "../../store/navigationStore.js";
+import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
 
 interface ListOptions {
   devbox?: string;
@@ -66,6 +67,7 @@ const ListSnapshotsUI = ({
   );
   const [operationLoading, setOperationLoading] = React.useState(false);
   const [showCreateDevbox, setShowCreateDevbox] = React.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   // Calculate overhead for viewport height
   const overhead = 13;
@@ -147,7 +149,7 @@ const ListSnapshotsUI = ({
     pageSize: PAGE_SIZE,
     getItemId: (snapshot: SnapshotListItem) => snapshot.id,
     pollInterval: 2000,
-    pollingEnabled: !showPopup && !executingOperation && !showCreateDevbox,
+    pollingEnabled: !showPopup && !executingOperation && !showCreateDevbox && !showDeleteConfirm,
     deps: [devboxId, PAGE_SIZE],
   });
 
@@ -306,6 +308,10 @@ const ListSnapshotsUI = ({
         } else if (operationKey === "create_devbox") {
           setSelectedSnapshot(selectedSnapshotItem);
           setShowCreateDevbox(true);
+        } else if (operationKey === "delete") {
+          // Show delete confirmation
+          setSelectedSnapshot(selectedSnapshotItem);
+          setShowDeleteConfirm(true);
         } else {
           setSelectedSnapshot(selectedSnapshotItem);
           setExecutingOperation(operationKey);
@@ -327,12 +333,10 @@ const ListSnapshotsUI = ({
         setSelectedSnapshot(selectedSnapshotItem);
         setShowCreateDevbox(true);
       } else if (input === "d") {
-        // Delete hotkey
+        // Delete hotkey - show confirmation
         setShowPopup(false);
         setSelectedSnapshot(selectedSnapshotItem);
-        setExecutingOperation("delete");
-        // Execute immediately with values passed directly
-        executeOperation(selectedSnapshotItem, "delete");
+        setShowDeleteConfirm(true);
       }
       return;
     }
@@ -407,6 +411,31 @@ const ListSnapshotsUI = ({
           </Text>
         </Box>
       </>
+    );
+  }
+
+  // Delete confirmation
+  if (showDeleteConfirm && selectedSnapshot) {
+    return (
+      <ConfirmationPrompt
+        title="Delete Snapshot"
+        message={`Are you sure you want to delete "${selectedSnapshot.name || selectedSnapshot.id}"?`}
+        details="This action cannot be undone."
+        breadcrumbItems={[
+          { label: "Snapshots" },
+          { label: selectedSnapshot.name || selectedSnapshot.id },
+          { label: "Delete", active: true },
+        ]}
+        onConfirm={() => {
+          setShowDeleteConfirm(false);
+          setExecutingOperation("delete");
+          executeOperation(selectedSnapshot, "delete");
+        }}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setSelectedSnapshot(null);
+        }}
+      />
     );
   }
 

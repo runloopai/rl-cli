@@ -22,6 +22,7 @@ import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
 import { useNavigation } from "../../store/navigationStore.js";
+import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -66,6 +67,7 @@ const ListBlueprintsUI = ({
   );
   const [operationLoading, setOperationLoading] = React.useState(false);
   const [showCreateDevbox, setShowCreateDevbox] = React.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showPopup, setShowPopup] = React.useState(false);
   const { navigate } = useNavigation();
@@ -147,7 +149,7 @@ const ListBlueprintsUI = ({
     pageSize: PAGE_SIZE,
     getItemId: (blueprint: BlueprintListItem) => blueprint.id,
     pollInterval: 2000,
-    pollingEnabled: !showPopup && !showCreateDevbox && !executingOperation,
+    pollingEnabled: !showPopup && !showCreateDevbox && !executingOperation && !showDeleteConfirm,
     deps: [PAGE_SIZE],
   });
 
@@ -467,6 +469,10 @@ const ListBlueprintsUI = ({
         } else if (operationKey === "create_devbox") {
           setSelectedBlueprint(selectedBlueprintItem);
           setShowCreateDevbox(true);
+        } else if (operationKey === "delete") {
+          // Show delete confirmation
+          setSelectedBlueprint(selectedBlueprintItem);
+          setShowDeleteConfirm(true);
         } else {
           setSelectedBlueprint(selectedBlueprintItem);
           setExecutingOperation(operationKey as OperationType);
@@ -499,10 +505,10 @@ const ListBlueprintsUI = ({
           (op) => op.key === "delete",
         );
         if (deleteIndex >= 0) {
+          // Show delete confirmation
           setShowPopup(false);
           setSelectedBlueprint(selectedBlueprintItem);
-          setExecutingOperation("delete");
-          executeOperation(selectedBlueprintItem, "delete");
+          setShowDeleteConfirm(true);
         }
       } else if (input === "l") {
         const logsIndex = allOperations.findIndex(
@@ -579,6 +585,31 @@ const ListBlueprintsUI = ({
       }
     }
   });
+
+  // Delete confirmation
+  if (showDeleteConfirm && selectedBlueprint) {
+    return (
+      <ConfirmationPrompt
+        title="Delete Blueprint"
+        message={`Are you sure you want to delete "${selectedBlueprint.name || selectedBlueprint.id}"?`}
+        details="This action cannot be undone."
+        breadcrumbItems={[
+          { label: "Blueprints" },
+          { label: selectedBlueprint.name || selectedBlueprint.id },
+          { label: "Delete", active: true },
+        ]}
+        onConfirm={() => {
+          setShowDeleteConfirm(false);
+          setExecutingOperation("delete");
+          executeOperation(selectedBlueprint, "delete");
+        }}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setSelectedBlueprint(null);
+        }}
+      />
+    );
+  }
 
   // Operation result display
   if (operationResult || operationError) {

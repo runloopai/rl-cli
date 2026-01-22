@@ -7,6 +7,7 @@ import { SpinnerComponent } from "./Spinner.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { SuccessMessage } from "./SuccessMessage.js";
 import { Breadcrumb } from "./Breadcrumb.js";
+import { ConfirmationPrompt } from "./ConfirmationPrompt.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useNavigation } from "../store/navigationStore.js";
@@ -73,6 +74,7 @@ export const DevboxActionsMenu = ({
   );
   const [execScroll, setExecScroll] = React.useState(0);
   const [copyStatus, setCopyStatus] = React.useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   // Calculate viewport for exec output:
   // - Breadcrumb (3 lines + marginBottom): 4 lines
@@ -202,9 +204,9 @@ export const DevboxActionsMenu = ({
       })
     : allOperations;
 
-  // Auto-execute operations that don't need input
+  // Auto-execute operations that don't need input (except delete which needs confirmation)
   React.useEffect(() => {
-    const autoExecuteOps = ["delete", "ssh", "logs", "suspend", "resume"];
+    const autoExecuteOps = ["ssh", "logs", "suspend", "resume"];
     if (
       executingOperation &&
       autoExecuteOps.includes(executingOperation) &&
@@ -212,6 +214,10 @@ export const DevboxActionsMenu = ({
       devbox
     ) {
       executeOperation();
+    }
+    // Show confirmation for delete
+    if (executingOperation === "delete" && !loading && devbox && !showDeleteConfirm) {
+      setShowDeleteConfirm(true);
     }
   }, [executingOperation]);
 
@@ -515,6 +521,32 @@ export const DevboxActionsMenu = ({
 
   const operationLabel =
     operations.find((o) => o.key === executingOperation)?.label || "Operation";
+
+  // Show delete confirmation
+  if (showDeleteConfirm) {
+    return (
+      <ConfirmationPrompt
+        title="Shutdown Devbox"
+        message={`Are you sure you want to shutdown "${devbox.name || devbox.id}"?`}
+        details="The devbox will be terminated and all unsaved data will be lost."
+        breadcrumbItems={[
+          ...breadcrumbItems.slice(0, -1),
+          { label: devbox.name || devbox.id },
+          { label: "Shutdown", active: true },
+        ]}
+        confirmLabel="Yes, shutdown"
+        onConfirm={() => {
+          setShowDeleteConfirm(false);
+          executeOperation();
+        }}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setExecutingOperation(null);
+          onBack();
+        }}
+      />
+    );
+  }
 
   // Operation result display
   if (operationResult || operationError) {

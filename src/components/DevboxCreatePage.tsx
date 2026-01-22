@@ -346,13 +346,16 @@ export const DevboxCreatePage = ({
     if (handleArchitectureNav(input, key)) return;
     if (handleResourceSizeNav(input, key)) return;
 
-    // Navigation
-    if (key.upArrow && currentFieldIndex > 0) {
+    // Navigation (up/down arrows and tab/shift+tab)
+    if ((key.upArrow || (key.tab && key.shift)) && currentFieldIndex > 0) {
       setCurrentField(fields[currentFieldIndex - 1].key);
       return;
     }
 
-    if (key.downArrow && currentFieldIndex < fields.length - 1) {
+    if (
+      (key.downArrow || (key.tab && !key.shift)) &&
+      currentFieldIndex < fields.length - 1
+    ) {
       setCurrentField(fields[currentFieldIndex + 1].key);
       return;
     }

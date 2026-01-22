@@ -20,6 +20,7 @@ import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
 import { useNavigation } from "../../store/navigationStore.js";
 import { formatFileSize } from "../../services/objectService.js";
+import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
 
 interface ListOptions {
   name?: string;
@@ -69,6 +70,7 @@ const ListObjectsUI = ({
   const [operationLoading, setOperationLoading] = React.useState(false);
   const [showDownloadPrompt, setShowDownloadPrompt] = React.useState(false);
   const [downloadPath, setDownloadPath] = React.useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   // Calculate overhead for viewport height
   const overhead = 13;
@@ -156,7 +158,7 @@ const ListObjectsUI = ({
     pageSize: PAGE_SIZE,
     getItemId: (obj: ObjectListItem) => obj.id,
     pollInterval: 2000,
-    pollingEnabled: !showPopup && !executingOperation && !showDownloadPrompt,
+    pollingEnabled: !showPopup && !executingOperation && !showDownloadPrompt && !showDeleteConfirm,
     deps: [PAGE_SIZE],
   });
 
@@ -384,6 +386,10 @@ const ListObjectsUI = ({
           const defaultName = selectedObjectItem.name || selectedObjectItem.id;
           setDownloadPath(`./${defaultName}`);
           setShowDownloadPrompt(true);
+        } else if (operationKey === "delete") {
+          // Show delete confirmation
+          setSelectedObject(selectedObjectItem);
+          setShowDeleteConfirm(true);
         } else {
           setSelectedObject(selectedObjectItem);
           setExecutingOperation(operationKey);
@@ -407,12 +413,10 @@ const ListObjectsUI = ({
         setDownloadPath(`./${defaultName}`);
         setShowDownloadPrompt(true);
       } else if (input === "d") {
-        // Delete hotkey
+        // Delete hotkey - show confirmation
         setShowPopup(false);
         setSelectedObject(selectedObjectItem);
-        setExecutingOperation("delete");
-        // Execute immediately with the object and operation passed directly
-        executeOperation(selectedObjectItem, "delete");
+        setShowDeleteConfirm(true);
       }
       return;
     }
@@ -531,6 +535,31 @@ const ListObjectsUI = ({
           </Text>
         </Box>
       </>
+    );
+  }
+
+  // Delete confirmation
+  if (showDeleteConfirm && selectedObject) {
+    return (
+      <ConfirmationPrompt
+        title="Delete Storage Object"
+        message={`Are you sure you want to delete "${selectedObject.name || selectedObject.id}"?`}
+        details="This action cannot be undone."
+        breadcrumbItems={[
+          { label: "Storage Objects" },
+          { label: selectedObject.name || selectedObject.id },
+          { label: "Delete", active: true },
+        ]}
+        onConfirm={() => {
+          setShowDeleteConfirm(false);
+          setExecutingOperation("delete");
+          executeOperation(selectedObject, "delete");
+        }}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setSelectedObject(null);
+        }}
+      />
     );
   }
 

@@ -17,6 +17,7 @@ import { getSnapshot, deleteSnapshot } from "../services/snapshotService.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
+import { ConfirmationPrompt } from "../components/ConfirmationPrompt.js";
 import { colors } from "../utils/theme.js";
 
 interface SnapshotDetailScreenProps {
@@ -35,6 +36,7 @@ export function SnapshotDetailScreen({
     null,
   );
   const [deleting, setDeleting] = React.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   // Find snapshot in store first
   const snapshotFromStore = snapshots.find((s) => s.id === snapshotId);
@@ -185,15 +187,23 @@ export function SnapshotDetailScreen({
         navigate("devbox-create", { snapshotId: resource.id });
         break;
       case "delete":
-        setDeleting(true);
-        try {
-          await deleteSnapshot(resource.id);
-          goBack();
-        } catch (err) {
-          setError(err as Error);
-          setDeleting(false);
-        }
+        // Show confirmation dialog
+        setShowDeleteConfirm(true);
         break;
+    }
+  };
+
+  // Execute delete after confirmation
+  const executeDelete = async () => {
+    if (!snapshot) return;
+    setShowDeleteConfirm(false);
+    setDeleting(true);
+    try {
+      await deleteSnapshot(snapshot.id);
+      goBack();
+    } catch (err) {
+      setError(err as Error);
+      setDeleting(false);
     }
   };
 
@@ -288,6 +298,24 @@ export function SnapshotDetailScreen({
 
     return lines;
   };
+
+  // Show delete confirmation
+  if (showDeleteConfirm && snapshot) {
+    return (
+      <ConfirmationPrompt
+        title="Delete Snapshot"
+        message={`Are you sure you want to delete "${snapshot.name || snapshot.id}"?`}
+        details="This action cannot be undone."
+        breadcrumbItems={[
+          { label: "Snapshots" },
+          { label: snapshot.name || snapshot.id },
+          { label: "Delete", active: true },
+        ]}
+        onConfirm={executeDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+    );
+  }
 
   // Show deleting state
   if (deleting) {

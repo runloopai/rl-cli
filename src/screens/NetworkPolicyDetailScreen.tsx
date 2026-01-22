@@ -23,6 +23,7 @@ import {
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
+import { ConfirmationPrompt } from "../components/ConfirmationPrompt.js";
 import { colors } from "../utils/theme.js";
 
 interface NetworkPolicyDetailScreenProps {
@@ -55,6 +56,7 @@ export function NetworkPolicyDetailScreen({
   const [fetchedPolicy, setFetchedPolicy] =
     React.useState<NetworkPolicy | null>(null);
   const [deleting, setDeleting] = React.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   // Find policy in store first
   const policyFromStore = networkPolicies.find((p) => p.id === networkPolicyId);
@@ -220,19 +222,27 @@ export function NetworkPolicyDetailScreen({
   // Handle operation selection
   const handleOperation = async (
     operation: string,
-    resource: NetworkPolicy,
+    _resource: NetworkPolicy,
   ) => {
     switch (operation) {
       case "delete":
-        setDeleting(true);
-        try {
-          await deleteNetworkPolicy(resource.id);
-          goBack();
-        } catch (err) {
-          setError(err as Error);
-          setDeleting(false);
-        }
+        // Show confirmation dialog
+        setShowDeleteConfirm(true);
         break;
+    }
+  };
+
+  // Execute delete after confirmation
+  const executeDelete = async () => {
+    if (!policy) return;
+    setShowDeleteConfirm(false);
+    setDeleting(true);
+    try {
+      await deleteNetworkPolicy(policy.id);
+      goBack();
+    } catch (err) {
+      setError(err as Error);
+      setDeleting(false);
     }
   };
 
@@ -347,6 +357,24 @@ export function NetworkPolicyDetailScreen({
 
     return lines;
   };
+
+  // Show delete confirmation
+  if (showDeleteConfirm && policy) {
+    return (
+      <ConfirmationPrompt
+        title="Delete Network Policy"
+        message={`Are you sure you want to delete "${policy.name || policy.id}"?`}
+        details="This action cannot be undone. Any devboxes using this policy will lose their network restrictions."
+        breadcrumbItems={[
+          { label: "Network Policies" },
+          { label: policy.name || policy.id },
+          { label: "Delete", active: true },
+        ]}
+        onConfirm={executeDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+    );
+  }
 
   // Show deleting state
   if (deleting) {

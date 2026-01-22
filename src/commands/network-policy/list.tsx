@@ -19,6 +19,7 @@ import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
 import { useNavigation } from "../../store/navigationStore.js";
 import { NetworkPolicyCreatePage } from "../../components/NetworkPolicyCreatePage.js";
+import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
 
 interface ListOptions {
   name?: string;
@@ -92,6 +93,7 @@ const ListNetworkPoliciesUI = ({
   );
   const [operationLoading, setOperationLoading] = React.useState(false);
   const [showCreatePolicy, setShowCreatePolicy] = React.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   // Calculate overhead for viewport height
   const overhead = 13;
@@ -176,7 +178,7 @@ const ListNetworkPoliciesUI = ({
     pageSize: PAGE_SIZE,
     getItemId: (policy: NetworkPolicyListItem) => policy.id,
     pollInterval: 5000,
-    pollingEnabled: !showPopup && !executingOperation && !showCreatePolicy,
+    pollingEnabled: !showPopup && !executingOperation && !showCreatePolicy && !showDeleteConfirm,
     deps: [PAGE_SIZE],
   });
 
@@ -367,6 +369,10 @@ const ListNetworkPoliciesUI = ({
           navigate("network-policy-detail", {
             networkPolicyId: selectedPolicyItem.id,
           });
+        } else if (operationKey === "delete") {
+          // Show delete confirmation
+          setSelectedPolicy(selectedPolicyItem);
+          setShowDeleteConfirm(true);
         } else {
           setSelectedPolicy(selectedPolicyItem);
           setExecutingOperation(operationKey);
@@ -387,12 +393,10 @@ const ListNetworkPoliciesUI = ({
         setShowPopup(false);
         setSelectedOperation(0);
       } else if (input === "d") {
-        // Delete hotkey
+        // Delete hotkey - show confirmation
         setShowPopup(false);
         setSelectedPolicy(selectedPolicyItem);
-        setExecutingOperation("delete");
-        // Execute immediately with values passed directly
-        executeOperation(selectedPolicyItem, "delete");
+        setShowDeleteConfirm(true);
       }
       return;
     }
@@ -441,6 +445,31 @@ const ListNetworkPoliciesUI = ({
       }
     }
   });
+
+  // Delete confirmation
+  if (showDeleteConfirm && selectedPolicy) {
+    return (
+      <ConfirmationPrompt
+        title="Delete Network Policy"
+        message={`Are you sure you want to delete "${selectedPolicy.name}"?`}
+        details="This action cannot be undone. Any devboxes using this policy will lose their network restrictions."
+        breadcrumbItems={[
+          { label: "Network Policies" },
+          { label: selectedPolicy.name || selectedPolicy.id },
+          { label: "Delete", active: true },
+        ]}
+        onConfirm={() => {
+          setShowDeleteConfirm(false);
+          setExecutingOperation("delete");
+          executeOperation(selectedPolicy, "delete");
+        }}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setSelectedPolicy(null);
+        }}
+      />
+    );
+  }
 
   // Operation result display
   if (operationResult || operationError) {

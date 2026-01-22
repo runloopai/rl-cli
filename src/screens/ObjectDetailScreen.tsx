@@ -26,6 +26,7 @@ import { ErrorMessage } from "../components/ErrorMessage.js";
 import { SuccessMessage } from "../components/SuccessMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
 import { Header } from "../components/Header.js";
+import { ConfirmationPrompt } from "../components/ConfirmationPrompt.js";
 import { colors } from "../utils/theme.js";
 
 interface ObjectDetailScreenProps {
@@ -48,6 +49,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
     null,
   );
   const [downloadError, setDownloadError] = React.useState<Error | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   // Find object in store first
   const objectFromStore = objects.find((o) => o.id === objectId);
@@ -301,15 +303,23 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
         setShowDownloadPrompt(true);
         break;
       case "delete":
-        setDeleting(true);
-        try {
-          await deleteObject(resource.id);
-          goBack();
-        } catch (err) {
-          setError(err as Error);
-          setDeleting(false);
-        }
+        // Show confirmation dialog
+        setShowDeleteConfirm(true);
         break;
+    }
+  };
+
+  // Execute delete after confirmation
+  const executeDelete = async () => {
+    if (!storageObject) return;
+    setShowDeleteConfirm(false);
+    setDeleting(true);
+    try {
+      await deleteObject(storageObject.id);
+      goBack();
+    } catch (err) {
+      setError(err as Error);
+      setDeleting(false);
     }
   };
 
@@ -505,6 +515,24 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
           </Text>
         </Box>
       </>
+    );
+  }
+
+  // Show delete confirmation
+  if (showDeleteConfirm && storageObject) {
+    return (
+      <ConfirmationPrompt
+        title="Delete Storage Object"
+        message={`Are you sure you want to delete "${storageObject.name || storageObject.id}"?`}
+        details="This action cannot be undone."
+        breadcrumbItems={[
+          { label: "Storage Objects" },
+          { label: storageObject.name || storageObject.id },
+          { label: "Delete", active: true },
+        ]}
+        onConfirm={executeDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     );
   }
 
