@@ -170,6 +170,7 @@ const ListNetworkPoliciesUI = ({
     totalCount,
     nextPage,
     prevPage,
+    refresh,
   } = useCursorPagination({
     fetchPage,
     pageSize: PAGE_SIZE,
@@ -331,10 +332,16 @@ const ListNetworkPoliciesUI = ({
     // Handle operation result display
     if (operationResult || operationError) {
       if (input === "q" || key.escape || key.return) {
+        const wasDelete = executingOperation === "delete";
+        const hadError = operationError !== null;
         setOperationResult(null);
         setOperationError(null);
         setExecutingOperation(null);
         setSelectedPolicy(null);
+        // Refresh the list after delete to show updated data
+        if (wasDelete && !hadError) {
+          setTimeout(() => refresh(), 0);
+        }
       }
       return;
     }

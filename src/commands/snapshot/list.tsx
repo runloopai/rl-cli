@@ -141,6 +141,7 @@ const ListSnapshotsUI = ({
     totalCount,
     nextPage,
     prevPage,
+    refresh,
   } = useCursorPagination({
     fetchPage,
     pageSize: PAGE_SIZE,
@@ -269,10 +270,16 @@ const ListSnapshotsUI = ({
     // Handle operation result display
     if (operationResult || operationError) {
       if (input === "q" || key.escape || key.return) {
+        const wasDelete = executingOperation === "delete";
+        const hadError = operationError !== null;
         setOperationResult(null);
         setOperationError(null);
         setExecutingOperation(null);
         setSelectedSnapshot(null);
+        // Refresh the list after delete to show updated data
+        if (wasDelete && !hadError) {
+          setTimeout(() => refresh(), 0);
+        }
       }
       return;
     }
