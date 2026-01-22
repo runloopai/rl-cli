@@ -48,12 +48,10 @@ export function Table<T>({
 }: TableProps<T>) {
   // Safety: Handle null/undefined data
   if (!data || !Array.isArray(data)) {
-    return emptyState ? <>{emptyState}</> : null;
+    data = [];
   }
 
-  if (data.length === 0 && emptyState) {
-    return <>{emptyState}</>;
-  }
+  const isEmpty = data.length === 0;
 
   // Filter visible columns
   const visibleColumns = columns.filter((col) => col.visible !== false);
@@ -97,6 +95,23 @@ export function Table<T>({
             );
           })}
         </Box>
+
+        {/* Empty state row */}
+        {isEmpty && (
+          <Box paddingY={1}>
+            {showSelection && (
+              <>
+                <Text> </Text>
+                <Text> </Text>
+              </>
+            )}
+            {emptyState || (
+              <Text color={colors.textDim} dimColor>
+                {figures.info} No items found
+              </Text>
+            )}
+          </Box>
+        )}
 
         {/* Data rows */}
         {data.map((row, index) => {

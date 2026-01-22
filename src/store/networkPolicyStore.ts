@@ -1,41 +1,26 @@
 /**
- * Blueprint Store - Manages blueprint list state, pagination, and caching
+ * Network Policy Store - Manages network policy list state, pagination, and caching
  */
 import { create } from "zustand";
 
-export interface BlueprintParameters {
-  launch_parameters?: {
-    architecture?: string;
-    resource_size_request?: string;
-    custom_cpu_cores?: number;
-    custom_gb_memory?: number;
-    custom_disk_size?: number;
-    keep_alive_time_seconds?: number;
-    available_ports?: number[];
-    launch_commands?: string[];
-    required_services?: string[];
-  };
-  dockerfile?: string;
-  system_setup_commands?: string[];
-  file_mounts?: Record<string, string>;
+export interface NetworkPolicyEgress {
+  allow_all: boolean;
+  allow_devbox_to_devbox: boolean;
+  allowed_hostnames: string[];
 }
 
-export interface Blueprint {
+export interface NetworkPolicy {
   id: string;
-  name?: string;
-  status: string;
-  create_time_ms?: number;
-  build_status?: string;
-  architecture?: string;
-  resources?: string;
-  // Extended fields for detail view
-  parameters?: BlueprintParameters;
+  name: string;
   description?: string;
+  create_time_ms: number;
+  update_time_ms: number;
+  egress: NetworkPolicyEgress;
 }
 
-interface BlueprintState {
+interface NetworkPolicyState {
   // List data
-  blueprints: Blueprint[];
+  networkPolicies: NetworkPolicy[];
   loading: boolean;
   initialLoading: boolean;
   error: Error | null;
@@ -47,7 +32,7 @@ interface BlueprintState {
   hasMore: boolean;
 
   // Caching
-  pageCache: Map<number, Blueprint[]>;
+  pageCache: Map<number, NetworkPolicy[]>;
   lastIdCache: Map<number, string>;
 
   // Search/filter
@@ -57,7 +42,7 @@ interface BlueprintState {
   selectedIndex: number;
 
   // Actions
-  setBlueprints: (blueprints: Blueprint[]) => void;
+  setNetworkPolicies: (policies: NetworkPolicy[]) => void;
   setLoading: (loading: boolean) => void;
   setInitialLoading: (loading: boolean) => void;
   setError: (error: Error | null) => void;
@@ -70,18 +55,18 @@ interface BlueprintState {
   setSearchQuery: (query: string) => void;
   setSelectedIndex: (index: number) => void;
 
-  cachePageData: (page: number, data: Blueprint[], lastId: string) => void;
-  getCachedPage: (page: number) => Blueprint[] | undefined;
+  cachePageData: (page: number, data: NetworkPolicy[], lastId: string) => void;
+  getCachedPage: (page: number) => NetworkPolicy[] | undefined;
   clearCache: () => void;
   clearAll: () => void;
 
-  getSelectedBlueprint: () => Blueprint | undefined;
+  getSelectedNetworkPolicy: () => NetworkPolicy | undefined;
 }
 
 const MAX_CACHE_SIZE = 10;
 
-export const useBlueprintStore = create<BlueprintState>((set, get) => ({
-  blueprints: [],
+export const useNetworkPolicyStore = create<NetworkPolicyState>((set, get) => ({
+  networkPolicies: [],
   loading: false,
   initialLoading: true,
   error: null,
@@ -97,7 +82,7 @@ export const useBlueprintStore = create<BlueprintState>((set, get) => ({
   searchQuery: "",
   selectedIndex: 0,
 
-  setBlueprints: (blueprints) => set({ blueprints }),
+  setNetworkPolicies: (policies) => set({ networkPolicies: policies }),
   setLoading: (loading) => set({ loading }),
   setInitialLoading: (loading) => set({ initialLoading: loading }),
   setError: (error) => set({ error }),
@@ -125,14 +110,17 @@ export const useBlueprintStore = create<BlueprintState>((set, get) => ({
     }
 
     // Create plain data objects to avoid SDK references
-    const plainData = data.map((b) => ({
-      id: b.id,
-      name: b.name,
-      status: b.status,
-      create_time_ms: b.create_time_ms,
-      build_status: b.build_status,
-      architecture: b.architecture,
-      resources: b.resources,
+    const plainData = data.map((p) => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      create_time_ms: p.create_time_ms,
+      update_time_ms: p.update_time_ms,
+      egress: {
+        allow_all: p.egress.allow_all,
+        allow_devbox_to_devbox: p.egress.allow_devbox_to_devbox,
+        allowed_hostnames: [...p.egress.allowed_hostnames],
+      },
     }));
 
     pageCache.set(page, plainData);
@@ -162,7 +150,7 @@ export const useBlueprintStore = create<BlueprintState>((set, get) => ({
     state.lastIdCache.clear();
 
     set({
-      blueprints: [],
+      networkPolicies: [],
       loading: false,
       initialLoading: true,
       error: null,
@@ -176,8 +164,8 @@ export const useBlueprintStore = create<BlueprintState>((set, get) => ({
     });
   },
 
-  getSelectedBlueprint: () => {
+  getSelectedNetworkPolicy: () => {
     const state = get();
-    return state.blueprints[state.selectedIndex];
+    return state.networkPolicies[state.selectedIndex];
   },
 }));

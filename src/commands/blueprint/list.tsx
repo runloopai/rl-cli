@@ -25,7 +25,7 @@ import { useNavigation } from "../../store/navigationStore.js";
 
 const DEFAULT_PAGE_SIZE = 10;
 
-type OperationType = "create_devbox" | "delete" | "view_logs" | null;
+type OperationType = "create_devbox" | "delete" | "view_logs" | "view_details" | null;
 
 // Local interface for blueprint data used in this component
 interface BlueprintListItem {
@@ -273,6 +273,14 @@ const ListBlueprintsUI = ({
   ): Operation[] => {
     const operations: Operation[] = [];
 
+    // View Details is always first
+    operations.push({
+      key: "view_details",
+      label: "View Details",
+      color: colors.primary,
+      icon: figures.pointer,
+    });
+
     // View Logs is always available
     operations.push({
       key: "view_logs",
@@ -347,6 +355,15 @@ const ListBlueprintsUI = ({
     try {
       setOperationLoading(true);
       switch (operation) {
+        case "view_details":
+          // Navigate to the detail screen
+          setOperationLoading(false);
+          setExecutingOperation(null);
+          navigate("blueprint-detail", {
+            blueprintId: blueprint.id,
+          });
+          return;
+
         case "view_logs":
           // Navigate to the logs screen
           setOperationLoading(false);
@@ -438,7 +455,11 @@ const ListBlueprintsUI = ({
         setShowPopup(false);
         const operationKey = allOperations[selectedOperation].key;
 
-        if (operationKey === "create_devbox") {
+        if (operationKey === "view_details") {
+          navigate("blueprint-detail", {
+            blueprintId: selectedBlueprintItem.id,
+          });
+        } else if (operationKey === "create_devbox") {
           setSelectedBlueprint(selectedBlueprintItem);
           setShowCreateDevbox(true);
         } else {
@@ -449,6 +470,12 @@ const ListBlueprintsUI = ({
             operationKey as OperationType,
           );
         }
+      } else if (input === "v" && selectedBlueprintItem) {
+        // View details hotkey
+        setShowPopup(false);
+        navigate("blueprint-detail", {
+          blueprintId: selectedBlueprintItem.id,
+        });
       } else if (key.escape || input === "q") {
         setShowPopup(false);
         setSelectedOperation(0);
@@ -509,6 +536,11 @@ const ListBlueprintsUI = ({
     ) {
       prevPage();
       setSelectedIndex(0);
+    } else if (key.return && selectedBlueprintItem) {
+      // Enter key navigates to detail view
+      navigate("blueprint-detail", {
+        blueprintId: selectedBlueprintItem.id,
+      });
     } else if (input === "a") {
       setShowPopup(true);
       setSelectedOperation(0);
@@ -688,22 +720,6 @@ const ListBlueprintsUI = ({
     );
   }
 
-  // Empty state
-  if (blueprints.length === 0) {
-    return (
-      <>
-        <Breadcrumb items={[{ label: "Blueprints", active: true }]} />
-        <Box>
-          <Text color={colors.warning}>{figures.info}</Text>
-          <Text> No blueprints found. Try: </Text>
-          <Text color={colors.primary} bold>
-            rli blueprint create
-          </Text>
-        </Box>
-      </>
-    );
-  }
-
   // List view
   return (
     <>
@@ -717,6 +733,11 @@ const ListBlueprintsUI = ({
           selectedIndex={selectedIndex}
           title={`blueprints[${totalCount}]`}
           columns={blueprintColumns}
+          emptyState={
+            <Text color={colors.textDim}>
+              {figures.info} No blueprints found. Try: rli blueprint create
+            </Text>
+          }
         />
       )}
 
@@ -768,13 +789,15 @@ const ListBlueprintsUI = ({
               color: op.color,
               icon: op.icon,
               shortcut:
-                op.key === "create_devbox"
-                  ? "c"
-                  : op.key === "delete"
-                    ? "d"
-                    : op.key === "view_logs"
-                      ? "l"
-                      : "",
+                op.key === "view_details"
+                  ? "v"
+                  : op.key === "create_devbox"
+                    ? "c"
+                    : op.key === "delete"
+                      ? "d"
+                      : op.key === "view_logs"
+                        ? "l"
+                        : "",
             }))}
             selectedOperation={selectedOperation}
             onClose={() => setShowPopup(false)}
@@ -795,6 +818,10 @@ const ListBlueprintsUI = ({
             {figures.arrowRight} Page
           </Text>
         )}
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          • [Enter] Details
+        </Text>
         <Text color={colors.textDim} dimColor>
           {" "}
           • [a] Actions

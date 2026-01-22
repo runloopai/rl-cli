@@ -1,15 +1,19 @@
+/**
+ * DevboxDetailPage - Detail page for devboxes
+ * Uses the generic ResourceDetailPage component with devbox-specific customizations
+ */
 import React from "react";
-import { Box, Text, useInput } from "ink";
+import { Text } from "ink";
 import figures from "figures";
-import { Header } from "./Header.js";
-import { StatusBadge } from "./StatusBadge.js";
-import { Breadcrumb } from "./Breadcrumb.js";
 import { DevboxActionsMenu } from "./DevboxActionsMenu.js";
 import { StateHistory } from "./StateHistory.js";
+import {
+  ResourceDetailPage,
+  type DetailSection,
+  type ResourceOperation,
+} from "./ResourceDetailPage.js";
 import { getDevboxUrl } from "../utils/url.js";
 import { colors } from "../utils/theme.js";
-import { useViewportHeight } from "../hooks/useViewportHeight.js";
-import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { getDevbox } from "../services/devboxService.js";
 import type { Devbox } from "../store/devboxStore.js";
 
@@ -40,71 +44,18 @@ const formatTimeAgo = (timestamp: number): string => {
   return `${years}y ago`;
 };
 
-// Truncate long strings to prevent layout issues
-const truncateString = (str: string, maxLength: number): string => {
-  if (str.length <= maxLength) return str;
-  return str.substring(0, maxLength - 3) + "...";
-};
-
 export const DevboxDetailPage = ({
   devbox: initialDevbox,
   onBack,
 }: DevboxDetailPageProps) => {
-  const isMounted = React.useRef(true);
-
-  // Track mounted state
-  React.useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
-
-  // Local state for devbox data (updated by polling)
+  const [showActions, setShowActions] = React.useState(false);
+  const [selectedOperationKey, setSelectedOperationKey] = React.useState<
+    string | null
+  >(null);
   const [currentDevbox, setCurrentDevbox] = React.useState(initialDevbox);
 
-  const [showDetailedInfo, setShowDetailedInfo] = React.useState(false);
-  const [detailScroll, setDetailScroll] = React.useState(0);
-  const [showActions, setShowActions] = React.useState(false);
-  const [selectedOperation, setSelectedOperation] = React.useState(0);
-
-  // Background polling for devbox details
-  React.useEffect(() => {
-    // Skip polling if showing actions, detailed info, or not mounted
-    if (showActions || showDetailedInfo) return;
-
-    const interval = setInterval(async () => {
-      // Only poll when not in actions/detail mode and component is mounted
-      if (!showActions && !showDetailedInfo && isMounted.current) {
-        try {
-          const updatedDevbox = await getDevbox(initialDevbox.id);
-
-          // Only update if still mounted
-          if (isMounted.current) {
-            setCurrentDevbox(updatedDevbox);
-          }
-        } catch {
-          // Silently ignore polling errors to avoid disrupting user experience
-        }
-      }
-    }, 3000); // Poll every 3 seconds
-
-    return () => clearInterval(interval);
-  }, [initialDevbox.id, showActions, showDetailedInfo]);
-
-  // Calculate viewport for detailed info view:
-  // - Breadcrumb (3 lines + marginBottom): 4 lines
-  // - Header (title + underline + marginBottom): 3 lines
-  // - Status box (content + marginBottom): 2 lines
-  // - Content box (marginTop + border + paddingY top/bottom + border + marginBottom): 6 lines
-  // - Help bar (marginTop + content): 2 lines
-  // - Safety buffer: 1 line
-  // Total: 18 lines
-  const detailViewport = useViewportHeight({ overhead: 18, minHeight: 10 });
-
-  const selectedDevbox = currentDevbox;
-
-  const allOperations = [
+  // All possible operations for devboxes
+  const allOperations: ResourceOperation[] = [
     {
       key: "logs",
       label: "View Logs",
@@ -171,128 +122,208 @@ export const DevboxDetailPage = ({
   ];
 
   // Filter operations based on devbox status
-  const operations = selectedDevbox
-    ? allOperations.filter((op) => {
-        const status = selectedDevbox.status;
+  const getFilteredOperations = (devbox: Devbox): ResourceOperation[] => {
+    return allOperations.filter((op) => {
+      const status = devbox.status;
 
-        // When suspended: logs and resume
-        if (status === "suspended") {
-          return op.key === "resume" || op.key === "logs";
-        }
-
-        // When not running (shutdown, failure, etc): only logs
-        if (
-          status !== "running" &&
-          status !== "provisioning" &&
-          status !== "initializing"
-        ) {
-          return op.key === "logs";
-        }
-
-        // When running: everything except resume
-        if (status === "running") {
-          return op.key !== "resume";
-        }
-
-        // Default for transitional states (provisioning, initializing)
-        return op.key === "logs" || op.key === "delete";
-      })
-    : allOperations;
-
-  const formattedCreateTime = selectedDevbox.create_time_ms
-    ? new Date(selectedDevbox.create_time_ms).toLocaleString()
-    : "";
-
-  const createTimeAgo = selectedDevbox.create_time_ms
-    ? formatTimeAgo(selectedDevbox.create_time_ms)
-    : "";
-
-  // Handle Ctrl+C to exit
-  useExitOnCtrlC();
-
-  useInput((input, key) => {
-    // Don't process input if unmounting
-    if (!isMounted.current) return;
-
-    // Skip input handling when in actions view
-    if (showActions) {
-      return;
-    }
-
-    // Handle detailed info mode
-    if (showDetailedInfo) {
-      if (input === "q" || key.escape) {
-        setShowDetailedInfo(false);
-        setDetailScroll(0);
-      } else if (input === "j" || input === "s" || key.downArrow) {
-        // Scroll down in detailed info
-        setDetailScroll(detailScroll + 1);
-      } else if (input === "k" || input === "w" || key.upArrow) {
-        // Scroll up in detailed info
-        setDetailScroll(Math.max(0, detailScroll - 1));
-      } else if (key.pageDown) {
-        // Page down
-        setDetailScroll(detailScroll + 10);
-      } else if (key.pageUp) {
-        // Page up
-        setDetailScroll(Math.max(0, detailScroll - 10));
+      // When suspended: logs and resume
+      if (status === "suspended") {
+        return op.key === "resume" || op.key === "logs";
       }
-      return;
-    }
 
-    // Main view input handling
-    if (input === "q" || key.escape) {
-      onBack();
-    } else if (input === "i") {
-      setShowDetailedInfo(true);
-      setDetailScroll(0);
-    } else if (key.upArrow && selectedOperation > 0) {
-      setSelectedOperation(selectedOperation - 1);
-    } else if (key.downArrow && selectedOperation < operations.length - 1) {
-      setSelectedOperation(selectedOperation + 1);
-    } else if (key.return || input === "a") {
-      setShowActions(true);
-    } else if (input) {
-      // Check if input matches any operation shortcut
-      const matchedOpIndex = operations.findIndex(
-        (op) => op.shortcut === input,
-      );
-      if (matchedOpIndex !== -1) {
-        setSelectedOperation(matchedOpIndex);
-        setShowActions(true);
+      // When not running (shutdown, failure, etc): only logs
+      if (
+        status !== "running" &&
+        status !== "provisioning" &&
+        status !== "initializing"
+      ) {
+        return op.key === "logs";
+      }
+
+      // When running: everything except resume
+      if (status === "running") {
+        return op.key !== "resume";
+      }
+
+      // Default for transitional states (provisioning, initializing)
+      return op.key === "logs" || op.key === "delete";
+    });
+  };
+
+  // Build detail sections for the devbox
+  const buildDetailSections = (devbox: Devbox): DetailSection[] => {
+    const sections: DetailSection[] = [];
+    const lp = devbox.launch_parameters;
+
+    // Calculate uptime
+    const uptime = devbox.create_time_ms
+      ? Math.floor((Date.now() - devbox.create_time_ms) / 1000 / 60)
+      : null;
+
+    // Details section
+    const detailFields = [];
+
+    // Created / Ended time
+    if (devbox.create_time_ms) {
+      const createTime = new Date(devbox.create_time_ms).toLocaleString();
+      const timeAgo = formatTimeAgo(devbox.create_time_ms);
+      if (devbox.end_time_ms) {
+        const endTime = new Date(devbox.end_time_ms).toLocaleString();
+        detailFields.push({
+          label: "Created",
+          value: `${createTime} → ${endTime}`,
+        });
+      } else {
+        detailFields.push({
+          label: "Created",
+          value: `${createTime} (${timeAgo})`,
+        });
       }
     }
 
-    if (input === "o") {
-      // Open in browser
-      const url = getDevboxUrl(selectedDevbox.id);
-      const openBrowser = async () => {
-        const { exec } = await import("child_process");
-        const platform = process.platform;
+    // Resources
+    if (
+      lp?.resource_size_request ||
+      lp?.custom_cpu_cores ||
+      lp?.custom_gb_memory ||
+      lp?.custom_disk_size ||
+      lp?.architecture
+    ) {
+      const resources = [
+        lp?.resource_size_request,
+        lp?.architecture,
+        lp?.custom_cpu_cores && `${lp.custom_cpu_cores}VCPU`,
+        lp?.custom_gb_memory && `${lp.custom_gb_memory}GB RAM`,
+        lp?.custom_disk_size && `${lp.custom_disk_size}GB DISC`,
+      ]
+        .filter(Boolean)
+        .join(" • ");
+      detailFields.push({
+        label: "Resources",
+        value: resources,
+      });
+    }
 
-        let openCommand: string;
-        if (platform === "darwin") {
-          openCommand = `open "${url}"`;
-        } else if (platform === "win32") {
-          openCommand = `start "${url}"`;
+    // Lifetime with remaining time
+    if (lp?.keep_alive_time_seconds) {
+      const lifetimeStr =
+        lp.keep_alive_time_seconds < 3600
+          ? `${Math.floor(lp.keep_alive_time_seconds / 60)}m`
+          : `${Math.floor(lp.keep_alive_time_seconds / 3600)}h ${Math.floor((lp.keep_alive_time_seconds % 3600) / 60)}m`;
+
+      let remainingText = "";
+      if (uptime !== null && devbox.status === "running") {
+        const maxLifetimeMinutes = Math.floor(lp.keep_alive_time_seconds / 60);
+        const remainingMinutes = maxLifetimeMinutes - uptime;
+        if (remainingMinutes <= 0) {
+          remainingText = " (Expired)";
+        } else if (remainingMinutes < 60) {
+          remainingText = ` (${remainingMinutes}m remaining)`;
         } else {
-          openCommand = `xdg-open "${url}"`;
+          const hours = Math.floor(remainingMinutes / 60);
+          const mins = remainingMinutes % 60;
+          remainingText = ` (${hours}h ${mins}m remaining)`;
         }
+      }
 
-        exec(openCommand);
-      };
-      openBrowser();
+      detailFields.push({
+        label: "Lifetime",
+        value: lifetimeStr + remainingText,
+      });
     }
-  });
 
-  const uptime = selectedDevbox.create_time_ms
-    ? Math.floor((Date.now() - selectedDevbox.create_time_ms) / 1000 / 60)
-    : null;
+    // User
+    if (lp?.user_parameters) {
+      const username = lp.user_parameters.username || "default";
+      const uid =
+        lp.user_parameters.uid != null && lp.user_parameters.uid !== 0
+          ? ` (UID: ${lp.user_parameters.uid})`
+          : "";
+      detailFields.push({
+        label: "User",
+        value: username + uid,
+      });
+    }
 
-  // Build detailed info lines for scrolling
-  const buildDetailLines = (): React.ReactElement[] => {
+    // Source
+    if (devbox.blueprint_id || devbox.snapshot_id) {
+      detailFields.push({
+        label: "Source",
+        value: (
+          <Text color={colors.success}>
+            {devbox.blueprint_id || devbox.snapshot_id}
+          </Text>
+        ),
+      });
+    }
+
+    // Initiator
+    if (devbox.initiator_id) {
+      detailFields.push({
+        label: "Initiator",
+        value: (
+          <Text color={colors.secondary}>{devbox.initiator_id}</Text>
+        ),
+      });
+    }
+
+    // Capabilities
+    const hasCapabilities =
+      devbox.capabilities &&
+      devbox.capabilities.filter((c: string) => c !== "unknown").length > 0;
+    if (hasCapabilities) {
+      detailFields.push({
+        label: "Capabilities",
+        value: devbox.capabilities
+          .filter((c: string) => c !== "unknown")
+          .join(", "),
+      });
+    }
+
+    if (detailFields.length > 0) {
+      sections.push({
+        title: "Details",
+        icon: figures.squareSmallFilled,
+        color: colors.warning,
+        fields: detailFields,
+      });
+    }
+
+    // Metadata section
+    if (devbox.metadata && Object.keys(devbox.metadata).length > 0) {
+      sections.push({
+        title: "Metadata",
+        icon: figures.identical,
+        color: colors.secondary,
+        fields: Object.entries(devbox.metadata).map(([key, value]) => ({
+          label: key,
+          value: value as string,
+        })),
+      });
+    }
+
+    // Error section
+    if (devbox.failure_reason) {
+      sections.push({
+        title: "Error",
+        icon: figures.cross,
+        color: colors.error,
+        fields: [
+          {
+            label: "Failure Reason",
+            value: devbox.failure_reason,
+            color: colors.error,
+          },
+        ],
+      });
+    }
+
+    return sections;
+  };
+
+  // Build detailed info lines for full details view
+  const buildDetailLines = (devbox: Devbox): React.ReactElement[] => {
     const lines: React.ReactElement[] = [];
-
     const capitalize = (str: string) =>
       str.charAt(0).toUpperCase() + str.slice(1);
 
@@ -305,47 +336,47 @@ export const DevboxDetailPage = ({
     lines.push(
       <Text key="core-id" color={colors.idColor}>
         {" "}
-        ID: {selectedDevbox.id}
+        ID: {devbox.id}
       </Text>,
     );
     lines.push(
       <Text key="core-name" dimColor>
         {" "}
-        Name: {selectedDevbox.name || "(none)"}
+        Name: {devbox.name || "(none)"}
       </Text>,
     );
     lines.push(
       <Text key="core-status" dimColor>
         {" "}
-        Status: {capitalize(selectedDevbox.status)}
+        Status: {capitalize(devbox.status)}
       </Text>,
     );
-    if (selectedDevbox.create_time_ms) {
+    if (devbox.create_time_ms) {
       lines.push(
         <Text key="core-created" dimColor>
           {" "}
-          Created: {new Date(selectedDevbox.create_time_ms).toLocaleString()}
+          Created: {new Date(devbox.create_time_ms).toLocaleString()}
         </Text>,
       );
     }
-    if (selectedDevbox.end_time_ms) {
+    if (devbox.end_time_ms) {
       lines.push(
         <Text key="core-ended" dimColor>
           {" "}
-          Ended: {new Date(selectedDevbox.end_time_ms).toLocaleString()}
+          Ended: {new Date(devbox.end_time_ms).toLocaleString()}
         </Text>,
       );
     }
     lines.push(<Text key="core-space"> </Text>);
 
     // Capabilities
-    if (selectedDevbox.capabilities && selectedDevbox.capabilities.length > 0) {
+    if (devbox.capabilities && devbox.capabilities.length > 0) {
       lines.push(
         <Text key="cap-title" color={colors.warning} bold>
           Capabilities
         </Text>,
       );
-      selectedDevbox.capabilities.forEach((cap: string, idx: number) => {
+      devbox.capabilities.forEach((cap: string, idx: number) => {
         lines.push(
           <Text key={`cap-${idx}`} dimColor>
             {" "}
@@ -357,14 +388,14 @@ export const DevboxDetailPage = ({
     }
 
     // Launch Parameters
-    if (selectedDevbox.launch_parameters) {
+    if (devbox.launch_parameters) {
       lines.push(
         <Text key="launch-title" color={colors.warning} bold>
           Launch Parameters
         </Text>,
       );
 
-      const lp = selectedDevbox.launch_parameters;
+      const lp = devbox.launch_parameters;
 
       if (lp.resource_size_request) {
         lines.push(
@@ -411,8 +442,7 @@ export const DevboxDetailPage = ({
           <Text key="launch-keepalive" dimColor>
             {" "}
             Keep Alive: {lp.keep_alive_time_seconds}s (
-            {Math.floor(lp.keep_alive_time_seconds / 60)}
-            m)
+            {Math.floor(lp.keep_alive_time_seconds / 60)}m)
           </Text>,
         );
       }
@@ -440,14 +470,14 @@ export const DevboxDetailPage = ({
             Launch Commands:
           </Text>,
         );
-        // lp.launch_commands.forEach((cmd: string, idx: number) => {
-        //   lines.push(
-        //     <Text key={`launch-cmd-${idx}`} dimColor>
-        //       {" "}
-        //       {figures.pointer} {cmd}
-        //     </Text>,
-        //   );
-        // });
+        lp.launch_commands.forEach((cmd: string, idx: number) => {
+          lines.push(
+            <Text key={`launch-cmd-${idx}`} dimColor>
+              {"   "}
+              {figures.pointer} {cmd}
+            </Text>,
+          );
+        });
       }
       if (lp.required_services && lp.required_services.length > 0) {
         lines.push(
@@ -467,7 +497,7 @@ export const DevboxDetailPage = ({
         if (lp.user_parameters.username) {
           lines.push(
             <Text key="user-name" dimColor>
-              {" "}
+              {"   "}
               Username: {lp.user_parameters.username}
             </Text>,
           );
@@ -475,7 +505,7 @@ export const DevboxDetailPage = ({
         if (lp.user_parameters.uid) {
           lines.push(
             <Text key="user-uid" dimColor>
-              {" "}
+              {"   "}
               UID: {lp.user_parameters.uid}
             </Text>,
           );
@@ -485,25 +515,25 @@ export const DevboxDetailPage = ({
     }
 
     // Source
-    if (selectedDevbox.blueprint_id || selectedDevbox.snapshot_id) {
+    if (devbox.blueprint_id || devbox.snapshot_id) {
       lines.push(
         <Text key="source-title" color={colors.warning} bold>
           Source
         </Text>,
       );
-      if (selectedDevbox.blueprint_id) {
+      if (devbox.blueprint_id) {
         lines.push(
           <Text key="source-bp" color={colors.idColor}>
             {" "}
-            {selectedDevbox.blueprint_id}
+            Blueprint: {devbox.blueprint_id}
           </Text>,
         );
       }
-      if (selectedDevbox.snapshot_id) {
+      if (devbox.snapshot_id) {
         lines.push(
           <Text key="source-snap" color={colors.idColor}>
             {" "}
-            {selectedDevbox.snapshot_id}
+            Snapshot: {devbox.snapshot_id}
           </Text>,
         );
       }
@@ -511,7 +541,7 @@ export const DevboxDetailPage = ({
     }
 
     // Initiator
-    if (selectedDevbox.initiator_type) {
+    if (devbox.initiator_type) {
       lines.push(
         <Text key="init-title" color={colors.warning} bold>
           Initiator
@@ -520,14 +550,14 @@ export const DevboxDetailPage = ({
       lines.push(
         <Text key="init-type" dimColor>
           {" "}
-          Type: {selectedDevbox.initiator_type}
+          Type: {devbox.initiator_type}
         </Text>,
       );
-      if (selectedDevbox.initiator_id) {
+      if (devbox.initiator_id) {
         lines.push(
           <Text key="init-id" color={colors.idColor}>
             {" "}
-            ID: {selectedDevbox.initiator_id}
+            ID: {devbox.initiator_id}
           </Text>,
         );
       }
@@ -535,25 +565,25 @@ export const DevboxDetailPage = ({
     }
 
     // Status Details
-    if (selectedDevbox.failure_reason || selectedDevbox.shutdown_reason) {
+    if (devbox.failure_reason || devbox.shutdown_reason) {
       lines.push(
         <Text key="status-title" color={colors.warning} bold>
           Status Details
         </Text>,
       );
-      if (selectedDevbox.failure_reason) {
+      if (devbox.failure_reason) {
         lines.push(
-          <Text key="status-fail" color={colors.error} dimColor>
+          <Text key="status-fail" color={colors.error}>
             {" "}
-            Failure Reason: {selectedDevbox.failure_reason}
+            Failure Reason: {devbox.failure_reason}
           </Text>,
         );
       }
-      if (selectedDevbox.shutdown_reason) {
+      if (devbox.shutdown_reason) {
         lines.push(
           <Text key="status-shut" dimColor>
             {" "}
-            Shutdown Initiator: {selectedDevbox.shutdown_reason}
+            Shutdown Initiator: {devbox.shutdown_reason}
           </Text>,
         );
       }
@@ -561,16 +591,13 @@ export const DevboxDetailPage = ({
     }
 
     // Metadata
-    if (
-      selectedDevbox.metadata &&
-      Object.keys(selectedDevbox.metadata).length > 0
-    ) {
+    if (devbox.metadata && Object.keys(devbox.metadata).length > 0) {
       lines.push(
         <Text key="meta-title" color={colors.warning} bold>
           Metadata
         </Text>,
       );
-      Object.entries(selectedDevbox.metadata).forEach(([key, value], idx) => {
+      Object.entries(devbox.metadata).forEach(([key, value], idx) => {
         lines.push(
           <Text key={`meta-${idx}`} dimColor>
             {" "}
@@ -582,17 +609,14 @@ export const DevboxDetailPage = ({
     }
 
     // State Transitions
-    if (
-      selectedDevbox.state_transitions &&
-      selectedDevbox.state_transitions.length > 0
-    ) {
+    if (devbox.state_transitions && devbox.state_transitions.length > 0) {
       lines.push(
         <Text key="state-title" color={colors.warning} bold>
           State History
         </Text>,
       );
       (
-        selectedDevbox.state_transitions as Array<{
+        devbox.state_transitions as Array<{
           status: string;
           transition_time_ms?: number;
         }>
@@ -614,7 +638,7 @@ export const DevboxDetailPage = ({
         Raw JSON
       </Text>,
     );
-    const jsonLines = JSON.stringify(selectedDevbox, null, 2).split("\n");
+    const jsonLines = JSON.stringify(devbox, null, 2).split("\n");
     jsonLines.forEach((line, idx) => {
       lines.push(
         <Text key={`json-${idx}`} dimColor>
@@ -627,381 +651,67 @@ export const DevboxDetailPage = ({
     return lines;
   };
 
-  // Actions view - show the DevboxActionsMenu when an action is triggered
+  // Handle operation selection
+  const handleOperation = (operation: string, _devbox: Devbox) => {
+    setSelectedOperationKey(operation);
+    setShowActions(true);
+  };
+
+  // Polling function
+  const pollDevbox = React.useCallback(async () => {
+    const updated = await getDevbox(initialDevbox.id);
+    setCurrentDevbox(updated);
+    return updated;
+  }, [initialDevbox.id]);
+
+  // Show DevboxActionsMenu when an action is selected
   if (showActions) {
-    const selectedOp = operations[selectedOperation];
     return (
       <DevboxActionsMenu
-        devbox={selectedDevbox}
+        devbox={currentDevbox}
         onBack={() => {
           setShowActions(false);
-          setSelectedOperation(0);
+          setSelectedOperationKey(null);
         }}
         breadcrumbItems={[
           { label: "Devboxes" },
-          { label: selectedDevbox.name || selectedDevbox.id },
+          { label: currentDevbox.name || currentDevbox.id },
         ]}
-        initialOperation={selectedOp?.key}
+        initialOperation={selectedOperationKey || undefined}
         skipOperationsMenu={true}
       />
     );
   }
 
-  // Detailed info mode - full screen
-  if (showDetailedInfo) {
-    const detailLines = buildDetailLines();
-    const viewportHeight = detailViewport.viewportHeight;
-    const maxScroll = Math.max(0, detailLines.length - viewportHeight);
-    const actualScroll = Math.min(detailScroll, maxScroll);
-    const visibleLines = detailLines.slice(
-      actualScroll,
-      actualScroll + viewportHeight,
-    );
-    const hasMore = actualScroll + viewportHeight < detailLines.length;
-    const hasLess = actualScroll > 0;
-
-    return (
-      <>
-        <Breadcrumb
-          items={[
-            { label: "Devboxes" },
-            { label: selectedDevbox.name || selectedDevbox.id },
-            { label: "Full Details", active: true },
-          ]}
-        />
-        <Header
-          title={`${selectedDevbox.name || selectedDevbox.id} - Complete Information`}
-        />
-        <Box flexDirection="column" marginBottom={1}>
-          <Box marginBottom={1}>
-            <StatusBadge status={selectedDevbox.status} />
-            <Text> </Text>
-            <Text color={colors.idColor}>{selectedDevbox.id}</Text>
-          </Box>
-        </Box>
-
-        <Box
-          flexDirection="column"
-          marginTop={1}
-          marginBottom={1}
-          borderStyle="round"
-          borderColor={colors.border}
-          paddingX={2}
-          paddingY={1}
-        >
-          <Box flexDirection="column">{visibleLines}</Box>
-        </Box>
-
-        <Box marginTop={1}>
-          <Text color={colors.textDim} dimColor>
-            {figures.arrowUp}
-            {figures.arrowDown} Scroll • Line {actualScroll + 1}-
-            {Math.min(actualScroll + viewportHeight, detailLines.length)} of{" "}
-            {detailLines.length}
-          </Text>
-          {hasLess && <Text color={colors.primary}> {figures.arrowUp}</Text>}
-          {hasMore && <Text color={colors.primary}> {figures.arrowDown}</Text>}
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            • [q or esc] Back to Details
-          </Text>
-        </Box>
-      </>
-    );
-  }
-
-  // Main detail view
-  const lp = selectedDevbox.launch_parameters;
-  const hasCapabilities =
-    selectedDevbox.capabilities &&
-    selectedDevbox.capabilities.filter((c: string) => c !== "unknown").length >
-      0;
+  // Determine if we should poll based on status
+  const shouldPoll =
+    currentDevbox.status === "running" ||
+    currentDevbox.status === "provisioning" ||
+    currentDevbox.status === "initializing" ||
+    currentDevbox.status === "resuming" ||
+    currentDevbox.status === "suspending";
 
   return (
-    <>
-      <Breadcrumb
-        items={[
-          { label: "Devboxes" },
-          { label: selectedDevbox.name || selectedDevbox.id, active: true },
-        ]}
-      />
-
-      {/* Main info section */}
-      <Box flexDirection="column" marginTop={1} marginBottom={1} paddingX={1}>
-        <Box flexDirection="row" flexWrap="wrap">
-          <Text color={colors.primary} bold>
-            {truncateString(
-              selectedDevbox.name || selectedDevbox.id,
-              Math.max(20, detailViewport.terminalWidth - 35),
-            )}
-          </Text>
-          {/* Only show ID separately if there's a name */}
-          {selectedDevbox.name && (
-            <Text color={colors.idColor}> • {selectedDevbox.id}</Text>
-          )}
-        </Box>
-        <Box>
-          <StatusBadge status={selectedDevbox.status} fullText />
-          {uptime !== null && selectedDevbox.status === "running" && (
-            <Text color={colors.success} dimColor>
-              {" "}
-              • Uptime:{" "}
-              {uptime < 60
-                ? `${uptime}m`
-                : `${Math.floor(uptime / 60)}h ${uptime % 60}m`}
-            </Text>
-          )}
-          {selectedDevbox.status !== "running" &&
-            selectedDevbox.create_time_ms &&
-            selectedDevbox.end_time_ms && (
-              <Text color={colors.textDim} dimColor>
-                {" "}
-                • Ran for:{" "}
-                {(() => {
-                  const runtime = Math.floor(
-                    (selectedDevbox.end_time_ms -
-                      selectedDevbox.create_time_ms) /
-                      1000,
-                  );
-                  if (runtime < 60) return `${runtime}s`;
-                  const mins = Math.floor(runtime / 60);
-                  if (mins < 60) return `${mins}m ${runtime % 60}s`;
-                  const hours = Math.floor(mins / 60);
-                  return `${hours}h ${mins % 60}m`;
-                })()}
-              </Text>
-            )}
-        </Box>
-      </Box>
-
-      {/* Details section */}
-      <Box flexDirection="column" marginBottom={1}>
-        <Text color={colors.warning} bold>
-          {figures.squareSmallFilled} Details
-        </Text>
-        <Box flexDirection="column" paddingLeft={2}>
-          {/* Created / Ended */}
-          {selectedDevbox.create_time_ms && (
-            <Box>
-              <Text color={colors.textDim}>Created </Text>
-              <Text dimColor>{formattedCreateTime}</Text>
-              {selectedDevbox.end_time_ms ? (
-                <Text dimColor>
-                  {" "}
-                  {figures.arrowRight}{" "}
-                  {new Date(selectedDevbox.end_time_ms).toLocaleString()}
-                </Text>
-              ) : (
-                <Text dimColor> ({createTimeAgo})</Text>
-              )}
-            </Box>
-          )}
-
-          {/* Resources */}
-          {(lp?.resource_size_request ||
-            lp?.custom_cpu_cores ||
-            lp?.custom_gb_memory ||
-            lp?.custom_disk_size ||
-            lp?.architecture) && (
-            <Box>
-              <Text color={colors.textDim}>Resources </Text>
-              <Text dimColor>
-                {[
-                  lp?.resource_size_request,
-                  lp?.architecture,
-                  lp?.custom_cpu_cores && `${lp.custom_cpu_cores}VCPU`,
-                  lp?.custom_gb_memory && `${lp.custom_gb_memory}GB RAM`,
-                  lp?.custom_disk_size && `${lp.custom_disk_size}GB DISC`,
-                ]
-                  .filter(Boolean)
-                  .join(" • ")}
-              </Text>
-            </Box>
-          )}
-
-          {/* Lifetime and User on same line */}
-          {(lp?.keep_alive_time_seconds || lp?.user_parameters) && (
-            <Box>
-              {lp?.keep_alive_time_seconds && (
-                <>
-                  <Text color={colors.textDim}>Lifetime </Text>
-                  <Text dimColor>
-                    {lp.keep_alive_time_seconds < 3600
-                      ? `${Math.floor(lp.keep_alive_time_seconds / 60)}m`
-                      : `${Math.floor(lp.keep_alive_time_seconds / 3600)}h ${Math.floor((lp.keep_alive_time_seconds % 3600) / 60)}m`}
-                  </Text>
-                  {uptime !== null && selectedDevbox.status === "running" && (
-                    <Text>
-                      {" "}
-                      •{" "}
-                      {(() => {
-                        const maxLifetimeMinutes = Math.floor(
-                          lp.keep_alive_time_seconds / 60,
-                        );
-                        const remainingMinutes = maxLifetimeMinutes - uptime;
-                        if (remainingMinutes <= 0) {
-                          return <Text color={colors.error}>Expired</Text>;
-                        } else if (remainingMinutes < 5) {
-                          return (
-                            <Text color={colors.error}>
-                              {remainingMinutes}m remaining
-                            </Text>
-                          );
-                        } else if (remainingMinutes < 15) {
-                          return (
-                            <Text color={colors.warning}>
-                              {remainingMinutes}m remaining
-                            </Text>
-                          );
-                        } else if (remainingMinutes < 60) {
-                          return (
-                            <Text color={colors.success}>
-                              {remainingMinutes}m remaining
-                            </Text>
-                          );
-                        } else {
-                          const hours = Math.floor(remainingMinutes / 60);
-                          const mins = remainingMinutes % 60;
-                          return (
-                            <Text color={colors.success}>
-                              {hours}h {mins}m remaining
-                            </Text>
-                          );
-                        }
-                      })()}
-                    </Text>
-                  )}
-                  {lp?.user_parameters && (
-                    <Text color={colors.textDim}> • </Text>
-                  )}
-                </>
-              )}
-              {lp?.user_parameters && (
-                <>
-                  {!lp?.keep_alive_time_seconds && (
-                    <Text color={colors.textDim}>User </Text>
-                  )}
-                  <Text color={colors.textDim}>User: </Text>
-                  <Text dimColor>
-                    {lp.user_parameters.username || "default"}
-                    {lp.user_parameters.uid != null &&
-                      lp.user_parameters.uid !== 0 &&
-                      ` (UID: ${lp.user_parameters.uid})`}
-                  </Text>
-                </>
-              )}
-            </Box>
-          )}
-
-          {/* Source */}
-          {(selectedDevbox.blueprint_id || selectedDevbox.snapshot_id) && (
-            <Box>
-              <Text color={colors.textDim}>Source </Text>
-              <Text color={colors.success}>
-                {selectedDevbox.blueprint_id || selectedDevbox.snapshot_id}
-              </Text>
-            </Box>
-          )}
-
-          {/* Initiator */}
-          {selectedDevbox.initiator_id && (
-            <Box>
-              <Text color={colors.textDim}>Initiator </Text>
-              <Text color={colors.secondary}>
-                {selectedDevbox.initiator_id}
-              </Text>
-            </Box>
-          )}
-
-          {/* Capabilities */}
-          {hasCapabilities && (
-            <Box>
-              <Text color={colors.textDim}>Capabilities </Text>
-              <Text dimColor>
-                {selectedDevbox.capabilities
-                  .filter((c: string) => c !== "unknown")
-                  .join(", ")}
-              </Text>
-            </Box>
-          )}
-        </Box>
-      </Box>
-
-      {/* Metadata section */}
-      {selectedDevbox.metadata &&
-        Object.keys(selectedDevbox.metadata).length > 0 && (
-          <Box flexDirection="column" marginBottom={1}>
-            <Text color={colors.secondary} bold>
-              {figures.identical} Metadata
-            </Text>
-            <Box flexDirection="column" paddingLeft={2}>
-              {Object.entries(selectedDevbox.metadata).map(([key, value]) => (
-                <Box key={key}>
-                  <Text color={colors.textDim}>{key}</Text>
-                  <Text color={colors.textDim}>: </Text>
-                  <Text color={colors.textDim} dimColor>
-                    {value as string}
-                  </Text>
-                </Box>
-              ))}
-            </Box>
-          </Box>
-        )}
-
-      {/* Failure */}
-      {selectedDevbox.failure_reason && (
-        <Box flexDirection="column" marginBottom={1}>
-          <Text color={colors.error} bold>
-            {figures.cross} Error
-          </Text>
-          <Box paddingLeft={2}>
-            <Text color={colors.error}>{selectedDevbox.failure_reason}</Text>
-          </Box>
-        </Box>
-      )}
-
-      {/* State History */}
-      <StateHistory
-        stateTransitions={selectedDevbox.state_transitions}
-        shutdownReason={selectedDevbox.shutdown_reason ?? undefined}
-      />
-
-      {/* Actions section */}
-      <Box flexDirection="column" marginTop={1}>
-        <Text color={colors.primary} bold>
-          {figures.play} Actions
-        </Text>
-        <Box flexDirection="column" paddingLeft={2}>
-          {operations.map((op, index) => {
-            const isSelected = index === selectedOperation;
-            return (
-              <Box key={op.key}>
-                <Text color={isSelected ? colors.primary : colors.textDim}>
-                  {isSelected ? figures.pointer : " "}{" "}
-                </Text>
-                <Text
-                  color={isSelected ? op.color : colors.textDim}
-                  bold={isSelected}
-                >
-                  {op.icon} {op.label}
-                </Text>
-                <Text color={colors.textDim} dimColor>
-                  {" "}
-                  [{op.shortcut}]
-                </Text>
-              </Box>
-            );
-          })}
-        </Box>
-      </Box>
-
-      <Box marginTop={1}>
-        <Text color={colors.textDim} dimColor>
-          {figures.arrowUp}
-          {figures.arrowDown} Navigate • [Enter] Execute • [i] Full Details •
-          [o] Browser • [q] Back
-        </Text>
-      </Box>
-    </>
+    <ResourceDetailPage
+      resource={currentDevbox}
+      resourceType="Devboxes"
+      getDisplayName={(d) => d.name || d.id}
+      getId={(d) => d.id}
+      getStatus={(d) => d.status}
+      getUrl={(d) => getDevboxUrl(d.id)}
+      detailSections={buildDetailSections(currentDevbox)}
+      operations={getFilteredOperations(currentDevbox)}
+      onOperation={handleOperation}
+      onBack={onBack}
+      buildDetailLines={buildDetailLines}
+      additionalContent={
+        <StateHistory
+          stateTransitions={currentDevbox.state_transitions}
+          shutdownReason={currentDevbox.shutdown_reason ?? undefined}
+        />
+      }
+      pollResource={shouldPoll ? pollDevbox : undefined}
+      pollInterval={3000}
+    />
   );
 };

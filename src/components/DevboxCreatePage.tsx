@@ -13,6 +13,12 @@ import { ErrorMessage } from "./ErrorMessage.js";
 import { SuccessMessage } from "./SuccessMessage.js";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { MetadataDisplay } from "./MetadataDisplay.js";
+import {
+  FormTextInput,
+  FormSelect,
+  FormActionButton,
+  useFormSelectNavigation,
+} from "./form/index.js";
 import { colors } from "../utils/theme.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 
@@ -57,6 +63,17 @@ interface FormData {
   snapshot_id: string;
 }
 
+const architectures = ["arm64", "x86_64"] as const;
+const resourceSizes = [
+  "X_SMALL",
+  "SMALL",
+  "MEDIUM",
+  "LARGE",
+  "X_LARGE",
+  "XX_LARGE",
+  "CUSTOM_SIZE",
+] as const;
+
 export const DevboxCreatePage = ({
   onBack,
   onCreate,
@@ -82,7 +99,7 @@ export const DevboxCreatePage = ({
   const [metadataInputMode, setMetadataInputMode] = React.useState<
     "key" | "value" | null
   >(null);
-  const [selectedMetadataIndex, setSelectedMetadataIndex] = React.useState(-1); // -1 means "add new" row
+  const [selectedMetadataIndex, setSelectedMetadataIndex] = React.useState(0);
   const [creating, setCreating] = React.useState(false);
   const [result, setResult] = React.useState<DevboxView | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
@@ -91,9 +108,10 @@ export const DevboxCreatePage = ({
     key: FormField;
     label: string;
     type: "text" | "select" | "metadata" | "action";
+    placeholder?: string;
   }> = [
     { key: "create", label: "Devbox Create", type: "action" },
-    { key: "name", label: "Name", type: "text" },
+    { key: "name", label: "Name", type: "text", placeholder: "my-devbox" },
     { key: "architecture", label: "Architecture", type: "select" },
     { key: "resource_size", label: "Resource Size", type: "select" },
   ];
@@ -103,16 +121,13 @@ export const DevboxCreatePage = ({
     key: FormField;
     label: string;
     type: "text" | "select" | "metadata" | "action";
+    placeholder?: string;
   }> =
     formData.resource_size === "CUSTOM_SIZE"
       ? [
-          { key: "custom_cpu", label: "CPU Cores (2-16, even)", type: "text" },
-          {
-            key: "custom_memory",
-            label: "Memory GB (2-64, even)",
-            type: "text",
-          },
-          { key: "custom_disk", label: "Disk GB (2-64, even)", type: "text" },
+          { key: "custom_cpu", label: "CPU Cores (2-16, even)", type: "text", placeholder: "4" },
+          { key: "custom_memory", label: "Memory GB (2-64, even)", type: "text", placeholder: "8" },
+          { key: "custom_disk", label: "Disk GB (2-64, even)", type: "text", placeholder: "16" },
         ]
       : [];
 
@@ -120,30 +135,35 @@ export const DevboxCreatePage = ({
     key: FormField;
     label: string;
     type: "text" | "select" | "metadata" | "action";
+    placeholder?: string;
   }> = [
-    { key: "keep_alive", label: "Keep Alive (seconds)", type: "text" },
-    { key: "blueprint_id", label: "Blueprint ID (optional)", type: "text" },
-    { key: "snapshot_id", label: "Snapshot ID (optional)", type: "text" },
+    { key: "keep_alive", label: "Keep Alive (seconds)", type: "text", placeholder: "3600" },
+    { key: "blueprint_id", label: "Blueprint ID (optional)", type: "text", placeholder: "bpt_xxx" },
+    { key: "snapshot_id", label: "Snapshot ID (optional)", type: "text", placeholder: "snp_xxx" },
     { key: "metadata", label: "Metadata (optional)", type: "metadata" },
   ];
 
   const fields = [...baseFields, ...customFields, ...remainingFields];
 
-  const architectures = ["arm64", "x86_64"] as const;
-  const resourceSizes = [
-    "X_SMALL",
-    "SMALL",
-    "MEDIUM",
-    "LARGE",
-    "X_LARGE",
-    "XX_LARGE",
-    "CUSTOM_SIZE",
-  ] as const;
-
   const currentFieldIndex = fields.findIndex((f) => f.key === currentField);
 
   // Handle Ctrl+C to exit
   useExitOnCtrlC();
+
+  // Select navigation handlers using shared hook
+  const handleArchitectureNav = useFormSelectNavigation(
+    formData.architecture,
+    architectures,
+    (value) => setFormData({ ...formData, architecture: value }),
+    currentField === "architecture",
+  );
+
+  const handleResourceSizeNav = useFormSelectNavigation(
+    formData.resource_size || "SMALL",
+    resourceSizes,
+    (value) => setFormData({ ...formData, resource_size: value }),
+    currentField === "resource_size",
+  );
 
   useInput((input, key) => {
     // Handle result screen
@@ -174,25 +194,7 @@ export const DevboxCreatePage = ({
       return;
     }
 
-    // Back to list
-    if (input === "q" || key.escape) {
-      onBack();
-      return;
-    }
-
-    // Submit form
-    if (input === "s" && key.ctrl) {
-      handleCreate();
-      return;
-    }
-
-    // Handle Enter on create field
-    if (currentField === "create" && key.return) {
-      handleCreate();
-      return;
-    }
-
-    // Handle metadata section
+    // Handle metadata section FIRST (before general escape handler)
     if (inMetadataSection) {
       const metadataKeys = Object.keys(formData.metadata);
       // Selection model: 0 = "Add new", 1..n = Existing items, n+1 = "Done"
@@ -292,8 +294,27 @@ export const DevboxCreatePage = ({
       return;
     }
 
-    // Now safe to get field from list
-    const field = fields[currentFieldIndex];
+    // Back to list (only when not in metadata section)
+    if (input === "q" || key.escape) {
+      onBack();
+      return;
+    }
+
+    // Submit form
+    if (input === "s" && key.ctrl) {
+      handleCreate();
+      return;
+    }
+
+    // Handle Enter on create field
+    if (currentField === "create" && key.return) {
+      handleCreate();
+      return;
+    }
+
+    // Handle select field navigation using shared hooks
+    if (handleArchitectureNav(input, key)) return;
+    if (handleResourceSizeNav(input, key)) return;
 
     // Navigation
     if (key.upArrow && currentFieldIndex > 0) {
@@ -310,35 +331,6 @@ export const DevboxCreatePage = ({
     if (currentField === "metadata" && key.return) {
       setInMetadataSection(true);
       setSelectedMetadataIndex(0); // Start at "add new" row
-      return;
-    }
-
-    // Handle select fields
-    if (field && field.type === "select" && (key.leftArrow || key.rightArrow)) {
-      if (currentField === "architecture") {
-        const currentIndex = architectures.indexOf(formData.architecture);
-        const newIndex = key.leftArrow
-          ? Math.max(0, currentIndex - 1)
-          : Math.min(architectures.length - 1, currentIndex + 1);
-        setFormData({
-          ...formData,
-          architecture: architectures[newIndex] as "arm64" | "x86_64",
-        });
-      } else if (currentField === "resource_size") {
-        // Find current index, defaulting to 0 if not found (e.g., empty string)
-        const currentSize = formData.resource_size || "SMALL";
-        const currentIndex = resourceSizes.indexOf(
-          currentSize as (typeof resourceSizes)[number],
-        );
-        const safeIndex = currentIndex === -1 ? 0 : currentIndex;
-        const newIndex = key.leftArrow
-          ? Math.max(0, safeIndex - 1)
-          : Math.min(resourceSizes.length - 1, safeIndex + 1);
-        setFormData({
-          ...formData,
-          resource_size: resourceSizes[newIndex],
-        });
-      }
       return;
     }
   });
@@ -533,78 +525,39 @@ export const DevboxCreatePage = ({
 
           if (field.type === "action") {
             return (
-              <Box key={field.key} marginBottom={0}>
-                <Text
-                  color={isActive ? colors.success : colors.textDim}
-                  bold={isActive}
-                >
-                  {isActive ? figures.pointer : " "} {field.label}
-                </Text>
-                {isActive && (
-                  <Text color={colors.textDim} dimColor>
-                    {" "}
-                    [Enter to create]
-                  </Text>
-                )}
-              </Box>
+              <FormActionButton
+                key={field.key}
+                label={field.label}
+                isActive={isActive}
+                hint="[Enter to create]"
+              />
             );
           }
 
           if (field.type === "text") {
             return (
-              <Box key={field.key} marginBottom={0}>
-                <Text color={isActive ? colors.primary : colors.textDim}>
-                  {isActive ? figures.pointer : " "} {field.label}:{" "}
-                </Text>
-                {isActive ? (
-                  <TextInput
-                    value={String(fieldData || "")}
-                    onChange={(value) => {
-                      setFormData({ ...formData, [field.key]: value });
-                    }}
-                    placeholder={
-                      field.key === "name"
-                        ? "my-devbox"
-                        : field.key === "keep_alive"
-                          ? "3600"
-                          : field.key === "blueprint_id"
-                            ? "bp_xxx"
-                            : field.key === "snapshot_id"
-                              ? "snap_xxx"
-                              : ""
-                    }
-                  />
-                ) : (
-                  <Text color={colors.text}>
-                    {String(fieldData || "(empty)")}
-                  </Text>
-                )}
-              </Box>
+              <FormTextInput
+                key={field.key}
+                label={field.label}
+                value={String(fieldData || "")}
+                onChange={(value) => setFormData({ ...formData, [field.key]: value })}
+                isActive={isActive}
+                placeholder={field.placeholder}
+              />
             );
           }
 
           if (field.type === "select") {
             const value = fieldData as string;
             return (
-              <Box key={field.key} marginBottom={0}>
-                <Text color={isActive ? colors.primary : colors.textDim}>
-                  {isActive ? figures.pointer : " "} {field.label}:
-                </Text>
-                <Text
-                  color={isActive ? colors.primary : colors.text}
-                  bold={isActive}
-                >
-                  {" "}
-                  {value || "(none)"}
-                </Text>
-                {isActive && (
-                  <Text color={colors.textDim} dimColor>
-                    {" "}
-                    [{figures.arrowLeft}
-                    {figures.arrowRight} to change]
-                  </Text>
-                )}
-              </Box>
+              <FormSelect
+                key={field.key}
+                label={field.label}
+                value={value || ""}
+                options={field.key === "architecture" ? architectures : resourceSizes}
+                onChange={(newValue) => setFormData({ ...formData, [field.key]: newValue })}
+                isActive={isActive}
+              />
             );
           }
 

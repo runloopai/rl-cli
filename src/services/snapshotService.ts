@@ -93,6 +93,35 @@ export async function getSnapshotStatus(id: string): Promise<any> {
 }
 
 /**
+ * Get full snapshot details by ID
+ */
+export async function getSnapshot(id: string): Promise<Snapshot> {
+  const client = getClient();
+  const statusResponse = await client.devboxes.diskSnapshots.queryStatus(id);
+
+  // The queryStatus returns a status wrapper with snapshot data inside
+  const snapshot = statusResponse.snapshot;
+  const operationStatus = statusResponse.status; // 'in_progress', 'error', 'complete', 'deleted'
+
+  if (!snapshot) {
+    // If no snapshot data yet, return minimal info based on operation status
+    return {
+      id: id,
+      status: operationStatus === "in_progress" ? "pending" : operationStatus,
+    };
+  }
+
+  return {
+    id: snapshot.id,
+    name: snapshot.name || undefined,
+    devbox_id: snapshot.source_devbox_id || undefined,
+    status: operationStatus === "complete" ? "ready" : operationStatus,
+    create_time_ms: snapshot.create_time_ms,
+    metadata: snapshot.metadata as Record<string, string> | undefined,
+  };
+}
+
+/**
  * Create a snapshot
  */
 export async function createSnapshot(

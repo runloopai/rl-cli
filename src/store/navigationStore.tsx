@@ -11,6 +11,9 @@ export type ScreenName =
   | "blueprint-logs"
   | "snapshot-list"
   | "snapshot-detail"
+  | "network-policy-list"
+  | "network-policy-detail"
+  | "network-policy-create"
   | "ssh-session";
 
 export interface RouteParams {
@@ -18,6 +21,7 @@ export interface RouteParams {
   blueprintId?: string;
   blueprintName?: string;
   snapshotId?: string;
+  networkPolicyId?: string;
   operation?: string;
   focusDevboxId?: string;
   status?: string;

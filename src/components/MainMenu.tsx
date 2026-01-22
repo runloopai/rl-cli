@@ -40,6 +40,13 @@ const menuItems: MenuItem[] = [
     icon: "◈",
     color: colors.accent3,
   },
+  {
+    key: "network-policies",
+    label: "Network Policies",
+    description: "Manage egress network access rules",
+    icon: "◇",
+    color: colors.info,
+  },
 ];
 
 interface MainMenuProps {
@@ -74,6 +81,8 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       onSelect("blueprints");
     } else if (input === "s" || input === "3") {
       onSelect("snapshots");
+    } else if (input === "n" || input === "4") {
+      onSelect("network-policies");
     } else if (input === "u" && updateAvailable) {
       // Release terminal and exec into update command (never returns)
       execCommand("sh", [
@@ -134,7 +143,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
         <Box paddingX={2} marginTop={1}>
           <Text color={colors.textDim} dimColor>
             {figures.arrowUp}
-            {figures.arrowDown} Navigate • [1-3] Quick select • [Enter] Select •
+            {figures.arrowDown} Navigate • [1-4] Quick select • [Enter] Select •
             [Esc] Quit
             {updateAvailable && " • [u] Update"}
           </Text>
@@ -214,7 +223,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
         <Box paddingX={1}>
           <Text color={colors.textDim} dimColor>
             {figures.arrowUp}
-            {figures.arrowDown} Navigate • [1-3] Quick select • [Enter] Select •
+            {figures.arrowDown} Navigate • [1-4] Quick select • [Enter] Select •
             [Esc] Quit
             {updateAvailable && " • [u] Update"}
           </Text>

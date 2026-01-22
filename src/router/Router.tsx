@@ -7,6 +7,7 @@ import { useNavigation } from "../store/navigationStore.js";
 import { useDevboxStore } from "../store/devboxStore.js";
 import { useBlueprintStore } from "../store/blueprintStore.js";
 import { useSnapshotStore } from "../store/snapshotStore.js";
+import { useNetworkPolicyStore } from "../store/networkPolicyStore.js";
 import { ErrorBoundary } from "../components/ErrorBoundary.js";
 import type { ScreenName } from "../router/types.js";
 
@@ -17,8 +18,13 @@ import { DevboxDetailScreen } from "../screens/DevboxDetailScreen.js";
 import { DevboxActionsScreen } from "../screens/DevboxActionsScreen.js";
 import { DevboxCreateScreen } from "../screens/DevboxCreateScreen.js";
 import { BlueprintListScreen } from "../screens/BlueprintListScreen.js";
+import { BlueprintDetailScreen } from "../screens/BlueprintDetailScreen.js";
 import { BlueprintLogsScreen } from "../screens/BlueprintLogsScreen.js";
 import { SnapshotListScreen } from "../screens/SnapshotListScreen.js";
+import { SnapshotDetailScreen } from "../screens/SnapshotDetailScreen.js";
+import { NetworkPolicyListScreen } from "../screens/NetworkPolicyListScreen.js";
+import { NetworkPolicyDetailScreen } from "../screens/NetworkPolicyDetailScreen.js";
+import { NetworkPolicyCreateScreen } from "../screens/NetworkPolicyCreateScreen.js";
 import { SSHSessionScreen } from "../screens/SSHSessionScreen.js";
 
 /**
@@ -64,6 +70,14 @@ export function Router() {
             useSnapshotStore.getState().clearAll();
           }
           break;
+
+        case "network-policy-list":
+        case "network-policy-detail":
+        case "network-policy-create":
+          if (!currentScreen.startsWith("network-policy")) {
+            useNetworkPolicyStore.getState().clearAll();
+          }
+          break;
       }
     }
 
@@ -95,7 +109,7 @@ export function Router() {
         <BlueprintListScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "blueprint-detail" && (
-        <BlueprintListScreen key={currentScreen} {...params} />
+        <BlueprintDetailScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "blueprint-logs" && (
         <BlueprintLogsScreen key={currentScreen} {...params} />
@@ -104,7 +118,16 @@ export function Router() {
         <SnapshotListScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "snapshot-detail" && (
-        <SnapshotListScreen key={currentScreen} {...params} />
+        <SnapshotDetailScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "network-policy-list" && (
+        <NetworkPolicyListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "network-policy-detail" && (
+        <NetworkPolicyDetailScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "network-policy-create" && (
+        <NetworkPolicyCreateScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "ssh-session" && (
         <SSHSessionScreen key={currentScreen} {...params} />

@@ -9,6 +9,9 @@ export interface Snapshot {
   devbox_id?: string;
   status: string;
   create_time_ms?: number;
+  // Extended fields for detail view
+  metadata?: Record<string, string>;
+  disk_size_bytes?: number;
 }
 
 interface SnapshotState {

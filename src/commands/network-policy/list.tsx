@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Text, useInput, useApp } from "ink";
 import figures from "figures";
-import type { DiskSnapshotsCursorIDPage } from "@runloop/api-client/pagination";
+import type { NetworkPoliciesCursorIDPage } from "@runloop/api-client/pagination";
 import { getClient } from "../../utils/client.js";
 import { Header } from "../../components/Header.js";
 import { SpinnerComponent } from "../../components/Spinner.js";
@@ -17,32 +17,60 @@ import { colors } from "../../utils/theme.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
-import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
 import { useNavigation } from "../../store/navigationStore.js";
+import { NetworkPolicyCreatePage } from "../../components/NetworkPolicyCreatePage.js";
 
 interface ListOptions {
-  devbox?: string;
+  name?: string;
   output?: string;
 }
 
-// Local interface for snapshot data used in this component
-interface SnapshotListItem {
+// Local interface for network policy data used in this component
+interface NetworkPolicyListItem {
   id: string;
-  name?: string;
-  status?: string;
-  create_time_ms?: number;
-  source_devbox_id?: string;
-  [key: string]: unknown;
+  name: string;
+  description?: string;
+  create_time_ms: number;
+  update_time_ms: number;
+  egress: {
+    allow_all: boolean;
+    allow_devbox_to_devbox: boolean;
+    allowed_hostnames: string[];
+  };
 }
 
 const DEFAULT_PAGE_SIZE = 10;
 
-const ListSnapshotsUI = ({
-  devboxId,
+/**
+ * Get a display label for the egress policy type
+ */
+function getEgressTypeLabel(egress: NetworkPolicyListItem["egress"]): string {
+  if (egress.allow_all) {
+    return "Allow All";
+  }
+  if (egress.allowed_hostnames.length === 0) {
+    return "Deny All";
+  }
+  return `Custom (${egress.allowed_hostnames.length})`;
+}
+
+/**
+ * Get color for egress type
+ */
+function getEgressTypeColor(egress: NetworkPolicyListItem["egress"]): string {
+  if (egress.allow_all) {
+    return colors.success;
+  }
+  if (egress.allowed_hostnames.length === 0) {
+    return colors.error;
+  }
+  return colors.warning;
+}
+
+const ListNetworkPoliciesUI = ({
   onBack,
   onExit,
 }: {
-  devboxId?: string;
   onBack?: () => void;
   onExit?: () => void;
 }) => {
@@ -51,10 +79,8 @@ const ListSnapshotsUI = ({
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showPopup, setShowPopup] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedSnapshot, setSelectedSnapshot] = React.useState<any | null>(
-    null,
-  );
+  const [selectedPolicy, setSelectedPolicy] =
+    React.useState<NetworkPolicyListItem | null>(null);
   const [executingOperation, setExecutingOperation] = React.useState<
     string | null
   >(null);
@@ -65,7 +91,7 @@ const ListSnapshotsUI = ({
     null,
   );
   const [operationLoading, setOperationLoading] = React.useState(false);
-  const [showCreateDevbox, setShowCreateDevbox] = React.useState(false);
+  const [showCreatePolicy, setShowCreatePolicy] = React.useState(false);
 
   // Calculate overhead for viewport height
   const overhead = 13;
@@ -78,16 +104,17 @@ const ListSnapshotsUI = ({
 
   // All width constants
   const idWidth = 25;
-  const nameWidth = Math.max(15, terminalWidth >= 120 ? 30 : 25);
-  const devboxWidth = 15;
-  const timeWidth = 20;
-  const showDevboxIdColumn = terminalWidth >= 100 && !devboxId;
+  const nameWidth = Math.max(15, terminalWidth >= 120 ? 30 : 20);
+  const descriptionWidth = Math.max(20, terminalWidth >= 140 ? 40 : 25);
+  const egressWidth = 15;
+  const timeWidth = 15;
+  const showDescription = terminalWidth >= 100;
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
     async (params: { limit: number; startingAt?: string }) => {
       const client = getClient();
-      const pageSnapshots: SnapshotListItem[] = [];
+      const pagePolicies: NetworkPolicyListItem[] = [];
 
       // Build query params
       const queryParams: Record<string, unknown> = {
@@ -96,42 +123,44 @@ const ListSnapshotsUI = ({
       if (params.startingAt) {
         queryParams.starting_after = params.startingAt;
       }
-      if (devboxId) {
-        queryParams.devbox_id = devboxId;
-      }
 
       // Fetch ONE page only
-      const page = (await client.devboxes.listDiskSnapshots(
+      const page = (await client.networkPolicies.list(
         queryParams,
-      )) as unknown as DiskSnapshotsCursorIDPage<SnapshotListItem>;
+      )) as unknown as NetworkPoliciesCursorIDPage<NetworkPolicyListItem>;
 
       // Extract data and create defensive copies
-      if (page.snapshots && Array.isArray(page.snapshots)) {
-        page.snapshots.forEach((s: SnapshotListItem) => {
-          pageSnapshots.push({
-            id: s.id,
-            name: s.name,
-            status: s.status,
-            create_time_ms: s.create_time_ms,
-            source_devbox_id: s.source_devbox_id,
+      if (page.network_policies && Array.isArray(page.network_policies)) {
+        page.network_policies.forEach((p: NetworkPolicyListItem) => {
+          pagePolicies.push({
+            id: p.id,
+            name: p.name,
+            description: p.description,
+            create_time_ms: p.create_time_ms,
+            update_time_ms: p.update_time_ms,
+            egress: {
+              allow_all: p.egress.allow_all,
+              allow_devbox_to_devbox: p.egress.allow_devbox_to_devbox,
+              allowed_hostnames: [...(p.egress.allowed_hostnames || [])],
+            },
           });
         });
       }
 
       const result = {
-        items: pageSnapshots,
+        items: pagePolicies,
         hasMore: page.has_more || false,
-        totalCount: page.total_count || pageSnapshots.length,
+        totalCount: page.total_count || pagePolicies.length,
       };
 
       return result;
     },
-    [devboxId],
+    [],
   );
 
   // Use the shared pagination hook
   const {
-    items: snapshots,
+    items: policies,
     loading,
     navigating,
     error,
@@ -144,13 +173,13 @@ const ListSnapshotsUI = ({
   } = useCursorPagination({
     fetchPage,
     pageSize: PAGE_SIZE,
-    getItemId: (snapshot: SnapshotListItem) => snapshot.id,
-    pollInterval: 2000,
-    pollingEnabled: !showPopup && !executingOperation && !showCreateDevbox,
-    deps: [devboxId, PAGE_SIZE],
+    getItemId: (policy: NetworkPolicyListItem) => policy.id,
+    pollInterval: 5000,
+    pollingEnabled: !showPopup && !executingOperation && !showCreatePolicy,
+    deps: [PAGE_SIZE],
   });
 
-  // Operations for snapshots
+  // Operations for a specific network policy (shown in popup)
   const operations: Operation[] = React.useMemo(
     () => [
       {
@@ -160,14 +189,8 @@ const ListSnapshotsUI = ({
         icon: figures.pointer,
       },
       {
-        key: "create_devbox",
-        label: "Create Devbox from Snapshot",
-        color: colors.success,
-        icon: figures.play,
-      },
-      {
         key: "delete",
-        label: "Delete Snapshot",
+        label: "Delete Network Policy",
         color: colors.error,
         icon: figures.cross,
       },
@@ -181,7 +204,7 @@ const ListSnapshotsUI = ({
       createTextColumn(
         "id",
         "ID",
-        (snapshot: SnapshotListItem) => snapshot.id,
+        (policy: NetworkPolicyListItem) => policy.id,
         {
           width: idWidth + 1,
           color: colors.idColor,
@@ -192,28 +215,58 @@ const ListSnapshotsUI = ({
       createTextColumn(
         "name",
         "Name",
-        (snapshot: SnapshotListItem) => snapshot.name || "",
+        (policy: NetworkPolicyListItem) => policy.name || "",
         {
           width: nameWidth,
         },
       ),
-      createTextColumn(
-        "devbox",
-        "Devbox",
-        (snapshot: SnapshotListItem) => snapshot.source_devbox_id || "",
-        {
-          width: devboxWidth,
-          color: colors.idColor,
-          dimColor: false,
-          bold: false,
-          visible: showDevboxIdColumn,
+      ...(showDescription
+        ? [
+            createTextColumn(
+              "description",
+              "Description",
+              (policy: NetworkPolicyListItem) => policy.description || "",
+              {
+                width: descriptionWidth,
+                color: colors.textDim,
+                dimColor: false,
+                bold: false,
+              },
+            ),
+          ]
+        : []),
+      {
+        key: "egress",
+        label: "Egress",
+        width: egressWidth,
+        render: (
+          policy: NetworkPolicyListItem,
+          _index: number,
+          isSelected: boolean,
+        ) => {
+          const label = getEgressTypeLabel(policy.egress);
+          const color = getEgressTypeColor(policy.egress);
+          const safeWidth = Math.max(1, egressWidth);
+          const truncated = label.slice(0, safeWidth);
+          const padded = truncated.padEnd(safeWidth, " ");
+          return (
+            <Text
+              color={isSelected ? "white" : color}
+              bold={true}
+              dimColor={false}
+              inverse={isSelected}
+              wrap="truncate"
+            >
+              {padded}
+            </Text>
+          );
         },
-      ),
+      },
       createTextColumn(
         "created",
         "Created",
-        (snapshot: SnapshotListItem) =>
-          snapshot.create_time_ms ? formatTimeAgo(snapshot.create_time_ms) : "",
+        (policy: NetworkPolicyListItem) =>
+          policy.create_time_ms ? formatTimeAgo(policy.create_time_ms) : "",
         {
           width: timeWidth,
           color: colors.textDim,
@@ -222,7 +275,7 @@ const ListSnapshotsUI = ({
         },
       ),
     ],
-    [idWidth, nameWidth, devboxWidth, timeWidth, showDevboxIdColumn],
+    [idWidth, nameWidth, descriptionWidth, egressWidth, timeWidth, showDescription],
   );
 
   // Handle Ctrl+C to exit
@@ -230,30 +283,32 @@ const ListSnapshotsUI = ({
 
   // Ensure selected index is within bounds
   React.useEffect(() => {
-    if (snapshots.length > 0 && selectedIndex >= snapshots.length) {
-      setSelectedIndex(Math.max(0, snapshots.length - 1));
+    if (policies.length > 0 && selectedIndex >= policies.length) {
+      setSelectedIndex(Math.max(0, policies.length - 1));
     }
-  }, [snapshots.length, selectedIndex]);
+  }, [policies.length, selectedIndex]);
 
-  const selectedSnapshotItem = snapshots[selectedIndex];
+  const selectedPolicyItem = policies[selectedIndex];
 
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + snapshots.length;
+  const endIndex = startIndex + policies.length;
 
   const executeOperation = async () => {
     const client = getClient();
-    const snapshot = selectedSnapshot;
+    const policy = selectedPolicy;
 
-    if (!snapshot) return;
+    if (!policy) return;
 
     try {
       setOperationLoading(true);
       switch (executingOperation) {
         case "delete":
-          await client.devboxes.deleteDiskSnapshot(snapshot.id);
-          setOperationResult(`Snapshot ${snapshot.id} deleted successfully`);
+          await client.networkPolicies.delete(policy.id);
+          setOperationResult(
+            `Network policy "${policy.name}" deleted successfully`,
+          );
           break;
       }
     } catch (err) {
@@ -270,13 +325,13 @@ const ListSnapshotsUI = ({
         setOperationResult(null);
         setOperationError(null);
         setExecutingOperation(null);
-        setSelectedSnapshot(null);
+        setSelectedPolicy(null);
       }
       return;
     }
 
-    // Handle create devbox view
-    if (showCreateDevbox) {
+    // Handle create policy screen
+    if (showCreatePolicy) {
       return;
     }
 
@@ -290,49 +345,47 @@ const ListSnapshotsUI = ({
         setShowPopup(false);
         const operationKey = operations[selectedOperation].key;
 
-        if (operationKey === "view_details") {
-          navigate("snapshot-detail", {
-            snapshotId: selectedSnapshotItem.id,
+        if (operationKey === "create") {
+          setShowCreatePolicy(true);
+        } else if (operationKey === "view_details") {
+          navigate("network-policy-detail", {
+            networkPolicyId: selectedPolicyItem.id,
           });
-        } else if (operationKey === "create_devbox") {
-          setSelectedSnapshot(selectedSnapshotItem);
-          setShowCreateDevbox(true);
         } else {
-          setSelectedSnapshot(selectedSnapshotItem);
+          setSelectedPolicy(selectedPolicyItem);
           setExecutingOperation(operationKey);
           // Execute immediately after state update
           setTimeout(() => executeOperation(), 0);
         }
-      } else if (input === "v" && selectedSnapshotItem) {
+      } else if (input === "c") {
+        // Create hotkey
+        setShowPopup(false);
+        setShowCreatePolicy(true);
+      } else if (input === "v" && selectedPolicyItem) {
         // View details hotkey
         setShowPopup(false);
-        navigate("snapshot-detail", {
-          snapshotId: selectedSnapshotItem.id,
+        navigate("network-policy-detail", {
+          networkPolicyId: selectedPolicyItem.id,
         });
       } else if (key.escape || input === "q") {
         setShowPopup(false);
         setSelectedOperation(0);
-      } else if (input === "c") {
-        // Create devbox hotkey
-        setShowPopup(false);
-        setSelectedSnapshot(selectedSnapshotItem);
-        setShowCreateDevbox(true);
       } else if (input === "d") {
         // Delete hotkey
         setShowPopup(false);
-        setSelectedSnapshot(selectedSnapshotItem);
+        setSelectedPolicy(selectedPolicyItem);
         setExecutingOperation("delete");
         setTimeout(() => executeOperation(), 0);
       }
       return;
     }
 
-    const pageSnapshots = snapshots.length;
+    const pagePolicies = policies.length;
 
     // Handle list view navigation
     if (key.upArrow && selectedIndex > 0) {
       setSelectedIndex(selectedIndex - 1);
-    } else if (key.downArrow && selectedIndex < pageSnapshots - 1) {
+    } else if (key.downArrow && selectedIndex < pagePolicies - 1) {
       setSelectedIndex(selectedIndex + 1);
     } else if (
       (input === "n" || key.rightArrow) &&
@@ -350,14 +403,17 @@ const ListSnapshotsUI = ({
     ) {
       prevPage();
       setSelectedIndex(0);
-    } else if (key.return && selectedSnapshotItem) {
+    } else if (key.return && selectedPolicyItem) {
       // Enter key navigates to detail view
-      navigate("snapshot-detail", {
-        snapshotId: selectedSnapshotItem.id,
+      navigate("network-policy-detail", {
+        networkPolicyId: selectedPolicyItem.id,
       });
-    } else if (input === "a" && selectedSnapshotItem) {
+    } else if (input === "a") {
       setShowPopup(true);
       setSelectedOperation(0);
+    } else if (input === "c") {
+      // Create shortcut
+      setShowCreatePolicy(true);
     } else if (key.escape) {
       if (onBack) {
         onBack();
@@ -378,10 +434,9 @@ const ListSnapshotsUI = ({
       <>
         <Breadcrumb
           items={[
-            { label: "Snapshots" },
+            { label: "Network Policies" },
             {
-              label:
-                selectedSnapshot?.name || selectedSnapshot?.id || "Snapshot",
+              label: selectedPolicy?.name || selectedPolicy?.id || "Policy",
             },
             { label: operationLabel, active: true },
           ]}
@@ -401,19 +456,19 @@ const ListSnapshotsUI = ({
   }
 
   // Operation loading state
-  if (operationLoading && selectedSnapshot) {
+  if (operationLoading && selectedPolicy) {
     const operationLabel =
       operations.find((o) => o.key === executingOperation)?.label ||
       "Operation";
     const messages: Record<string, string> = {
-      delete: "Deleting snapshot...",
+      delete: "Deleting network policy...",
     };
     return (
       <>
         <Breadcrumb
           items={[
-            { label: "Snapshots" },
-            { label: selectedSnapshot.name || selectedSnapshot.id },
+            { label: "Network Policies" },
+            { label: selectedPolicy.name || selectedPolicy.id },
             { label: operationLabel, active: true },
           ]}
         />
@@ -425,37 +480,25 @@ const ListSnapshotsUI = ({
     );
   }
 
-  // Create devbox screen
-  if (showCreateDevbox && selectedSnapshot) {
+  // Create policy screen
+  if (showCreatePolicy) {
     return (
-      <DevboxCreatePage
-        onBack={() => {
-          setShowCreateDevbox(false);
-          setSelectedSnapshot(null);
+      <NetworkPolicyCreatePage
+        onBack={() => setShowCreatePolicy(false)}
+        onCreate={(policy) => {
+          setShowCreatePolicy(false);
+          navigate("network-policy-detail", { networkPolicyId: policy.id });
         }}
-        onCreate={(devbox) => {
-          setShowCreateDevbox(false);
-          setSelectedSnapshot(null);
-          navigate("devbox-detail", { devboxId: devbox.id });
-        }}
-        initialSnapshotId={selectedSnapshot.id}
       />
     );
   }
 
   // Loading state
-  if (loading && snapshots.length === 0) {
+  if (loading && policies.length === 0) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "Snapshots", active: !devboxId },
-            ...(devboxId
-              ? [{ label: `Devbox: ${devboxId}`, active: true }]
-              : []),
-          ]}
-        />
-        <SpinnerComponent message="Loading snapshots..." />
+        <Breadcrumb items={[{ label: "Network Policies", active: true }]} />
+        <SpinnerComponent message="Loading network policies..." />
       </>
     );
   }
@@ -464,15 +507,8 @@ const ListSnapshotsUI = ({
   if (error) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "Snapshots", active: !devboxId },
-            ...(devboxId
-              ? [{ label: `Devbox: ${devboxId}`, active: true }]
-              : []),
-          ]}
-        />
-        <ErrorMessage message="Failed to list snapshots" error={error} />
+        <Breadcrumb items={[{ label: "Network Policies", active: true }]} />
+        <ErrorMessage message="Failed to list network policies" error={error} />
       </>
     );
   }
@@ -480,24 +516,19 @@ const ListSnapshotsUI = ({
   // Main list view
   return (
     <>
-      <Breadcrumb
-        items={[
-          { label: "Snapshots", active: !devboxId },
-          ...(devboxId ? [{ label: `Devbox: ${devboxId}`, active: true }] : []),
-        ]}
-      />
+      <Breadcrumb items={[{ label: "Network Policies", active: true }]} />
 
       {/* Table - hide when popup is shown */}
       {!showPopup && (
         <Table
-          data={snapshots}
-          keyExtractor={(snapshot: SnapshotListItem) => snapshot.id}
+          data={policies}
+          keyExtractor={(policy: NetworkPolicyListItem) => policy.id}
           selectedIndex={selectedIndex}
-          title={`snapshots[${totalCount}]`}
+          title={`network_policies[${totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
-              {figures.info} No snapshots found. Try: rli snapshot create {"<devbox-id>"}
+              {figures.info} No network policies found. Press [c] to create one.
             </Text>
           }
         />
@@ -541,23 +572,16 @@ const ListSnapshotsUI = ({
       )}
 
       {/* Actions Popup */}
-      {showPopup && selectedSnapshotItem && (
+      {showPopup && selectedPolicyItem && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            devbox={selectedSnapshotItem}
+            devbox={selectedPolicyItem}
             operations={operations.map((op) => ({
               key: op.key,
               label: op.label,
               color: op.color,
               icon: op.icon,
-              shortcut:
-                op.key === "view_details"
-                  ? "v"
-                  : op.key === "create_devbox"
-                    ? "c"
-                    : op.key === "delete"
-                      ? "d"
-                      : "",
+              shortcut: op.key === "create" ? "c" : op.key === "view_details" ? "v" : op.key === "delete" ? "d" : "",
             }))}
             selectedOperation={selectedOperation}
             onClose={() => setShowPopup(false)}
@@ -584,6 +608,10 @@ const ListSnapshotsUI = ({
         </Text>
         <Text color={colors.textDim} dimColor>
           {" "}
+          • [c] Create
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          {" "}
           • [a] Actions
         </Text>
         <Text color={colors.textDim} dimColor>
@@ -596,9 +624,9 @@ const ListSnapshotsUI = ({
 };
 
 // Export the UI component for use in the main menu
-export { ListSnapshotsUI };
+export { ListNetworkPoliciesUI };
 
-export async function listSnapshots(options: ListOptions) {
+export async function listNetworkPolicies(options: ListOptions = {}) {
   try {
     const client = getClient();
 
@@ -606,20 +634,20 @@ export async function listSnapshots(options: ListOptions) {
     const queryParams: Record<string, unknown> = {
       limit: DEFAULT_PAGE_SIZE,
     };
-    if (options.devbox) {
-      queryParams.devbox_id = options.devbox;
+    if (options.name) {
+      queryParams.name = options.name;
     }
 
-    // Fetch snapshots
-    const page = (await client.devboxes.listDiskSnapshots(
+    // Fetch network policies
+    const page = (await client.networkPolicies.list(
       queryParams,
-    )) as DiskSnapshotsCursorIDPage<{ id: string }>;
+    )) as NetworkPoliciesCursorIDPage<{ id: string }>;
 
-    // Extract snapshots array
-    const snapshots = page.snapshots || [];
+    // Extract network policies array
+    const networkPolicies = page.network_policies || [];
 
-    output(snapshots, { format: options.output, defaultFormat: "json" });
+    output(networkPolicies, { format: options.output, defaultFormat: "json" });
   } catch (error) {
-    outputError("Failed to list snapshots", error);
+    outputError("Failed to list network policies", error);
   }
 }

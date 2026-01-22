@@ -707,6 +707,11 @@ const ListDevboxesUI = ({
           selectedIndex={selectedIndex}
           title="devboxes"
           columns={tableColumns}
+          emptyState={
+            <Text color={colors.textDim}>
+              {figures.info} No devboxes found. Press [c] to create one.
+            </Text>
+          }
         />
       )}
 

@@ -93,15 +93,70 @@ export async function getBlueprint(id: string): Promise<Blueprint> {
   const client = getClient();
   const blueprint = await client.blueprints.retrieve(id);
 
+  // Extract architecture and resources from launch_parameters
+  const launchParams = blueprint.parameters?.launch_parameters;
+
   return {
     id: blueprint.id,
     name: blueprint.name,
     status: blueprint.status,
     create_time_ms: blueprint.create_time_ms,
     build_status: (blueprint as any).build_status,
-    architecture: (blueprint as any).architecture,
-    resources: (blueprint as any).resources,
+    architecture: launchParams?.architecture ?? undefined,
+    resources: launchParams?.resource_size_request ?? undefined,
+    parameters: blueprint.parameters
+      ? {
+          launch_parameters: launchParams
+            ? {
+                architecture: launchParams.architecture ?? undefined,
+                resource_size_request:
+                  launchParams.resource_size_request ?? undefined,
+                custom_cpu_cores: launchParams.custom_cpu_cores ?? undefined,
+                custom_gb_memory: launchParams.custom_gb_memory ?? undefined,
+                custom_disk_size: launchParams.custom_disk_size ?? undefined,
+                keep_alive_time_seconds:
+                  launchParams.keep_alive_time_seconds ?? undefined,
+                available_ports: launchParams.available_ports ?? undefined,
+                launch_commands: launchParams.launch_commands ?? undefined,
+                required_services: launchParams.required_services ?? undefined,
+              }
+            : undefined,
+          dockerfile: blueprint.parameters.dockerfile ?? undefined,
+          system_setup_commands:
+            blueprint.parameters.system_setup_commands ?? undefined,
+          file_mounts: (blueprint.parameters.file_mounts as
+            | Record<string, string>
+            | undefined) ?? undefined,
+        }
+      : undefined,
   };
+}
+
+/**
+ * Get a single blueprint by ID or name
+ */
+export async function getBlueprintByIdOrName(
+  idOrName: string,
+): Promise<Blueprint | null> {
+  const client = getClient();
+
+  // Check if it's an ID (starts with bpt_) or a name
+  if (idOrName.startsWith("bpt_")) {
+    return getBlueprint(idOrName);
+  }
+
+  // It's a name, search for it
+  const result = await client.blueprints.list({ name: idOrName });
+  const blueprints = result.blueprints || [];
+
+  if (blueprints.length === 0) {
+    return null;
+  }
+
+  // Return the first exact match, or first result if no exact match
+  const blueprint =
+    blueprints.find((b) => b.name === idOrName) || blueprints[0];
+  return getBlueprint(blueprint.id);
 }
 
 /**
