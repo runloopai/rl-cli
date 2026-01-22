@@ -164,12 +164,7 @@ const ListDevboxesUI = ({
   // Name width is flexible and uses remaining space
   // Only subtract widths of columns that are actually shown
   const baseWidth =
-    fixedWidth +
-    statusIconWidth +
-    idWidth +
-    statusTextWidth +
-    timeWidth +
-    6; // border + padding
+    fixedWidth + statusIconWidth + idWidth + statusTextWidth + timeWidth + 6; // border + padding
   const optionalWidth =
     (showSource ? sourceWidth : 0) + (showCapabilities ? capabilitiesWidth : 0);
   const remainingWidth = terminalWidth - baseWidth - optionalWidth;
