@@ -3,10 +3,13 @@
  * Uses the generic ResourceDetailPage component
  */
 import React from "react";
-import { Text } from "ink";
+import { Box, Text, useInput } from "ink";
+import TextInput from "ink-text-input";
 import figures from "figures";
+import { writeFile } from "fs/promises";
 import { useNavigation } from "../store/navigationStore.js";
 import { useObjectStore, type StorageObject } from "../store/objectStore.js";
+import { getClient } from "../utils/client.js";
 import {
   ResourceDetailPage,
   formatTimestamp,
@@ -20,7 +23,9 @@ import {
 } from "../services/objectService.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
+import { SuccessMessage } from "../components/SuccessMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
+import { Header } from "../components/Header.js";
 import { colors } from "../utils/theme.js";
 
 interface ObjectDetailScreenProps {
@@ -36,6 +41,11 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   const [fetchedObject, setFetchedObject] =
     React.useState<StorageObject | null>(null);
   const [deleting, setDeleting] = React.useState(false);
+  const [showDownloadPrompt, setShowDownloadPrompt] = React.useState(false);
+  const [downloadPath, setDownloadPath] = React.useState("");
+  const [downloading, setDownloading] = React.useState(false);
+  const [downloadResult, setDownloadResult] = React.useState<string | null>(null);
+  const [downloadError, setDownloadError] = React.useState<Error | null>(null);
 
   // Find object in store first
   const objectFromStore = objects.find((o) => o.id === objectId);
@@ -68,12 +78,64 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   // Use fetched object for full details, fall back to store for basic display
   const storageObject = fetchedObject || objectFromStore;
 
+  // Handle download submission
+  const handleDownloadSubmit = React.useCallback(async () => {
+    if (!downloadPath.trim() || !storageObject) return;
+    
+    setShowDownloadPrompt(false);
+    setDownloading(true);
+    
+    try {
+      const client = getClient();
+      // Get download URL
+      const downloadUrlResponse = await client.objects.download(storageObject.id, {
+        duration_seconds: 3600,
+      });
+      // Download the file
+      const response = await fetch(downloadUrlResponse.download_url);
+      if (!response.ok) {
+        throw new Error(`Download failed: HTTP ${response.status}`);
+      }
+      // Save the file
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      await writeFile(downloadPath.trim(), buffer);
+      setDownloadResult(`Downloaded to ${downloadPath.trim()}`);
+    } catch (err) {
+      setDownloadError(err as Error);
+    } finally {
+      setDownloading(false);
+    }
+  }, [downloadPath, storageObject]);
+
+  // Handle input for download prompt and result screens - must be before early returns (Rules of Hooks)
+  useInput((input, key) => {
+    if (showDownloadPrompt) {
+      if (key.escape) {
+        setShowDownloadPrompt(false);
+        setDownloadPath("");
+      } else if (key.return) {
+        handleDownloadSubmit();
+      }
+      return;
+    }
+    
+    if (downloadResult || downloadError) {
+      if (input === "q" || key.escape || key.return) {
+        setDownloadResult(null);
+        setDownloadError(null);
+        setDownloadPath("");
+      }
+      return;
+    }
+  }, { isActive: showDownloadPrompt || !!downloadResult || !!downloadError });
+
   // Show loading state while fetching
   if (loading && !storageObject) {
     return (
       <>
         <Breadcrumb
-          items={[{ label: "Objects" }, { label: "Loading...", active: true }]}
+          items={[{ label: "Storage Objects" }, { label: "Loading...", active: true }]}
         />
         <SpinnerComponent message="Loading object details..." />
       </>
@@ -85,7 +147,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
     return (
       <>
         <Breadcrumb
-          items={[{ label: "Objects" }, { label: "Error", active: true }]}
+          items={[{ label: "Storage Objects" }, { label: "Error", active: true }]}
         />
         <ErrorMessage message="Failed to load object details" error={error} />
       </>
@@ -97,11 +159,11 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
     return (
       <>
         <Breadcrumb
-          items={[{ label: "Objects" }, { label: "Not Found", active: true }]}
+          items={[{ label: "Storage Objects" }, { label: "Not Found", active: true }]}
         />
         <ErrorMessage
-          message={`Object ${objectId || "unknown"} not found`}
-          error={new Error("Object not found")}
+          message={`Storage object ${objectId || "unknown"} not found`}
+          error={new Error("Storage object not found")}
         />
       </>
     );
@@ -195,14 +257,14 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   const operations: ResourceOperation[] = [
     {
       key: "download",
-      label: "Download Object",
+      label: "Download",
       color: colors.success,
       icon: figures.arrowDown,
       shortcut: "w",
     },
     {
       key: "delete",
-      label: "Delete Object",
+      label: "Delete",
       color: colors.error,
       icon: figures.cross,
       shortcut: "d",
@@ -216,19 +278,10 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   ) => {
     switch (operation) {
       case "download":
-        if (resource.download_url) {
-          const { exec } = await import("child_process");
-          const platform = process.platform;
-          let openCommand: string;
-          if (platform === "darwin") {
-            openCommand = `open "${resource.download_url}"`;
-          } else if (platform === "win32") {
-            openCommand = `start "${resource.download_url}"`;
-          } else {
-            openCommand = `xdg-open "${resource.download_url}"`;
-          }
-          exec(openCommand);
-        }
+        // Show download prompt
+        const defaultName = resource.name || resource.id;
+        setDownloadPath(`./${defaultName}`);
+        setShowDownloadPrompt(true);
         break;
       case "delete":
         setDeleting(true);
@@ -250,7 +303,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
     // Core Information
     lines.push(
       <Text key="core-title" color={colors.warning} bold>
-        Object Details
+        Storage Object Details
       </Text>,
     );
     lines.push(
@@ -352,18 +405,102 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
     return lines;
   };
 
+  // Show download result
+  if (downloadResult || downloadError) {
+    return (
+      <>
+        <Breadcrumb
+          items={[
+            { label: "Storage Objects" },
+            { label: storageObject.name || storageObject.id },
+            { label: "Download", active: true },
+          ]}
+        />
+        <Header title="Download Result" />
+        {downloadResult && <SuccessMessage message={downloadResult} />}
+        {downloadError && (
+          <ErrorMessage message="Download failed" error={downloadError} />
+        )}
+        <Box marginTop={1}>
+          <Text color={colors.textDim} dimColor>
+            Press [Enter], [q], or [esc] to continue
+          </Text>
+        </Box>
+      </>
+    );
+  }
+
+  // Show downloading state
+  if (downloading) {
+    return (
+      <>
+        <Breadcrumb
+          items={[
+            { label: "Storage Objects" },
+            { label: storageObject.name || storageObject.id },
+            { label: "Downloading...", active: true },
+          ]}
+        />
+        <SpinnerComponent message={`Downloading to ${downloadPath}...`} />
+      </>
+    );
+  }
+
+  // Show download prompt
+  if (showDownloadPrompt) {
+    return (
+      <>
+        <Breadcrumb
+          items={[
+            { label: "Storage Objects" },
+            { label: storageObject.name || storageObject.id },
+            { label: "Download", active: true },
+          ]}
+        />
+        <Header title="Download Storage Object" />
+        <Box flexDirection="column" marginTop={1}>
+          <Text color={colors.text}>
+            {figures.arrowRight} Downloading:{" "}
+            <Text color={colors.primary}>{storageObject.name || storageObject.id}</Text>
+          </Text>
+          {storageObject.size_bytes && (
+            <Text color={colors.textDim} dimColor>
+              {figures.info} Size: {formatFileSize(storageObject.size_bytes)}
+            </Text>
+          )}
+        </Box>
+        <Box marginTop={1} flexDirection="column">
+          <Text color={colors.text}>Save to path:</Text>
+          <Box marginTop={0}>
+            <Text color={colors.primary}>{figures.pointer} </Text>
+            <TextInput
+              value={downloadPath}
+              onChange={setDownloadPath}
+              placeholder="./filename"
+            />
+          </Box>
+        </Box>
+        <Box marginTop={1}>
+          <Text color={colors.textDim} dimColor>
+            [Enter] Download • [Esc] Cancel
+          </Text>
+        </Box>
+      </>
+    );
+  }
+
   // Show deleting state
   if (deleting) {
     return (
       <>
         <Breadcrumb
           items={[
-            { label: "Objects" },
+            { label: "Storage Objects" },
             { label: storageObject.name || storageObject.id },
             { label: "Deleting...", active: true },
           ]}
         />
-        <SpinnerComponent message="Deleting object..." />
+        <SpinnerComponent message="Deleting storage object..." />
       </>
     );
   }
@@ -371,7 +508,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   return (
     <ResourceDetailPage
       resource={storageObject}
-      resourceType="Objects"
+      resourceType="Storage Objects"
       getDisplayName={(obj) => obj.name || obj.id}
       getId={(obj) => obj.id}
       getStatus={(obj) => obj.state || "unknown"}

@@ -49,8 +49,8 @@ const menuItems: MenuItem[] = [
   },
   {
     key: "objects",
-    label: "Objects",
-    description: "Manage storage objects and files",
+    label: "Storage Objects",
+    description: "Manage files and data in cloud storage",
     icon: "▤",
     color: colors.secondary,
   },

@@ -302,15 +302,14 @@ const ListNetworkPoliciesUI = ({
   const startIndex = currentPage * PAGE_SIZE;
   const endIndex = startIndex + policies.length;
 
-  const executeOperation = async () => {
+  const executeOperation = async (policy: NetworkPolicyListItem, operationKey: string) => {
     const client = getClient();
-    const policy = selectedPolicy;
 
     if (!policy) return;
 
     try {
       setOperationLoading(true);
-      switch (executingOperation) {
+      switch (operationKey) {
         case "delete":
           await client.networkPolicies.delete(policy.id);
           setOperationResult(
@@ -361,8 +360,8 @@ const ListNetworkPoliciesUI = ({
         } else {
           setSelectedPolicy(selectedPolicyItem);
           setExecutingOperation(operationKey);
-          // Execute immediately after state update
-          setTimeout(() => executeOperation(), 0);
+          // Execute immediately with values passed directly
+          executeOperation(selectedPolicyItem, operationKey);
         }
       } else if (input === "c") {
         // Create hotkey
@@ -382,7 +381,8 @@ const ListNetworkPoliciesUI = ({
         setShowPopup(false);
         setSelectedPolicy(selectedPolicyItem);
         setExecutingOperation("delete");
-        setTimeout(() => executeOperation(), 0);
+        // Execute immediately with values passed directly
+        executeOperation(selectedPolicyItem, "delete");
       }
       return;
     }

@@ -242,15 +242,14 @@ const ListSnapshotsUI = ({
   const startIndex = currentPage * PAGE_SIZE;
   const endIndex = startIndex + snapshots.length;
 
-  const executeOperation = async () => {
+  const executeOperation = async (snapshot: SnapshotListItem, operationKey: string) => {
     const client = getClient();
-    const snapshot = selectedSnapshot;
 
     if (!snapshot) return;
 
     try {
       setOperationLoading(true);
-      switch (executingOperation) {
+      switch (operationKey) {
         case "delete":
           await client.devboxes.deleteDiskSnapshot(snapshot.id);
           setOperationResult(`Snapshot ${snapshot.id} deleted successfully`);
@@ -300,8 +299,8 @@ const ListSnapshotsUI = ({
         } else {
           setSelectedSnapshot(selectedSnapshotItem);
           setExecutingOperation(operationKey);
-          // Execute immediately after state update
-          setTimeout(() => executeOperation(), 0);
+          // Execute immediately with values passed directly
+          executeOperation(selectedSnapshotItem, operationKey);
         }
       } else if (input === "v" && selectedSnapshotItem) {
         // View details hotkey
@@ -322,7 +321,8 @@ const ListSnapshotsUI = ({
         setShowPopup(false);
         setSelectedSnapshot(selectedSnapshotItem);
         setExecutingOperation("delete");
-        setTimeout(() => executeOperation(), 0);
+        // Execute immediately with values passed directly
+        executeOperation(selectedSnapshotItem, "delete");
       }
       return;
     }

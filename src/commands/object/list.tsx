@@ -1,6 +1,8 @@
 import React from "react";
 import { Box, Text, useInput, useApp } from "ink";
+import TextInput from "ink-text-input";
 import figures from "figures";
+import { writeFile } from "fs/promises";
 import { getClient } from "../../utils/client.js";
 import { Header } from "../../components/Header.js";
 import { SpinnerComponent } from "../../components/Spinner.js";
@@ -65,6 +67,8 @@ const ListObjectsUI = ({
     null,
   );
   const [operationLoading, setOperationLoading] = React.useState(false);
+  const [showDownloadPrompt, setShowDownloadPrompt] = React.useState(false);
+  const [downloadPath, setDownloadPath] = React.useState("");
 
   // Calculate overhead for viewport height
   const overhead = 13;
@@ -78,6 +82,7 @@ const ListObjectsUI = ({
   // All width constants
   const idWidth = 25;
   const nameWidth = Math.max(15, terminalWidth >= 120 ? 30 : 20);
+  const stateWidth = 12;
   const typeWidth = 15;
   const sizeWidth = 12;
   const timeWidth = 15;
@@ -145,12 +150,13 @@ const ListObjectsUI = ({
     totalCount,
     nextPage,
     prevPage,
+    refresh,
   } = useCursorPagination({
     fetchPage,
     pageSize: PAGE_SIZE,
     getItemId: (obj: ObjectListItem) => obj.id,
-    pollInterval: 5000,
-    pollingEnabled: !showPopup && !executingOperation,
+    pollInterval: 2000,
+    pollingEnabled: !showPopup && !executingOperation && !showDownloadPrompt,
     deps: [PAGE_SIZE],
   });
 
@@ -165,13 +171,13 @@ const ListObjectsUI = ({
       },
       {
         key: "download",
-        label: "Download Object",
+        label: "Download",
         color: colors.success,
         icon: figures.arrowDown,
       },
       {
         key: "delete",
-        label: "Delete Object",
+        label: "Delete",
         color: colors.error,
         icon: figures.cross,
       },
@@ -194,6 +200,17 @@ const ListObjectsUI = ({
         (obj: ObjectListItem) => obj.name || "",
         {
           width: nameWidth,
+        },
+      ),
+      createTextColumn(
+        "state",
+        "State",
+        (obj: ObjectListItem) => obj.state || "",
+        {
+          width: stateWidth,
+          color: colors.warning,
+          dimColor: false,
+          bold: false,
         },
       ),
       createTextColumn(
@@ -236,6 +253,7 @@ const ListObjectsUI = ({
     [
       idWidth,
       nameWidth,
+      stateWidth,
       typeWidth,
       sizeWidth,
       timeWidth,
@@ -261,40 +279,37 @@ const ListObjectsUI = ({
   const startIndex = currentPage * PAGE_SIZE;
   const endIndex = startIndex + objects.length;
 
-  const executeOperation = async () => {
+  const executeOperation = async (obj: ObjectListItem, operationKey: string, targetPath?: string) => {
     const client = getClient();
-    const obj = selectedObject;
 
     if (!obj) return;
 
     try {
       setOperationLoading(true);
-      switch (executingOperation) {
+      switch (operationKey) {
         case "delete":
           await client.objects.delete(obj.id);
-          setOperationResult(`Object ${obj.id} deleted successfully`);
+          setOperationResult(`Storage object ${obj.id} deleted successfully`);
           break;
         case "download": {
-          // Get download URL and open in browser
-          const objDetails = await client.objects.retrieve(obj.id);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const downloadUrl = (objDetails as any).download_url;
-          if (downloadUrl) {
-            const { exec } = await import("child_process");
-            const platform = process.platform;
-            let openCommand: string;
-            if (platform === "darwin") {
-              openCommand = `open "${downloadUrl}"`;
-            } else if (platform === "win32") {
-              openCommand = `start "${downloadUrl}"`;
-            } else {
-              openCommand = `xdg-open "${downloadUrl}"`;
-            }
-            exec(openCommand);
-            setOperationResult(`Download started for ${obj.name || obj.id}`);
-          } else {
-            setOperationError(new Error("No download URL available"));
+          if (!targetPath) {
+            setOperationError(new Error("No download path specified"));
+            break;
           }
+          // Get download URL
+          const downloadUrlResponse = await client.objects.download(obj.id, {
+            duration_seconds: 3600,
+          });
+          // Download the file
+          const response = await fetch(downloadUrlResponse.download_url);
+          if (!response.ok) {
+            throw new Error(`Download failed: HTTP ${response.status}`);
+          }
+          // Save the file
+          const arrayBuffer = await response.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          await writeFile(targetPath, buffer);
+          setOperationResult(`Downloaded to ${targetPath}`);
           break;
         }
       }
@@ -305,14 +320,42 @@ const ListObjectsUI = ({
     }
   };
 
+  // Handle download submission
+  const handleDownloadSubmit = () => {
+    if (downloadPath.trim() && selectedObject) {
+      setShowDownloadPrompt(false);
+      setExecutingOperation("download");
+      executeOperation(selectedObject, "download", downloadPath.trim());
+    }
+  };
+
   useInput((input, key) => {
     // Handle operation result display
     if (operationResult || operationError) {
       if (input === "q" || key.escape || key.return) {
+        const wasDelete = executingOperation === "delete";
+        const hadError = operationError !== null;
         setOperationResult(null);
         setOperationError(null);
         setExecutingOperation(null);
         setSelectedObject(null);
+        // Refresh the list after delete to show updated data
+        // Use setTimeout to ensure state updates are applied first
+        if (wasDelete && !hadError) {
+          setTimeout(() => refresh(), 0);
+        }
+      }
+      return;
+    }
+
+    // Handle download prompt
+    if (showDownloadPrompt) {
+      if (key.escape) {
+        setShowDownloadPrompt(false);
+        setDownloadPath("");
+        setSelectedObject(null);
+      } else if (key.return) {
+        handleDownloadSubmit();
       }
       return;
     }
@@ -331,11 +374,17 @@ const ListObjectsUI = ({
           navigate("object-detail", {
             objectId: selectedObjectItem.id,
           });
+        } else if (operationKey === "download") {
+          // Show download prompt
+          setSelectedObject(selectedObjectItem);
+          const defaultName = selectedObjectItem.name || selectedObjectItem.id;
+          setDownloadPath(`./${defaultName}`);
+          setShowDownloadPrompt(true);
         } else {
           setSelectedObject(selectedObjectItem);
           setExecutingOperation(operationKey);
-          // Execute immediately after state update
-          setTimeout(() => executeOperation(), 0);
+          // Execute immediately with the object and operation passed directly
+          executeOperation(selectedObjectItem, operationKey);
         }
       } else if (input === "v" && selectedObjectItem) {
         // View details hotkey
@@ -347,17 +396,19 @@ const ListObjectsUI = ({
         setShowPopup(false);
         setSelectedOperation(0);
       } else if (input === "w") {
-        // Download hotkey
+        // Download hotkey - show prompt
         setShowPopup(false);
         setSelectedObject(selectedObjectItem);
-        setExecutingOperation("download");
-        setTimeout(() => executeOperation(), 0);
+        const defaultName = selectedObjectItem.name || selectedObjectItem.id;
+        setDownloadPath(`./${defaultName}`);
+        setShowDownloadPrompt(true);
       } else if (input === "d") {
         // Delete hotkey
         setShowPopup(false);
         setSelectedObject(selectedObjectItem);
         setExecutingOperation("delete");
-        setTimeout(() => executeOperation(), 0);
+        // Execute immediately with the object and operation passed directly
+        executeOperation(selectedObjectItem, "delete");
       }
       return;
     }
@@ -413,7 +464,7 @@ const ListObjectsUI = ({
       <>
         <Breadcrumb
           items={[
-            { label: "Objects" },
+            { label: "Storage Objects" },
             {
               label: selectedObject?.name || selectedObject?.id || "Object",
             },
@@ -434,20 +485,63 @@ const ListObjectsUI = ({
     );
   }
 
+  // Download prompt
+  if (showDownloadPrompt && selectedObject) {
+    return (
+      <>
+        <Breadcrumb
+          items={[
+            { label: "Storage Objects" },
+            { label: selectedObject.name || selectedObject.id },
+            { label: "Download", active: true },
+          ]}
+        />
+        <Header title="Download Storage Object" />
+        <Box flexDirection="column" marginTop={1}>
+          <Text color={colors.text}>
+            {figures.arrowRight} Downloading:{" "}
+            <Text color={colors.primary}>{selectedObject.name || selectedObject.id}</Text>
+          </Text>
+          {selectedObject.size_bytes && (
+            <Text color={colors.textDim} dimColor>
+              {figures.info} Size: {formatFileSize(selectedObject.size_bytes)}
+            </Text>
+          )}
+        </Box>
+        <Box marginTop={1} flexDirection="column">
+          <Text color={colors.text}>Save to path:</Text>
+          <Box marginTop={0}>
+            <Text color={colors.primary}>{figures.pointer} </Text>
+            <TextInput
+              value={downloadPath}
+              onChange={setDownloadPath}
+              placeholder="./filename"
+            />
+          </Box>
+        </Box>
+        <Box marginTop={1}>
+          <Text color={colors.textDim} dimColor>
+            [Enter] Download • [Esc] Cancel
+          </Text>
+        </Box>
+      </>
+    );
+  }
+
   // Operation loading state
   if (operationLoading && selectedObject) {
     const operationLabel =
       operations.find((o) => o.key === executingOperation)?.label ||
       "Operation";
     const messages: Record<string, string> = {
-      delete: "Deleting object...",
-      download: "Starting download...",
+      delete: "Deleting storage object...",
+      download: "Downloading...",
     };
     return (
       <>
         <Breadcrumb
           items={[
-            { label: "Objects" },
+            { label: "Storage Objects" },
             { label: selectedObject.name || selectedObject.id },
             { label: operationLabel, active: true },
           ]}
@@ -464,8 +558,8 @@ const ListObjectsUI = ({
   if (loading && objects.length === 0) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Objects", active: true }]} />
-        <SpinnerComponent message="Loading objects..." />
+        <Breadcrumb items={[{ label: "Storage Objects", active: true }]} />
+        <SpinnerComponent message="Loading storage objects..." />
       </>
     );
   }
@@ -474,8 +568,8 @@ const ListObjectsUI = ({
   if (error) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Objects", active: true }]} />
-        <ErrorMessage message="Failed to list objects" error={error} />
+        <Breadcrumb items={[{ label: "Storage Objects", active: true }]} />
+        <ErrorMessage message="Failed to list storage objects" error={error} />
       </>
     );
   }
@@ -483,7 +577,7 @@ const ListObjectsUI = ({
   // Main list view
   return (
     <>
-      <Breadcrumb items={[{ label: "Objects", active: true }]} />
+      <Breadcrumb items={[{ label: "Storage Objects", active: true }]} />
 
       {/* Table - hide when popup is shown */}
       {!showPopup && (
@@ -491,7 +585,7 @@ const ListObjectsUI = ({
           data={objects}
           keyExtractor={(obj: ObjectListItem) => obj.id}
           selectedIndex={selectedIndex}
-          title={`objects[${totalCount}]`}
+          title={`storage_objects[${totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -626,6 +720,6 @@ export async function listObjects(options: ListOptions) {
 
     output(objects, { format: options.output, defaultFormat: "json" });
   } catch (error) {
-    outputError("Failed to list objects", error);
+    outputError("Failed to list storage objects", error);
   }
 }
