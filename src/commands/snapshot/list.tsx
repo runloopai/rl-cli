@@ -149,7 +149,11 @@ const ListSnapshotsUI = ({
     pageSize: PAGE_SIZE,
     getItemId: (snapshot: SnapshotListItem) => snapshot.id,
     pollInterval: 2000,
-    pollingEnabled: !showPopup && !executingOperation && !showCreateDevbox && !showDeleteConfirm,
+    pollingEnabled:
+      !showPopup &&
+      !executingOperation &&
+      !showCreateDevbox &&
+      !showDeleteConfirm,
     deps: [devboxId, PAGE_SIZE],
   });
 

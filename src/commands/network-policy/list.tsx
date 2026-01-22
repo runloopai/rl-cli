@@ -178,7 +178,11 @@ const ListNetworkPoliciesUI = ({
     pageSize: PAGE_SIZE,
     getItemId: (policy: NetworkPolicyListItem) => policy.id,
     pollInterval: 5000,
-    pollingEnabled: !showPopup && !executingOperation && !showCreatePolicy && !showDeleteConfirm,
+    pollingEnabled:
+      !showPopup &&
+      !executingOperation &&
+      !showCreatePolicy &&
+      !showDeleteConfirm,
     deps: [PAGE_SIZE],
   });
 

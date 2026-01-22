@@ -158,7 +158,11 @@ const ListObjectsUI = ({
     pageSize: PAGE_SIZE,
     getItemId: (obj: ObjectListItem) => obj.id,
     pollInterval: 2000,
-    pollingEnabled: !showPopup && !executingOperation && !showDownloadPrompt && !showDeleteConfirm,
+    pollingEnabled:
+      !showPopup &&
+      !executingOperation &&
+      !showDownloadPrompt &&
+      !showDeleteConfirm,
     deps: [PAGE_SIZE],
   });
 

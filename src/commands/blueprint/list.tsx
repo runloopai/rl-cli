@@ -149,7 +149,11 @@ const ListBlueprintsUI = ({
     pageSize: PAGE_SIZE,
     getItemId: (blueprint: BlueprintListItem) => blueprint.id,
     pollInterval: 2000,
-    pollingEnabled: !showPopup && !showCreateDevbox && !executingOperation && !showDeleteConfirm,
+    pollingEnabled:
+      !showPopup &&
+      !showCreateDevbox &&
+      !executingOperation &&
+      !showDeleteConfirm,
     deps: [PAGE_SIZE],
   });
 

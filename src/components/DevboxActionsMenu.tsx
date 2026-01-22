@@ -216,7 +216,12 @@ export const DevboxActionsMenu = ({
       executeOperation();
     }
     // Show confirmation for delete
-    if (executingOperation === "delete" && !loading && devbox && !showDeleteConfirm) {
+    if (
+      executingOperation === "delete" &&
+      !loading &&
+      devbox &&
+      !showDeleteConfirm
+    ) {
       setShowDeleteConfirm(true);
     }
   }, [executingOperation]);
