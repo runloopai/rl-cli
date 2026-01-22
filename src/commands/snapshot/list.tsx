@@ -242,7 +242,10 @@ const ListSnapshotsUI = ({
   const startIndex = currentPage * PAGE_SIZE;
   const endIndex = startIndex + snapshots.length;
 
-  const executeOperation = async (snapshot: SnapshotListItem, operationKey: string) => {
+  const executeOperation = async (
+    snapshot: SnapshotListItem,
+    operationKey: string,
+  ) => {
     const client = getClient();
 
     if (!snapshot) return;

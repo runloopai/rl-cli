@@ -279,7 +279,11 @@ const ListObjectsUI = ({
   const startIndex = currentPage * PAGE_SIZE;
   const endIndex = startIndex + objects.length;
 
-  const executeOperation = async (obj: ObjectListItem, operationKey: string, targetPath?: string) => {
+  const executeOperation = async (
+    obj: ObjectListItem,
+    operationKey: string,
+    targetPath?: string,
+  ) => {
     const client = getClient();
 
     if (!obj) return;
@@ -500,7 +504,9 @@ const ListObjectsUI = ({
         <Box flexDirection="column" marginTop={1}>
           <Text color={colors.text}>
             {figures.arrowRight} Downloading:{" "}
-            <Text color={colors.primary}>{selectedObject.name || selectedObject.id}</Text>
+            <Text color={colors.primary}>
+              {selectedObject.name || selectedObject.id}
+            </Text>
           </Text>
           {selectedObject.size_bytes && (
             <Text color={colors.textDim} dimColor>

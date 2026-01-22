@@ -302,7 +302,10 @@ const ListNetworkPoliciesUI = ({
   const startIndex = currentPage * PAGE_SIZE;
   const endIndex = startIndex + policies.length;
 
-  const executeOperation = async (policy: NetworkPolicyListItem, operationKey: string) => {
+  const executeOperation = async (
+    policy: NetworkPolicyListItem,
+    operationKey: string,
+  ) => {
     const client = getClient();
 
     if (!policy) return;

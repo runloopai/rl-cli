@@ -44,7 +44,9 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   const [showDownloadPrompt, setShowDownloadPrompt] = React.useState(false);
   const [downloadPath, setDownloadPath] = React.useState("");
   const [downloading, setDownloading] = React.useState(false);
-  const [downloadResult, setDownloadResult] = React.useState<string | null>(null);
+  const [downloadResult, setDownloadResult] = React.useState<string | null>(
+    null,
+  );
   const [downloadError, setDownloadError] = React.useState<Error | null>(null);
 
   // Find object in store first
@@ -81,16 +83,19 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   // Handle download submission
   const handleDownloadSubmit = React.useCallback(async () => {
     if (!downloadPath.trim() || !storageObject) return;
-    
+
     setShowDownloadPrompt(false);
     setDownloading(true);
-    
+
     try {
       const client = getClient();
       // Get download URL
-      const downloadUrlResponse = await client.objects.download(storageObject.id, {
-        duration_seconds: 3600,
-      });
+      const downloadUrlResponse = await client.objects.download(
+        storageObject.id,
+        {
+          duration_seconds: 3600,
+        },
+      );
       // Download the file
       const response = await fetch(downloadUrlResponse.download_url);
       if (!response.ok) {
@@ -109,33 +114,39 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   }, [downloadPath, storageObject]);
 
   // Handle input for download prompt and result screens - must be before early returns (Rules of Hooks)
-  useInput((input, key) => {
-    if (showDownloadPrompt) {
-      if (key.escape) {
-        setShowDownloadPrompt(false);
-        setDownloadPath("");
-      } else if (key.return) {
-        handleDownloadSubmit();
+  useInput(
+    (input, key) => {
+      if (showDownloadPrompt) {
+        if (key.escape) {
+          setShowDownloadPrompt(false);
+          setDownloadPath("");
+        } else if (key.return) {
+          handleDownloadSubmit();
+        }
+        return;
       }
-      return;
-    }
-    
-    if (downloadResult || downloadError) {
-      if (input === "q" || key.escape || key.return) {
-        setDownloadResult(null);
-        setDownloadError(null);
-        setDownloadPath("");
+
+      if (downloadResult || downloadError) {
+        if (input === "q" || key.escape || key.return) {
+          setDownloadResult(null);
+          setDownloadError(null);
+          setDownloadPath("");
+        }
+        return;
       }
-      return;
-    }
-  }, { isActive: showDownloadPrompt || !!downloadResult || !!downloadError });
+    },
+    { isActive: showDownloadPrompt || !!downloadResult || !!downloadError },
+  );
 
   // Show loading state while fetching
   if (loading && !storageObject) {
     return (
       <>
         <Breadcrumb
-          items={[{ label: "Storage Objects" }, { label: "Loading...", active: true }]}
+          items={[
+            { label: "Storage Objects" },
+            { label: "Loading...", active: true },
+          ]}
         />
         <SpinnerComponent message="Loading object details..." />
       </>
@@ -147,7 +158,10 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
     return (
       <>
         <Breadcrumb
-          items={[{ label: "Storage Objects" }, { label: "Error", active: true }]}
+          items={[
+            { label: "Storage Objects" },
+            { label: "Error", active: true },
+          ]}
         />
         <ErrorMessage message="Failed to load object details" error={error} />
       </>
@@ -159,7 +173,10 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
     return (
       <>
         <Breadcrumb
-          items={[{ label: "Storage Objects" }, { label: "Not Found", active: true }]}
+          items={[
+            { label: "Storage Objects" },
+            { label: "Not Found", active: true },
+          ]}
         />
         <ErrorMessage
           message={`Storage object ${objectId || "unknown"} not found`}
@@ -461,7 +478,9 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
         <Box flexDirection="column" marginTop={1}>
           <Text color={colors.text}>
             {figures.arrowRight} Downloading:{" "}
-            <Text color={colors.primary}>{storageObject.name || storageObject.id}</Text>
+            <Text color={colors.primary}>
+              {storageObject.name || storageObject.id}
+            </Text>
           </Text>
           {storageObject.size_bytes && (
             <Text color={colors.textDim} dimColor>
