@@ -477,6 +477,44 @@ export function createProgram(): Command {
       await pruneBlueprints(name, options);
     });
 
+  blueprint
+    .command("from-dockerfile")
+    .description(
+      "Create a blueprint from a Dockerfile with build context support",
+    )
+    .requiredOption("--name <name>", "Blueprint name (required)")
+    .option(
+      "--build-context <path>",
+      "Build context directory (default: current directory)",
+    )
+    .option(
+      "--dockerfile <path>",
+      "Dockerfile path (default: Dockerfile in build context)",
+    )
+    .option("--system-setup-commands <commands...>", "System setup commands")
+    .option(
+      "--resources <size>",
+      "Resource size (X_SMALL, SMALL, MEDIUM, LARGE, X_LARGE, XX_LARGE)",
+    )
+    .option("--architecture <arch>", "Architecture (arm64, x86_64)")
+    .option("--available-ports <ports...>", "Available ports")
+    .option("--root", "Run as root")
+    .option("--user <user:uid>", "Run as this user (format: username:uid)")
+    .option(
+      "--ttl <seconds>",
+      "TTL in seconds for the build context object (default: 3600)",
+    )
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: json)",
+    )
+    .action(async (options) => {
+      const { createBlueprintFromDockerfile } = await import(
+        "../commands/blueprint/from-dockerfile.js"
+      );
+      await createBlueprintFromDockerfile(options);
+    });
+
   // Object storage commands
   const object = program
     .command("object")
