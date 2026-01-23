@@ -8,6 +8,7 @@ import { SpinnerComponent } from "../../components/Spinner.js";
 import { ErrorMessage } from "../../components/ErrorMessage.js";
 import { getStatusDisplay } from "../../components/StatusBadge.js";
 import { Breadcrumb } from "../../components/Breadcrumb.js";
+import { NavigationTips } from "../../components/NavigationTips.js";
 import type { Column } from "../../components/Table.js";
 import { Table, createTextColumn } from "../../components/Table.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
@@ -744,45 +745,22 @@ const ListDevboxesUI = ({
       )}
 
       {/* Help Bar */}
-      <Box marginTop={1} paddingX={1}>
-        <Text color={colors.textDim} dimColor>
-          {figures.arrowUp}
-          {figures.arrowDown} Navigate
-        </Text>
-        {(hasMore || hasPrev) && (
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            • {figures.arrowLeft}
-            {figures.arrowRight} Page
-          </Text>
-        )}
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          • [Enter] Details
-        </Text>
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          • [a] Actions
-        </Text>
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          • [c] Create
-        </Text>
-        {selectedDevbox && (
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            • [o] Open in Browser
-          </Text>
-        )}
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          • [/] Search
-        </Text>
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          • [Esc] Back
-        </Text>
-      </Box>
+      <NavigationTips
+        showArrows
+        tips={[
+          {
+            icon: `${figures.arrowLeft}${figures.arrowRight}`,
+            label: "Page",
+            condition: hasMore || hasPrev,
+          },
+          { key: "Enter", label: "Details" },
+          { key: "a", label: "Actions" },
+          { key: "c", label: "Create" },
+          { key: "o", label: "Open in Browser", condition: !!selectedDevbox },
+          { key: "/", label: "Search" },
+          { key: "Esc", label: "Back" },
+        ]}
+      />
     </>
   );
 };

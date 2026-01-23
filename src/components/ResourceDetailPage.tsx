@@ -8,6 +8,7 @@ import figures from "figures";
 import { Header } from "./Header.js";
 import { StatusBadge } from "./StatusBadge.js";
 import { Breadcrumb } from "./Breadcrumb.js";
+import { NavigationTips } from "./NavigationTips.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
@@ -379,15 +380,15 @@ export function ResourceDetailPage<T>({
         </Box>
       )}
 
-      <Box marginTop={1}>
-        <Text color={colors.textDim} dimColor>
-          {figures.arrowUp}
-          {figures.arrowDown} Navigate • [Enter] Execute
-          {buildDetailLines && " • [i] Full Details"}
-          {getUrl && " • [o] Browser"}
-          {" • [q] Back"}
-        </Text>
-      </Box>
+      <NavigationTips
+        showArrows
+        tips={[
+          { key: "Enter", label: "Execute" },
+          { key: "i", label: "Full Details", condition: !!buildDetailLines },
+          { key: "o", label: "Browser", condition: !!getUrl },
+          { key: "q", label: "Back" },
+        ]}
+      />
     </>
   );
 }

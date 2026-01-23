@@ -81,14 +81,15 @@ const precomputeFrames = (colors: string[]): string[][] => {
   return colors.map((_, i) => [...colors.slice(i), ...colors.slice(0, i)]);
 };
 
-const DARK_FRAMES = precomputeFrames(DARK_SHIMMER_COLORS);
-const LIGHT_FRAMES = precomputeFrames(LIGHT_SHIMMER_COLORS);
+// Use every 2nd color to reduce frame count and minimize flickering
+const DARK_FRAMES = precomputeFrames(DARK_SHIMMER_COLORS.filter((_, i) => i % 2 === 0));
+const LIGHT_FRAMES = precomputeFrames(LIGHT_SHIMMER_COLORS.filter((_, i) => i % 2 === 0));
 
 // Minimum width to show the full BigText banner (simple3d font needs ~80 chars for "RUNLOOP.ai")
 const MIN_WIDTH_FOR_BIG_BANNER = 90;
 
 // Animation interval in ms
-const SHIMMER_INTERVAL = 150;
+const SHIMMER_INTERVAL = 400;
 
 export const Banner = React.memo(() => {
   const [frameIndex, setFrameIndex] = useState(0);

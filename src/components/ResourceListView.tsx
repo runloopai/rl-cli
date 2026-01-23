@@ -3,6 +3,7 @@ import { Box, Text, useInput, useApp } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
 import { Breadcrumb, BreadcrumbItem } from "./Breadcrumb.js";
+import { NavigationTips } from "./NavigationTips.js";
 import { SpinnerComponent } from "./Spinner.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { Table, Column } from "./Table.js";
@@ -465,42 +466,27 @@ export function ResourceListView<T>({ config }: ResourceListViewProps<T>) {
       </Box>
 
       {/* Help Bar */}
-      <Box marginTop={1} paddingX={1}>
-        <Text color={colors.textDim} dimColor>
-          {figures.arrowUp}
-          {figures.arrowDown} Navigate
-        </Text>
-        {totalPages > 1 && (
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            • {figures.arrowLeft}
-            {figures.arrowRight} Page
-          </Text>
-        )}
-        {config.onSelect && (
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            • [Enter] Details
-          </Text>
-        )}
-        {config.searchConfig?.enabled && (
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            • [/] Search
-          </Text>
-        )}
-        {config.additionalShortcuts &&
-          config.additionalShortcuts.map((shortcut) => (
-            <Text key={shortcut.key} color={colors.textDim} dimColor>
-              {" "}
-              • [{shortcut.key}] {shortcut.label}
-            </Text>
-          ))}
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          • [Esc] Back
-        </Text>
-      </Box>
+      <NavigationTips
+        showArrows
+        tips={[
+          {
+            icon: `${figures.arrowLeft}${figures.arrowRight}`,
+            label: "Page",
+            condition: totalPages > 1,
+          },
+          { key: "Enter", label: "Details", condition: !!config.onSelect },
+          {
+            key: "/",
+            label: "Search",
+            condition: config.searchConfig?.enabled,
+          },
+          ...(config.additionalShortcuts || []).map((shortcut) => ({
+            key: shortcut.key,
+            label: shortcut.label,
+          })),
+          { key: "Esc", label: "Back" },
+        ]}
+      />
     </>
   );
 }

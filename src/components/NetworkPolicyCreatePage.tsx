@@ -10,6 +10,7 @@ import { SpinnerComponent } from "./Spinner.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { SuccessMessage } from "./SuccessMessage.js";
 import { Breadcrumb } from "./Breadcrumb.js";
+import { NavigationTips } from "./NavigationTips.js";
 import {
   FormTextInput,
   FormSelect,
@@ -265,11 +266,9 @@ export const NetworkPolicyCreatePage = ({
             </Text>
           </Box>
         </Box>
-        <Box marginTop={1}>
-          <Text color={colors.textDim} dimColor>
-            Press [Enter], [q], or [esc] to return to list
-          </Text>
-        </Box>
+        <NavigationTips
+          tips={[{ key: "Enter/q/esc", label: "Return to list" }]}
+        />
       </>
     );
   }
@@ -285,11 +284,12 @@ export const NetworkPolicyCreatePage = ({
           ]}
         />
         <ErrorMessage message="Failed to create network policy" error={error} />
-        <Box marginTop={1}>
-          <Text color={colors.textDim} dimColor>
-            Press [Enter] or [r] to retry • [q] or [esc] to cancel
-          </Text>
-        </Box>
+        <NavigationTips
+          tips={[
+            { key: "Enter/r", label: "Retry" },
+            { key: "q/esc", label: "Cancel" },
+          ]}
+        />
       </>
     );
   }
@@ -402,12 +402,13 @@ export const NetworkPolicyCreatePage = ({
       </Box>
 
       {!hostnamesExpanded && (
-        <Box marginTop={1}>
-          <Text color={colors.textDim} dimColor>
-            {figures.arrowUp}
-            {figures.arrowDown} Navigate • [Enter] Create/Expand • [q] Cancel
-          </Text>
-        </Box>
+        <NavigationTips
+          showArrows
+          tips={[
+            { key: "Enter", label: "Create/Expand" },
+            { key: "q", label: "Cancel" },
+          ]}
+        />
       )}
     </>
   );

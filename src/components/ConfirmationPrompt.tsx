@@ -6,6 +6,7 @@ import { Box, Text, useInput } from "ink";
 import figures from "figures";
 import { Header } from "./Header.js";
 import { Breadcrumb } from "./Breadcrumb.js";
+import { NavigationTips } from "./NavigationTips.js";
 import { colors } from "../utils/theme.js";
 
 export interface ConfirmationPromptProps {
@@ -119,13 +120,17 @@ export const ConfirmationPrompt = ({
           </Box>
         </Box>
 
-        <Box marginTop={1}>
-          <Text color={colors.textDim} dimColor>
-            {figures.arrowUp}
-            {figures.arrowDown} Select • [Enter] Confirm • [y/n] Quick select •
-            [Esc] Cancel
-          </Text>
-        </Box>
+        <NavigationTips
+          showArrows
+          arrowLabel="Select"
+          marginTop={1}
+          paddingX={0}
+          tips={[
+            { key: "Enter", label: "Confirm" },
+            { key: "y/n", label: "Quick select" },
+            { key: "Esc", label: "Cancel" },
+          ]}
+        />
       </Box>
     </>
   );

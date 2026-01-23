@@ -3,6 +3,7 @@ import { render } from "ink";
 import {
   enterAlternateScreenBuffer,
   exitAlternateScreenBuffer,
+  clearScreen,
 } from "../utils/screen.js";
 import { processUtils } from "../utils/processUtils.js";
 
@@ -38,6 +39,7 @@ export async function runMainMenu(
   focusDevboxId?: string,
 ) {
   enterAlternateScreenBuffer();
+  clearScreen(); // Ensure cursor is at top-left before Ink renders
 
   try {
     const { waitUntilExit } = render(

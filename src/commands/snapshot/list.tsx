@@ -8,6 +8,7 @@ import { SpinnerComponent } from "../../components/Spinner.js";
 import { ErrorMessage } from "../../components/ErrorMessage.js";
 import { SuccessMessage } from "../../components/SuccessMessage.js";
 import { Breadcrumb } from "../../components/Breadcrumb.js";
+import { NavigationTips } from "../../components/NavigationTips.js";
 import { Table, createTextColumn } from "../../components/Table.js";
 import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { Operation } from "../../components/OperationsMenu.js";
@@ -415,11 +416,9 @@ const ListSnapshotsUI = ({
         {operationError && (
           <ErrorMessage message="Operation failed" error={operationError} />
         )}
-        <Box marginTop={1}>
-          <Text color={colors.textDim} dimColor>
-            Press [Enter], [q], or [esc] to continue
-          </Text>
-        </Box>
+        <NavigationTips
+          tips={[{ key: "Enter/q/esc", label: "Continue" }]}
+        />
       </>
     );
   }
@@ -616,31 +615,19 @@ const ListSnapshotsUI = ({
       )}
 
       {/* Help Bar */}
-      <Box marginTop={1} paddingX={1}>
-        <Text color={colors.textDim} dimColor>
-          {figures.arrowUp}
-          {figures.arrowDown} Navigate
-        </Text>
-        {(hasMore || hasPrev) && (
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            • {figures.arrowLeft}
-            {figures.arrowRight} Page
-          </Text>
-        )}
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          • [Enter] Details
-        </Text>
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          • [a] Actions
-        </Text>
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          • [Esc] Back
-        </Text>
-      </Box>
+      <NavigationTips
+        showArrows
+        tips={[
+          {
+            icon: `${figures.arrowLeft}${figures.arrowRight}`,
+            label: "Page",
+            condition: hasMore || hasPrev,
+          },
+          { key: "Enter", label: "Details" },
+          { key: "a", label: "Actions" },
+          { key: "Esc", label: "Back" },
+        ]}
+      />
     </>
   );
 };

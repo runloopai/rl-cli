@@ -12,6 +12,7 @@ import { SpinnerComponent } from "./Spinner.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { SuccessMessage } from "./SuccessMessage.js";
 import { Breadcrumb } from "./Breadcrumb.js";
+import { NavigationTips } from "./NavigationTips.js";
 import { MetadataDisplay } from "./MetadataDisplay.js";
 import {
   FormTextInput,
@@ -519,11 +520,9 @@ export const DevboxCreatePage = ({
             </Text>
           </Box>
         </Box>
-        <Box marginTop={1}>
-          <Text color={colors.textDim} dimColor>
-            Press [Enter], [q], or [esc] to return to list
-          </Text>
-        </Box>
+        <NavigationTips
+          tips={[{ key: "Enter/q/esc", label: "Return to list" }]}
+        />
       </>
     );
   }
@@ -536,11 +535,12 @@ export const DevboxCreatePage = ({
           items={[{ label: "Devboxes" }, { label: "Create", active: true }]}
         />
         <ErrorMessage message="Failed to create devbox" error={error} />
-        <Box marginTop={1}>
-          <Text color={colors.textDim} dimColor>
-            Press [Enter] or [r] to retry • [q] or [esc] to cancel
-          </Text>
-        </Box>
+        <NavigationTips
+          tips={[
+            { key: "Enter/r", label: "Retry" },
+            { key: "q/esc", label: "Cancel" },
+          ]}
+        />
       </>
     );
   }
@@ -845,12 +845,13 @@ export const DevboxCreatePage = ({
         )}
 
       {!inMetadataSection && (
-        <Box marginTop={1}>
-          <Text color={colors.textDim} dimColor>
-            {figures.arrowUp}
-            {figures.arrowDown} Navigate • [Enter] Create • [q] Cancel
-          </Text>
-        </Box>
+        <NavigationTips
+          showArrows
+          tips={[
+            { key: "Enter", label: "Create" },
+            { key: "q", label: "Cancel" },
+          ]}
+        />
       )}
     </>
   );
