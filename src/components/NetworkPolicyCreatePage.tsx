@@ -251,8 +251,7 @@ export const NetworkPolicyCreatePage = ({
       }
 
       params.allow_all = formData.allow_all === "Yes";
-      params.allow_devbox_to_devbox =
-        formData.allow_devbox_to_devbox === "Yes";
+      params.allow_devbox_to_devbox = formData.allow_devbox_to_devbox === "Yes";
 
       // For allowed_hostnames, always send the current list
       // (empty array means no hostnames allowed)
@@ -276,9 +275,7 @@ export const NetworkPolicyCreatePage = ({
     }
   };
 
-  const breadcrumbLabel = isEditMode
-    ? initialPolicy?.name || "Edit"
-    : "Create";
+  const breadcrumbLabel = isEditMode ? initialPolicy?.name || "Edit" : "Create";
   const actionLabel = isEditMode ? "Edit" : "Create";
 
   // Result screen
