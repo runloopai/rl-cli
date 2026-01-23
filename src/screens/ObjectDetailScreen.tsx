@@ -143,8 +143,8 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
     { isActive: showDownloadPrompt || !!downloadResult || !!downloadError },
   );
 
-  // Show loading state while fetching
-  if (loading && !storageObject) {
+  // Show loading state while fetching or before fetch starts
+  if (!storageObject && objectId && !error) {
     return (
       <>
         <Breadcrumb

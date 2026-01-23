@@ -142,8 +142,9 @@ export const NetworkPolicyCreatePage = ({
       if (input === "q" || key.escape || key.return) {
         if (onCreate) {
           onCreate(result);
+        } else {
+          onBack();
         }
-        onBack();
       }
       return;
     }

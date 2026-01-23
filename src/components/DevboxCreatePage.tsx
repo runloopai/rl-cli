@@ -211,8 +211,9 @@ export const DevboxCreatePage = ({
       if (input === "q" || key.escape || key.return) {
         if (onCreate) {
           onCreate(result);
+        } else {
+          onBack();
         }
-        onBack();
       }
       return;
     }
