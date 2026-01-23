@@ -29,28 +29,39 @@ export const LogsViewer = ({
   const [copyStatus, setCopyStatus] = React.useState<string | null>(null);
 
   // Calculate viewport for logs output:
-  // - Breadcrumb (3 lines + marginBottom): 4 lines
-  // - Log box borders: 2 lines
+  // - Breadcrumb (border top + content + border bottom + marginBottom): 4 lines
+  // - Log box borders: 2 lines (added to height by Ink)
   // - Stats bar (marginTop + content): 2 lines
-  // - Help bar (marginTop + content): 2 lines
-  // - Safety buffer: 1 line
-  // Total: 11 lines
-  const logsViewport = useViewportHeight({ overhead: 11, minHeight: 10 });
+  // - Help bar (content): 1 line
+  // Total: 9 lines
+  const logsViewport = useViewportHeight({ overhead: 9, minHeight: 10 });
+
+  // Calculate max scroll position based on current mode
+  // For wrap mode, we can scroll until the last entry is at the top
+  // For non-wrap mode, we stop when the last entries fill the viewport
+  const getMaxScroll = () => {
+    if (logsWrapMode) {
+      return Math.max(0, logs.length - 1);
+    } else {
+      return Math.max(0, logs.length - logsViewport.viewportHeight);
+    }
+  };
 
   // Handle input for logs navigation
   useInput((input, key) => {
+    const maxScroll = getMaxScroll();
+    
     if (key.upArrow || input === "k") {
       setLogsScroll(Math.max(0, logsScroll - 1));
     } else if (key.downArrow || input === "j") {
-      setLogsScroll(logsScroll + 1);
+      setLogsScroll(Math.min(maxScroll, logsScroll + 1));
     } else if (key.pageUp) {
       setLogsScroll(Math.max(0, logsScroll - 10));
     } else if (key.pageDown) {
-      setLogsScroll(logsScroll + 10);
+      setLogsScroll(Math.min(maxScroll, logsScroll + 10));
     } else if (input === "g") {
       setLogsScroll(0);
     } else if (input === "G") {
-      const maxScroll = Math.max(0, logs.length - logsViewport.viewportHeight);
       setLogsScroll(maxScroll);
     } else if (input === "w") {
       setLogsWrapMode(!logsWrapMode);
@@ -113,11 +124,111 @@ export const LogsViewer = ({
 
   const viewportHeight = Math.max(1, logsViewport.viewportHeight);
   const terminalWidth = logsViewport.terminalWidth;
-  const maxScroll = Math.max(0, logs.length - viewportHeight);
-  const actualScroll = Math.min(logsScroll, maxScroll);
-  const visibleLogs = logs.slice(actualScroll, actualScroll + viewportHeight);
-  const hasMore = actualScroll + viewportHeight < logs.length;
+  // Account for box borders (2 chars) and paddingX={1} (2 chars)
+  // Add extra buffer (4 chars) for any edge cases with Ink rendering
+  const boxChrome = 8;
+  const contentWidth = Math.max(40, terminalWidth - boxChrome);
+
+  // Helper to sanitize log message
+  const sanitizeMessage = (message: string): string => {
+    // Strip ANSI escape sequences (colors, cursor movement, etc.)
+    const strippedAnsi = message.replace(
+      // eslint-disable-next-line no-control-regex
+      /\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g,
+      "",
+    );
+    // Replace control characters with spaces
+    return strippedAnsi
+      .replace(/\r\n/g, " ")
+      .replace(/\n/g, " ")
+      .replace(/\r/g, " ")
+      .replace(/\t/g, " ")
+      // Remove any other control characters (ASCII 0-31 except space)
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\x00-\x1F]/g, "");
+  };
+
+  // Helper to calculate how many lines a log entry will take when wrapped
+  const calculateWrappedLineCount = (log: AnyLog): number => {
+    const parts = parseAnyLogEntry(log);
+    const sanitized = sanitizeMessage(parts.message);
+    const MAX_MESSAGE_LENGTH = 1000;
+    const fullMessage =
+      sanitized.length > MAX_MESSAGE_LENGTH
+        ? sanitized.substring(0, MAX_MESSAGE_LENGTH) + "..."
+        : sanitized;
+
+    const cmd = parts.cmd
+      ? `$ ${parts.cmd.substring(0, 40)}${parts.cmd.length > 40 ? "..." : ""} `
+      : "";
+    const exitCode = parts.exitCode !== null ? `exit=${parts.exitCode} ` : "";
+    const shellPart = parts.shellName ? `(${parts.shellName}) ` : "";
+
+    // Calculate total line length
+    const totalLength =
+      parts.timestamp.length +
+      1 + // space
+      parts.level.length +
+      1 + // space
+      parts.source.length +
+      2 + // brackets
+      1 + // space
+      shellPart.length +
+      cmd.length +
+      fullMessage.length +
+      (exitCode ? 1 + exitCode.length : 0);
+
+    // Calculate how many lines this will wrap to
+    // Use contentWidth directly since we now have proper width constraints
+    const lineCount = Math.ceil(totalLength / contentWidth);
+    return Math.max(1, lineCount);
+  };
+
+  // Calculate visible logs based on wrap mode
+  let visibleLogs: AnyLog[];
+  let actualScroll: number;
+  let visibleLineCount: number;
+
+  if (logsWrapMode) {
+    // In wrap mode, we need to count lines and only show what fits
+    actualScroll = Math.min(logsScroll, Math.max(0, logs.length - 1));
+    visibleLogs = [];
+    visibleLineCount = 0;
+
+    for (let i = actualScroll; i < logs.length; i++) {
+      const lineCount = calculateWrappedLineCount(logs[i]);
+      if (visibleLineCount + lineCount > viewportHeight && visibleLogs.length > 0) {
+        break;
+      }
+      visibleLogs.push(logs[i]);
+      visibleLineCount += lineCount;
+    }
+  } else {
+    // In non-wrap mode, each log is exactly 1 line
+    const maxScroll = Math.max(0, logs.length - viewportHeight);
+    actualScroll = Math.min(logsScroll, maxScroll);
+    visibleLogs = logs.slice(actualScroll, actualScroll + viewportHeight);
+    visibleLineCount = visibleLogs.length;
+  }
+
+  const hasMore = actualScroll + visibleLogs.length < logs.length;
   const hasLess = actualScroll > 0;
+
+  // Color maps (defined once outside the loop)
+  const levelColorMap: Record<string, string> = {
+    red: colors.error,
+    yellow: colors.warning,
+    blue: colors.primary,
+    gray: colors.textDim,
+  };
+  const sourceColorMap: Record<string, string> = {
+    magenta: "#d33682",
+    cyan: colors.info,
+    green: colors.success,
+    yellow: colors.warning,
+    gray: colors.textDim,
+    white: colors.text,
+  };
 
   return (
     <>
@@ -128,6 +239,7 @@ export const LogsViewer = ({
         borderStyle="round"
         borderColor={colors.border}
         paddingX={1}
+        height={viewportHeight}
       >
         {logs.length === 0 ? (
           <Text color={colors.textDim} dimColor>
@@ -136,20 +248,14 @@ export const LogsViewer = ({
         ) : (
           visibleLogs.map((log: AnyLog, index: number) => {
             const parts = parseAnyLogEntry(log);
-
-            // Sanitize message: escape special chars to prevent layout breaks
-            const escapedMessage = parts.message
-              .replace(/\r\n/g, "\\n")
-              .replace(/\n/g, "\\n")
-              .replace(/\r/g, "\\r")
-              .replace(/\t/g, "\\t");
+            const sanitizedMessage = sanitizeMessage(parts.message);
 
             // Limit message length to prevent Yoga layout engine errors
             const MAX_MESSAGE_LENGTH = 1000;
             const fullMessage =
-              escapedMessage.length > MAX_MESSAGE_LENGTH
-                ? escapedMessage.substring(0, MAX_MESSAGE_LENGTH) + "..."
-                : escapedMessage;
+              sanitizedMessage.length > MAX_MESSAGE_LENGTH
+                ? sanitizedMessage.substring(0, MAX_MESSAGE_LENGTH) + "..."
+                : sanitizedMessage;
 
             const cmd = parts.cmd
               ? `$ ${parts.cmd.substring(0, 40)}${parts.cmd.length > 40 ? "..." : ""} `
@@ -157,118 +263,99 @@ export const LogsViewer = ({
             const exitCode =
               parts.exitCode !== null ? `exit=${parts.exitCode} ` : "";
 
-            // Map color names to theme colors
-            const levelColorMap: Record<string, string> = {
-              red: colors.error,
-              yellow: colors.warning,
-              blue: colors.primary,
-              gray: colors.textDim,
-            };
-            const sourceColorMap: Record<string, string> = {
-              magenta: "#d33682",
-              cyan: colors.info,
-              green: colors.success,
-              yellow: colors.warning,
-              gray: colors.textDim,
-              white: colors.text,
-            };
             const levelColor =
               levelColorMap[parts.levelColor] || colors.textDim;
             const sourceColor =
               sourceColorMap[parts.sourceColor] || colors.textDim;
 
             if (logsWrapMode) {
+              // For wrap mode, render with explicit width to prevent layout issues
               return (
-                <Box key={index}>
-                  <Text color={colors.textDim} dimColor>
-                    {parts.timestamp}
-                  </Text>
-                  <Text> </Text>
-                  <Text color={levelColor} bold={parts.levelColor === "red"}>
-                    {parts.level}
-                  </Text>
-                  <Text> </Text>
-                  <Text color={sourceColor}>[{parts.source}]</Text>
-                  <Text> </Text>
-                  {parts.shellName && (
+                <Box key={index} width={contentWidth} flexDirection="column">
+                  <Text wrap="wrap">
                     <Text color={colors.textDim} dimColor>
-                      ({parts.shellName}){" "}
+                      {parts.timestamp}
                     </Text>
-                  )}
-                  {cmd && <Text color={colors.info}>{cmd}</Text>}
-                  <Text>{fullMessage}</Text>
-                  {exitCode && (
-                    <Text
-                      color={
-                        parts.exitCode === 0 ? colors.success : colors.error
-                      }
-                    >
-                      {" "}
-                      {exitCode}
+                    <Text> </Text>
+                    <Text color={levelColor} bold={parts.levelColor === "red"}>
+                      {parts.level}
                     </Text>
-                  )}
+                    <Text> </Text>
+                    <Text color={sourceColor}>[{parts.source}]</Text>
+                    <Text> </Text>
+                    {parts.shellName && (
+                      <Text color={colors.textDim} dimColor>
+                        ({parts.shellName}){" "}
+                      </Text>
+                    )}
+                    {cmd && <Text color={colors.info}>{cmd}</Text>}
+                    <Text>{fullMessage}</Text>
+                    {exitCode && (
+                      <Text
+                        color={
+                          parts.exitCode === 0 ? colors.success : colors.error
+                        }
+                      >
+                        {" "}
+                        {exitCode}
+                      </Text>
+                    )}
+                  </Text>
                 </Box>
               );
             } else {
-              // Calculate available width for message truncation
-              const timestampLen = parts.timestamp.length;
-              const levelLen = parts.level.length;
-              const sourceLen = parts.source.length + 2; // brackets
-              const shellLen = parts.shellName ? parts.shellName.length + 3 : 0;
-              const cmdLen = cmd.length;
-              const exitLen = exitCode.length;
-              const spacesLen = 5; // spaces between elements
-              const metadataWidth =
-                timestampLen +
-                levelLen +
-                sourceLen +
-                shellLen +
-                cmdLen +
-                exitLen +
-                spacesLen;
-
-              const safeTerminalWidth = Math.max(80, terminalWidth);
-              const availableMessageWidth = Math.max(
-                20,
-                safeTerminalWidth - metadataWidth,
-              );
-              const truncatedMessage =
-                fullMessage.length > availableMessageWidth
-                  ? fullMessage.substring(
-                      0,
-                      Math.max(1, availableMessageWidth - 3),
-                    ) + "..."
-                  : fullMessage;
+              // Non-wrap mode: build the complete line and truncate to fit exactly
+              const shellPart = parts.shellName ? `(${parts.shellName}) ` : "";
+              const exitPart = exitCode ? ` ${exitCode}` : "";
+              
+              // Build the full line content
+              const prefix = `${parts.timestamp} ${parts.level} [${parts.source}] ${shellPart}${cmd}`;
+              const suffix = exitPart;
+              
+              // Calculate how much space is available for the message
+              const availableForMessage = contentWidth - prefix.length - suffix.length;
+              
+              let displayMessage: string;
+              if (availableForMessage <= 3) {
+                // No room for message
+                displayMessage = "";
+              } else if (fullMessage.length <= availableForMessage) {
+                displayMessage = fullMessage;
+              } else {
+                displayMessage = fullMessage.substring(0, availableForMessage - 3) + "...";
+              }
 
               return (
-                <Box key={index}>
-                  <Text color={colors.textDim} dimColor>
-                    {parts.timestamp}
-                  </Text>
-                  <Text> </Text>
-                  <Text color={levelColor} bold={parts.levelColor === "red"}>
-                    {parts.level}
-                  </Text>
-                  <Text> </Text>
-                  <Text color={sourceColor}>[{parts.source}]</Text>
-                  <Text> </Text>
-                  {parts.shellName && (
+                <Box key={index} width={contentWidth}>
+                  <Text wrap="truncate-end">
                     <Text color={colors.textDim} dimColor>
-                      ({parts.shellName}){" "}
+                      {parts.timestamp}
                     </Text>
-                  )}
-                  {cmd && <Text color={colors.info}>{cmd}</Text>}
-                  <Text>{truncatedMessage}</Text>
-                  {exitCode && (
-                    <Text
-                      color={
-                        parts.exitCode === 0 ? colors.success : colors.error
-                      }
-                    >
-                      {" "}
-                      {exitCode}
+                    <Text> </Text>
+                    <Text color={levelColor} bold={parts.levelColor === "red"}>
+                      {parts.level}
                     </Text>
-                  )}
+                    <Text> </Text>
+                    <Text color={sourceColor}>[{parts.source}]</Text>
+                    <Text> </Text>
+                    {parts.shellName && (
+                      <Text color={colors.textDim} dimColor>
+                        ({parts.shellName}){" "}
+                      </Text>
+                    )}
+                    {cmd && <Text color={colors.info}>{cmd}</Text>}
+                    <Text>{displayMessage}</Text>
+                    {exitCode && (
+                      <Text
+                        color={
+                          parts.exitCode === 0 ? colors.success : colors.error
+                        }
+                      >
+                        {" "}
+                        {exitCode}
+                      </Text>
+                    )}
+                  </Text>
                 </Box>
               );
             }
@@ -290,7 +377,7 @@ export const LogsViewer = ({
         </Text>
         <Text color={colors.textDim} dimColor>
           Viewing {actualScroll + 1}-
-          {Math.min(actualScroll + viewportHeight, logs.length)} of{" "}
+          {Math.min(actualScroll + visibleLogs.length, logs.length)} of{" "}
           {logs.length}
         </Text>
         {hasLess && <Text color={colors.primary}> {figures.arrowUp}</Text>}

@@ -125,6 +125,46 @@ export function ResourceDetailPage<T>({
 
   // Local state for resource data (updated by polling)
   const [currentResource, setCurrentResource] = React.useState(initialResource);
+  const [copyStatus, setCopyStatus] = React.useState<string | null>(null);
+
+  // Copy to clipboard helper
+  const copyToClipboard = React.useCallback(async (text: string) => {
+    const { spawn } = await import("child_process");
+    const platform = process.platform;
+
+    let command: string;
+    let args: string[];
+
+    if (platform === "darwin") {
+      command = "pbcopy";
+      args = [];
+    } else if (platform === "win32") {
+      command = "clip";
+      args = [];
+    } else {
+      command = "xclip";
+      args = ["-selection", "clipboard"];
+    }
+
+    const proc = spawn(command, args);
+    proc.stdin.write(text);
+    proc.stdin.end();
+
+    proc.on("exit", (code) => {
+      if (code === 0) {
+        setCopyStatus("Copied ID to clipboard!");
+        setTimeout(() => setCopyStatus(null), 2000);
+      } else {
+        setCopyStatus("Failed to copy");
+        setTimeout(() => setCopyStatus(null), 2000);
+      }
+    });
+
+    proc.on("error", () => {
+      setCopyStatus("Copy not supported");
+      setTimeout(() => setCopyStatus(null), 2000);
+    });
+  }, []);
 
   const [showDetailedInfo, setShowDetailedInfo] = React.useState(false);
   const [detailScroll, setDetailScroll] = React.useState(0);
@@ -183,6 +223,9 @@ export function ResourceDetailPage<T>({
     // Main view input handling
     if (input === "q" || key.escape) {
       onBack();
+    } else if (input === "c") {
+      // Copy resource ID to clipboard
+      copyToClipboard(getId(currentResource));
     } else if (input === "i" && buildDetailLines) {
       setShowDetailedInfo(true);
       setDetailScroll(0);
@@ -380,13 +423,22 @@ export function ResourceDetailPage<T>({
         </Box>
       )}
 
+      {copyStatus && (
+        <Box marginTop={1} paddingX={1}>
+          <Text color={colors.success} bold>
+            {copyStatus}
+          </Text>
+        </Box>
+      )}
+
       <NavigationTips
         showArrows
         tips={[
           { key: "Enter", label: "Execute" },
+          { key: "c", label: "Copy ID" },
           { key: "i", label: "Full Details", condition: !!buildDetailLines },
           { key: "o", label: "Browser", condition: !!getUrl },
-          { key: "q", label: "Back" },
+          { key: "q/Ctrl+C", label: "Back/Quit" },
         ]}
       />
     </>
