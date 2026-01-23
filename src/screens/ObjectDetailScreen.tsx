@@ -8,7 +8,10 @@ import TextInput from "ink-text-input";
 import figures from "figures";
 import { writeFile } from "fs/promises";
 import { useNavigation } from "../store/navigationStore.js";
-import { useObjectStore, type StorageObjectView } from "../store/objectStore.js";
+import {
+  useObjectStore,
+  type StorageObjectView,
+} from "../store/objectStore.js";
 import { getClient } from "../utils/client.js";
 import {
   ResourceDetailPage,

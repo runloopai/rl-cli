@@ -58,7 +58,11 @@ interface ObjectState {
   setIsPublicFilter: (isPublic?: boolean) => void;
   setSelectedIndex: (index: number) => void;
 
-  cachePageData: (page: number, data: StorageObjectView[], lastId: string) => void;
+  cachePageData: (
+    page: number,
+    data: StorageObjectView[],
+    lastId: string,
+  ) => void;
   getCachedPage: (page: number) => StorageObjectView[] | undefined;
   clearCache: () => void;
   clearAll: () => void;
