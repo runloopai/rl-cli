@@ -56,7 +56,7 @@ export async function createBlueprintFromDockerfile(
   options: FromDockerfileOptions,
 ) {
   const startTime = Date.now();
-  
+
   try {
     const client = getClient();
 
@@ -67,7 +67,9 @@ export async function createBlueprintFromDockerfile(
     try {
       const stats = await stat(buildContextPath);
       if (!stats.isDirectory()) {
-        outputError(`Build context path is not a directory: ${buildContextPath}`);
+        outputError(
+          `Build context path is not a directory: ${buildContextPath}`,
+        );
       }
     } catch {
       outputError(`Build context path does not exist: ${buildContextPath}`);
@@ -89,7 +91,10 @@ export async function createBlueprintFromDockerfile(
     }
 
     // Log initial info
-    logProgress(`\n📦 Creating blueprint "${options.name}" from Dockerfile`, options);
+    logProgress(
+      `\n📦 Creating blueprint "${options.name}" from Dockerfile`,
+      options,
+    );
     logProgress(`   Build context: ${buildContextPath}`, options);
     logProgress(`   Dockerfile: ${dockerfilePath}\n`, options);
 
@@ -131,9 +136,12 @@ export async function createBlueprintFromDockerfile(
     const ttlMs = options.ttl ? parseInt(options.ttl) * 1000 : 3600000;
 
     // Step 1: Upload build context
-    logProgress(`⏳ [1/3] Creating and uploading build context tarball...`, options);
+    logProgress(
+      `⏳ [1/3] Creating and uploading build context tarball...`,
+      options,
+    );
     const uploadStart = Date.now();
-    
+
     const storageObject = await StorageObject.uploadFromDir(
       client,
       buildContextPath,
@@ -142,36 +150,52 @@ export async function createBlueprintFromDockerfile(
         ttl_ms: ttlMs,
       },
     );
-    
-    logProgress(`✅ [1/3] Build context uploaded (${formatElapsed(uploadStart)})`, options);
+
+    logProgress(
+      `✅ [1/3] Build context uploaded (${formatElapsed(uploadStart)})`,
+      options,
+    );
     logProgress(`   Object ID: ${storageObject.id}`, options);
 
     // Step 2: Create the blueprint
     logProgress(`\n⏳ [2/3] Creating blueprint...`, options);
     const createStart = Date.now();
-    
+
     const createParams: BlueprintCreateParams = {
       name: options.name,
       dockerfile: dockerfileContents,
       system_setup_commands: options.systemSetupCommands,
-      launch_parameters: launchParameters as BlueprintCreateParams["launch_parameters"],
+      launch_parameters:
+        launchParameters as BlueprintCreateParams["launch_parameters"],
       build_context: {
         type: "object",
         object_id: storageObject.id,
       },
     };
-    
+
     const blueprintResponse = await client.blueprints.create(createParams);
-    
-    logProgress(`✅ [2/3] Blueprint created (${formatElapsed(createStart)})`, options);
+
+    logProgress(
+      `✅ [2/3] Blueprint created (${formatElapsed(createStart)})`,
+      options,
+    );
     logProgress(`   Blueprint ID: ${blueprintResponse.id}`, options);
 
     // Step 3: Wait for build to complete (unless --no-wait)
     if (options.noWait) {
       logProgress(`\n⏩ Skipping build wait (--no-wait specified)`, options);
-      logProgress(`   Check status with: rli blueprint get ${blueprintResponse.id}`, options);
-      logProgress(`   View logs with: rli blueprint logs ${blueprintResponse.id}\n`, options);
-      output(blueprintResponse, { format: options.output, defaultFormat: "json" });
+      logProgress(
+        `   Check status with: rli blueprint get ${blueprintResponse.id}`,
+        options,
+      );
+      logProgress(
+        `   View logs with: rli blueprint logs ${blueprintResponse.id}\n`,
+        options,
+      );
+      output(blueprintResponse, {
+        format: options.output,
+        defaultFormat: "json",
+      });
       return;
     }
 
@@ -179,12 +203,12 @@ export async function createBlueprintFromDockerfile(
     const buildStart = Date.now();
     let lastStatus = "";
     let pollCount = 0;
-    
+
     // Poll for completion
     while (true) {
       const blueprint = await client.blueprints.retrieve(blueprintResponse.id);
       const currentStatus = blueprint.status || "unknown";
-      
+
       // Log status changes
       if (currentStatus !== lastStatus) {
         const elapsed = formatElapsed(buildStart);
@@ -195,26 +219,35 @@ export async function createBlueprintFromDockerfile(
         const elapsed = formatElapsed(buildStart);
         logProgress(`   Still ${currentStatus}... (${elapsed})`, options);
       }
-      
+
       // Check for terminal states
       if (blueprint.status === "build_complete") {
-        logProgress(`\n✅ [3/3] Build completed successfully! (${formatElapsed(buildStart)})`, options);
+        logProgress(
+          `\n✅ [3/3] Build completed successfully! (${formatElapsed(buildStart)})`,
+          options,
+        );
         logProgress(`\n🎉 Blueprint "${options.name}" is ready!`, options);
         logProgress(`   Total time: ${formatElapsed(startTime)}`, options);
         logProgress(`   Blueprint ID: ${blueprint.id}\n`, options);
         output(blueprint, { format: options.output, defaultFormat: "json" });
         return;
       }
-      
+
       if (blueprint.status === "failed") {
-        logProgress(`\n❌ [3/3] Build failed (${formatElapsed(buildStart)})`, options);
+        logProgress(
+          `\n❌ [3/3] Build failed (${formatElapsed(buildStart)})`,
+          options,
+        );
         if (blueprint.failure_reason) {
           logProgress(`   Reason: ${blueprint.failure_reason}`, options);
         }
-        logProgress(`   View logs with: rli blueprint logs ${blueprint.id}\n`, options);
+        logProgress(
+          `   View logs with: rli blueprint logs ${blueprint.id}\n`,
+          options,
+        );
         outputError(`Blueprint build failed. Status: ${blueprint.status}`);
       }
-      
+
       // Wait before next poll (3 seconds)
       await new Promise((resolve) => setTimeout(resolve, 3000));
       pollCount++;
