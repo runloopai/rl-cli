@@ -22,7 +22,9 @@ interface ViewportDimensions {
 /**
  * Get safe terminal dimensions with bounds checking
  */
-function getSafeDimensions(stdout: NodeJS.WriteStream | undefined): {
+function getSafeDimensions(
+  stdout: { columns?: number; rows?: number } | undefined,
+): {
   width: number;
   height: number;
 } {
