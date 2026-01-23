@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.4.0](https://github.com/runloopai/rl-cli/compare/v1.3.0...v1.4.0) (2026-01-23)
+
+
+### Features
+
+* **blueprint:** from dockerfile support for rli ([#59](https://github.com/runloopai/rl-cli/issues/59)) ([b7eef5d](https://github.com/runloopai/rl-cli/commit/b7eef5db8ab849933b08776d5453f96da2c558dc))
+
+
+### Bug Fixes
+
+* **blueprint:** showing blueprint failure reason in detail page ([#55](https://github.com/runloopai/rl-cli/issues/55)) ([0352649](https://github.com/runloopai/rl-cli/commit/0352649ade4bcf8298195286532fffca8962cb3a))
+* create screens now allow enter to trigger the create ([#57](https://github.com/runloopai/rl-cli/issues/57)) ([f2a872e](https://github.com/runloopai/rl-cli/commit/f2a872eee5fcac55d86bba262ee8246135ced9e9))
+* resovled red flash bug during navigation ([#58](https://github.com/runloopai/rl-cli/issues/58)) ([9e003f9](https://github.com/runloopai/rl-cli/commit/9e003f9f0b116307288fa933a12a31d4e29cd682))
+
 ## [1.3.0](https://github.com/runloopai/rl-cli/compare/v1.2.0...v1.3.0) (2026-01-23)
 
 
