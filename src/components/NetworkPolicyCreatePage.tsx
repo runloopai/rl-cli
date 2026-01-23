@@ -3,7 +3,6 @@
  */
 import React from "react";
 import { Box, Text, useInput } from "ink";
-import figures from "figures";
 import type { NetworkPolicyView } from "@runloop/api-client/resources/network-policies";
 import { getClient } from "../utils/client.js";
 import { SpinnerComponent } from "./Spinner.js";
