@@ -152,7 +152,15 @@ export function outputError(message: string, error?: Error | unknown): never {
   const errorMessage =
     error instanceof Error ? error.message : String(error || message);
   console.error(`Error: ${message}`);
-  if (error && errorMessage !== message) {
+  // Only print the error message if it adds new information
+  // Skip if: same as message, message contains it, or it contains the message
+  const messageLower = message.toLowerCase();
+  const errorLower = errorMessage.toLowerCase();
+  const isRedundant =
+    errorMessage === message ||
+    messageLower.includes(errorLower) ||
+    errorLower.includes(messageLower);
+  if (error && !isRedundant) {
     console.error(`  ${errorMessage}`);
   }
   processUtils.exit(1);
