@@ -1,6 +1,5 @@
 import React from "react";
 import { Box, Text, useInput, useApp } from "ink";
-import TextInput from "ink-text-input";
 import figures from "figures";
 import type { DevboxesCursorIDPage } from "@runloop/api-client/pagination";
 import { getClient } from "../../utils/client.js";
@@ -12,6 +11,7 @@ import { NavigationTips } from "../../components/NavigationTips.js";
 import type { Column } from "../../components/Table.js";
 import { Table, createTextColumn } from "../../components/Table.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
+import { SearchBar } from "../../components/SearchBar.js";
 import { output, outputError } from "../../utils/output.js";
 import { DevboxDetailPage } from "../../components/DevboxDetailPage.js";
 import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
@@ -21,6 +21,7 @@ import { getDevboxUrl } from "../../utils/url.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
+import { useListSearch } from "../../hooks/useListSearch.js";
 import { colors } from "../../utils/theme.js";
 import { useDevboxStore, type Devbox } from "../../store/devboxStore.js";
 
@@ -50,9 +51,12 @@ const ListDevboxesUI = ({
   const [showActions, setShowActions] = React.useState(false);
   const [showPopup, setShowPopup] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(0);
-  const [searchMode, setSearchMode] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState("");
-  const [submittedSearchQuery, setSubmittedSearchQuery] = React.useState("");
+
+  // Search state using shared hook
+  const search = useListSearch({
+    onSearchSubmit: () => setSelectedIndex(0),
+    onSearchClear: () => setSelectedIndex(0),
+  });
 
   // Get devbox store setter to sync data for detail screen
   const setDevboxesInStore = useDevboxStore((state) => state.setDevboxes);
@@ -65,7 +69,7 @@ const ListDevboxesUI = ({
   // - Help bar (marginTop + content): 2 lines
   // - Safety buffer for edge cases: 1 line
   // Total: 13 lines base + 2 if searching
-  const overhead = 13 + (searchMode || submittedSearchQuery ? 2 : 0);
+  const overhead = 13 + search.getSearchOverhead();
   const { viewportHeight, terminalWidth } = useViewportHeight({
     overhead,
     minHeight: 5,
@@ -89,8 +93,8 @@ const ListDevboxesUI = ({
       if (status) {
         queryParams.status = status;
       }
-      if (submittedSearchQuery) {
-        queryParams.search = submittedSearchQuery;
+      if (search.submittedSearchQuery) {
+        queryParams.search = search.submittedSearchQuery;
       }
 
       // Fetch ONE page only
@@ -113,7 +117,7 @@ const ListDevboxesUI = ({
 
       return result;
     },
-    [status, submittedSearchQuery],
+    [status, search.submittedSearchQuery],
   );
 
   // Use the shared pagination hook
@@ -134,8 +138,12 @@ const ListDevboxesUI = ({
     getItemId: (devbox: Devbox) => devbox.id,
     pollInterval: 2000,
     pollingEnabled:
-      !showDetails && !showCreate && !showActions && !showPopup && !searchMode,
-    deps: [status, submittedSearchQuery, PAGE_SIZE],
+      !showDetails &&
+      !showCreate &&
+      !showActions &&
+      !showPopup &&
+      !search.searchMode,
+    deps: [status, search.submittedSearchQuery, PAGE_SIZE],
   });
 
   // Sync devboxes to store for detail screen
@@ -443,10 +451,9 @@ const ListDevboxesUI = ({
     const pageDevboxes = devboxes.length;
 
     // Skip input handling when in search mode - let TextInput handle it
-    if (searchMode) {
+    if (search.searchMode) {
       if (key.escape) {
-        setSearchMode(false);
-        setSearchQuery("");
+        search.cancelSearch();
       }
       return;
     }
@@ -542,20 +549,17 @@ const ListDevboxesUI = ({
       };
       openBrowser();
     } else if (input === "/") {
-      setSearchMode(true);
+      search.enterSearchMode();
     } else if (key.escape) {
-      if (submittedSearchQuery) {
-        setSubmittedSearchQuery("");
-        setSearchQuery("");
-        setSelectedIndex(0);
+      if (search.handleEscape()) {
+        return;
+      }
+      if (onBack) {
+        onBack();
+      } else if (onExit) {
+        onExit();
       } else {
-        if (onBack) {
-          onBack();
-        } else if (onExit) {
-          onExit();
-        } else {
-          inkExit();
-        }
+        inkExit();
       }
     }
   });
@@ -634,39 +638,15 @@ const ListDevboxesUI = ({
       <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
 
       {/* Search bar */}
-      {searchMode && (
-        <Box marginBottom={1}>
-          <Text color={colors.primary}>{figures.pointerSmall} Search: </Text>
-          <TextInput
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Type to search..."
-            onSubmit={() => {
-              setSearchMode(false);
-              setSubmittedSearchQuery(searchQuery);
-              setSelectedIndex(0);
-            }}
-          />
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            [Enter to search, Esc to cancel]
-          </Text>
-        </Box>
-      )}
-      {!searchMode && submittedSearchQuery && (
-        <Box marginBottom={1}>
-          <Text color={colors.primary}>{figures.info} Searching for: </Text>
-          <Text color={colors.warning} bold>
-            {submittedSearchQuery.length > 50
-              ? submittedSearchQuery.substring(0, 50) + "..."
-              : submittedSearchQuery}
-          </Text>
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            ({totalCount} results) [/ to edit, Esc to clear]
-          </Text>
-        </Box>
-      )}
+      <SearchBar
+        searchMode={search.searchMode}
+        searchQuery={search.searchQuery}
+        submittedSearchQuery={search.submittedSearchQuery}
+        resultCount={totalCount}
+        onSearchChange={search.setSearchQuery}
+        onSearchSubmit={search.submitSearch}
+        placeholder="Search devboxes..."
+      />
 
       {/* Table - hide when popup is shown */}
       {!showPopup && (
@@ -718,14 +698,14 @@ const ListDevboxesUI = ({
           <Text color={colors.textDim} dimColor>
             Showing {startIndex + 1}-{endIndex} of {totalCount}
           </Text>
-          {submittedSearchQuery && (
+          {search.submittedSearchQuery && (
             <>
               <Text color={colors.textDim} dimColor>
                 {" "}
                 •{" "}
               </Text>
               <Text color={colors.warning}>
-                Filtered: &quot;{submittedSearchQuery}&quot;
+                Filtered: &quot;{search.submittedSearchQuery}&quot;
               </Text>
             </>
           )}

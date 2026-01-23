@@ -14,6 +14,7 @@ import { createTextColumn, Table } from "../../components/Table.js";
 import { Operation } from "../../components/OperationsMenu.js";
 import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
+import { SearchBar } from "../../components/SearchBar.js";
 import { output, outputError } from "../../utils/output.js";
 import { getBlueprintUrl } from "../../utils/url.js";
 import { colors } from "../../utils/theme.js";
@@ -22,6 +23,7 @@ import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
+import { useListSearch } from "../../hooks/useListSearch.js";
 import { useNavigation } from "../../store/navigationStore.js";
 import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
 
@@ -73,8 +75,14 @@ const ListBlueprintsUI = ({
   const [showPopup, setShowPopup] = React.useState(false);
   const { navigate } = useNavigation();
 
+  // Search state
+  const search = useListSearch({
+    onSearchSubmit: () => setSelectedIndex(0),
+    onSearchClear: () => setSelectedIndex(0),
+  });
+
   // Calculate overhead for viewport height
-  const overhead = 13;
+  const overhead = 13 + search.getSearchOverhead();
   const { viewportHeight, terminalWidth } = useViewportHeight({
     overhead,
     minHeight: 5,
@@ -111,6 +119,9 @@ const ListBlueprintsUI = ({
       if (params.startingAt) {
         queryParams.starting_after = params.startingAt;
       }
+      if (search.submittedSearchQuery) {
+        queryParams.search = search.submittedSearchQuery;
+      }
 
       // Fetch ONE page only
       const page = (await client.blueprints.list(
@@ -137,7 +148,7 @@ const ListBlueprintsUI = ({
 
       return result;
     },
-    [],
+    [search.submittedSearchQuery],
   );
 
   // Use the shared pagination hook
@@ -161,8 +172,9 @@ const ListBlueprintsUI = ({
       !showPopup &&
       !showCreateDevbox &&
       !executingOperation &&
-      !showDeleteConfirm,
-    deps: [PAGE_SIZE],
+      !showDeleteConfirm &&
+      !search.searchMode,
+    deps: [PAGE_SIZE, search.submittedSearchQuery],
   });
 
   // Memoize columns array
@@ -416,6 +428,14 @@ const ListBlueprintsUI = ({
 
   // Handle input for all views
   useInput((input, key) => {
+    // Handle search mode input
+    if (search.searchMode) {
+      if (key.escape) {
+        search.cancelSearch();
+      }
+      return;
+    }
+
     // Handle operation input mode
     if (executingOperation && !operationResult && !operationError) {
       // Allow escape/q to cancel any operation, even during loading
@@ -579,7 +599,12 @@ const ListBlueprintsUI = ({
         exec(openCommand);
       };
       openBrowser();
+    } else if (input === "/") {
+      search.enterSearchMode();
     } else if (key.escape) {
+      if (search.handleEscape()) {
+        return;
+      }
       if (onBack) {
         onBack();
       } else if (onExit) {
@@ -764,6 +789,17 @@ const ListBlueprintsUI = ({
     <>
       <Breadcrumb items={[{ label: "Blueprints", active: true }]} />
 
+      {/* Search bar */}
+      <SearchBar
+        searchMode={search.searchMode}
+        searchQuery={search.searchQuery}
+        submittedSearchQuery={search.submittedSearchQuery}
+        resultCount={totalCount}
+        onSearchChange={search.setSearchQuery}
+        onSearchSubmit={search.submitSearch}
+        placeholder="Search blueprints..."
+      />
+
       {/* Table */}
       {!showPopup && (
         <Table
@@ -814,6 +850,17 @@ const ListBlueprintsUI = ({
           <Text color={colors.textDim} dimColor>
             Showing {startIndex + 1}-{endIndex} of {totalCount}
           </Text>
+          {search.submittedSearchQuery && (
+            <>
+              <Text color={colors.textDim} dimColor>
+                {" "}
+                •{" "}
+              </Text>
+              <Text color={colors.warning}>
+                Filtered: &quot;{search.submittedSearchQuery}&quot;
+              </Text>
+            </>
+          )}
         </Box>
       )}
 
@@ -856,6 +903,7 @@ const ListBlueprintsUI = ({
           { key: "Enter", label: "Details" },
           { key: "a", label: "Actions" },
           { key: "o", label: "Browser" },
+          { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },
         ]}
       />
