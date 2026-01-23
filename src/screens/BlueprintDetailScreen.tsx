@@ -69,8 +69,8 @@ export function BlueprintDetailScreen({
   // Use fetched blueprint for full details, fall back to store for basic display
   const blueprint = fetchedBlueprint || blueprintFromStore;
 
-  // Show loading state while fetching
-  if (loading && !blueprint) {
+  // Show loading state while fetching or before fetch starts
+  if (!blueprint && blueprintId && !error) {
     return (
       <>
         <Breadcrumb

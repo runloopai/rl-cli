@@ -86,8 +86,8 @@ export function NetworkPolicyDetailScreen({
   // Use fetched policy for full details, fall back to store for basic display
   const policy = fetchedPolicy || policyFromStore;
 
-  // Show loading state while fetching
-  if (loading && !policy) {
+  // Show loading state while fetching or before fetch starts
+  if (!policy && networkPolicyId && !error) {
     return (
       <>
         <Breadcrumb

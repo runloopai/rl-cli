@@ -50,8 +50,8 @@ export function DevboxDetailScreen({ devboxId }: DevboxDetailScreenProps) {
   // Use devbox from store or fetched devbox
   const devbox = devboxFromStore || fetchedDevbox;
 
-  // Show loading state while fetching
-  if (loading) {
+  // Show loading state while fetching or before fetch starts
+  if (!devbox && devboxId && !error) {
     return (
       <>
         <Breadcrumb
@@ -74,8 +74,8 @@ export function DevboxDetailScreen({ devboxId }: DevboxDetailScreenProps) {
     );
   }
 
-  // Show error if no devbox found and not loading
-  if (!devbox && !loading) {
+  // Show error if no devbox found
+  if (!devbox) {
     return (
       <>
         <Breadcrumb

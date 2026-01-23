@@ -69,8 +69,8 @@ export function SnapshotDetailScreen({
   // Use fetched snapshot for full details, fall back to store for basic display
   const snapshot = fetchedSnapshot || snapshotFromStore;
 
-  // Show loading state while fetching
-  if (loading && !snapshot) {
+  // Show loading state while fetching or before fetch starts
+  if (!snapshot && snapshotId && !error) {
     return (
       <>
         <Breadcrumb

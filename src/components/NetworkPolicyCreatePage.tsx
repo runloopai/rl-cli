@@ -136,6 +136,7 @@ export const NetworkPolicyCreatePage = ({
     currentField === "allow_devbox_to_devbox",
   );
 
+  // Main form input handler - active when not in hostnames expanded mode
   useInput(
     (input, key) => {
       // Handle result screen
@@ -143,8 +144,9 @@ export const NetworkPolicyCreatePage = ({
         if (input === "q" || key.escape || key.return) {
           if (onCreate) {
             onCreate(result);
+          } else {
+            onBack();
           }
-          onBack();
         }
         return;
       }
