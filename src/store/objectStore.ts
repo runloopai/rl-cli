@@ -4,9 +4,9 @@
 import { create } from "zustand";
 import type { ObjectView } from "@runloop/api-client/resources/objects";
 
-// Extended type with UI-specific fields
-// The service transforms API responses to add computed/fetched fields
-export interface StorageObject extends ObjectView {
+// Re-export ObjectView as StorageObjectView for UI use
+// Includes optional fields that may be present in API responses
+export interface StorageObjectView extends ObjectView {
   // Presigned download URL (fetched separately via download endpoint)
   download_url?: string;
   // User-defined metadata
@@ -17,7 +17,7 @@ export interface StorageObject extends ObjectView {
 
 interface ObjectState {
   // List data
-  objects: StorageObject[];
+  objects: StorageObjectView[];
   loading: boolean;
   initialLoading: boolean;
   error: Error | null;
@@ -29,7 +29,7 @@ interface ObjectState {
   hasMore: boolean;
 
   // Caching
-  pageCache: Map<number, StorageObject[]>;
+  pageCache: Map<number, StorageObjectView[]>;
   lastIdCache: Map<number, string>;
 
   // Filters
@@ -42,7 +42,7 @@ interface ObjectState {
   selectedIndex: number;
 
   // Actions
-  setObjects: (objects: StorageObject[]) => void;
+  setObjects: (objects: StorageObjectView[]) => void;
   setLoading: (loading: boolean) => void;
   setInitialLoading: (loading: boolean) => void;
   setError: (error: Error | null) => void;
@@ -58,12 +58,12 @@ interface ObjectState {
   setIsPublicFilter: (isPublic?: boolean) => void;
   setSelectedIndex: (index: number) => void;
 
-  cachePageData: (page: number, data: StorageObject[], lastId: string) => void;
-  getCachedPage: (page: number) => StorageObject[] | undefined;
+  cachePageData: (page: number, data: StorageObjectView[], lastId: string) => void;
+  getCachedPage: (page: number) => StorageObjectView[] | undefined;
   clearCache: () => void;
   clearAll: () => void;
 
-  getSelectedObject: () => StorageObject | undefined;
+  getSelectedObject: () => StorageObjectView | undefined;
 }
 
 const MAX_CACHE_SIZE = 10;
@@ -121,7 +121,7 @@ export const useObjectStore = create<ObjectState>((set, get) => ({
 
     // Deep copy all fields to avoid SDK references
     const plainData = data.map((d) => {
-      return JSON.parse(JSON.stringify(d)) as StorageObject;
+      return JSON.parse(JSON.stringify(d)) as StorageObjectView;
     });
 
     pageCache.set(page, plainData);

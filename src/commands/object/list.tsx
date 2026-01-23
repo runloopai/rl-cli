@@ -91,8 +91,8 @@ const ListObjectsUI = ({
   const timeWidth = 15;
   const ttlWidth = 14;
   const showTypeColumn = terminalWidth >= 100;
-  const showSizeColumn = terminalWidth >= 80;
-  const showTtlColumn = terminalWidth >= 110;
+  const showSizeColumn = terminalWidth >= 90;
+  const showTtlColumn = terminalWidth >= 80;
 
   // Name width uses remaining space after fixed columns
   const baseWidth = fixedWidth + idWidth + stateWidth + timeWidth;
@@ -152,6 +152,7 @@ const ListObjectsUI = ({
             state: obj.state,
             is_public: obj.is_public,
             create_time_ms: obj.create_time_ms,
+            delete_after_time_ms: obj.delete_after_time_ms,
           });
         });
       }

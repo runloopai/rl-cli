@@ -8,7 +8,7 @@ import TextInput from "ink-text-input";
 import figures from "figures";
 import { writeFile } from "fs/promises";
 import { useNavigation } from "../store/navigationStore.js";
-import { useObjectStore, type StorageObject } from "../store/objectStore.js";
+import { useObjectStore, type StorageObjectView } from "../store/objectStore.js";
 import { getClient } from "../utils/client.js";
 import {
   ResourceDetailPage,
@@ -40,7 +40,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
   const [fetchedObject, setFetchedObject] =
-    React.useState<StorageObject | null>(null);
+    React.useState<StorageObjectView | null>(null);
   const [deleting, setDeleting] = React.useState(false);
   const [showDownloadPrompt, setShowDownloadPrompt] = React.useState(false);
   const [downloadPath, setDownloadPath] = React.useState("");
@@ -56,7 +56,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
 
   // Polling function - must be defined before any early returns (Rules of Hooks)
   const pollObject = React.useCallback(async () => {
-    if (!objectId) return null as unknown as StorageObject;
+    if (!objectId) return null as unknown as StorageObjectView;
     return getObject(objectId);
   }, [objectId]);
 
@@ -322,7 +322,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   // Handle operation selection
   const handleOperation = async (
     operation: string,
-    resource: StorageObject,
+    resource: StorageObjectView,
   ) => {
     switch (operation) {
       case "download":
@@ -353,7 +353,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   };
 
   // Build detailed info lines for full details view
-  const buildDetailLines = (obj: StorageObject): React.ReactElement[] => {
+  const buildDetailLines = (obj: StorageObjectView): React.ReactElement[] => {
     const lines: React.ReactElement[] = [];
 
     // Core Information

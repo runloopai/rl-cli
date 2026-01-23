@@ -2,7 +2,7 @@
  * Object Service - Handles all storage object API calls
  */
 import { getClient } from "../utils/client.js";
-import type { StorageObject } from "../store/objectStore.js";
+import type { StorageObjectView } from "../store/objectStore.js";
 
 export interface ListObjectsOptions {
   limit: number;
@@ -14,7 +14,7 @@ export interface ListObjectsOptions {
 }
 
 export interface ListObjectsResult {
-  objects: StorageObject[];
+  objects: StorageObjectView[];
   totalCount: number;
   hasMore: boolean;
 }
@@ -49,7 +49,7 @@ export async function listObjects(
 
   const result = await client.objects.list(queryParams);
 
-  const objects: StorageObject[] = [];
+  const objects: StorageObjectView[] = [];
 
   if (result.objects && Array.isArray(result.objects)) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -91,7 +91,7 @@ export async function listObjects(
 /**
  * Get full object details by ID
  */
-export async function getObject(id: string): Promise<StorageObject> {
+export async function getObject(id: string): Promise<StorageObjectView> {
   const client = getClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const obj: any = await client.objects.retrieve(id);

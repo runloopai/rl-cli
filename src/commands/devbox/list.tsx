@@ -154,9 +154,11 @@ const ListDevboxesUI = ({
   // ID is always full width (25 chars for dbx_31CYd5LLFbBxst8mqnUjO format)
   const idWidth = 26;
 
-  // Responsive layout based on terminal width (simplified like blueprint list)
-  const showCapabilities = terminalWidth >= 140;
-  const showSource = terminalWidth >= 120;
+  // Responsive layout - hide less important columns on smaller screens
+  // Priority (most to least important): ID, Name, Status, Created, Source, Capabilities
+  const showCapabilities = terminalWidth >= 160;
+  const showSource = terminalWidth >= 135;
+  const showCreated = terminalWidth >= 100;
 
   // CRITICAL: Absolute maximum column widths to prevent Yoga crashes
   const ABSOLUTE_MAX_NAME_WIDTH = 80;
@@ -164,7 +166,12 @@ const ListDevboxesUI = ({
   // Name width is flexible and uses remaining space
   // Only subtract widths of columns that are actually shown
   const baseWidth =
-    fixedWidth + statusIconWidth + idWidth + statusTextWidth + timeWidth + 6; // border + padding
+    fixedWidth +
+    statusIconWidth +
+    idWidth +
+    statusTextWidth +
+    (showCreated ? timeWidth : 0) +
+    6; // border + padding
   const optionalWidth =
     (showSource ? sourceWidth : 0) + (showCapabilities ? capabilitiesWidth : 0);
   const remainingWidth = terminalWidth - baseWidth - optionalWidth;
@@ -200,21 +207,6 @@ const ListDevboxesUI = ({
         },
       },
       createTextColumn(
-        "name",
-        "Name",
-        (devbox: Devbox) => {
-          const name = String(devbox?.name || "");
-          const safeMax = Math.min(nameWidth || 15, ABSOLUTE_MAX_NAME);
-          return name.length > safeMax
-            ? name.substring(0, Math.max(1, safeMax - 3)) + "..."
-            : name;
-        },
-        {
-          width: Math.min(nameWidth || 15, ABSOLUTE_MAX_NAME),
-          dimColor: false,
-        },
-      ),
-      createTextColumn(
         "id",
         "ID",
         (devbox: Devbox) => {
@@ -229,6 +221,21 @@ const ListDevboxesUI = ({
           color: colors.idColor,
           dimColor: false,
           bold: false,
+        },
+      ),
+      createTextColumn(
+        "name",
+        "Name",
+        (devbox: Devbox) => {
+          const name = String(devbox?.name || "");
+          const safeMax = Math.min(nameWidth || 15, ABSOLUTE_MAX_NAME);
+          return name.length > safeMax
+            ? name.substring(0, Math.max(1, safeMax - 3)) + "..."
+            : name;
+        },
+        {
+          width: Math.min(nameWidth || 15, ABSOLUTE_MAX_NAME),
+          dimColor: false,
         },
       ),
       // Status text column with color matching the icon
@@ -266,6 +273,7 @@ const ListDevboxesUI = ({
           width: timeWidth,
           color: colors.textDim,
           dimColor: false,
+          visible: showCreated,
         },
       ),
     ];
@@ -275,15 +283,7 @@ const ListDevboxesUI = ({
         createTextColumn(
           "source",
           "Source",
-          (devbox: Devbox) => {
-            if (devbox?.blueprint_id) {
-              const bpId = String(devbox.blueprint_id);
-              const truncated = bpId.slice(0, 16);
-              const text = `${truncated}`;
-              return text.length > 30 ? text.substring(0, 27) + "..." : text;
-            }
-            return "-";
-          },
+          (devbox: Devbox) => devbox?.blueprint_id || "-",
           {
             width: sourceWidth,
             color: colors.textDim,
@@ -319,6 +319,7 @@ const ListDevboxesUI = ({
     idWidth,
     statusTextWidth,
     timeWidth,
+    showCreated,
     showSource,
     sourceWidth,
     showCapabilities,
