@@ -1,8 +1,9 @@
 /**
- * NetworkPolicyCreatePage - Form for creating a new network policy
+ * NetworkPolicyCreatePage - Form for creating or editing a network policy
  */
 import React from "react";
 import { Box, Text, useInput } from "ink";
+import figures from "figures";
 import type { NetworkPolicyView } from "@runloop/api-client/resources/network-policies";
 import { getClient } from "../utils/client.js";
 import { SpinnerComponent } from "./Spinner.js";
@@ -19,14 +20,17 @@ import {
 } from "./form/index.js";
 import { colors } from "../utils/theme.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
+import type { NetworkPolicy } from "../store/networkPolicyStore.js";
 
 interface NetworkPolicyCreatePageProps {
   onBack: () => void;
   onCreate?: (policy: NetworkPolicyView) => void;
+  /** If provided, the form will be in edit mode with pre-filled values */
+  initialPolicy?: NetworkPolicy;
 }
 
 type FormField =
-  | "create"
+  | "submit"
   | "name"
   | "description"
   | "allow_all"
@@ -46,17 +50,32 @@ const BOOLEAN_OPTIONS = ["Yes", "No"] as const;
 export const NetworkPolicyCreatePage = ({
   onBack,
   onCreate,
+  initialPolicy,
 }: NetworkPolicyCreatePageProps) => {
-  const [currentField, setCurrentField] = React.useState<FormField>("create");
-  const [formData, setFormData] = React.useState<FormData>({
-    name: "",
-    description: "",
-    allow_all: "No",
-    allow_devbox_to_devbox: "No",
-    allowed_hostnames: [],
+  const isEditMode = !!initialPolicy;
+  const [currentField, setCurrentField] = React.useState<FormField>("submit");
+  const [formData, setFormData] = React.useState<FormData>(() => {
+    if (initialPolicy) {
+      return {
+        name: initialPolicy.name || "",
+        description: initialPolicy.description || "",
+        allow_all: initialPolicy.egress.allow_all ? "Yes" : "No",
+        allow_devbox_to_devbox: initialPolicy.egress.allow_devbox_to_devbox
+          ? "Yes"
+          : "No",
+        allowed_hostnames: initialPolicy.egress.allowed_hostnames || [],
+      };
+    }
+    return {
+      name: "",
+      description: "",
+      allow_all: "No",
+      allow_devbox_to_devbox: "No",
+      allowed_hostnames: [],
+    };
   });
   const [hostnamesExpanded, setHostnamesExpanded] = React.useState(false);
-  const [creating, setCreating] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
   const [result, setResult] = React.useState<NetworkPolicyView | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
   const [validationError, setValidationError] = React.useState<string | null>(
@@ -68,7 +87,11 @@ export const NetworkPolicyCreatePage = ({
     label: string;
     type: "text" | "select" | "list" | "action";
   }> = [
-    { key: "create", label: "Create Network Policy", type: "action" },
+    {
+      key: "submit",
+      label: isEditMode ? "Update Network Policy" : "Create Network Policy",
+      type: "action",
+    },
     { key: "name", label: "Name (required)", type: "text" },
     { key: "description", label: "Description", type: "text" },
     { key: "allow_all", label: "Allow All Egress", type: "select" },
@@ -137,8 +160,8 @@ export const NetworkPolicyCreatePage = ({
       return;
     }
 
-    // Handle creating state
-    if (creating) {
+    // Handle submitting state
+    if (submitting) {
       return;
     }
 
@@ -155,13 +178,13 @@ export const NetworkPolicyCreatePage = ({
 
     // Submit form with Ctrl+S
     if (input === "s" && key.ctrl) {
-      handleCreate();
+      handleSubmit();
       return;
     }
 
-    // Handle Enter on create field
-    if (currentField === "create" && key.return) {
-      handleCreate();
+    // Handle Enter on submit field
+    if (currentField === "submit" && key.return) {
+      handleSubmit();
       return;
     }
 
@@ -190,7 +213,7 @@ export const NetworkPolicyCreatePage = ({
     }
   });
 
-  const handleCreate = async () => {
+  const handleSubmit = async () => {
     // Validate required fields
     if (!formData.name.trim()) {
       setValidationError("Name is required");
@@ -198,43 +221,65 @@ export const NetworkPolicyCreatePage = ({
       return;
     }
 
-    setCreating(true);
+    setSubmitting(true);
     setError(null);
     setValidationError(null);
 
     try {
       const client = getClient();
 
-      const createParams: {
-        name: string;
+      const params: {
+        name?: string;
         description?: string;
         allow_all?: boolean;
         allow_devbox_to_devbox?: boolean;
         allowed_hostnames?: string[];
-      } = {
-        name: formData.name.trim(),
-      };
+      } = {};
 
-      if (formData.description.trim()) {
-        createParams.description = formData.description.trim();
+      // For create, name is always required
+      // For update, only include if changed
+      if (!isEditMode || formData.name.trim() !== initialPolicy?.name) {
+        params.name = formData.name.trim();
       }
 
-      createParams.allow_all = formData.allow_all === "Yes";
-      createParams.allow_devbox_to_devbox =
+      // Include description if set (or if clearing in edit mode)
+      if (formData.description.trim()) {
+        params.description = formData.description.trim();
+      } else if (isEditMode && initialPolicy?.description) {
+        // Clear description if it was set before but now empty
+        params.description = "";
+      }
+
+      params.allow_all = formData.allow_all === "Yes";
+      params.allow_devbox_to_devbox =
         formData.allow_devbox_to_devbox === "Yes";
 
-      if (formData.allowed_hostnames.length > 0) {
-        createParams.allowed_hostnames = formData.allowed_hostnames;
-      }
+      // For allowed_hostnames, always send the current list
+      // (empty array means no hostnames allowed)
+      params.allowed_hostnames = formData.allowed_hostnames;
 
-      const policy = await client.networkPolicies.create(createParams);
+      let policy: NetworkPolicyView;
+      if (isEditMode && initialPolicy) {
+        policy = await client.networkPolicies.update(initialPolicy.id, params);
+      } else {
+        // For create, name is required
+        policy = await client.networkPolicies.create({
+          ...params,
+          name: formData.name.trim(),
+        });
+      }
       setResult(policy);
     } catch (err) {
       setError(err as Error);
     } finally {
-      setCreating(false);
+      setSubmitting(false);
     }
   };
+
+  const breadcrumbLabel = isEditMode
+    ? initialPolicy?.name || "Edit"
+    : "Create";
+  const actionLabel = isEditMode ? "Edit" : "Create";
 
   // Result screen
   if (result) {
@@ -243,10 +288,12 @@ export const NetworkPolicyCreatePage = ({
         <Breadcrumb
           items={[
             { label: "Network Policies" },
-            { label: "Create", active: true },
+            { label: breadcrumbLabel, active: true },
           ]}
         />
-        <SuccessMessage message="Network policy created successfully!" />
+        <SuccessMessage
+          message={`Network policy ${isEditMode ? "updated" : "created"} successfully!`}
+        />
         <Box marginLeft={2} flexDirection="column" marginTop={1}>
           <Box>
             <Text color={colors.textDim} dimColor>
@@ -265,8 +312,21 @@ export const NetworkPolicyCreatePage = ({
             </Text>
           </Box>
         </Box>
+        {isEditMode && (
+          <Box marginTop={1} marginLeft={2}>
+            <Text color={colors.warning}>
+              {figures.info} Changes are eventually consistent and may take a
+              few moments to propagate.
+            </Text>
+          </Box>
+        )}
         <NavigationTips
-          tips={[{ key: "Enter/q/esc", label: "Return to list" }]}
+          tips={[
+            {
+              key: "Enter/q/esc",
+              label: isEditMode ? "Return to details" : "Return to list",
+            },
+          ]}
         />
       </>
     );
@@ -279,10 +339,13 @@ export const NetworkPolicyCreatePage = ({
         <Breadcrumb
           items={[
             { label: "Network Policies" },
-            { label: "Create", active: true },
+            { label: breadcrumbLabel, active: true },
           ]}
         />
-        <ErrorMessage message="Failed to create network policy" error={error} />
+        <ErrorMessage
+          message={`Failed to ${isEditMode ? "update" : "create"} network policy`}
+          error={error}
+        />
         <NavigationTips
           tips={[
             { key: "Enter/r", label: "Retry" },
@@ -293,17 +356,19 @@ export const NetworkPolicyCreatePage = ({
     );
   }
 
-  // Creating screen
-  if (creating) {
+  // Submitting screen
+  if (submitting) {
     return (
       <>
         <Breadcrumb
           items={[
             { label: "Network Policies" },
-            { label: "Create", active: true },
+            { label: breadcrumbLabel, active: true },
           ]}
         />
-        <SpinnerComponent message="Creating network policy..." />
+        <SpinnerComponent
+          message={`${isEditMode ? "Updating" : "Creating"} network policy...`}
+        />
       </>
     );
   }
@@ -314,9 +379,25 @@ export const NetworkPolicyCreatePage = ({
       <Breadcrumb
         items={[
           { label: "Network Policies" },
-          { label: "Create", active: true },
+          { label: breadcrumbLabel, active: true },
         ]}
       />
+
+      {isEditMode && (
+        <Box
+          borderStyle="round"
+          borderColor={colors.warning}
+          paddingX={1}
+          paddingY={0}
+          marginBottom={1}
+        >
+          <Text color={colors.warning}>
+            {figures.warning} <Text bold>Note:</Text> Network policy updates are{" "}
+            <Text bold>eventually consistent</Text>. Changes may take a few
+            moments to propagate to all devboxes using this policy.
+          </Text>
+        </Box>
+      )}
 
       <Box flexDirection="column" marginBottom={1}>
         {fields.map((field) => {
@@ -328,7 +409,7 @@ export const NetworkPolicyCreatePage = ({
                 key={field.key}
                 label={field.label}
                 isActive={isActive}
-                hint="[Enter to create]"
+                hint={`[Enter to ${isEditMode ? "update" : "create"}]`}
               />
             );
           }
@@ -404,7 +485,7 @@ export const NetworkPolicyCreatePage = ({
         <NavigationTips
           showArrows
           tips={[
-            { key: "Enter", label: "Create/Expand" },
+            { key: "Enter", label: `${actionLabel}/Expand` },
             { key: "q", label: "Cancel" },
           ]}
         />

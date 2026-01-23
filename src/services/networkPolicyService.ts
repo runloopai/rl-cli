@@ -138,3 +138,35 @@ export async function createNetworkPolicy(
     },
   };
 }
+
+/**
+ * Update a network policy
+ */
+export interface UpdateNetworkPolicyParams {
+  name?: string;
+  description?: string;
+  allow_all?: boolean;
+  allow_devbox_to_devbox?: boolean;
+  allowed_hostnames?: string[];
+}
+
+export async function updateNetworkPolicy(
+  id: string,
+  params: UpdateNetworkPolicyParams,
+): Promise<NetworkPolicy> {
+  const client = getClient();
+  const policy = await client.networkPolicies.update(id, params);
+
+  return {
+    id: policy.id,
+    name: policy.name,
+    description: policy.description ?? undefined,
+    create_time_ms: policy.create_time_ms,
+    update_time_ms: policy.update_time_ms,
+    egress: {
+      allow_all: policy.egress.allow_all,
+      allow_devbox_to_devbox: policy.egress.allow_devbox_to_devbox,
+      allowed_hostnames: policy.egress.allowed_hostnames || [],
+    },
+  };
+}

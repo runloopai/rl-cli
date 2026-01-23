@@ -89,7 +89,7 @@ const ListObjectsUI = ({
   const stateWidth = 12;
   const typeWidth = 15;
   const sizeWidth = 12;
-  const timeWidth = 15;
+  const timeWidth = 20;
   const ttlWidth = 14;
   const showTypeColumn = terminalWidth >= 100;
   const showSizeColumn = terminalWidth >= 90;

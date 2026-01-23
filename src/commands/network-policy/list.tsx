@@ -94,6 +94,9 @@ const ListNetworkPoliciesUI = ({
   );
   const [operationLoading, setOperationLoading] = React.useState(false);
   const [showCreatePolicy, setShowCreatePolicy] = React.useState(false);
+  const [showEditPolicy, setShowEditPolicy] = React.useState(false);
+  const [editingPolicy, setEditingPolicy] =
+    React.useState<NetworkPolicyListItem | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   // Calculate overhead for viewport height
@@ -109,7 +112,7 @@ const ListNetworkPoliciesUI = ({
   const fixedWidth = 6; // border + padding
   const idWidth = 25;
   const egressWidth = 15;
-  const timeWidth = 15;
+  const timeWidth = 20;
   const showDescription = terminalWidth >= 100;
   const descriptionWidth = Math.max(20, terminalWidth >= 140 ? 40 : 25);
 
@@ -189,6 +192,7 @@ const ListNetworkPoliciesUI = ({
       !showPopup &&
       !executingOperation &&
       !showCreatePolicy &&
+      !showEditPolicy &&
       !showDeleteConfirm,
     deps: [PAGE_SIZE],
   });
@@ -200,6 +204,12 @@ const ListNetworkPoliciesUI = ({
         key: "view_details",
         label: "View Details",
         color: colors.primary,
+        icon: figures.pointer,
+      },
+      {
+        key: "edit",
+        label: "Edit Network Policy",
+        color: colors.warning,
         icon: figures.pointer,
       },
       {
@@ -364,6 +374,11 @@ const ListNetworkPoliciesUI = ({
       return;
     }
 
+    // Handle edit policy screen
+    if (showEditPolicy) {
+      return;
+    }
+
     // Handle popup navigation
     if (showPopup) {
       if (key.upArrow && selectedOperation > 0) {
@@ -380,6 +395,10 @@ const ListNetworkPoliciesUI = ({
           navigate("network-policy-detail", {
             networkPolicyId: selectedPolicyItem.id,
           });
+        } else if (operationKey === "edit") {
+          // Show edit form
+          setEditingPolicy(selectedPolicyItem);
+          setShowEditPolicy(true);
         } else if (operationKey === "delete") {
           // Show delete confirmation
           setSelectedPolicy(selectedPolicyItem);
@@ -400,6 +419,11 @@ const ListNetworkPoliciesUI = ({
         navigate("network-policy-detail", {
           networkPolicyId: selectedPolicyItem.id,
         });
+      } else if (input === "e" && selectedPolicyItem) {
+        // Edit hotkey
+        setShowPopup(false);
+        setEditingPolicy(selectedPolicyItem);
+        setShowEditPolicy(true);
       } else if (key.escape || input === "q") {
         setShowPopup(false);
         setSelectedOperation(0);
@@ -446,6 +470,10 @@ const ListNetworkPoliciesUI = ({
     } else if (input === "c") {
       // Create shortcut
       setShowCreatePolicy(true);
+    } else if (input === "e" && selectedPolicyItem) {
+      // Edit shortcut
+      setEditingPolicy(selectedPolicyItem);
+      setShowEditPolicy(true);
     } else if (key.escape) {
       if (onBack) {
         onBack();
@@ -546,6 +574,25 @@ const ListNetworkPoliciesUI = ({
     );
   }
 
+  // Edit policy screen
+  if (showEditPolicy && editingPolicy) {
+    return (
+      <NetworkPolicyCreatePage
+        onBack={() => {
+          setShowEditPolicy(false);
+          setEditingPolicy(null);
+        }}
+        onCreate={() => {
+          setShowEditPolicy(false);
+          setEditingPolicy(null);
+          // Refresh the list to show updated data
+          setTimeout(() => refresh(), 0);
+        }}
+        initialPolicy={editingPolicy}
+      />
+    );
+  }
+
   // Loading state
   if (loading && policies.length === 0) {
     return (
@@ -639,9 +686,11 @@ const ListNetworkPoliciesUI = ({
                   ? "c"
                   : op.key === "view_details"
                     ? "v"
-                    : op.key === "delete"
-                      ? "d"
-                      : "",
+                    : op.key === "edit"
+                      ? "e"
+                      : op.key === "delete"
+                        ? "d"
+                        : "",
             }))}
             selectedOperation={selectedOperation}
             onClose={() => setShowPopup(false)}
@@ -660,6 +709,7 @@ const ListNetworkPoliciesUI = ({
           },
           { key: "Enter", label: "Details" },
           { key: "c", label: "Create" },
+          { key: "e", label: "Edit" },
           { key: "a", label: "Actions" },
           { key: "Esc", label: "Back" },
         ]}

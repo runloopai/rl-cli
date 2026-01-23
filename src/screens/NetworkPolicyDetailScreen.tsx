@@ -19,11 +19,13 @@ import {
 import {
   getNetworkPolicy,
   deleteNetworkPolicy,
+  updateNetworkPolicy,
 } from "../services/networkPolicyService.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
 import { ConfirmationPrompt } from "../components/ConfirmationPrompt.js";
+import { NetworkPolicyCreatePage } from "../components/NetworkPolicyCreatePage.js";
 import { colors } from "../utils/theme.js";
 
 interface NetworkPolicyDetailScreenProps {
@@ -57,6 +59,7 @@ export function NetworkPolicyDetailScreen({
     React.useState<NetworkPolicy | null>(null);
   const [deleting, setDeleting] = React.useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const [showEditForm, setShowEditForm] = React.useState(false);
 
   // Find policy in store first
   const policyFromStore = networkPolicies.find((p) => p.id === networkPolicyId);
@@ -211,6 +214,13 @@ export function NetworkPolicyDetailScreen({
   // Operations available for network policies
   const operations: ResourceOperation[] = [
     {
+      key: "edit",
+      label: "Edit Network Policy",
+      color: colors.warning,
+      icon: figures.pointer,
+      shortcut: "e",
+    },
+    {
       key: "delete",
       label: "Delete Network Policy",
       color: colors.error,
@@ -225,6 +235,9 @@ export function NetworkPolicyDetailScreen({
     _resource: NetworkPolicy,
   ) => {
     switch (operation) {
+      case "edit":
+        setShowEditForm(true);
+        break;
       case "delete":
         // Show confirmation dialog
         setShowDeleteConfirm(true);
@@ -357,6 +370,21 @@ export function NetworkPolicyDetailScreen({
 
     return lines;
   };
+
+  // Show edit form
+  if (showEditForm && policy) {
+    return (
+      <NetworkPolicyCreatePage
+        onBack={() => setShowEditForm(false)}
+        onCreate={(updatedPolicy) => {
+          // Update the fetched policy with the new data
+          setFetchedPolicy(updatedPolicy as NetworkPolicy);
+          setShowEditForm(false);
+        }}
+        initialPolicy={policy}
+      />
+    );
+  }
 
   // Show delete confirmation
   if (showDeleteConfirm && policy) {
