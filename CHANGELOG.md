@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0](https://github.com/runloopai/rl-cli/compare/v1.2.0...v1.3.0) (2026-01-23)
+
+
+### Features
+
+* add rainbow shimmer animation ([#52](https://github.com/runloopai/rl-cli/issues/52)) ([b4c9ccb](https://github.com/runloopai/rl-cli/commit/b4c9ccb22fe7a825d8557ccbcf28a2f0b3e2c5f7))
+* added management for network-policies, storage-objects with layout and screen size improvements ([#54](https://github.com/runloopai/rl-cli/issues/54)) ([138aed3](https://github.com/runloopai/rl-cli/commit/138aed3e785f909f2a39704de141081ec129ebc8))
+
 ## [1.2.0](https://github.com/runloopai/rl-cli/compare/v1.1.0...v1.2.0) (2026-01-17)
 
 
