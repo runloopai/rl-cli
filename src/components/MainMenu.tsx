@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text, useInput, useApp } from "ink";
+import { Box, Text, useInput, useApp, useStdout } from "ink";
 import figures from "figures";
 import { Banner } from "./Banner.js";
 import { Breadcrumb } from "./Breadcrumb.js";
@@ -7,7 +7,6 @@ import { NavigationTips } from "./NavigationTips.js";
 import { VERSION } from "../version.js";
 import { colors } from "../utils/theme.js";
 import { execCommand } from "../utils/exec.js";
-import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { useUpdateCheck } from "../hooks/useUpdateCheck.js";
 
@@ -61,12 +60,47 @@ interface MainMenuProps {
   onSelect: (key: string) => void;
 }
 
+// Layout modes based on terminal height
+// Account for: breadcrumb (1) + banner (~6) + tagline (2) + header (2) + menu items (10) + nav tips (2) + padding = ~25 lines
+// Use generous thresholds so compact modes trigger more readily
+type LayoutMode = "full" | "medium" | "compact" | "minimal";
+
+function getLayoutMode(height: number): LayoutMode {
+  if (height >= 40) return "full"; // Big banner + bordered items + descriptions
+  if (height >= 22) return "medium"; // Small banner + simple items + descriptions
+  if (height >= 15) return "compact"; // No banner + simple items + short descriptions
+  return "minimal"; // No banner + labels only
+}
+
 export const MainMenu = ({ onSelect }: MainMenuProps) => {
   const { exit } = useApp();
   const [selectedIndex, setSelectedIndex] = React.useState(0);
+  const { stdout } = useStdout();
 
-  // Use centralized viewport hook for consistent layout
-  const { terminalHeight } = useViewportHeight({ overhead: 0 });
+  // Get raw terminal height, responding to resize events
+  // Default to 20 rows if we can't detect (triggers medium mode, not full)
+  const getTerminalHeight = React.useCallback(() => {
+    return stdout?.rows && stdout.rows > 0 ? stdout.rows : 20;
+  }, [stdout]);
+
+  const [terminalHeight, setTerminalHeight] = React.useState(getTerminalHeight);
+
+  React.useEffect(() => {
+    // Update immediately on mount and when stdout changes
+    setTerminalHeight(getTerminalHeight());
+
+    if (!stdout) return;
+
+    const handleResize = () => {
+      setTerminalHeight(getTerminalHeight());
+    };
+
+    stdout.on("resize", handleResize);
+
+    return () => {
+      stdout.off("resize", handleResize);
+    };
+  }, [stdout, getTerminalHeight]);
 
   // Check for updates
   const { updateAvailable } = useUpdateCheck();
@@ -102,17 +136,116 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
     }
   });
 
-  // Use compact layout if terminal height is less than 20 lines (memoized)
-  const useCompactLayout = terminalHeight < 20;
+  const layoutMode = getLayoutMode(terminalHeight);
 
-  if (useCompactLayout) {
+  // Navigation tips for all layouts
+  const navTips = (
+    <NavigationTips
+      showArrows
+      paddingX={2}
+      tips={[
+        { key: "1-5", label: "Quick select" },
+        { key: "Enter", label: "Select" },
+        { key: "Esc", label: "Quit" },
+        { key: "u", label: "Update", condition: !!updateAvailable },
+      ]}
+    />
+  );
+
+  // Minimal layout - just the essentials
+  if (layoutMode === "minimal") {
+    return (
+      <Box flexDirection="column">
+        <Box paddingX={2}>
+          <Text color={colors.primary} bold>
+            RUNLOOP
+          </Text>
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            v{VERSION}
+          </Text>
+        </Box>
+        <Box flexDirection="column" paddingX={2}>
+          {menuItems.map((item, index) => {
+            const isSelected = index === selectedIndex;
+            return (
+              <Box key={item.key}>
+                <Text color={isSelected ? item.color : colors.textDim}>
+                  {isSelected ? figures.pointer : " "}
+                </Text>
+                <Text color={item.color}> {item.icon} </Text>
+                <Text
+                  color={isSelected ? item.color : colors.text}
+                  bold={isSelected}
+                >
+                  {item.label}
+                </Text>
+                <Text color={colors.textDim} dimColor>
+                  {" "}
+                  [{index + 1}]
+                </Text>
+              </Box>
+            );
+          })}
+        </Box>
+        {navTips}
+      </Box>
+    );
+  }
+
+  // Compact layout - no banner, simple items with descriptions
+  if (layoutMode === "compact") {
     return (
       <Box flexDirection="column">
         <Breadcrumb
           items={[{ label: "Home", active: true }]}
           showVersionCheck={true}
         />
+        <Box paddingX={2}>
+          <Text color={colors.primary} bold>
+            RUNLOOP.ai
+          </Text>
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            • v{VERSION}
+          </Text>
+        </Box>
+        <Box flexDirection="column" paddingX={2}>
+          {menuItems.map((item, index) => {
+            const isSelected = index === selectedIndex;
+            return (
+              <Box key={item.key}>
+                <Text color={isSelected ? item.color : colors.textDim}>
+                  {isSelected ? figures.pointer : " "}
+                </Text>
+                <Text color={item.color}> {item.icon} </Text>
+                <Text
+                  color={isSelected ? item.color : colors.text}
+                  bold={isSelected}
+                >
+                  {item.label}
+                </Text>
+                <Text color={colors.textDim} dimColor>
+                  {" "}
+                  - {item.description} [{index + 1}]
+                </Text>
+              </Box>
+            );
+          })}
+        </Box>
+        {navTips}
+      </Box>
+    );
+  }
 
+  // Medium layout - small banner, simple items with descriptions
+  if (layoutMode === "medium") {
+    return (
+      <Box flexDirection="column">
+        <Breadcrumb
+          items={[{ label: "Home", active: true }]}
+          showVersionCheck={true}
+        />
         <Box paddingX={2} marginBottom={1}>
           <Text color={colors.primary} bold>
             RUNLOOP.ai
@@ -122,7 +255,6 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
             • Cloud development environments • v{VERSION}
           </Text>
         </Box>
-
         <Box flexDirection="column" paddingX={2}>
           {menuItems.map((item, index) => {
             const isSelected = index === selectedIndex;
@@ -154,21 +286,12 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
             );
           })}
         </Box>
-
-        <NavigationTips
-          showArrows
-          paddingX={2}
-          tips={[
-            { key: "1-5", label: "Quick select" },
-            { key: "Enter", label: "Select" },
-            { key: "Esc", label: "Quit" },
-            { key: "u", label: "Update", condition: !!updateAvailable },
-          ]}
-        />
+        {navTips}
       </Box>
     );
   }
 
+  // Full layout - big banner, bordered items
   return (
     <Box flexDirection="column">
       <Breadcrumb
@@ -236,15 +359,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
         })}
       </Box>
 
-      <NavigationTips
-        showArrows
-        tips={[
-          { key: "1-5", label: "Quick select" },
-          { key: "Enter", label: "Select" },
-          { key: "Esc", label: "Quit" },
-          { key: "u", label: "Update", condition: !!updateAvailable },
-        ]}
-      />
+      {navTips}
     </Box>
   );
 };
