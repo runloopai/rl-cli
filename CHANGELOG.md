@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/runloopai/rl-cli/compare/v1.4.0...v1.4.1) (2026-01-23)
+
+
+### Bug Fixes
+
+* small screen handling across the application, especially log viewing issues ([#60](https://github.com/runloopai/rl-cli/issues/60)) ([d06e101](https://github.com/runloopai/rl-cli/commit/d06e1012c927e0f502b17be55c0bd77413984fb7))
+
 ## [1.4.0](https://github.com/runloopai/rl-cli/compare/v1.3.0...v1.4.0) (2026-01-23)
 
 
