@@ -16,7 +16,9 @@ export async function listSecrets(options: ListOptions = {}) {
   try {
     const client = getClient();
 
-    const limit = options.limit ? parseInt(options.limit, 10) : DEFAULT_PAGE_SIZE;
+    const limit = options.limit
+      ? parseInt(options.limit, 10)
+      : DEFAULT_PAGE_SIZE;
 
     // Fetch secrets
     const result = await client.secrets.list({ limit });

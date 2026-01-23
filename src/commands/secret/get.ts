@@ -21,10 +21,7 @@ export async function getSecret(name: string, options: GetOptions = {}) {
     const secret = result.secrets?.find((s) => s.name === name);
 
     if (!secret) {
-      outputError(
-        `Secret "${name}" not found`,
-        new Error("Secret not found"),
-      );
+      outputError(`Secret "${name}" not found`, new Error("Secret not found"));
     }
 
     output(secret, { format: options.output, defaultFormat: "json" });
