@@ -86,7 +86,9 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
     };
   }, [stdout]);
 
-  const [terminalDimensions, setTerminalDimensions] = React.useState(getTerminalDimensions);
+  const [terminalDimensions, setTerminalDimensions] = React.useState(
+    getTerminalDimensions,
+  );
 
   React.useEffect(() => {
     // Update immediately on mount and when stdout changes
@@ -233,7 +235,9 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
                   {item.label}
                 </Text>
                 <Text color={colors.textDim} dimColor>
-                  {isNarrow ? ` [${index + 1}]` : ` - ${item.description} [${index + 1}]`}
+                  {isNarrow
+                    ? ` [${index + 1}]`
+                    : ` - ${item.description} [${index + 1}]`}
                 </Text>
               </Box>
             );
@@ -257,7 +261,9 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
             RUNLOOP.ai
           </Text>
           <Text color={colors.textDim} dimColor>
-            {isNarrow ? ` • v${VERSION}` : ` • Cloud development environments • v${VERSION}`}
+            {isNarrow
+              ? ` • v${VERSION}`
+              : ` • Cloud development environments • v${VERSION}`}
           </Text>
         </Box>
         <Box flexDirection="column" paddingX={2}>
