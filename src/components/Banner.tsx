@@ -104,10 +104,13 @@ export const Banner = React.memo(() => {
 
   // Get raw terminal dimensions, responding to resize events
   // Default to conservative values if we can't detect (triggers compact mode)
-  const getDimensions = React.useCallback(() => ({
-    width: stdout?.columns && stdout.columns > 0 ? stdout.columns : 80,
-    height: stdout?.rows && stdout.rows > 0 ? stdout.rows : 20,
-  }), [stdout]);
+  const getDimensions = React.useCallback(
+    () => ({
+      width: stdout?.columns && stdout.columns > 0 ? stdout.columns : 80,
+      height: stdout?.rows && stdout.rows > 0 ? stdout.rows : 20,
+    }),
+    [stdout],
+  );
 
   const [dimensions, setDimensions] = useState(getDimensions);
 

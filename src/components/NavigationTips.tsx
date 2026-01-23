@@ -167,7 +167,8 @@ export const NavigationTips = ({
     if (!stdout) return;
 
     const handleResize = () => {
-      const newWidth = stdout.columns && stdout.columns > 0 ? stdout.columns : 80;
+      const newWidth =
+        stdout.columns && stdout.columns > 0 ? stdout.columns : 80;
       setTerminalWidth(newWidth);
     };
 
