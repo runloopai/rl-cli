@@ -768,9 +768,7 @@ export const DevboxActionsMenu = ({
         {operationError && (
           <ErrorMessage message="Operation failed" error={operationError} />
         )}
-        <NavigationTips
-          tips={[{ key: "Enter/q/esc", label: "Continue" }]}
-        />
+        <NavigationTips tips={[{ key: "Enter/q/esc", label: "Continue" }]} />
       </>
     );
   }

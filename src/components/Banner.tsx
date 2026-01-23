@@ -82,8 +82,12 @@ const precomputeFrames = (colors: string[]): string[][] => {
 };
 
 // Use every 2nd color to reduce frame count and minimize flickering
-const DARK_FRAMES = precomputeFrames(DARK_SHIMMER_COLORS.filter((_, i) => i % 2 === 0));
-const LIGHT_FRAMES = precomputeFrames(LIGHT_SHIMMER_COLORS.filter((_, i) => i % 2 === 0));
+const DARK_FRAMES = precomputeFrames(
+  DARK_SHIMMER_COLORS.filter((_, i) => i % 2 === 0),
+);
+const LIGHT_FRAMES = precomputeFrames(
+  LIGHT_SHIMMER_COLORS.filter((_, i) => i % 2 === 0),
+);
 
 // Minimum width to show the full BigText banner (simple3d font needs ~80 chars for "RUNLOOP.ai")
 const MIN_WIDTH_FOR_BIG_BANNER = 90;
