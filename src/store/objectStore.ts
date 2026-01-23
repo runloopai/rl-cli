@@ -1,26 +1,23 @@
 /**
- * Blueprint Store - Manages blueprint list state, pagination, and caching
+ * Object Store - Manages storage object list state, pagination, and caching
  */
 import { create } from "zustand";
-import type {
-  BlueprintView,
-  BlueprintBuildParameters,
-} from "@runloop/api-client/resources/blueprints";
+import type { ObjectView } from "@runloop/api-client/resources/objects";
 
-// Extended type with UI-specific convenience fields
-export interface Blueprint extends BlueprintView {
-  // Convenience field for architecture (extracted from parameters.launch_parameters)
-  architecture?: string;
-  // Convenience field for resource size (extracted from parameters.launch_parameters)
-  resources?: string;
+// Re-export ObjectView as StorageObjectView for UI use
+// Includes optional fields that may be present in API responses
+export interface StorageObjectView extends ObjectView {
+  // Presigned download URL (fetched separately via download endpoint)
+  download_url?: string;
+  // User-defined metadata
+  metadata?: Record<string, string>;
+  // Public visibility flag
+  is_public?: boolean;
 }
 
-// Re-export for compatibility with existing code
-export type BlueprintParameters = BlueprintBuildParameters;
-
-interface BlueprintState {
+interface ObjectState {
   // List data
-  blueprints: Blueprint[];
+  objects: StorageObjectView[];
   loading: boolean;
   initialLoading: boolean;
   error: Error | null;
@@ -32,17 +29,20 @@ interface BlueprintState {
   hasMore: boolean;
 
   // Caching
-  pageCache: Map<number, Blueprint[]>;
+  pageCache: Map<number, StorageObjectView[]>;
   lastIdCache: Map<number, string>;
 
-  // Search/filter
-  searchQuery: string;
+  // Filters
+  nameFilter?: string;
+  contentTypeFilter?: string;
+  stateFilter?: string;
+  isPublicFilter?: boolean;
 
   // Selection
   selectedIndex: number;
 
   // Actions
-  setBlueprints: (blueprints: Blueprint[]) => void;
+  setObjects: (objects: StorageObjectView[]) => void;
   setLoading: (loading: boolean) => void;
   setInitialLoading: (loading: boolean) => void;
   setError: (error: Error | null) => void;
@@ -52,21 +52,28 @@ interface BlueprintState {
   setTotalCount: (count: number) => void;
   setHasMore: (hasMore: boolean) => void;
 
-  setSearchQuery: (query: string) => void;
+  setNameFilter: (name?: string) => void;
+  setContentTypeFilter: (contentType?: string) => void;
+  setStateFilter: (state?: string) => void;
+  setIsPublicFilter: (isPublic?: boolean) => void;
   setSelectedIndex: (index: number) => void;
 
-  cachePageData: (page: number, data: Blueprint[], lastId: string) => void;
-  getCachedPage: (page: number) => Blueprint[] | undefined;
+  cachePageData: (
+    page: number,
+    data: StorageObjectView[],
+    lastId: string,
+  ) => void;
+  getCachedPage: (page: number) => StorageObjectView[] | undefined;
   clearCache: () => void;
   clearAll: () => void;
 
-  getSelectedBlueprint: () => Blueprint | undefined;
+  getSelectedObject: () => StorageObjectView | undefined;
 }
 
 const MAX_CACHE_SIZE = 10;
 
-export const useBlueprintStore = create<BlueprintState>((set, get) => ({
-  blueprints: [],
+export const useObjectStore = create<ObjectState>((set, get) => ({
+  objects: [],
   loading: false,
   initialLoading: true,
   error: null,
@@ -79,10 +86,13 @@ export const useBlueprintStore = create<BlueprintState>((set, get) => ({
   pageCache: new Map(),
   lastIdCache: new Map(),
 
-  searchQuery: "",
+  nameFilter: undefined,
+  contentTypeFilter: undefined,
+  stateFilter: undefined,
+  isPublicFilter: undefined,
   selectedIndex: 0,
 
-  setBlueprints: (blueprints) => set({ blueprints }),
+  setObjects: (objects) => set({ objects }),
   setLoading: (loading) => set({ loading }),
   setInitialLoading: (loading) => set({ initialLoading: loading }),
   setError: (error) => set({ error }),
@@ -92,7 +102,11 @@ export const useBlueprintStore = create<BlueprintState>((set, get) => ({
   setTotalCount: (count) => set({ totalCount: count }),
   setHasMore: (hasMore) => set({ hasMore }),
 
-  setSearchQuery: (query) => set({ searchQuery: query }),
+  setNameFilter: (name) => set({ nameFilter: name }),
+  setContentTypeFilter: (contentType) =>
+    set({ contentTypeFilter: contentType }),
+  setStateFilter: (state) => set({ stateFilter: state }),
+  setIsPublicFilter: (isPublic) => set({ isPublicFilter: isPublic }),
   setSelectedIndex: (index) => set({ selectedIndex: index }),
 
   cachePageData: (page, data, lastId) => {
@@ -111,7 +125,7 @@ export const useBlueprintStore = create<BlueprintState>((set, get) => ({
 
     // Deep copy all fields to avoid SDK references
     const plainData = data.map((d) => {
-      return JSON.parse(JSON.stringify(d)) as Blueprint;
+      return JSON.parse(JSON.stringify(d)) as StorageObjectView;
     });
 
     pageCache.set(page, plainData);
@@ -141,7 +155,7 @@ export const useBlueprintStore = create<BlueprintState>((set, get) => ({
     state.lastIdCache.clear();
 
     set({
-      blueprints: [],
+      objects: [],
       loading: false,
       initialLoading: true,
       error: null,
@@ -150,13 +164,16 @@ export const useBlueprintStore = create<BlueprintState>((set, get) => ({
       hasMore: false,
       pageCache: new Map(),
       lastIdCache: new Map(),
-      searchQuery: "",
+      nameFilter: undefined,
+      contentTypeFilter: undefined,
+      stateFilter: undefined,
+      isPublicFilter: undefined,
       selectedIndex: 0,
     });
   },
 
-  getSelectedBlueprint: () => {
+  getSelectedObject: () => {
     const state = get();
-    return state.blueprints[state.selectedIndex];
+    return state.objects[state.selectedIndex];
   },
 }));

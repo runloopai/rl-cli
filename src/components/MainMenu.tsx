@@ -3,6 +3,7 @@ import { Box, Text, useInput, useApp } from "ink";
 import figures from "figures";
 import { Banner } from "./Banner.js";
 import { Breadcrumb } from "./Breadcrumb.js";
+import { NavigationTips } from "./NavigationTips.js";
 import { VERSION } from "../version.js";
 import { colors } from "../utils/theme.js";
 import { execCommand } from "../utils/exec.js";
@@ -40,6 +41,20 @@ const menuItems: MenuItem[] = [
     icon: "◈",
     color: colors.accent3,
   },
+  {
+    key: "objects",
+    label: "Storage Objects",
+    description: "Manage files and data in cloud storage",
+    icon: "▤",
+    color: colors.secondary,
+  },
+  {
+    key: "network-policies",
+    label: "Network Policies",
+    description: "Manage egress network access rules",
+    icon: "◇",
+    color: colors.info,
+  },
 ];
 
 interface MainMenuProps {
@@ -74,6 +89,10 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       onSelect("blueprints");
     } else if (input === "s" || input === "3") {
       onSelect("snapshots");
+    } else if (input === "o" || input === "4") {
+      onSelect("objects");
+    } else if (input === "n" || input === "5") {
+      onSelect("network-policies");
     } else if (input === "u" && updateAvailable) {
       // Release terminal and exec into update command (never returns)
       execCommand("sh", [
@@ -89,6 +108,11 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
   if (useCompactLayout) {
     return (
       <Box flexDirection="column">
+        <Breadcrumb
+          items={[{ label: "Home", active: true }]}
+          showVersionCheck={true}
+        />
+
         <Box paddingX={2} marginBottom={1}>
           <Text color={colors.primary} bold>
             RUNLOOP.ai
@@ -131,14 +155,16 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
           })}
         </Box>
 
-        <Box paddingX={2} marginTop={1}>
-          <Text color={colors.textDim} dimColor>
-            {figures.arrowUp}
-            {figures.arrowDown} Navigate • [1-3] Quick select • [Enter] Select •
-            [Esc] Quit
-            {updateAvailable && " • [u] Update"}
-          </Text>
-        </Box>
+        <NavigationTips
+          showArrows
+          paddingX={2}
+          tips={[
+            { key: "1-5", label: "Quick select" },
+            { key: "Enter", label: "Select" },
+            { key: "Esc", label: "Quit" },
+            { key: "u", label: "Update", condition: !!updateAvailable },
+          ]}
+        />
       </Box>
     );
   }
@@ -160,7 +186,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
         </Box>
       </Box>
 
-      <Box flexDirection="column" paddingX={2} marginTop={1} flexGrow={1}>
+      <Box flexDirection="column" paddingX={2} marginTop={1}>
         <Box paddingX={1} flexShrink={0}>
           <Text color={colors.text} bold>
             Select a resource:
@@ -210,16 +236,15 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
         })}
       </Box>
 
-      <Box paddingX={2} flexShrink={0}>
-        <Box paddingX={1}>
-          <Text color={colors.textDim} dimColor>
-            {figures.arrowUp}
-            {figures.arrowDown} Navigate • [1-3] Quick select • [Enter] Select •
-            [Esc] Quit
-            {updateAvailable && " • [u] Update"}
-          </Text>
-        </Box>
-      </Box>
+      <NavigationTips
+        showArrows
+        tips={[
+          { key: "1-5", label: "Quick select" },
+          { key: "Enter", label: "Select" },
+          { key: "Esc", label: "Quit" },
+          { key: "u", label: "Update", condition: !!updateAvailable },
+        ]}
+      />
     </Box>
   );
 };

@@ -54,6 +54,7 @@ export function createProgram(): Command {
     .option("--available-ports <ports...>", "Available ports")
     .option("--root", "Run as root")
     .option("--user <user:uid>", "Run as this user (format: username:uid)")
+    .option("--network-policy <id>", "Network policy ID to apply")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
@@ -569,6 +570,80 @@ export function createProgram(): Command {
     .action(async (id, options) => {
       const { deleteObject } = await import("../commands/object/delete.js");
       await deleteObject({ id, ...options });
+    });
+
+  // Network policy commands
+  const networkPolicy = program
+    .command("network-policy")
+    .description("Manage network policies")
+    .alias("np");
+
+  networkPolicy
+    .command("list")
+    .description("List network policies")
+    .option("--limit <n>", "Max results", "20")
+    .option("--starting-after <id>", "Starting point for pagination")
+    .option("--name <name>", "Filter by name")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: json)",
+    )
+    .action(async (options) => {
+      const { listNetworkPolicies } = await import(
+        "../commands/network-policy/list.js"
+      );
+      await listNetworkPolicies(options);
+    });
+
+  networkPolicy
+    .command("get <id>")
+    .description("Get network policy details")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: json)",
+    )
+    .action(async (id, options) => {
+      const { getNetworkPolicy } = await import(
+        "../commands/network-policy/get.js"
+      );
+      await getNetworkPolicy({ id, ...options });
+    });
+
+  networkPolicy
+    .command("create")
+    .description("Create a new network policy")
+    .requiredOption("--name <name>", "Policy name (required)")
+    .option("--description <description>", "Policy description")
+    .option("--allow-all", "Allow all egress traffic")
+    .option("--allow-devbox-to-devbox", "Allow devbox-to-devbox communication")
+    .option(
+      "--allowed-hostnames <hostnames...>",
+      "List of allowed hostnames for egress",
+    )
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (options) => {
+      const { createNetworkPolicy } = await import(
+        "../commands/network-policy/create.js"
+      );
+      await createNetworkPolicy(options);
+    });
+
+  networkPolicy
+    .command("delete <id>")
+    .description("Delete a network policy")
+    .alias("rm")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (id, options) => {
+      const { deleteNetworkPolicy } = await import(
+        "../commands/network-policy/delete.js"
+      );
+      await deleteNetworkPolicy(id, options);
     });
 
   // MCP server commands

@@ -66,14 +66,10 @@ async function fetchAllBlueprintsWithName(name: string): Promise<Blueprint[]> {
  */
 function categorizeBlueprints(blueprints: Blueprint[], keepCount: number) {
   // Filter successful builds
-  const successful = blueprints.filter(
-    (b) => b.status === "build_complete" || b.status === "building_complete",
-  );
+  const successful = blueprints.filter((b) => b.status === "build_complete");
 
-  // Filter failed builds
-  const failed = blueprints.filter(
-    (b) => b.status !== "build_complete" && b.status !== "building_complete",
-  );
+  // Filter failed/incomplete builds
+  const failed = blueprints.filter((b) => b.status !== "build_complete");
 
   // Sort successful by create_time_ms descending (newest first)
   successful.sort((a, b) => (b.create_time_ms || 0) - (a.create_time_ms || 0));
@@ -158,16 +154,9 @@ function displaySummary(
   } else {
     // Show all blueprints without summarizing
     for (const blueprint of result.toDelete) {
-      const icon =
-        blueprint.status === "build_complete" ||
-        blueprint.status === "building_complete"
-          ? "✓"
-          : "✗";
+      const icon = blueprint.status === "build_complete" ? "✓" : "⚠";
       const statusLabel =
-        blueprint.status === "build_complete" ||
-        blueprint.status === "building_complete"
-          ? "successful"
-          : "failed";
+        blueprint.status === "build_complete" ? "successful" : "failed";
       console.log(
         `  ${icon} ${blueprint.id} - Created ${formatTimestamp(blueprint.create_time_ms)} (${statusLabel})`,
       );
@@ -185,16 +174,9 @@ function displayDeletedBlueprints(deleted: Blueprint[]) {
 
   console.log("\nDeleted blueprints:");
   for (const blueprint of deleted) {
-    const icon =
-      blueprint.status === "build_complete" ||
-      blueprint.status === "building_complete"
-        ? "✓"
-        : "✗";
+    const icon = blueprint.status === "build_complete" ? "✓" : "⚠";
     const statusLabel =
-      blueprint.status === "build_complete" ||
-      blueprint.status === "building_complete"
-        ? "successful"
-        : "failed";
+      blueprint.status === "build_complete" ? "successful" : "failed";
     console.log(
       `  ${icon} ${blueprint.id} - Created ${formatTimestamp(blueprint.create_time_ms)} (${statusLabel})`,
     );

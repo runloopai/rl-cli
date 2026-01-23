@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import figures from "figures";
 import { colors } from "../utils/theme.js";
+import { NavigationTips } from "./NavigationTips.js";
 
 export interface Operation {
   key: string;
@@ -66,16 +67,18 @@ export const OperationsMenu = ({
       </Box>
 
       {/* Help text */}
-      <Box marginTop={1}>
-        <Text color={colors.textDim} dimColor>
-          {figures.arrowUp}
-          {figures.arrowDown} Navigate • [Enter] Select •
-          {additionalActions.map(
-            (action) => ` [${action.key}] ${action.label} •`,
-          )}{" "}
-          [q] Back
-        </Text>
-      </Box>
+      <NavigationTips
+        showArrows
+        paddingX={0}
+        tips={[
+          { key: "Enter", label: "Select" },
+          ...additionalActions.map((action) => ({
+            key: action.key,
+            label: action.label,
+          })),
+          { key: "q", label: "Back" },
+        ]}
+      />
     </>
   );
 };

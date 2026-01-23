@@ -2,13 +2,17 @@
  * Snapshot Store - Manages snapshot list state, pagination, and caching
  */
 import { create } from "zustand";
+import type { DevboxSnapshotView } from "@runloop/api-client/resources/devboxes/devboxes";
 
-export interface Snapshot {
-  id: string;
-  name?: string;
+// Extended type with UI-specific fields
+// The service transforms API responses to add these computed fields
+export interface Snapshot extends DevboxSnapshotView {
+  // Alias for source_devbox_id for backward compatibility
   devbox_id?: string;
-  status: string;
-  create_time_ms?: number;
+  // Computed status from async status query (not a real API field)
+  status?: string;
+  // Optional disk size when available
+  disk_size_bytes?: number;
 }
 
 interface SnapshotState {
@@ -102,14 +106,10 @@ export const useSnapshotStore = create<SnapshotState>((set, get) => ({
       }
     }
 
-    // Create plain data objects to avoid SDK references
-    const plainData = data.map((s) => ({
-      id: s.id,
-      name: s.name,
-      devbox_id: s.devbox_id,
-      status: s.status,
-      create_time_ms: s.create_time_ms,
-    }));
+    // Deep copy all fields to avoid SDK references
+    const plainData = data.map((d) => {
+      return JSON.parse(JSON.stringify(d)) as Snapshot;
+    });
 
     pageCache.set(page, plainData);
     lastIdCache.set(page, lastId);

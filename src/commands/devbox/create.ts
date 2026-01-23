@@ -21,6 +21,7 @@ interface CreateOptions {
   availablePorts?: string[];
   root?: boolean;
   user?: string;
+  networkPolicy?: string;
   output?: string;
 }
 
@@ -104,6 +105,9 @@ export async function createDevbox(options: CreateOptions = {}) {
         idle_time_seconds: parseInt(options.idleTime, 10),
         on_idle: options.idleAction,
       };
+    }
+    if (options.networkPolicy) {
+      launchParameters.network_policy_id = options.networkPolicy;
     }
 
     // Build create request

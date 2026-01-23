@@ -1,7 +1,8 @@
 import React from "react";
 import { Box, Text, useInput, useApp } from "ink";
+import TextInput from "ink-text-input";
 import figures from "figures";
-import type { DiskSnapshotsCursorIDPage } from "@runloop/api-client/pagination";
+import { writeFile } from "fs/promises";
 import { getClient } from "../../utils/client.js";
 import { Header } from "../../components/Header.js";
 import { SpinnerComponent } from "../../components/Spinner.js";
@@ -18,33 +19,37 @@ import { colors } from "../../utils/theme.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
-import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
 import { useNavigation } from "../../store/navigationStore.js";
+import { formatFileSize } from "../../services/objectService.js";
 import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
 
 interface ListOptions {
-  devbox?: string;
+  name?: string;
+  contentType?: string;
+  state?: string;
+  public?: boolean;
   output?: string;
 }
 
-// Local interface for snapshot data used in this component
-interface SnapshotListItem {
+// Local interface for object data used in this component
+interface ObjectListItem {
   id: string;
   name?: string;
-  status?: string;
+  content_type?: string;
+  size_bytes?: number;
+  state?: string;
+  is_public?: boolean;
   create_time_ms?: number;
-  source_devbox_id?: string;
+  delete_after_time_ms?: number | null;
   [key: string]: unknown;
 }
 
 const DEFAULT_PAGE_SIZE = 10;
 
-const ListSnapshotsUI = ({
-  devboxId,
+const ListObjectsUI = ({
   onBack,
   onExit,
 }: {
-  devboxId?: string;
   onBack?: () => void;
   onExit?: () => void;
 }) => {
@@ -54,9 +59,7 @@ const ListSnapshotsUI = ({
   const [showPopup, setShowPopup] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(0);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedSnapshot, setSelectedSnapshot] = React.useState<any | null>(
-    null,
-  );
+  const [selectedObject, setSelectedObject] = React.useState<any | null>(null);
   const [executingOperation, setExecutingOperation] = React.useState<
     string | null
   >(null);
@@ -67,7 +70,8 @@ const ListSnapshotsUI = ({
     null,
   );
   const [operationLoading, setOperationLoading] = React.useState(false);
-  const [showCreateDevbox, setShowCreateDevbox] = React.useState(false);
+  const [showDownloadPrompt, setShowDownloadPrompt] = React.useState(false);
+  const [downloadPath, setDownloadPath] = React.useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   // Calculate overhead for viewport height
@@ -82,21 +86,49 @@ const ListSnapshotsUI = ({
   // All width constants
   const fixedWidth = 6; // border + padding
   const idWidth = 25;
-  const devboxWidth = 15;
+  const stateWidth = 12;
+  const typeWidth = 15;
+  const sizeWidth = 12;
   const timeWidth = 20;
-  const showDevboxIdColumn = terminalWidth >= 100 && !devboxId;
+  const ttlWidth = 14;
+  const showTypeColumn = terminalWidth >= 100;
+  const showSizeColumn = terminalWidth >= 90;
+  const showTtlColumn = terminalWidth >= 80;
 
   // Name width uses remaining space after fixed columns
-  const baseWidth = fixedWidth + idWidth + timeWidth;
-  const optionalWidth = showDevboxIdColumn ? devboxWidth : 0;
+  const baseWidth = fixedWidth + idWidth + stateWidth + timeWidth;
+  const optionalWidth =
+    (showTypeColumn ? typeWidth : 0) +
+    (showSizeColumn ? sizeWidth : 0) +
+    (showTtlColumn ? ttlWidth : 0);
   const remainingWidth = terminalWidth - baseWidth - optionalWidth;
   const nameWidth = Math.min(80, Math.max(15, remainingWidth));
+
+  // Helper to format TTL remaining time
+  const formatTtl = (deleteAfterMs?: number | null): string => {
+    if (!deleteAfterMs) return "";
+    const now = Date.now();
+    const remainingMs = deleteAfterMs - now;
+    if (remainingMs <= 0) return "Expired";
+    const remainingMinutes = Math.floor(remainingMs / 60000);
+    if (remainingMinutes < 60) {
+      return `${remainingMinutes}m left`;
+    }
+    const hours = Math.floor(remainingMinutes / 60);
+    const mins = remainingMinutes % 60;
+    if (hours < 24) {
+      return `${hours}h ${mins}m left`;
+    }
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+    return `${days}d ${remainingHours}h left`;
+  };
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
     async (params: { limit: number; startingAt?: string }) => {
       const client = getClient();
-      const pageSnapshots: SnapshotListItem[] = [];
+      const pageObjects: ObjectListItem[] = [];
 
       // Build query params
       const queryParams: Record<string, unknown> = {
@@ -105,42 +137,46 @@ const ListSnapshotsUI = ({
       if (params.startingAt) {
         queryParams.starting_after = params.startingAt;
       }
-      if (devboxId) {
-        queryParams.devbox_id = devboxId;
-      }
 
       // Fetch ONE page only
-      const page = (await client.devboxes.listDiskSnapshots(
-        queryParams,
-      )) as unknown as DiskSnapshotsCursorIDPage<SnapshotListItem>;
+      const result = await client.objects.list(queryParams);
 
       // Extract data and create defensive copies
-      if (page.snapshots && Array.isArray(page.snapshots)) {
-        page.snapshots.forEach((s: SnapshotListItem) => {
-          pageSnapshots.push({
-            id: s.id,
-            name: s.name,
-            status: s.status,
-            create_time_ms: s.create_time_ms,
-            source_devbox_id: s.source_devbox_id,
+      if (result.objects && Array.isArray(result.objects)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        result.objects.forEach((obj: any) => {
+          pageObjects.push({
+            id: obj.id,
+            name: obj.name,
+            content_type: obj.content_type,
+            size_bytes: obj.size_bytes,
+            state: obj.state,
+            is_public: obj.is_public,
+            create_time_ms: obj.create_time_ms,
+            delete_after_time_ms: obj.delete_after_time_ms,
           });
         });
       }
 
-      const result = {
-        items: pageSnapshots,
-        hasMore: page.has_more || false,
-        totalCount: page.total_count || pageSnapshots.length,
+      // Access pagination properties from the result
+      const pageResult = result as unknown as {
+        objects: unknown[];
+        total_count?: number;
+        has_more?: boolean;
       };
 
-      return result;
+      return {
+        items: pageObjects,
+        hasMore: pageResult.has_more || false,
+        totalCount: pageResult.total_count || pageObjects.length,
+      };
     },
-    [devboxId],
+    [],
   );
 
   // Use the shared pagination hook
   const {
-    items: snapshots,
+    items: objects,
     loading,
     navigating,
     error,
@@ -154,17 +190,17 @@ const ListSnapshotsUI = ({
   } = useCursorPagination({
     fetchPage,
     pageSize: PAGE_SIZE,
-    getItemId: (snapshot: SnapshotListItem) => snapshot.id,
+    getItemId: (obj: ObjectListItem) => obj.id,
     pollInterval: 2000,
     pollingEnabled:
       !showPopup &&
       !executingOperation &&
-      !showCreateDevbox &&
+      !showDownloadPrompt &&
       !showDeleteConfirm,
-    deps: [devboxId, PAGE_SIZE],
+    deps: [PAGE_SIZE],
   });
 
-  // Operations for snapshots
+  // Operations for objects
   const operations: Operation[] = React.useMemo(
     () => [
       {
@@ -174,14 +210,14 @@ const ListSnapshotsUI = ({
         icon: figures.pointer,
       },
       {
-        key: "create_devbox",
-        label: "Create Devbox from Snapshot",
+        key: "download",
+        label: "Download",
         color: colors.success,
-        icon: figures.play,
+        icon: figures.arrowDown,
       },
       {
         key: "delete",
-        label: "Delete Snapshot",
+        label: "Delete",
         color: colors.error,
         icon: figures.cross,
       },
@@ -192,42 +228,60 @@ const ListSnapshotsUI = ({
   // Build columns
   const columns = React.useMemo(
     () => [
-      createTextColumn(
-        "id",
-        "ID",
-        (snapshot: SnapshotListItem) => snapshot.id,
-        {
-          width: idWidth + 1,
-          color: colors.idColor,
-          dimColor: false,
-          bold: false,
-        },
-      ),
+      createTextColumn("id", "ID", (obj: ObjectListItem) => obj.id, {
+        width: idWidth + 1,
+        color: colors.idColor,
+        dimColor: false,
+        bold: false,
+      }),
       createTextColumn(
         "name",
         "Name",
-        (snapshot: SnapshotListItem) => snapshot.name || "",
+        (obj: ObjectListItem) => obj.name || "",
         {
           width: nameWidth,
         },
       ),
       createTextColumn(
-        "devbox",
-        "Devbox",
-        (snapshot: SnapshotListItem) => snapshot.source_devbox_id || "",
+        "state",
+        "State",
+        (obj: ObjectListItem) => obj.state || "",
         {
-          width: devboxWidth,
-          color: colors.idColor,
+          width: stateWidth,
+          color: colors.warning,
           dimColor: false,
           bold: false,
-          visible: showDevboxIdColumn,
+        },
+      ),
+      createTextColumn(
+        "type",
+        "Type",
+        (obj: ObjectListItem) => obj.content_type || "",
+        {
+          width: typeWidth,
+          color: colors.textDim,
+          dimColor: false,
+          bold: false,
+          visible: showTypeColumn,
+        },
+      ),
+      createTextColumn(
+        "size",
+        "Size",
+        (obj: ObjectListItem) => formatFileSize(obj.size_bytes),
+        {
+          width: sizeWidth,
+          color: colors.textDim,
+          dimColor: false,
+          bold: false,
+          visible: showSizeColumn,
         },
       ),
       createTextColumn(
         "created",
         "Created",
-        (snapshot: SnapshotListItem) =>
-          snapshot.create_time_ms ? formatTimeAgo(snapshot.create_time_ms) : "",
+        (obj: ObjectListItem) =>
+          obj.create_time_ms ? formatTimeAgo(obj.create_time_ms) : "",
         {
           width: timeWidth,
           color: colors.textDim,
@@ -235,8 +289,32 @@ const ListSnapshotsUI = ({
           bold: false,
         },
       ),
+      createTextColumn(
+        "ttl",
+        "Expires",
+        (obj: ObjectListItem) => formatTtl(obj.delete_after_time_ms),
+        {
+          width: ttlWidth,
+          color: colors.warning,
+          dimColor: false,
+          bold: false,
+          visible: showTtlColumn,
+        },
+      ),
     ],
-    [idWidth, nameWidth, devboxWidth, timeWidth, showDevboxIdColumn],
+    [
+      idWidth,
+      nameWidth,
+      stateWidth,
+      typeWidth,
+      sizeWidth,
+      timeWidth,
+      ttlWidth,
+      showTypeColumn,
+      showSizeColumn,
+      showTtlColumn,
+      formatTtl,
+    ],
   );
 
   // Handle Ctrl+C to exit
@@ -244,38 +322,69 @@ const ListSnapshotsUI = ({
 
   // Ensure selected index is within bounds
   React.useEffect(() => {
-    if (snapshots.length > 0 && selectedIndex >= snapshots.length) {
-      setSelectedIndex(Math.max(0, snapshots.length - 1));
+    if (objects.length > 0 && selectedIndex >= objects.length) {
+      setSelectedIndex(Math.max(0, objects.length - 1));
     }
-  }, [snapshots.length, selectedIndex]);
+  }, [objects.length, selectedIndex]);
 
-  const selectedSnapshotItem = snapshots[selectedIndex];
+  const selectedObjectItem = objects[selectedIndex];
 
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + snapshots.length;
+  const endIndex = startIndex + objects.length;
 
   const executeOperation = async (
-    snapshot: SnapshotListItem,
+    obj: ObjectListItem,
     operationKey: string,
+    targetPath?: string,
   ) => {
     const client = getClient();
 
-    if (!snapshot) return;
+    if (!obj) return;
 
     try {
       setOperationLoading(true);
       switch (operationKey) {
         case "delete":
-          await client.devboxes.deleteDiskSnapshot(snapshot.id);
-          setOperationResult(`Snapshot ${snapshot.id} deleted successfully`);
+          await client.objects.delete(obj.id);
+          setOperationResult(`Storage object ${obj.id} deleted successfully`);
           break;
+        case "download": {
+          if (!targetPath) {
+            setOperationError(new Error("No download path specified"));
+            break;
+          }
+          // Get download URL
+          const downloadUrlResponse = await client.objects.download(obj.id, {
+            duration_seconds: 3600,
+          });
+          // Download the file
+          const response = await fetch(downloadUrlResponse.download_url);
+          if (!response.ok) {
+            throw new Error(`Download failed: HTTP ${response.status}`);
+          }
+          // Save the file
+          const arrayBuffer = await response.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          await writeFile(targetPath, buffer);
+          setOperationResult(`Downloaded to ${targetPath}`);
+          break;
+        }
       }
     } catch (err) {
       setOperationError(err as Error);
     } finally {
       setOperationLoading(false);
+    }
+  };
+
+  // Handle download submission
+  const handleDownloadSubmit = () => {
+    if (downloadPath.trim() && selectedObject) {
+      setShowDownloadPrompt(false);
+      setExecutingOperation("download");
+      executeOperation(selectedObject, "download", downloadPath.trim());
     }
   };
 
@@ -288,8 +397,9 @@ const ListSnapshotsUI = ({
         setOperationResult(null);
         setOperationError(null);
         setExecutingOperation(null);
-        setSelectedSnapshot(null);
+        setSelectedObject(null);
         // Refresh the list after delete to show updated data
+        // Use setTimeout to ensure state updates are applied first
         if (wasDelete && !hadError) {
           setTimeout(() => refresh(), 0);
         }
@@ -297,8 +407,15 @@ const ListSnapshotsUI = ({
       return;
     }
 
-    // Handle create devbox view
-    if (showCreateDevbox) {
+    // Handle download prompt
+    if (showDownloadPrompt) {
+      if (key.escape) {
+        setShowDownloadPrompt(false);
+        setDownloadPath("");
+        setSelectedObject(null);
+      } else if (key.return) {
+        handleDownloadSubmit();
+      }
       return;
     }
 
@@ -313,51 +430,56 @@ const ListSnapshotsUI = ({
         const operationKey = operations[selectedOperation].key;
 
         if (operationKey === "view_details") {
-          navigate("snapshot-detail", {
-            snapshotId: selectedSnapshotItem.id,
+          navigate("object-detail", {
+            objectId: selectedObjectItem.id,
           });
-        } else if (operationKey === "create_devbox") {
-          setSelectedSnapshot(selectedSnapshotItem);
-          setShowCreateDevbox(true);
+        } else if (operationKey === "download") {
+          // Show download prompt
+          setSelectedObject(selectedObjectItem);
+          const defaultName = selectedObjectItem.name || selectedObjectItem.id;
+          setDownloadPath(`./${defaultName}`);
+          setShowDownloadPrompt(true);
         } else if (operationKey === "delete") {
           // Show delete confirmation
-          setSelectedSnapshot(selectedSnapshotItem);
+          setSelectedObject(selectedObjectItem);
           setShowDeleteConfirm(true);
         } else {
-          setSelectedSnapshot(selectedSnapshotItem);
+          setSelectedObject(selectedObjectItem);
           setExecutingOperation(operationKey);
-          // Execute immediately with values passed directly
-          executeOperation(selectedSnapshotItem, operationKey);
+          // Execute immediately with the object and operation passed directly
+          executeOperation(selectedObjectItem, operationKey);
         }
-      } else if (input === "v" && selectedSnapshotItem) {
+      } else if (input === "v" && selectedObjectItem) {
         // View details hotkey
         setShowPopup(false);
-        navigate("snapshot-detail", {
-          snapshotId: selectedSnapshotItem.id,
+        navigate("object-detail", {
+          objectId: selectedObjectItem.id,
         });
       } else if (key.escape || input === "q") {
         setShowPopup(false);
         setSelectedOperation(0);
-      } else if (input === "c") {
-        // Create devbox hotkey
+      } else if (input === "w") {
+        // Download hotkey - show prompt
         setShowPopup(false);
-        setSelectedSnapshot(selectedSnapshotItem);
-        setShowCreateDevbox(true);
+        setSelectedObject(selectedObjectItem);
+        const defaultName = selectedObjectItem.name || selectedObjectItem.id;
+        setDownloadPath(`./${defaultName}`);
+        setShowDownloadPrompt(true);
       } else if (input === "d") {
         // Delete hotkey - show confirmation
         setShowPopup(false);
-        setSelectedSnapshot(selectedSnapshotItem);
+        setSelectedObject(selectedObjectItem);
         setShowDeleteConfirm(true);
       }
       return;
     }
 
-    const pageSnapshots = snapshots.length;
+    const pageObjects = objects.length;
 
     // Handle list view navigation
     if (key.upArrow && selectedIndex > 0) {
       setSelectedIndex(selectedIndex - 1);
-    } else if (key.downArrow && selectedIndex < pageSnapshots - 1) {
+    } else if (key.downArrow && selectedIndex < pageObjects - 1) {
       setSelectedIndex(selectedIndex + 1);
     } else if (
       (input === "n" || key.rightArrow) &&
@@ -375,12 +497,12 @@ const ListSnapshotsUI = ({
     ) {
       prevPage();
       setSelectedIndex(0);
-    } else if (key.return && selectedSnapshotItem) {
+    } else if (key.return && selectedObjectItem) {
       // Enter key navigates to detail view
-      navigate("snapshot-detail", {
-        snapshotId: selectedSnapshotItem.id,
+      navigate("object-detail", {
+        objectId: selectedObjectItem.id,
       });
-    } else if (input === "a" && selectedSnapshotItem) {
+    } else if (input === "a" && selectedObjectItem) {
       setShowPopup(true);
       setSelectedOperation(0);
     } else if (key.escape) {
@@ -403,10 +525,9 @@ const ListSnapshotsUI = ({
       <>
         <Breadcrumb
           items={[
-            { label: "Snapshots" },
+            { label: "Storage Objects" },
             {
-              label:
-                selectedSnapshot?.name || selectedSnapshot?.id || "Snapshot",
+              label: selectedObject?.name || selectedObject?.id || "Object",
             },
             { label: operationLabel, active: true },
           ]}
@@ -421,45 +542,92 @@ const ListSnapshotsUI = ({
     );
   }
 
+  // Download prompt
+  if (showDownloadPrompt && selectedObject) {
+    return (
+      <>
+        <Breadcrumb
+          items={[
+            { label: "Storage Objects" },
+            { label: selectedObject.name || selectedObject.id },
+            { label: "Download", active: true },
+          ]}
+        />
+        <Header title="Download Storage Object" />
+        <Box flexDirection="column" marginTop={1}>
+          <Text color={colors.text}>
+            {figures.arrowRight} Downloading:{" "}
+            <Text color={colors.primary}>
+              {selectedObject.name || selectedObject.id}
+            </Text>
+          </Text>
+          {selectedObject.size_bytes && (
+            <Text color={colors.textDim} dimColor>
+              {figures.info} Size: {formatFileSize(selectedObject.size_bytes)}
+            </Text>
+          )}
+        </Box>
+        <Box marginTop={1} flexDirection="column">
+          <Text color={colors.text}>Save to path:</Text>
+          <Box marginTop={0}>
+            <Text color={colors.primary}>{figures.pointer} </Text>
+            <TextInput
+              value={downloadPath}
+              onChange={setDownloadPath}
+              placeholder="./filename"
+            />
+          </Box>
+        </Box>
+        <NavigationTips
+          tips={[
+            { key: "Enter", label: "Download" },
+            { key: "Esc", label: "Cancel" },
+          ]}
+        />
+      </>
+    );
+  }
+
   // Delete confirmation
-  if (showDeleteConfirm && selectedSnapshot) {
+  if (showDeleteConfirm && selectedObject) {
     return (
       <ConfirmationPrompt
-        title="Delete Snapshot"
-        message={`Are you sure you want to delete "${selectedSnapshot.name || selectedSnapshot.id}"?`}
+        title="Delete Storage Object"
+        message={`Are you sure you want to delete "${selectedObject.name || selectedObject.id}"?`}
         details="This action cannot be undone."
         breadcrumbItems={[
-          { label: "Snapshots" },
-          { label: selectedSnapshot.name || selectedSnapshot.id },
+          { label: "Storage Objects" },
+          { label: selectedObject.name || selectedObject.id },
           { label: "Delete", active: true },
         ]}
         onConfirm={() => {
           setShowDeleteConfirm(false);
           setExecutingOperation("delete");
-          executeOperation(selectedSnapshot, "delete");
+          executeOperation(selectedObject, "delete");
         }}
         onCancel={() => {
           setShowDeleteConfirm(false);
-          setSelectedSnapshot(null);
+          setSelectedObject(null);
         }}
       />
     );
   }
 
   // Operation loading state
-  if (operationLoading && selectedSnapshot) {
+  if (operationLoading && selectedObject) {
     const operationLabel =
       operations.find((o) => o.key === executingOperation)?.label ||
       "Operation";
     const messages: Record<string, string> = {
-      delete: "Deleting snapshot...",
+      delete: "Deleting storage object...",
+      download: "Downloading...",
     };
     return (
       <>
         <Breadcrumb
           items={[
-            { label: "Snapshots" },
-            { label: selectedSnapshot.name || selectedSnapshot.id },
+            { label: "Storage Objects" },
+            { label: selectedObject.name || selectedObject.id },
             { label: operationLabel, active: true },
           ]}
         />
@@ -471,37 +639,12 @@ const ListSnapshotsUI = ({
     );
   }
 
-  // Create devbox screen
-  if (showCreateDevbox && selectedSnapshot) {
-    return (
-      <DevboxCreatePage
-        onBack={() => {
-          setShowCreateDevbox(false);
-          setSelectedSnapshot(null);
-        }}
-        onCreate={(devbox) => {
-          setShowCreateDevbox(false);
-          setSelectedSnapshot(null);
-          navigate("devbox-detail", { devboxId: devbox.id });
-        }}
-        initialSnapshotId={selectedSnapshot.id}
-      />
-    );
-  }
-
   // Loading state
-  if (loading && snapshots.length === 0) {
+  if (loading && objects.length === 0) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "Snapshots", active: !devboxId },
-            ...(devboxId
-              ? [{ label: `Devbox: ${devboxId}`, active: true }]
-              : []),
-          ]}
-        />
-        <SpinnerComponent message="Loading snapshots..." />
+        <Breadcrumb items={[{ label: "Storage Objects", active: true }]} />
+        <SpinnerComponent message="Loading storage objects..." />
       </>
     );
   }
@@ -510,15 +653,8 @@ const ListSnapshotsUI = ({
   if (error) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "Snapshots", active: !devboxId },
-            ...(devboxId
-              ? [{ label: `Devbox: ${devboxId}`, active: true }]
-              : []),
-          ]}
-        />
-        <ErrorMessage message="Failed to list snapshots" error={error} />
+        <Breadcrumb items={[{ label: "Storage Objects", active: true }]} />
+        <ErrorMessage message="Failed to list storage objects" error={error} />
       </>
     );
   }
@@ -526,25 +662,20 @@ const ListSnapshotsUI = ({
   // Main list view
   return (
     <>
-      <Breadcrumb
-        items={[
-          { label: "Snapshots", active: !devboxId },
-          ...(devboxId ? [{ label: `Devbox: ${devboxId}`, active: true }] : []),
-        ]}
-      />
+      <Breadcrumb items={[{ label: "Storage Objects", active: true }]} />
 
       {/* Table - hide when popup is shown */}
       {!showPopup && (
         <Table
-          data={snapshots}
-          keyExtractor={(snapshot: SnapshotListItem) => snapshot.id}
+          data={objects}
+          keyExtractor={(obj: ObjectListItem) => obj.id}
           selectedIndex={selectedIndex}
-          title={`snapshots[${totalCount}]`}
+          title={`storage_objects[${totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
-              {figures.info} No snapshots found. Try: rli snapshot create{" "}
-              {"<devbox-id>"}
+              {figures.info} No storage objects found. Try: rli object upload{" "}
+              {"<file>"}
             </Text>
           }
         />
@@ -588,10 +719,10 @@ const ListSnapshotsUI = ({
       )}
 
       {/* Actions Popup */}
-      {showPopup && selectedSnapshotItem && (
+      {showPopup && selectedObjectItem && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            devbox={selectedSnapshotItem}
+            devbox={selectedObjectItem}
             operations={operations.map((op) => ({
               key: op.key,
               label: op.label,
@@ -600,8 +731,8 @@ const ListSnapshotsUI = ({
               shortcut:
                 op.key === "view_details"
                   ? "v"
-                  : op.key === "create_devbox"
-                    ? "c"
+                  : op.key === "download"
+                    ? "w"
                     : op.key === "delete"
                       ? "d"
                       : "",
@@ -631,9 +762,9 @@ const ListSnapshotsUI = ({
 };
 
 // Export the UI component for use in the main menu
-export { ListSnapshotsUI };
+export { ListObjectsUI };
 
-export async function listSnapshots(options: ListOptions) {
+export async function listObjects(options: ListOptions) {
   try {
     const client = getClient();
 
@@ -641,20 +772,27 @@ export async function listSnapshots(options: ListOptions) {
     const queryParams: Record<string, unknown> = {
       limit: DEFAULT_PAGE_SIZE,
     };
-    if (options.devbox) {
-      queryParams.devbox_id = options.devbox;
+    if (options.name) {
+      queryParams.name = options.name;
+    }
+    if (options.contentType) {
+      queryParams.content_type = options.contentType;
+    }
+    if (options.state) {
+      queryParams.state = options.state;
+    }
+    if (options.public !== undefined) {
+      queryParams.is_public = options.public;
     }
 
-    // Fetch snapshots
-    const page = (await client.devboxes.listDiskSnapshots(
-      queryParams,
-    )) as DiskSnapshotsCursorIDPage<{ id: string }>;
+    // Fetch objects
+    const result = await client.objects.list(queryParams);
 
-    // Extract snapshots array
-    const snapshots = page.snapshots || [];
+    // Extract objects array
+    const objects = result.objects || [];
 
-    output(snapshots, { format: options.output, defaultFormat: "json" });
+    output(objects, { format: options.output, defaultFormat: "json" });
   } catch (error) {
-    outputError("Failed to list snapshots", error);
+    outputError("Failed to list storage objects", error);
   }
 }

@@ -20,8 +20,28 @@ interface ViewportDimensions {
 }
 
 /**
+ * Get safe terminal dimensions with bounds checking
+ */
+function getSafeDimensions(
+  stdout: { columns?: number; rows?: number } | undefined,
+): {
+  width: number;
+  height: number;
+} {
+  const sampledWidth =
+    stdout?.columns && stdout.columns > 0 ? stdout.columns : 120;
+  const sampledHeight = stdout?.rows && stdout.rows > 0 ? stdout.rows : 30;
+
+  return {
+    width: Math.max(80, Math.min(300, sampledWidth)),
+    height: Math.max(20, Math.min(100, sampledHeight)),
+  };
+}
+
+/**
  * Custom hook to calculate available viewport height for content rendering.
  * Ensures consistent layout calculations across all CLI screens and prevents overflow.
+ * Responds to terminal resize events to update layout dynamically.
  *
  * @param options Configuration for viewport calculation
  * @returns Viewport dimensions including available height for content
@@ -38,37 +58,48 @@ export function useViewportHeight(
   const { overhead = 0, minHeight = 5, maxHeight = 100 } = options;
   const { stdout } = useStdout();
 
-  // Sample terminal dimensions ONCE and use fixed values - no reactive dependencies
-  // This prevents re-renders and Yoga WASM crashes from dynamic resizing
-  // CRITICAL: Initialize with safe fallback values to prevent null/undefined
-  const dimensions = React.useRef<{ width: number; height: number }>({
-    width: 120,
-    height: 30,
-  });
+  // Use state to track dimensions so we can respond to resize events
+  const [dimensions, setDimensions] = React.useState(() =>
+    getSafeDimensions(stdout),
+  );
 
-  // Only sample on first call when still at default values
-  if (dimensions.current.width === 120 && dimensions.current.height === 30) {
-    // Only sample if stdout has valid dimensions
-    const sampledWidth =
-      stdout?.columns && stdout.columns > 0 ? stdout.columns : 120;
-    const sampledHeight = stdout?.rows && stdout.rows > 0 ? stdout.rows : 30;
+  // Listen for terminal resize events
+  React.useEffect(() => {
+    if (!stdout) return;
 
-    // Always enforce safe bounds to prevent Yoga crashes
-    dimensions.current = {
-      width: Math.max(80, Math.min(200, sampledWidth)),
-      height: Math.max(20, Math.min(100, sampledHeight)),
+    const handleResize = () => {
+      const newDimensions = getSafeDimensions(stdout);
+      setDimensions((prev) => {
+        // Only update if dimensions actually changed
+        if (
+          prev.width !== newDimensions.width ||
+          prev.height !== newDimensions.height
+        ) {
+          return newDimensions;
+        }
+        return prev;
+      });
     };
-  }
 
-  const terminalHeight = dimensions.current.height;
-  const terminalWidth = dimensions.current.width;
+    // Listen for resize events
+    stdout.on("resize", handleResize);
+
+    // Also check dimensions on mount in case they differ from initial
+    handleResize();
+
+    return () => {
+      stdout.off("resize", handleResize);
+    };
+  }, [stdout]);
+
+  const terminalHeight = dimensions.height;
+  const terminalWidth = dimensions.width;
 
   // Calculate viewport height with bounds
   const viewportHeight = Math.max(
     minHeight,
     Math.min(maxHeight, terminalHeight - overhead),
   );
-  // Removed console.logs to prevent rendering interference
 
   return {
     viewportHeight,

@@ -8,6 +8,7 @@ import { SpinnerComponent } from "../../components/Spinner.js";
 import { ErrorMessage } from "../../components/ErrorMessage.js";
 import { getStatusDisplay } from "../../components/StatusBadge.js";
 import { Breadcrumb } from "../../components/Breadcrumb.js";
+import { NavigationTips } from "../../components/NavigationTips.js";
 import type { Column } from "../../components/Table.js";
 import { Table, createTextColumn } from "../../components/Table.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
@@ -154,49 +155,31 @@ const ListDevboxesUI = ({
   // ID is always full width (25 chars for dbx_31CYd5LLFbBxst8mqnUjO format)
   const idWidth = 26;
 
-  // Responsive layout based on terminal width (simplified like blueprint list)
-  const showCapabilities = terminalWidth >= 140;
-  const showSource = terminalWidth >= 120;
+  // Responsive layout - hide less important columns on smaller screens
+  // Priority (most to least important): ID, Name, Status, Created, Source, Capabilities
+  const showCapabilities = terminalWidth >= 160;
+  const showSource = terminalWidth >= 135;
+  const showCreated = terminalWidth >= 100;
 
   // CRITICAL: Absolute maximum column widths to prevent Yoga crashes
   const ABSOLUTE_MAX_NAME_WIDTH = 80;
 
   // Name width is flexible and uses remaining space
-  let nameWidth = 15;
-  if (terminalWidth >= 120) {
-    const remainingWidth =
-      terminalWidth -
-      fixedWidth -
-      statusIconWidth -
-      idWidth -
-      statusTextWidth -
-      timeWidth -
-      capabilitiesWidth -
-      sourceWidth -
-      12;
-    nameWidth = Math.min(ABSOLUTE_MAX_NAME_WIDTH, Math.max(15, remainingWidth));
-  } else if (terminalWidth >= 110) {
-    const remainingWidth =
-      terminalWidth -
-      fixedWidth -
-      statusIconWidth -
-      idWidth -
-      statusTextWidth -
-      timeWidth -
-      sourceWidth -
-      10;
-    nameWidth = Math.min(ABSOLUTE_MAX_NAME_WIDTH, Math.max(12, remainingWidth));
-  } else {
-    const remainingWidth =
-      terminalWidth -
-      fixedWidth -
-      statusIconWidth -
-      idWidth -
-      statusTextWidth -
-      timeWidth -
-      10;
-    nameWidth = Math.min(ABSOLUTE_MAX_NAME_WIDTH, Math.max(8, remainingWidth));
-  }
+  // Only subtract widths of columns that are actually shown
+  const baseWidth =
+    fixedWidth +
+    statusIconWidth +
+    idWidth +
+    statusTextWidth +
+    (showCreated ? timeWidth : 0) +
+    6; // border + padding
+  const optionalWidth =
+    (showSource ? sourceWidth : 0) + (showCapabilities ? capabilitiesWidth : 0);
+  const remainingWidth = terminalWidth - baseWidth - optionalWidth;
+  const nameWidth = Math.min(
+    ABSOLUTE_MAX_NAME_WIDTH,
+    Math.max(15, remainingWidth),
+  );
 
   // Build responsive column list (memoized to prevent recreating on every render)
   const tableColumns = React.useMemo(() => {
@@ -211,13 +194,9 @@ const ListDevboxesUI = ({
         width: statusIconWidth,
         render: (devbox: Devbox, _index: number, isSelected: boolean) => {
           const statusDisplay = getStatusDisplay(devbox?.status);
-          const statusColor =
-            statusDisplay.color === colors.textDim
-              ? colors.info
-              : statusDisplay.color;
           return (
             <Text
-              color={isSelected ? "white" : statusColor}
+              color={isSelected ? "white" : statusDisplay.color}
               bold={true}
               dimColor={false}
               inverse={isSelected}
@@ -228,21 +207,6 @@ const ListDevboxesUI = ({
           );
         },
       },
-      createTextColumn(
-        "name",
-        "Name",
-        (devbox: Devbox) => {
-          const name = String(devbox?.name || "");
-          const safeMax = Math.min(nameWidth || 15, ABSOLUTE_MAX_NAME);
-          return name.length > safeMax
-            ? name.substring(0, Math.max(1, safeMax - 3)) + "..."
-            : name;
-        },
-        {
-          width: Math.min(nameWidth || 15, ABSOLUTE_MAX_NAME),
-          dimColor: false,
-        },
-      ),
       createTextColumn(
         "id",
         "ID",
@@ -260,6 +224,21 @@ const ListDevboxesUI = ({
           bold: false,
         },
       ),
+      createTextColumn(
+        "name",
+        "Name",
+        (devbox: Devbox) => {
+          const name = String(devbox?.name || "");
+          const safeMax = Math.min(nameWidth || 15, ABSOLUTE_MAX_NAME);
+          return name.length > safeMax
+            ? name.substring(0, Math.max(1, safeMax - 3)) + "..."
+            : name;
+        },
+        {
+          width: Math.min(nameWidth || 15, ABSOLUTE_MAX_NAME),
+          dimColor: false,
+        },
+      ),
       // Status text column with color matching the icon
       {
         key: "status",
@@ -267,16 +246,12 @@ const ListDevboxesUI = ({
         width: statusTextWidth,
         render: (devbox: Devbox, _index: number, isSelected: boolean) => {
           const statusDisplay = getStatusDisplay(devbox?.status);
-          const statusColor =
-            statusDisplay.color === colors.textDim
-              ? colors.info
-              : statusDisplay.color;
           const safeWidth = Math.max(1, statusTextWidth);
           const truncated = statusDisplay.text.slice(0, safeWidth);
           const padded = truncated.padEnd(safeWidth, " ");
           return (
             <Text
-              color={isSelected ? "white" : statusColor}
+              color={isSelected ? "white" : statusDisplay.color}
               bold={true}
               dimColor={false}
               inverse={isSelected}
@@ -299,6 +274,7 @@ const ListDevboxesUI = ({
           width: timeWidth,
           color: colors.textDim,
           dimColor: false,
+          visible: showCreated,
         },
       ),
     ];
@@ -308,15 +284,7 @@ const ListDevboxesUI = ({
         createTextColumn(
           "source",
           "Source",
-          (devbox: Devbox) => {
-            if (devbox?.blueprint_id) {
-              const bpId = String(devbox.blueprint_id);
-              const truncated = bpId.slice(0, 16);
-              const text = `${truncated}`;
-              return text.length > 30 ? text.substring(0, 27) + "..." : text;
-            }
-            return "-";
-          },
+          (devbox: Devbox) => devbox?.blueprint_id || "-",
           {
             width: sourceWidth,
             color: colors.textDim,
@@ -352,6 +320,7 @@ const ListDevboxesUI = ({
     idWidth,
     statusTextWidth,
     timeWidth,
+    showCreated,
     showSource,
     sourceWidth,
     showCapabilities,
@@ -707,6 +676,11 @@ const ListDevboxesUI = ({
           selectedIndex={selectedIndex}
           title="devboxes"
           columns={tableColumns}
+          emptyState={
+            <Text color={colors.textDim}>
+              {figures.info} No devboxes found. Press [c] to create one.
+            </Text>
+          }
         />
       )}
 
@@ -771,45 +745,22 @@ const ListDevboxesUI = ({
       )}
 
       {/* Help Bar */}
-      <Box marginTop={1} paddingX={1}>
-        <Text color={colors.textDim} dimColor>
-          {figures.arrowUp}
-          {figures.arrowDown} Navigate
-        </Text>
-        {(hasMore || hasPrev) && (
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            • {figures.arrowLeft}
-            {figures.arrowRight} Page
-          </Text>
-        )}
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          • [Enter] Details
-        </Text>
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          • [a] Actions
-        </Text>
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          • [c] Create
-        </Text>
-        {selectedDevbox && (
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            • [o] Open in Browser
-          </Text>
-        )}
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          • [/] Search
-        </Text>
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          • [Esc] Back
-        </Text>
-      </Box>
+      <NavigationTips
+        showArrows
+        tips={[
+          {
+            icon: `${figures.arrowLeft}${figures.arrowRight}`,
+            label: "Page",
+            condition: hasMore || hasPrev,
+          },
+          { key: "Enter", label: "Details" },
+          { key: "a", label: "Actions" },
+          { key: "c", label: "Create" },
+          { key: "o", label: "Open in Browser", condition: !!selectedDevbox },
+          { key: "/", label: "Search" },
+          { key: "Esc", label: "Back" },
+        ]}
+      />
     </>
   );
 };

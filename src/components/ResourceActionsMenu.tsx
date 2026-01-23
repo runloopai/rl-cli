@@ -3,6 +3,7 @@ import { Box, Text, useInput } from "ink";
 import figures from "figures";
 import { colors } from "../utils/theme.js";
 import { Breadcrumb } from "./Breadcrumb.js";
+import { NavigationTips } from "./NavigationTips.js";
 import { ActionsPopup } from "./ActionsPopup.js";
 import { DevboxActionsMenu } from "./DevboxActionsMenu.js";
 
@@ -201,9 +202,14 @@ export const ResourceActionsMenu = (props: ResourceActionsMenuProps) => {
             {selectedOp.inputPrompt || "Input:"}{" "}
           </Text>
           <Text> {operationInput}</Text>
-          <Text color={colors.textDim} dimColor>
-            Press [Enter] to execute • [q or esc] Cancel
-          </Text>
+          <NavigationTips
+            marginTop={0}
+            paddingX={0}
+            tips={[
+              { key: "Enter", label: "Execute" },
+              { key: "q/esc", label: "Cancel" },
+            ]}
+          />
         </Box>
       </>
     );

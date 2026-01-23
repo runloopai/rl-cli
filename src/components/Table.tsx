@@ -48,18 +48,16 @@ export function Table<T>({
 }: TableProps<T>) {
   // Safety: Handle null/undefined data
   if (!data || !Array.isArray(data)) {
-    return emptyState ? <>{emptyState}</> : null;
+    data = [];
   }
 
-  if (data.length === 0 && emptyState) {
-    return <>{emptyState}</>;
-  }
+  const isEmpty = data.length === 0;
 
   // Filter visible columns
   const visibleColumns = columns.filter((col) => col.visible !== false);
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" width="100%">
       {/* Title bar (if provided) */}
       {title && (
         <Box paddingX={1} marginBottom={0}>
@@ -72,12 +70,13 @@ export function Table<T>({
 
       <Box
         flexDirection="column"
+        width="100%"
         borderStyle={title ? "single" : "round"}
         borderColor={colors.border}
         paddingX={1}
       >
         {/* Header row */}
-        <Box>
+        <Box width="100%">
           {/* Space for selection pointer */}
           {showSelection && (
             <>
@@ -96,7 +95,28 @@ export function Table<T>({
               </Text>
             );
           })}
+          {/* Spacer to fill remaining width */}
+          <Box flexGrow={1} />
         </Box>
+
+        {/* Empty state row */}
+        {isEmpty && (
+          <Box paddingY={1} width="100%">
+            {showSelection && (
+              <>
+                <Text> </Text>
+                <Text> </Text>
+              </>
+            )}
+            {emptyState || (
+              <Text color={colors.textDim} dimColor>
+                {figures.info} No items found
+              </Text>
+            )}
+            {/* Spacer to fill remaining width */}
+            <Box flexGrow={1} />
+          </Box>
+        )}
 
         {/* Data rows */}
         {data.map((row, index) => {
@@ -104,7 +124,7 @@ export function Table<T>({
           const rowKey = keyExtractor(row);
 
           return (
-            <Box key={rowKey}>
+            <Box key={rowKey} width="100%">
               {/* Selection pointer */}
               {showSelection && (
                 <>
@@ -121,6 +141,8 @@ export function Table<T>({
                   {column.render(row, index, isSelected)}
                 </React.Fragment>
               ))}
+              {/* Spacer to fill remaining width */}
+              <Box flexGrow={1} />
             </Box>
           );
         })}

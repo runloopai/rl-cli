@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { Box } from "ink";
+import React, { useState, useEffect, useRef } from "react";
+import { Box, Text } from "ink";
 import BigText from "ink-big-text";
 import Gradient from "ink-gradient";
 import { isLightMode } from "../utils/theme.js";
+import { useViewportHeight } from "../hooks/useViewportHeight.js";
 
 // Dramatic shades of green shimmer - wide range
 const DARK_SHIMMER_COLORS = [
@@ -75,24 +76,67 @@ const LIGHT_SHIMMER_COLORS = [
   "#045540", //
 ];
 
+// Pre-compute all rotated color frames at module load time
+const precomputeFrames = (colors: string[]): string[][] => {
+  return colors.map((_, i) => [...colors.slice(i), ...colors.slice(0, i)]);
+};
+
+// Use every 2nd color to reduce frame count and minimize flickering
+const DARK_FRAMES = precomputeFrames(
+  DARK_SHIMMER_COLORS.filter((_, i) => i % 2 === 0),
+);
+const LIGHT_FRAMES = precomputeFrames(
+  LIGHT_SHIMMER_COLORS.filter((_, i) => i % 2 === 0),
+);
+
+// Minimum width to show the full BigText banner (simple3d font needs ~80 chars for "RUNLOOP.ai")
+const MIN_WIDTH_FOR_BIG_BANNER = 90;
+
+// Animation interval in ms
+const SHIMMER_INTERVAL = 400;
+
 export const Banner = React.memo(() => {
-  const [offset, setOffset] = useState(0);
-  const colors = isLightMode() ? LIGHT_SHIMMER_COLORS : DARK_SHIMMER_COLORS;
+  const [frameIndex, setFrameIndex] = useState(0);
+  const frames = isLightMode() ? LIGHT_FRAMES : DARK_FRAMES;
+  const { terminalWidth } = useViewportHeight();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Determine if we should show compact mode
+  const isCompact = terminalWidth < MIN_WIDTH_FOR_BIG_BANNER;
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setOffset((prev) => (prev - 1 + colors.length) % colors.length);
-    }, 250); // Slower, more subtle shimmer
+    const tick = () => {
+      setFrameIndex((prev) => (prev + 1) % frames.length);
+      timeoutRef.current = setTimeout(tick, SHIMMER_INTERVAL);
+    };
 
-    return () => clearInterval(interval);
-  }, [colors.length]);
+    timeoutRef.current = setTimeout(tick, SHIMMER_INTERVAL);
 
-  // Create a subtle shimmer by shifting the color array
-  const rotatedColors = [...colors.slice(offset), ...colors.slice(0, offset)];
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [frames.length]);
 
+  // Use pre-computed frame - no array operations during render
+  const currentColors = frames[frameIndex];
+
+  // Compact banner for narrow terminals
+  if (isCompact) {
+    return (
+      <Box flexDirection="column" alignItems="flex-start" paddingX={1}>
+        <Gradient colors={currentColors}>
+          <Text bold>◆ RUNLOOP.ai</Text>
+        </Gradient>
+      </Box>
+    );
+  }
+
+  // Full banner for wide terminals
   return (
     <Box flexDirection="column" alignItems="flex-start" paddingX={1}>
-      <Gradient colors={rotatedColors}>
+      <Gradient colors={currentColors}>
         <BigText text="RUNLOOP.ai" font="simple3d" />
       </Gradient>
     </Box>

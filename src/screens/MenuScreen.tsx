@@ -19,6 +19,12 @@ export function MenuScreen() {
       case "snapshots":
         navigate("snapshot-list");
         break;
+      case "network-policies":
+        navigate("network-policy-list");
+        break;
+      case "objects":
+        navigate("object-list");
+        break;
       default:
         // Fallback for any other screen names
         navigate(key as ScreenName);

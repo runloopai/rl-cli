@@ -9,6 +9,7 @@ import { SpinnerComponent } from "../../components/Spinner.js";
 import { ErrorMessage } from "../../components/ErrorMessage.js";
 import { SuccessMessage } from "../../components/SuccessMessage.js";
 import { Breadcrumb } from "../../components/Breadcrumb.js";
+import { NavigationTips } from "../../components/NavigationTips.js";
 import { createTextColumn, Table } from "../../components/Table.js";
 import { Operation } from "../../components/OperationsMenu.js";
 import { ActionsPopup } from "../../components/ActionsPopup.js";
@@ -22,10 +23,16 @@ import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
 import { useNavigation } from "../../store/navigationStore.js";
+import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
 
 const DEFAULT_PAGE_SIZE = 10;
 
-type OperationType = "create_devbox" | "delete" | "view_logs" | null;
+type OperationType =
+  | "create_devbox"
+  | "delete"
+  | "view_logs"
+  | "view_details"
+  | null;
 
 // Local interface for blueprint data used in this component
 interface BlueprintListItem {
@@ -61,6 +68,7 @@ const ListBlueprintsUI = ({
   );
   const [operationLoading, setOperationLoading] = React.useState(false);
   const [showCreateDevbox, setShowCreateDevbox] = React.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showPopup, setShowPopup] = React.useState(false);
   const { navigate } = useNavigation();
@@ -75,13 +83,20 @@ const ListBlueprintsUI = ({
   const PAGE_SIZE = viewportHeight;
 
   // All width constants
+  const fixedWidth = 6; // border + padding
   const statusIconWidth = 2;
   const statusTextWidth = 10;
   const idWidth = 25;
-  const nameWidth = Math.max(15, terminalWidth >= 120 ? 30 : 25);
   const descriptionWidth = 40;
   const timeWidth = 20;
   const showDescription = terminalWidth >= 120;
+
+  // Name width uses remaining space after fixed columns
+  const baseWidth =
+    fixedWidth + statusIconWidth + statusTextWidth + idWidth + timeWidth;
+  const optionalWidth = showDescription ? descriptionWidth : 0;
+  const remainingWidth = terminalWidth - baseWidth - optionalWidth;
+  const nameWidth = Math.min(80, Math.max(15, remainingWidth));
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
@@ -142,7 +157,11 @@ const ListBlueprintsUI = ({
     pageSize: PAGE_SIZE,
     getItemId: (blueprint: BlueprintListItem) => blueprint.id,
     pollInterval: 2000,
-    pollingEnabled: !showPopup && !showCreateDevbox && !executingOperation,
+    pollingEnabled:
+      !showPopup &&
+      !showCreateDevbox &&
+      !executingOperation &&
+      !showDeleteConfirm,
     deps: [PAGE_SIZE],
   });
 
@@ -159,13 +178,9 @@ const ListBlueprintsUI = ({
           isSelected: boolean,
         ) => {
           const statusDisplay = getStatusDisplay(blueprint.status || "");
-          const statusColor =
-            statusDisplay.color === colors.textDim
-              ? colors.info
-              : statusDisplay.color;
           return (
             <Text
-              color={isSelected ? "white" : statusColor}
+              color={isSelected ? "white" : statusDisplay.color}
               bold={true}
               dimColor={false}
               inverse={isSelected}
@@ -212,16 +227,12 @@ const ListBlueprintsUI = ({
           isSelected: boolean,
         ) => {
           const statusDisplay = getStatusDisplay(blueprint.status || "");
-          const statusColor =
-            statusDisplay.color === colors.textDim
-              ? colors.info
-              : statusDisplay.color;
           const safeWidth = Math.max(1, statusTextWidth);
           const truncated = statusDisplay.text.slice(0, safeWidth);
           const padded = truncated.padEnd(safeWidth, " ");
           return (
             <Text
-              color={isSelected ? "white" : statusColor}
+              color={isSelected ? "white" : statusDisplay.color}
               bold={true}
               dimColor={false}
               inverse={isSelected}
@@ -272,6 +283,14 @@ const ListBlueprintsUI = ({
     blueprint: BlueprintListItem,
   ): Operation[] => {
     const operations: Operation[] = [];
+
+    // View Details is always first
+    operations.push({
+      key: "view_details",
+      label: "View Details",
+      color: colors.primary,
+      icon: figures.pointer,
+    });
 
     // View Logs is always available
     operations.push({
@@ -347,6 +366,15 @@ const ListBlueprintsUI = ({
     try {
       setOperationLoading(true);
       switch (operation) {
+        case "view_details":
+          // Navigate to the detail screen
+          setOperationLoading(false);
+          setExecutingOperation(null);
+          navigate("blueprint-detail", {
+            blueprintId: blueprint.id,
+          });
+          return;
+
         case "view_logs":
           // Navigate to the logs screen
           setOperationLoading(false);
@@ -438,9 +466,17 @@ const ListBlueprintsUI = ({
         setShowPopup(false);
         const operationKey = allOperations[selectedOperation].key;
 
-        if (operationKey === "create_devbox") {
+        if (operationKey === "view_details") {
+          navigate("blueprint-detail", {
+            blueprintId: selectedBlueprintItem.id,
+          });
+        } else if (operationKey === "create_devbox") {
           setSelectedBlueprint(selectedBlueprintItem);
           setShowCreateDevbox(true);
+        } else if (operationKey === "delete") {
+          // Show delete confirmation
+          setSelectedBlueprint(selectedBlueprintItem);
+          setShowDeleteConfirm(true);
         } else {
           setSelectedBlueprint(selectedBlueprintItem);
           setExecutingOperation(operationKey as OperationType);
@@ -449,6 +485,12 @@ const ListBlueprintsUI = ({
             operationKey as OperationType,
           );
         }
+      } else if (input === "v" && selectedBlueprintItem) {
+        // View details hotkey
+        setShowPopup(false);
+        navigate("blueprint-detail", {
+          blueprintId: selectedBlueprintItem.id,
+        });
       } else if (key.escape || input === "q") {
         setShowPopup(false);
         setSelectedOperation(0);
@@ -467,10 +509,10 @@ const ListBlueprintsUI = ({
           (op) => op.key === "delete",
         );
         if (deleteIndex >= 0) {
+          // Show delete confirmation
           setShowPopup(false);
           setSelectedBlueprint(selectedBlueprintItem);
-          setExecutingOperation("delete");
-          executeOperation(selectedBlueprintItem, "delete");
+          setShowDeleteConfirm(true);
         }
       } else if (input === "l") {
         const logsIndex = allOperations.findIndex(
@@ -509,6 +551,11 @@ const ListBlueprintsUI = ({
     ) {
       prevPage();
       setSelectedIndex(0);
+    } else if (key.return && selectedBlueprintItem) {
+      // Enter key navigates to detail view
+      navigate("blueprint-detail", {
+        blueprintId: selectedBlueprintItem.id,
+      });
     } else if (input === "a") {
       setShowPopup(true);
       setSelectedOperation(0);
@@ -543,6 +590,31 @@ const ListBlueprintsUI = ({
     }
   });
 
+  // Delete confirmation
+  if (showDeleteConfirm && selectedBlueprint) {
+    return (
+      <ConfirmationPrompt
+        title="Delete Blueprint"
+        message={`Are you sure you want to delete "${selectedBlueprint.name || selectedBlueprint.id}"?`}
+        details="This action cannot be undone."
+        breadcrumbItems={[
+          { label: "Blueprints" },
+          { label: selectedBlueprint.name || selectedBlueprint.id },
+          { label: "Delete", active: true },
+        ]}
+        onConfirm={() => {
+          setShowDeleteConfirm(false);
+          setExecutingOperation("delete");
+          executeOperation(selectedBlueprint, "delete");
+        }}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setSelectedBlueprint(null);
+        }}
+      />
+    );
+  }
+
   // Operation result display
   if (operationResult || operationError) {
     const operationLabel =
@@ -565,11 +637,7 @@ const ListBlueprintsUI = ({
         {operationError && (
           <ErrorMessage message="Operation failed" error={operationError} />
         )}
-        <Box marginTop={1}>
-          <Text color={colors.textDim} dimColor>
-            Press [Enter], [q], or [esc] to continue
-          </Text>
-        </Box>
+        <NavigationTips tips={[{ key: "Enter/q/esc", label: "Continue" }]} />
       </>
     );
   }
@@ -638,11 +706,14 @@ const ListBlueprintsUI = ({
                 placeholder={currentOp?.inputPlaceholder || ""}
               />
             </Box>
-            <Box marginTop={1}>
-              <Text color={colors.textDim} dimColor>
-                Press [Enter] to execute • [q or esc] Cancel
-              </Text>
-            </Box>
+            <NavigationTips
+              marginTop={1}
+              paddingX={0}
+              tips={[
+                { key: "Enter", label: "Execute" },
+                { key: "q/esc", label: "Cancel" },
+              ]}
+            />
           </Box>
         </>
       );
@@ -688,22 +759,6 @@ const ListBlueprintsUI = ({
     );
   }
 
-  // Empty state
-  if (blueprints.length === 0) {
-    return (
-      <>
-        <Breadcrumb items={[{ label: "Blueprints", active: true }]} />
-        <Box>
-          <Text color={colors.warning}>{figures.info}</Text>
-          <Text> No blueprints found. Try: </Text>
-          <Text color={colors.primary} bold>
-            rli blueprint create
-          </Text>
-        </Box>
-      </>
-    );
-  }
-
   // List view
   return (
     <>
@@ -717,6 +772,11 @@ const ListBlueprintsUI = ({
           selectedIndex={selectedIndex}
           title={`blueprints[${totalCount}]`}
           columns={blueprintColumns}
+          emptyState={
+            <Text color={colors.textDim}>
+              {figures.info} No blueprints found. Try: rli blueprint create
+            </Text>
+          }
         />
       )}
 
@@ -768,13 +828,15 @@ const ListBlueprintsUI = ({
               color: op.color,
               icon: op.icon,
               shortcut:
-                op.key === "create_devbox"
-                  ? "c"
-                  : op.key === "delete"
-                    ? "d"
-                    : op.key === "view_logs"
-                      ? "l"
-                      : "",
+                op.key === "view_details"
+                  ? "v"
+                  : op.key === "create_devbox"
+                    ? "c"
+                    : op.key === "delete"
+                      ? "d"
+                      : op.key === "view_logs"
+                        ? "l"
+                        : "",
             }))}
             selectedOperation={selectedOperation}
             onClose={() => setShowPopup(false)}
@@ -783,31 +845,20 @@ const ListBlueprintsUI = ({
       )}
 
       {/* Help Bar */}
-      <Box marginTop={1} paddingX={1}>
-        <Text color={colors.textDim} dimColor>
-          {figures.arrowUp}
-          {figures.arrowDown} Navigate
-        </Text>
-        {(hasMore || hasPrev) && (
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            • {figures.arrowLeft}
-            {figures.arrowRight} Page
-          </Text>
-        )}
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          • [a] Actions
-        </Text>
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          • [o] Browser
-        </Text>
-        <Text color={colors.textDim} dimColor>
-          {" "}
-          • [Esc] Back
-        </Text>
-      </Box>
+      <NavigationTips
+        showArrows
+        tips={[
+          {
+            icon: `${figures.arrowLeft}${figures.arrowRight}`,
+            label: "Page",
+            condition: hasMore || hasPrev,
+          },
+          { key: "Enter", label: "Details" },
+          { key: "a", label: "Actions" },
+          { key: "o", label: "Browser" },
+          { key: "Esc", label: "Back" },
+        ]}
+      />
     </>
   );
 };

@@ -6,6 +6,7 @@ import React from "react";
 import { Box, Text, useInput } from "ink";
 import figures from "figures";
 import { Breadcrumb } from "./Breadcrumb.js";
+import { NavigationTips } from "./NavigationTips.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { parseAnyLogEntry, type AnyLog } from "../utils/logFormatter.js";
@@ -317,13 +318,16 @@ export const LogsViewer = ({
         )}
       </Box>
 
-      <Box marginTop={1} paddingX={1}>
-        <Text color={colors.textDim} dimColor>
-          {figures.arrowUp}
-          {figures.arrowDown} Navigate • [g] Top • [G] Bottom • [w] Toggle Wrap
-          • [c] Copy • [Enter], [q], or [esc] Back
-        </Text>
-      </Box>
+      <NavigationTips
+        showArrows
+        tips={[
+          { key: "g", label: "Top" },
+          { key: "G", label: "Bottom" },
+          { key: "w", label: "Toggle Wrap" },
+          { key: "c", label: "Copy" },
+          { key: "Enter/q/esc", label: "Back" },
+        ]}
+      />
     </>
   );
 };

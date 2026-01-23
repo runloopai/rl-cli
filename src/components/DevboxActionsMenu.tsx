@@ -7,6 +7,8 @@ import { SpinnerComponent } from "./Spinner.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { SuccessMessage } from "./SuccessMessage.js";
 import { Breadcrumb } from "./Breadcrumb.js";
+import { NavigationTips } from "./NavigationTips.js";
+import { ConfirmationPrompt } from "./ConfirmationPrompt.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useNavigation } from "../store/navigationStore.js";
@@ -73,6 +75,7 @@ export const DevboxActionsMenu = ({
   );
   const [execScroll, setExecScroll] = React.useState(0);
   const [copyStatus, setCopyStatus] = React.useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   // Calculate viewport for exec output:
   // - Breadcrumb (3 lines + marginBottom): 4 lines
@@ -202,9 +205,9 @@ export const DevboxActionsMenu = ({
       })
     : allOperations;
 
-  // Auto-execute operations that don't need input
+  // Auto-execute operations that don't need input (except delete which needs confirmation)
   React.useEffect(() => {
-    const autoExecuteOps = ["delete", "ssh", "logs", "suspend", "resume"];
+    const autoExecuteOps = ["ssh", "logs", "suspend", "resume"];
     if (
       executingOperation &&
       autoExecuteOps.includes(executingOperation) &&
@@ -212,6 +215,15 @@ export const DevboxActionsMenu = ({
       devbox
     ) {
       executeOperation();
+    }
+    // Show confirmation for delete
+    if (
+      executingOperation === "delete" &&
+      !loading &&
+      devbox &&
+      !showDeleteConfirm
+    ) {
+      setShowDeleteConfirm(true);
     }
   }, [executingOperation]);
 
@@ -516,6 +528,32 @@ export const DevboxActionsMenu = ({
   const operationLabel =
     operations.find((o) => o.key === executingOperation)?.label || "Operation";
 
+  // Show delete confirmation
+  if (showDeleteConfirm) {
+    return (
+      <ConfirmationPrompt
+        title="Shutdown Devbox"
+        message={`Are you sure you want to shutdown "${devbox.name || devbox.id}"?`}
+        details="The devbox will be terminated and all unsaved data will be lost."
+        breadcrumbItems={[
+          ...breadcrumbItems.slice(0, -1),
+          { label: devbox.name || devbox.id },
+          { label: "Shutdown", active: true },
+        ]}
+        confirmLabel="Yes, shutdown"
+        onConfirm={() => {
+          setShowDeleteConfirm(false);
+          executeOperation();
+        }}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setExecutingOperation(null);
+          onBack();
+        }}
+      />
+    );
+  }
+
   // Operation result display
   if (operationResult || operationError) {
     // Check for custom exec rendering
@@ -674,13 +712,15 @@ export const DevboxActionsMenu = ({
           </Box>
 
           {/* Help bar */}
-          <Box marginTop={1} paddingX={1}>
-            <Text color={colors.textDim} dimColor>
-              {figures.arrowUp}
-              {figures.arrowDown} Navigate • [g] Top • [G] Bottom • [c] Copy •
-              [Enter], [q], or [esc] Back
-            </Text>
-          </Box>
+          <NavigationTips
+            showArrows
+            tips={[
+              { key: "g", label: "Top" },
+              { key: "G", label: "Bottom" },
+              { key: "c", label: "Copy" },
+              { key: "Enter/q/esc", label: "Back" },
+            ]}
+          />
         </>
       );
     }
@@ -728,11 +768,7 @@ export const DevboxActionsMenu = ({
         {operationError && (
           <ErrorMessage message="Operation failed" error={operationError} />
         )}
-        <Box marginTop={1}>
-          <Text color={colors.textDim} dimColor>
-            Press [Enter], [q], or [esc] to continue
-          </Text>
-        </Box>
+        <NavigationTips tips={[{ key: "Enter/q/esc", label: "Continue" }]} />
       </>
     );
   }
@@ -826,11 +862,12 @@ export const DevboxActionsMenu = ({
               }
             />
           </Box>
-          <Box marginTop={1}>
-            <Text color={colors.textDim} dimColor>
-              Press [Enter] to execute • [q or esc] Cancel
-            </Text>
-          </Box>
+          <NavigationTips
+            tips={[
+              { key: "Enter", label: "Execute" },
+              { key: "q/esc", label: "Cancel" },
+            ]}
+          />
         </Box>
       </>
     );
@@ -869,12 +906,14 @@ export const DevboxActionsMenu = ({
           </Box>
         </Box>
 
-        <Box marginTop={1}>
-          <Text color={colors.textDim} dimColor>
-            {figures.arrowUp}
-            {figures.arrowDown} Navigate • [Enter] Select • [q] Back
-          </Text>
-        </Box>
+        <NavigationTips
+          showArrows
+          paddingX={0}
+          tips={[
+            { key: "Enter", label: "Select" },
+            { key: "q", label: "Back" },
+          ]}
+        />
       </>
     );
   }

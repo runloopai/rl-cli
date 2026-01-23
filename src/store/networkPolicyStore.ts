@@ -1,26 +1,16 @@
 /**
- * Blueprint Store - Manages blueprint list state, pagination, and caching
+ * Network Policy Store - Manages network policy list state, pagination, and caching
  */
 import { create } from "zustand";
-import type {
-  BlueprintView,
-  BlueprintBuildParameters,
-} from "@runloop/api-client/resources/blueprints";
-
-// Extended type with UI-specific convenience fields
-export interface Blueprint extends BlueprintView {
-  // Convenience field for architecture (extracted from parameters.launch_parameters)
-  architecture?: string;
-  // Convenience field for resource size (extracted from parameters.launch_parameters)
-  resources?: string;
-}
+import type { NetworkPolicyView } from "@runloop/api-client/resources/network-policies";
 
 // Re-export for compatibility with existing code
-export type BlueprintParameters = BlueprintBuildParameters;
+export type NetworkPolicy = NetworkPolicyView;
+export type NetworkPolicyEgress = NetworkPolicyView.Egress;
 
-interface BlueprintState {
+interface NetworkPolicyState {
   // List data
-  blueprints: Blueprint[];
+  networkPolicies: NetworkPolicy[];
   loading: boolean;
   initialLoading: boolean;
   error: Error | null;
@@ -32,7 +22,7 @@ interface BlueprintState {
   hasMore: boolean;
 
   // Caching
-  pageCache: Map<number, Blueprint[]>;
+  pageCache: Map<number, NetworkPolicy[]>;
   lastIdCache: Map<number, string>;
 
   // Search/filter
@@ -42,7 +32,7 @@ interface BlueprintState {
   selectedIndex: number;
 
   // Actions
-  setBlueprints: (blueprints: Blueprint[]) => void;
+  setNetworkPolicies: (policies: NetworkPolicy[]) => void;
   setLoading: (loading: boolean) => void;
   setInitialLoading: (loading: boolean) => void;
   setError: (error: Error | null) => void;
@@ -55,18 +45,18 @@ interface BlueprintState {
   setSearchQuery: (query: string) => void;
   setSelectedIndex: (index: number) => void;
 
-  cachePageData: (page: number, data: Blueprint[], lastId: string) => void;
-  getCachedPage: (page: number) => Blueprint[] | undefined;
+  cachePageData: (page: number, data: NetworkPolicy[], lastId: string) => void;
+  getCachedPage: (page: number) => NetworkPolicy[] | undefined;
   clearCache: () => void;
   clearAll: () => void;
 
-  getSelectedBlueprint: () => Blueprint | undefined;
+  getSelectedNetworkPolicy: () => NetworkPolicy | undefined;
 }
 
 const MAX_CACHE_SIZE = 10;
 
-export const useBlueprintStore = create<BlueprintState>((set, get) => ({
-  blueprints: [],
+export const useNetworkPolicyStore = create<NetworkPolicyState>((set, get) => ({
+  networkPolicies: [],
   loading: false,
   initialLoading: true,
   error: null,
@@ -82,7 +72,7 @@ export const useBlueprintStore = create<BlueprintState>((set, get) => ({
   searchQuery: "",
   selectedIndex: 0,
 
-  setBlueprints: (blueprints) => set({ blueprints }),
+  setNetworkPolicies: (policies) => set({ networkPolicies: policies }),
   setLoading: (loading) => set({ loading }),
   setInitialLoading: (loading) => set({ initialLoading: loading }),
   setError: (error) => set({ error }),
@@ -111,7 +101,7 @@ export const useBlueprintStore = create<BlueprintState>((set, get) => ({
 
     // Deep copy all fields to avoid SDK references
     const plainData = data.map((d) => {
-      return JSON.parse(JSON.stringify(d)) as Blueprint;
+      return JSON.parse(JSON.stringify(d)) as NetworkPolicy;
     });
 
     pageCache.set(page, plainData);
@@ -141,7 +131,7 @@ export const useBlueprintStore = create<BlueprintState>((set, get) => ({
     state.lastIdCache.clear();
 
     set({
-      blueprints: [],
+      networkPolicies: [],
       loading: false,
       initialLoading: true,
       error: null,
@@ -155,8 +145,8 @@ export const useBlueprintStore = create<BlueprintState>((set, get) => ({
     });
   },
 
-  getSelectedBlueprint: () => {
+  getSelectedNetworkPolicy: () => {
     const state = get();
-    return state.blueprints[state.selectedIndex];
+    return state.networkPolicies[state.selectedIndex];
   },
 }));

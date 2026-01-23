@@ -62,11 +62,11 @@ export async function listBlueprints(
       blueprints.push({
         id: String(b.id || "").substring(0, MAX_ID_LENGTH),
         name: String(b.name || "").substring(0, MAX_NAME_LENGTH),
-        status: String(b.status || "").substring(0, MAX_STATUS_LENGTH),
+        status: b.status,
+        state: b.state,
         create_time_ms: b.create_time_ms,
-        build_status: b.status
-          ? String(b.status).substring(0, MAX_STATUS_LENGTH)
-          : undefined,
+        parameters: b.parameters,
+        // UI-specific convenience fields
         architecture: architecture
           ? String(architecture).substring(0, MAX_ARCH_LENGTH)
           : undefined,
@@ -93,15 +93,43 @@ export async function getBlueprint(id: string): Promise<Blueprint> {
   const client = getClient();
   const blueprint = await client.blueprints.retrieve(id);
 
+  // Extract architecture and resources from launch_parameters for convenience
+  const launchParams = blueprint.parameters?.launch_parameters;
+
   return {
-    id: blueprint.id,
-    name: blueprint.name,
-    status: blueprint.status,
-    create_time_ms: blueprint.create_time_ms,
-    build_status: (blueprint as any).build_status,
-    architecture: (blueprint as any).architecture,
-    resources: (blueprint as any).resources,
+    // Spread all API fields
+    ...blueprint,
+    // UI-specific convenience fields
+    architecture: launchParams?.architecture ?? undefined,
+    resources: launchParams?.resource_size_request ?? undefined,
   };
+}
+
+/**
+ * Get a single blueprint by ID or name
+ */
+export async function getBlueprintByIdOrName(
+  idOrName: string,
+): Promise<Blueprint | null> {
+  const client = getClient();
+
+  // Check if it's an ID (starts with bpt_) or a name
+  if (idOrName.startsWith("bpt_")) {
+    return getBlueprint(idOrName);
+  }
+
+  // It's a name, search for it
+  const result = await client.blueprints.list({ name: idOrName });
+  const blueprints = result.blueprints || [];
+
+  if (blueprints.length === 0) {
+    return null;
+  }
+
+  // Return the first exact match, or first result if no exact match
+  const blueprint =
+    blueprints.find((b) => b.name === idOrName) || blueprints[0];
+  return getBlueprint(blueprint.id);
 }
 
 /**

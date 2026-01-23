@@ -130,6 +130,15 @@ rli object upload <path>                 # Upload a file as an object
 rli object delete <id>                   # Delete an object (irreversible)
 ```
 
+### Network-policy Commands (alias: `np`)
+
+```bash
+rli network-policy list                  # List network policies
+rli network-policy get <id>              # Get network policy details
+rli network-policy create                # Create a new network policy
+rli network-policy delete <id>           # Delete a network policy
+```
+
 ### Mcp Commands
 
 ```bash
