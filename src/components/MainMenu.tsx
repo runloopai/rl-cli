@@ -162,7 +162,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
             { key: "1-5", label: "Quick select" },
             { key: "Enter", label: "Select" },
             { key: "Esc", label: "Quit" },
-            { key: "u", label: "Update", condition: updateAvailable },
+            { key: "u", label: "Update", condition: !!updateAvailable },
           ]}
         />
       </Box>
@@ -242,7 +242,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
           { key: "1-5", label: "Quick select" },
           { key: "Enter", label: "Select" },
           { key: "Esc", label: "Quit" },
-          { key: "u", label: "Update", condition: updateAvailable },
+          { key: "u", label: "Update", condition: !!updateAvailable },
         ]}
       />
     </Box>
