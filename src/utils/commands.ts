@@ -684,6 +684,74 @@ export function createProgram(): Command {
       await deleteNetworkPolicy(id, options);
     });
 
+  // Secret commands
+  const secret = program
+    .command("secret")
+    .description("Manage secrets")
+    .alias("s");
+
+  secret
+    .command("create <name>")
+    .description("Create a new secret (value from stdin or secure prompt)")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (name, options) => {
+      const { createSecret } = await import("../commands/secret/create.js");
+      await createSecret(name, options);
+    });
+
+  secret
+    .command("list")
+    .description("List all secrets")
+    .option("--limit <n>", "Max results", "20")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: json)",
+    )
+    .action(async (options) => {
+      const { listSecrets } = await import("../commands/secret/list.js");
+      await listSecrets(options);
+    });
+
+  secret
+    .command("get <name>")
+    .description("Get secret metadata by name")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: json)",
+    )
+    .action(async (name, options) => {
+      const { getSecret } = await import("../commands/secret/get.js");
+      await getSecret(name, options);
+    });
+
+  secret
+    .command("update <name>")
+    .description("Update a secret value (value from stdin or secure prompt)")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (name, options) => {
+      const { updateSecret } = await import("../commands/secret/update.js");
+      await updateSecret(name, options);
+    });
+
+  secret
+    .command("delete <name>")
+    .description("Delete a secret")
+    .option("-y, --yes", "Skip confirmation prompt")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (name, options) => {
+      const { deleteSecret } = await import("../commands/secret/delete.js");
+      await deleteSecret(name, options);
+    });
+
   // MCP server commands
   const mcp = program
     .command("mcp")
