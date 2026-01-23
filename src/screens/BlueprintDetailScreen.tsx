@@ -240,6 +240,22 @@ export function BlueprintDetailScreen({
     }
   }
 
+  // Error section - show failure reason if present
+  if (blueprint.failure_reason) {
+    detailSections.push({
+      title: "Error",
+      icon: figures.cross,
+      color: colors.error,
+      fields: [
+        {
+          label: "Failure Reason",
+          value: blueprint.failure_reason,
+          color: colors.error,
+        },
+      ],
+    });
+  }
+
   // Operations available for blueprints
   const operations: ResourceOperation[] = [
     {
@@ -358,6 +374,14 @@ export function BlueprintDetailScreen({
         Status: {bp.status}
       </Text>,
     );
+    if (bp.failure_reason) {
+      lines.push(
+        <Text key="core-failure" color={colors.error}>
+          {" "}
+          Failure Reason: {bp.failure_reason}
+        </Text>,
+      );
+    }
     if (bp.create_time_ms) {
       lines.push(
         <Text key="core-created" dimColor>
