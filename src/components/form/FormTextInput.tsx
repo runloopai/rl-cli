@@ -14,6 +14,8 @@ export interface FormTextInputProps {
   isActive: boolean;
   placeholder?: string;
   error?: string;
+  /** Called when Enter is pressed in the text input */
+  onSubmit?: () => void;
 }
 
 export const FormTextInput = ({
@@ -23,6 +25,7 @@ export const FormTextInput = ({
   isActive,
   placeholder,
   error,
+  onSubmit,
 }: FormTextInputProps) => {
   return (
     <FormField label={label} isActive={isActive} error={error}>
@@ -31,6 +34,7 @@ export const FormTextInput = ({
           value={value}
           onChange={onChange}
           placeholder={placeholder}
+          onSubmit={onSubmit}
         />
       ) : (
         <Text color={error ? colors.error : colors.text}>
