@@ -50,7 +50,7 @@ export const LogsViewer = ({
   // Handle input for logs navigation
   useInput((input, key) => {
     const maxScroll = getMaxScroll();
-    
+
     if (key.upArrow || input === "k") {
       setLogsScroll(Math.max(0, logsScroll - 1));
     } else if (key.downArrow || input === "j") {
@@ -138,14 +138,16 @@ export const LogsViewer = ({
       "",
     );
     // Replace control characters with spaces
-    return strippedAnsi
-      .replace(/\r\n/g, " ")
-      .replace(/\n/g, " ")
-      .replace(/\r/g, " ")
-      .replace(/\t/g, " ")
-      // Remove any other control characters (ASCII 0-31 except space)
-      // eslint-disable-next-line no-control-regex
-      .replace(/[\x00-\x1F]/g, "");
+    return (
+      strippedAnsi
+        .replace(/\r\n/g, " ")
+        .replace(/\n/g, " ")
+        .replace(/\r/g, " ")
+        .replace(/\t/g, " ")
+        // Remove any other control characters (ASCII 0-31 except space)
+        // eslint-disable-next-line no-control-regex
+        .replace(/[\x00-\x1F]/g, "")
+    );
   };
 
   // Helper to calculate how many lines a log entry will take when wrapped
@@ -197,7 +199,10 @@ export const LogsViewer = ({
 
     for (let i = actualScroll; i < logs.length; i++) {
       const lineCount = calculateWrappedLineCount(logs[i]);
-      if (visibleLineCount + lineCount > viewportHeight && visibleLogs.length > 0) {
+      if (
+        visibleLineCount + lineCount > viewportHeight &&
+        visibleLogs.length > 0
+      ) {
         break;
       }
       visibleLogs.push(logs[i]);
@@ -307,14 +312,15 @@ export const LogsViewer = ({
               // Non-wrap mode: build the complete line and truncate to fit exactly
               const shellPart = parts.shellName ? `(${parts.shellName}) ` : "";
               const exitPart = exitCode ? ` ${exitCode}` : "";
-              
+
               // Build the full line content
               const prefix = `${parts.timestamp} ${parts.level} [${parts.source}] ${shellPart}${cmd}`;
               const suffix = exitPart;
-              
+
               // Calculate how much space is available for the message
-              const availableForMessage = contentWidth - prefix.length - suffix.length;
-              
+              const availableForMessage =
+                contentWidth - prefix.length - suffix.length;
+
               let displayMessage: string;
               if (availableForMessage <= 3) {
                 // No room for message
@@ -322,7 +328,8 @@ export const LogsViewer = ({
               } else if (fullMessage.length <= availableForMessage) {
                 displayMessage = fullMessage;
               } else {
-                displayMessage = fullMessage.substring(0, availableForMessage - 3) + "...";
+                displayMessage =
+                  fullMessage.substring(0, availableForMessage - 3) + "...";
               }
 
               return (
