@@ -77,22 +77,25 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const { stdout } = useStdout();
 
-  // Get raw terminal height, responding to resize events
-  // Default to 20 rows if we can't detect (triggers medium mode, not full)
-  const getTerminalHeight = React.useCallback(() => {
-    return stdout?.rows && stdout.rows > 0 ? stdout.rows : 20;
+  // Get raw terminal dimensions, responding to resize events
+  // Default to 20 rows / 80 cols if we can't detect
+  const getTerminalDimensions = React.useCallback(() => {
+    return {
+      height: stdout?.rows && stdout.rows > 0 ? stdout.rows : 20,
+      width: stdout?.columns && stdout.columns > 0 ? stdout.columns : 80,
+    };
   }, [stdout]);
 
-  const [terminalHeight, setTerminalHeight] = React.useState(getTerminalHeight);
+  const [terminalDimensions, setTerminalDimensions] = React.useState(getTerminalDimensions);
 
   React.useEffect(() => {
     // Update immediately on mount and when stdout changes
-    setTerminalHeight(getTerminalHeight());
+    setTerminalDimensions(getTerminalDimensions());
 
     if (!stdout) return;
 
     const handleResize = () => {
-      setTerminalHeight(getTerminalHeight());
+      setTerminalDimensions(getTerminalDimensions());
     };
 
     stdout.on("resize", handleResize);
@@ -100,7 +103,11 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
     return () => {
       stdout.off("resize", handleResize);
     };
-  }, [stdout, getTerminalHeight]);
+  }, [stdout, getTerminalDimensions]);
+
+  const terminalHeight = terminalDimensions.height;
+  const terminalWidth = terminalDimensions.width;
+  const isNarrow = terminalWidth < 70;
 
   // Check for updates
   const { updateAvailable } = useUpdateCheck();
@@ -193,7 +200,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
     );
   }
 
-  // Compact layout - no banner, simple items with descriptions
+  // Compact layout - no banner, simple items with descriptions (or no descriptions if narrow)
   if (layoutMode === "compact") {
     return (
       <Box flexDirection="column">
@@ -226,8 +233,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
                   {item.label}
                 </Text>
                 <Text color={colors.textDim} dimColor>
-                  {" "}
-                  - {item.description} [{index + 1}]
+                  {isNarrow ? ` [${index + 1}]` : ` - ${item.description} [${index + 1}]`}
                 </Text>
               </Box>
             );
@@ -238,7 +244,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
     );
   }
 
-  // Medium layout - small banner, simple items with descriptions
+  // Medium layout - small banner, simple items with descriptions (or no descriptions if narrow)
   if (layoutMode === "medium") {
     return (
       <Box flexDirection="column">
@@ -251,8 +257,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
             RUNLOOP.ai
           </Text>
           <Text color={colors.textDim} dimColor>
-            {" "}
-            • Cloud development environments • v{VERSION}
+            {isNarrow ? ` • v${VERSION}` : ` • Cloud development environments • v${VERSION}`}
           </Text>
         </Box>
         <Box flexDirection="column" paddingX={2}>
@@ -274,10 +279,12 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
                 >
                   {item.label}
                 </Text>
-                <Text color={colors.textDim} dimColor>
-                  {" "}
-                  - {item.description}
-                </Text>
+                {!isNarrow && (
+                  <Text color={colors.textDim} dimColor>
+                    {" "}
+                    - {item.description}
+                  </Text>
+                )}
                 <Text color={colors.textDim} dimColor>
                   {" "}
                   [{index + 1}]
@@ -291,7 +298,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
     );
   }
 
-  // Full layout - big banner, bordered items
+  // Full layout - big banner, bordered items (or simple items if narrow)
   return (
     <Box flexDirection="column">
       <Breadcrumb
@@ -316,47 +323,75 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
           </Text>
         </Box>
 
-        {menuItems.map((item, index) => {
-          const isSelected = index === selectedIndex;
-          return (
-            <Box
-              key={item.key}
-              paddingX={2}
-              paddingY={0}
-              borderStyle="single"
-              borderColor={isSelected ? item.color : colors.border}
-              marginTop={index === 0 ? 1 : 0}
-              flexShrink={0}
-            >
-              {isSelected && (
-                <>
-                  <Text color={item.color} bold>
-                    {figures.pointer}
+        {isNarrow ? (
+          // Narrow layout - no borders, compact items
+          <Box flexDirection="column" marginTop={1}>
+            {menuItems.map((item, index) => {
+              const isSelected = index === selectedIndex;
+              return (
+                <Box key={item.key}>
+                  <Text color={isSelected ? item.color : colors.textDim}>
+                    {isSelected ? figures.pointer : " "}
                   </Text>
-                  <Text> </Text>
-                </>
-              )}
-              <Text color={item.color} bold>
-                {item.icon}
-              </Text>
-              <Text> </Text>
-              <Text
-                color={isSelected ? item.color : colors.text}
-                bold={isSelected}
+                  <Text color={item.color}> {item.icon} </Text>
+                  <Text
+                    color={isSelected ? item.color : colors.text}
+                    bold={isSelected}
+                  >
+                    {item.label}
+                  </Text>
+                  <Text color={colors.textDim} dimColor>
+                    {" "}
+                    [{index + 1}]
+                  </Text>
+                </Box>
+              );
+            })}
+          </Box>
+        ) : (
+          // Wide layout - bordered items with descriptions
+          menuItems.map((item, index) => {
+            const isSelected = index === selectedIndex;
+            return (
+              <Box
+                key={item.key}
+                paddingX={2}
+                paddingY={0}
+                borderStyle="single"
+                borderColor={isSelected ? item.color : colors.border}
+                marginTop={index === 0 ? 1 : 0}
+                flexShrink={0}
               >
-                {item.label}
-              </Text>
-              <Text color={colors.textDim}> </Text>
-              <Text color={colors.textDim} dimColor>
-                {item.description}
-              </Text>
-              <Text> </Text>
-              <Text color={colors.textDim} dimColor>
-                [{index + 1}]
-              </Text>
-            </Box>
-          );
-        })}
+                {isSelected && (
+                  <>
+                    <Text color={item.color} bold>
+                      {figures.pointer}
+                    </Text>
+                    <Text> </Text>
+                  </>
+                )}
+                <Text color={item.color} bold>
+                  {item.icon}
+                </Text>
+                <Text> </Text>
+                <Text
+                  color={isSelected ? item.color : colors.text}
+                  bold={isSelected}
+                >
+                  {item.label}
+                </Text>
+                <Text color={colors.textDim}> </Text>
+                <Text color={colors.textDim} dimColor>
+                  {item.description}
+                </Text>
+                <Text> </Text>
+                <Text color={colors.textDim} dimColor>
+                  [{index + 1}]
+                </Text>
+              </Box>
+            );
+          })
+        )}
       </Box>
 
       {navTips}
