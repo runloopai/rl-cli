@@ -136,83 +136,82 @@ export const NetworkPolicyCreatePage = ({
     currentField === "allow_devbox_to_devbox",
   );
 
-  useInput((input, key) => {
-    // Handle result screen
-    if (result) {
-      if (input === "q" || key.escape || key.return) {
-        if (onCreate) {
-          onCreate(result);
-        } else {
+  // Main form input handler - active when not in hostnames expanded mode
+  useInput(
+    (input, key) => {
+      // Handle result screen
+      if (result) {
+        if (input === "q" || key.escape || key.return) {
+          if (onCreate) {
+            onCreate(result);
+          } else {
+            onBack();
+          }
+        }
+        return;
+      }
+
+      // Handle error screen
+      if (error) {
+        if (input === "r" || key.return) {
+          // Retry - clear error and return to form
+          setError(null);
+        } else if (input === "q" || key.escape) {
+          // Quit - go back to list
           onBack();
         }
+        return;
       }
-      return;
-    }
 
-    // Handle error screen
-    if (error) {
-      if (input === "r" || key.return) {
-        // Retry - clear error and return to form
-        setError(null);
-      } else if (input === "q" || key.escape) {
-        // Quit - go back to list
+      // Handle submitting state
+      if (submitting) {
+        return;
+      }
+
+      // Back to list
+      if (input === "q" || key.escape) {
         onBack();
+        return;
       }
-      return;
-    }
 
-    // Handle submitting state
-    if (submitting) {
-      return;
-    }
+      // Submit form with Ctrl+S
+      if (input === "s" && key.ctrl) {
+        handleSubmit();
+        return;
+      }
 
-    // Handle hostnames expanded mode - let FormListManager handle input
-    if (hostnamesExpanded) {
-      return;
-    }
+      // Handle Enter on hostnames field to expand
+      if (currentField === "allowed_hostnames" && key.return) {
+        setHostnamesExpanded(true);
+        return;
+      }
 
-    // Back to list
-    if (input === "q" || key.escape) {
-      onBack();
-      return;
-    }
+      // Handle Enter on any field to submit (including text/select fields)
+      if (key.return) {
+        handleSubmit();
+        return;
+      }
 
-    // Submit form with Ctrl+S
-    if (input === "s" && key.ctrl) {
-      handleSubmit();
-      return;
-    }
+      // Handle select field navigation
+      if (handleAllowAllNav(input, key)) return;
+      if (handleDevboxNav(input, key)) return;
 
-    // Handle Enter on submit field
-    if (currentField === "submit" && key.return) {
-      handleSubmit();
-      return;
-    }
+      // Navigation between fields (up/down arrows and tab/shift+tab)
+      if ((key.upArrow || (key.tab && key.shift)) && currentFieldIndex > 0) {
+        setCurrentField(fields[currentFieldIndex - 1].key);
+        return;
+      }
 
-    // Handle Enter on hostnames field to expand
-    if (currentField === "allowed_hostnames" && key.return) {
-      setHostnamesExpanded(true);
-      return;
-    }
-
-    // Handle select field navigation
-    if (handleAllowAllNav(input, key)) return;
-    if (handleDevboxNav(input, key)) return;
-
-    // Navigation between fields (up/down arrows and tab/shift+tab)
-    if ((key.upArrow || (key.tab && key.shift)) && currentFieldIndex > 0) {
-      setCurrentField(fields[currentFieldIndex - 1].key);
-      return;
-    }
-
-    if (
-      (key.downArrow || (key.tab && !key.shift)) &&
-      currentFieldIndex < fields.length - 1
-    ) {
-      setCurrentField(fields[currentFieldIndex + 1].key);
-      return;
-    }
-  });
+      if (
+        (key.downArrow || (key.tab && !key.shift)) &&
+        currentFieldIndex < fields.length - 1
+      ) {
+        setCurrentField(fields[currentFieldIndex + 1].key);
+        return;
+      }
+    },
+    { isActive: !hostnamesExpanded },
+  );
 
   const handleSubmit = async () => {
     // Validate required fields
@@ -427,6 +426,7 @@ export const NetworkPolicyCreatePage = ({
                     setValidationError(null);
                   }
                 }}
+                onSubmit={handleSubmit}
                 isActive={isActive}
                 placeholder={
                   field.key === "name"

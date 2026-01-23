@@ -205,40 +205,88 @@ export const DevboxCreatePage = ({
     currentField === "resource_size",
   );
 
-  useInput((input, key) => {
-    // Handle result screen
-    if (result) {
-      if (input === "q" || key.escape || key.return) {
-        if (onCreate) {
-          onCreate(result);
-        } else {
+  // Main form input handler - active when not in metadata section
+  useInput(
+    (input, key) => {
+      // Handle result screen
+      if (result) {
+        if (input === "q" || key.escape || key.return) {
+          if (onCreate) {
+            onCreate(result);
+          } else {
+            onBack();
+          }
+        }
+        return;
+      }
+
+      // Handle error screen
+      if (error) {
+        if (input === "r" || key.return) {
+          // Retry - clear error and return to form
+          setError(null);
+        } else if (input === "q" || key.escape) {
+          // Quit - go back to list
           onBack();
         }
+        return;
       }
-      return;
-    }
 
-    // Handle error screen
-    if (error) {
-      if (input === "r" || key.return) {
-        // Retry - clear error and return to form
-        setError(null);
-      } else if (input === "q" || key.escape) {
-        // Quit - go back to list
+      // Handle creating state
+      if (creating) {
+        return;
+      }
+
+      // Back to list
+      if (input === "q" || key.escape) {
         onBack();
+        return;
       }
-      return;
-    }
 
-    // Handle creating state
-    if (creating) {
-      return;
-    }
+      // Submit form with Ctrl+S
+      if (input === "s" && key.ctrl) {
+        handleCreate();
+        return;
+      }
 
-    // Handle metadata section FIRST (before general escape handler)
-    if (inMetadataSection) {
+      // Enter key on metadata field to enter metadata section
+      if (currentField === "metadata" && key.return) {
+        setInMetadataSection(true);
+        setSelectedMetadataIndex(0);
+        return;
+      }
+
+      // Handle Enter on any field to submit
+      if (key.return) {
+        handleCreate();
+        return;
+      }
+
+      // Handle select field navigation using shared hooks
+      if (handleArchitectureNav(input, key)) return;
+      if (handleResourceSizeNav(input, key)) return;
+
+      // Navigation (up/down arrows and tab/shift+tab)
+      if ((key.upArrow || (key.tab && key.shift)) && currentFieldIndex > 0) {
+        setCurrentField(fields[currentFieldIndex - 1].key);
+        return;
+      }
+
+      if (
+        (key.downArrow || (key.tab && !key.shift)) &&
+        currentFieldIndex < fields.length - 1
+      ) {
+        setCurrentField(fields[currentFieldIndex + 1].key);
+        return;
+      }
+    },
+    { isActive: !inMetadataSection },
+  );
+
+  // Metadata section input handler - active when in metadata section
+  useInput(
+    (input, key) => {
       const metadataKeys = Object.keys(formData.metadata);
-      // Selection model: 0 = "Add new", 1..n = Existing items, n+1 = "Done"
       const maxIndex = metadataKeys.length + 1;
 
       // Handle input mode (typing key or value)
@@ -259,35 +307,31 @@ export const DevboxCreatePage = ({
           setMetadataKey("");
           setMetadataValue("");
           setMetadataInputMode(null);
-          setSelectedMetadataIndex(0); // Back to "add new" row
+          setSelectedMetadataIndex(0);
           return;
         } else if (key.escape) {
-          // Cancel input
           setMetadataKey("");
           setMetadataValue("");
           setMetadataInputMode(null);
           return;
         } else if (key.tab) {
-          // Tab between key and value
           setMetadataInputMode(metadataInputMode === "key" ? "value" : "key");
           return;
         }
-        return; // Don't process other keys while in input mode
+        return;
       }
 
-      // Navigation mode
+      // Navigation mode in metadata section
       if (key.upArrow && selectedMetadataIndex > 0) {
         setSelectedMetadataIndex(selectedMetadataIndex - 1);
       } else if (key.downArrow && selectedMetadataIndex < maxIndex) {
         setSelectedMetadataIndex(selectedMetadataIndex + 1);
       } else if (key.return) {
         if (selectedMetadataIndex === 0) {
-          // Add new
           setMetadataKey("");
           setMetadataValue("");
           setMetadataInputMode("key");
         } else if (selectedMetadataIndex === maxIndex) {
-          // Done - exit metadata section
           setInMetadataSection(false);
           setSelectedMetadataIndex(0);
           setMetadataKey("");
@@ -297,16 +341,12 @@ export const DevboxCreatePage = ({
           selectedMetadataIndex >= 1 &&
           selectedMetadataIndex <= metadataKeys.length
         ) {
-          // Edit existing (selectedMetadataIndex - 1 gives array index)
           const keyToEdit = metadataKeys[selectedMetadataIndex - 1];
           setMetadataKey(keyToEdit || "");
           setMetadataValue(formData.metadata[keyToEdit] || "");
-
-          // Remove old entry
           const newMetadata = { ...formData.metadata };
           delete newMetadata[keyToEdit];
           setFormData({ ...formData, metadata: newMetadata });
-
           setMetadataInputMode("key");
         }
       } else if (
@@ -314,70 +354,24 @@ export const DevboxCreatePage = ({
         selectedMetadataIndex >= 1 &&
         selectedMetadataIndex <= metadataKeys.length
       ) {
-        // Delete selected item (selectedMetadataIndex - 1 gives array index)
         const keyToDelete = metadataKeys[selectedMetadataIndex - 1];
         const newMetadata = { ...formData.metadata };
         delete newMetadata[keyToDelete];
         setFormData({ ...formData, metadata: newMetadata });
-        // Stay at same position or move to add new if we deleted the last item
         const newLength = Object.keys(newMetadata).length;
         if (selectedMetadataIndex > newLength) {
           setSelectedMetadataIndex(Math.max(0, newLength));
         }
       } else if (key.escape || input === "q") {
-        // Exit metadata section
         setInMetadataSection(false);
         setSelectedMetadataIndex(0);
         setMetadataKey("");
         setMetadataValue("");
         setMetadataInputMode(null);
       }
-      return;
-    }
-
-    // Back to list (only when not in metadata section)
-    if (input === "q" || key.escape) {
-      onBack();
-      return;
-    }
-
-    // Submit form
-    if (input === "s" && key.ctrl) {
-      handleCreate();
-      return;
-    }
-
-    // Handle Enter on create field
-    if (currentField === "create" && key.return) {
-      handleCreate();
-      return;
-    }
-
-    // Handle select field navigation using shared hooks
-    if (handleArchitectureNav(input, key)) return;
-    if (handleResourceSizeNav(input, key)) return;
-
-    // Navigation (up/down arrows and tab/shift+tab)
-    if ((key.upArrow || (key.tab && key.shift)) && currentFieldIndex > 0) {
-      setCurrentField(fields[currentFieldIndex - 1].key);
-      return;
-    }
-
-    if (
-      (key.downArrow || (key.tab && !key.shift)) &&
-      currentFieldIndex < fields.length - 1
-    ) {
-      setCurrentField(fields[currentFieldIndex + 1].key);
-      return;
-    }
-
-    // Enter key on metadata field to enter metadata section
-    if (currentField === "metadata" && key.return) {
-      setInMetadataSection(true);
-      setSelectedMetadataIndex(0); // Start at "add new" row
-      return;
-    }
-  });
+    },
+    { isActive: inMetadataSection },
+  );
 
   // Validate custom resource configuration
   const validateCustomResources = (): string | null => {
@@ -590,6 +584,7 @@ export const DevboxCreatePage = ({
                 onChange={(value) =>
                   setFormData({ ...formData, [field.key]: value })
                 }
+                onSubmit={handleCreate}
                 isActive={isActive}
                 placeholder={field.placeholder}
               />
