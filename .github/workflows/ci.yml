@@ -14,7 +14,7 @@ jobs:
     if: (github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # For pull_request_target, explicitly checkout the PR head (for security)
           # For regular pull_request and workflow_dispatch, checkout action uses defaults
@@ -22,7 +22,7 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: "npm"
@@ -39,7 +39,7 @@ jobs:
     if: (github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # For pull_request_target, explicitly checkout the PR head (for security)
           # For regular pull_request and workflow_dispatch, checkout action uses defaults
@@ -47,7 +47,7 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: "npm"
@@ -64,7 +64,7 @@ jobs:
     if: (github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # For pull_request_target, explicitly checkout the PR head (for security)
           # For regular pull_request and workflow_dispatch, checkout action uses defaults
@@ -72,7 +72,7 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: "npm"
@@ -90,7 +90,7 @@ jobs:
     if: (github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # For pull_request_target, explicitly checkout the PR head (for security)
           # For regular pull_request and workflow_dispatch, checkout action uses defaults
@@ -98,7 +98,7 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: "npm"
@@ -110,7 +110,7 @@ jobs:
         run: npm run test:components
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: component-coverage

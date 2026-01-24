@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Box, Text } from "ink";
+import { Box, Text, useStdout } from "ink";
 import BigText from "ink-big-text";
 import Gradient from "ink-gradient";
 import { isLightMode } from "../utils/theme.js";
-import { useViewportHeight } from "../hooks/useViewportHeight.js";
 
 // Dramatic shades of green shimmer - wide range
 const DARK_SHIMMER_COLORS = [
@@ -91,6 +90,8 @@ const LIGHT_FRAMES = precomputeFrames(
 
 // Minimum width to show the full BigText banner (simple3d font needs ~80 chars for "RUNLOOP.ai")
 const MIN_WIDTH_FOR_BIG_BANNER = 90;
+// Minimum height to show the full BigText banner - require generous room (40 lines)
+const MIN_HEIGHT_FOR_BIG_BANNER = 40;
 
 // Animation interval in ms
 const SHIMMER_INTERVAL = 400;
@@ -98,11 +99,42 @@ const SHIMMER_INTERVAL = 400;
 export const Banner = React.memo(() => {
   const [frameIndex, setFrameIndex] = useState(0);
   const frames = isLightMode() ? LIGHT_FRAMES : DARK_FRAMES;
-  const { terminalWidth } = useViewportHeight();
+  const { stdout } = useStdout();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Determine if we should show compact mode
-  const isCompact = terminalWidth < MIN_WIDTH_FOR_BIG_BANNER;
+  // Get raw terminal dimensions, responding to resize events
+  // Default to conservative values if we can't detect (triggers compact mode)
+  const getDimensions = React.useCallback(
+    () => ({
+      width: stdout?.columns && stdout.columns > 0 ? stdout.columns : 80,
+      height: stdout?.rows && stdout.rows > 0 ? stdout.rows : 20,
+    }),
+    [stdout],
+  );
+
+  const [dimensions, setDimensions] = useState(getDimensions);
+
+  useEffect(() => {
+    // Update immediately on mount and when stdout changes
+    setDimensions(getDimensions());
+
+    if (!stdout) return;
+
+    const handleResize = () => {
+      setDimensions(getDimensions());
+    };
+
+    stdout.on("resize", handleResize);
+
+    return () => {
+      stdout.off("resize", handleResize);
+    };
+  }, [stdout, getDimensions]);
+
+  // Determine if we should show compact mode (not enough width OR height)
+  const isCompact =
+    dimensions.width < MIN_WIDTH_FOR_BIG_BANNER ||
+    dimensions.height < MIN_HEIGHT_FOR_BIG_BANNER;
 
   useEffect(() => {
     const tick = () => {

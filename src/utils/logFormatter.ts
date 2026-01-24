@@ -38,6 +38,7 @@ export interface FormattedLogParts {
 
 /**
  * Format timestamp based on how recent the log is
+ * Always returns a fixed-width string for consistent alignment
  */
 export function formatTimestamp(timestampMs: number): string {
   const date = new Date(timestampMs);
@@ -46,29 +47,27 @@ export function formatTimestamp(timestampMs: number): string {
   const isToday = date.toDateString() === now.toDateString();
   const isThisYear = date.getFullYear() === now.getFullYear();
 
-  const time = date.toLocaleTimeString("en-US", {
-    hour12: false,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  // Build time components manually for consistent formatting
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const seconds = date.getSeconds().toString().padStart(2, "0");
   const ms = date.getMilliseconds().toString().padStart(3, "0");
+  const time = `${hours}:${minutes}:${seconds}`;
 
   if (isToday) {
+    // Format: "HH:MM:SS.mmm" (12 chars)
     return `${time}.${ms}`;
   } else if (isThisYear) {
-    const monthDay = date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-    return `${monthDay} ${time}`;
+    // Format: "Mon DD HH:MM:SS" (15 chars, pad day to 2)
+    const month = date.toLocaleDateString("en-US", { month: "short" });
+    const day = date.getDate().toString().padStart(2, " ");
+    return `${month} ${day} ${time}`;
   } else {
-    const fullDate = date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-    return `${fullDate} ${time}`;
+    // Format: "YYYY Mon DD HH:MM:SS" (20 chars)
+    const year = date.getFullYear();
+    const month = date.toLocaleDateString("en-US", { month: "short" });
+    const day = date.getDate().toString().padStart(2, " ");
+    return `${year} ${month} ${day} ${time}`;
   }
 }
 

@@ -140,6 +140,16 @@ rli network-policy create                # Create a new network policy
 rli network-policy delete <id>           # Delete a network policy
 ```
 
+### Secret Commands (alias: `s`)
+
+```bash
+rli secret create <name>                 # Create a new secret. Value can be pip...
+rli secret list                          # List all secrets
+rli secret get <name>                    # Get secret metadata by name
+rli secret update <name>                 # Update a secret value (value from std...
+rli secret delete <name>                 # Delete a secret
+```
+
 ### Mcp Commands
 
 ```bash

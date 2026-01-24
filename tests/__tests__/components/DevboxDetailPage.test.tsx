@@ -90,8 +90,8 @@ describe('DevboxDetailPage', () => {
     );
     
     const frame = lastFrame() || '';
-    expect(frame).toContain('Navigate');
-    expect(frame).toContain('Execute');
+    expect(frame).toContain('Nav');
+    expect(frame).toContain('Run');
     expect(frame).toContain('Back');
   });
 
