@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/runloopai/rl-cli/compare/v1.4.1...v1.5.0) (2026-01-24)
+
+
+### Features
+
+* add secret crud to rli ([#71](https://github.com/runloopai/rl-cli/issues/71)) ([8970eb7](https://github.com/runloopai/rl-cli/commit/8970eb7f51060bad68dce3bf6a1269757ffd6a88))
+
 ## [1.4.1](https://github.com/runloopai/rl-cli/compare/v1.4.0...v1.4.1) (2026-01-23)
 
 
