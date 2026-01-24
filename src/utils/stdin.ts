@@ -21,6 +21,7 @@ export async function promptSecretValue(
       if (char === "\n" || char === "\r") {
         process.stdin.setRawMode(false);
         process.stdin.removeListener("data", onData);
+        process.stdin.pause();
         process.stdout.write("\n");
         resolve(value);
       } else if (char === "\u0003") {

@@ -692,7 +692,9 @@ export function createProgram(): Command {
 
   secret
     .command("create <name>")
-    .description("Create a new secret (value from stdin or secure prompt)")
+    .description(
+      "Create a new secret. Value can be piped via stdin (e.g., echo 'val' | rli secret create name) or entered interactively with masked input for security.",
+    )
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",

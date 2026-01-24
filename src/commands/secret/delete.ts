@@ -4,7 +4,7 @@
 
 import * as readline from "readline";
 import { getClient } from "../../utils/client.js";
-import { output, outputError } from "../../utils/output.js";
+import { output } from "../../utils/output.js";
 
 interface DeleteOptions {
   yes?: boolean;
@@ -30,6 +30,8 @@ async function confirm(message: string): Promise<boolean> {
 
 export async function deleteSecret(name: string, options: DeleteOptions = {}) {
   try {
+    const client = getClient();
+
     // Confirm deletion unless --yes flag is passed
     if (!options.yes) {
       const confirmed = await confirm(
@@ -41,12 +43,12 @@ export async function deleteSecret(name: string, options: DeleteOptions = {}) {
       }
     }
 
-    const client = getClient();
+    // Delete by name
     const secret = await client.secrets.delete(name);
 
-    // Default: just output the name for easy scripting
+    // Default: show confirmation message
     if (!options.output || options.output === "text") {
-      console.log(name);
+      console.log(`Deleted secret "${name}" (${secret.id})`);
     } else {
       output(
         { id: secret.id, name, status: "deleted" },
@@ -54,6 +56,13 @@ export async function deleteSecret(name: string, options: DeleteOptions = {}) {
       );
     }
   } catch (error) {
-    outputError("Failed to delete secret", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes("404") || errorMessage.includes("not found")) {
+      console.error(`Error: Secret "${name}" not found`);
+    } else {
+      console.error(`Error: Failed to delete secret`);
+      console.error(`  ${errorMessage}`);
+    }
+    process.exit(1);
   }
 }
