@@ -87,7 +87,7 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
-    "@anthropic-ai/mcpb": "^1.1.1",
+    "@anthropic-ai/mcpb": "^2.1.2",
     "@types/jest": "^29.5.0",
     "@types/node": "^22.7.9",
     "@types/react": "^19.2.2",
