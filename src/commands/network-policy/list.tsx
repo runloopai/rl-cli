@@ -13,11 +13,13 @@ import { Table, createTextColumn } from "../../components/Table.js";
 import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { Operation } from "../../components/OperationsMenu.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
+import { SearchBar } from "../../components/SearchBar.js";
 import { output, outputError } from "../../utils/output.js";
 import { colors } from "../../utils/theme.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
+import { useListSearch } from "../../hooks/useListSearch.js";
 import { useNavigation } from "../../store/navigationStore.js";
 import { NetworkPolicyCreatePage } from "../../components/NetworkPolicyCreatePage.js";
 import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
@@ -99,8 +101,14 @@ const ListNetworkPoliciesUI = ({
     React.useState<NetworkPolicyListItem | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
+  // Search state
+  const search = useListSearch({
+    onSearchSubmit: () => setSelectedIndex(0),
+    onSearchClear: () => setSelectedIndex(0),
+  });
+
   // Calculate overhead for viewport height
-  const overhead = 13;
+  const overhead = 13 + search.getSearchOverhead();
   const { viewportHeight, terminalWidth } = useViewportHeight({
     overhead,
     minHeight: 5,
@@ -135,6 +143,9 @@ const ListNetworkPoliciesUI = ({
       if (params.startingAt) {
         queryParams.starting_after = params.startingAt;
       }
+      if (search.submittedSearchQuery) {
+        queryParams.search = search.submittedSearchQuery;
+      }
 
       // Fetch ONE page only
       const page = (await client.networkPolicies.list(
@@ -167,7 +178,7 @@ const ListNetworkPoliciesUI = ({
 
       return result;
     },
-    [],
+    [search.submittedSearchQuery],
   );
 
   // Use the shared pagination hook
@@ -193,8 +204,9 @@ const ListNetworkPoliciesUI = ({
       !executingOperation &&
       !showCreatePolicy &&
       !showEditPolicy &&
-      !showDeleteConfirm,
-    deps: [PAGE_SIZE],
+      !showDeleteConfirm &&
+      !search.searchMode,
+    deps: [PAGE_SIZE, search.submittedSearchQuery],
   });
 
   // Operations for a specific network policy (shown in popup)
@@ -352,6 +364,14 @@ const ListNetworkPoliciesUI = ({
   };
 
   useInput((input, key) => {
+    // Handle search mode input
+    if (search.searchMode) {
+      if (key.escape) {
+        search.cancelSearch();
+      }
+      return;
+    }
+
     // Handle operation result display
     if (operationResult || operationError) {
       if (input === "q" || key.escape || key.return) {
@@ -474,7 +494,12 @@ const ListNetworkPoliciesUI = ({
       // Edit shortcut
       setEditingPolicy(selectedPolicyItem);
       setShowEditPolicy(true);
+    } else if (input === "/") {
+      search.enterSearchMode();
     } else if (key.escape) {
+      if (search.handleEscape()) {
+        return;
+      }
       if (onBack) {
         onBack();
       } else if (onExit) {
@@ -618,6 +643,17 @@ const ListNetworkPoliciesUI = ({
     <>
       <Breadcrumb items={[{ label: "Network Policies", active: true }]} />
 
+      {/* Search bar */}
+      <SearchBar
+        searchMode={search.searchMode}
+        searchQuery={search.searchQuery}
+        submittedSearchQuery={search.submittedSearchQuery}
+        resultCount={totalCount}
+        onSearchChange={search.setSearchQuery}
+        onSearchSubmit={search.submitSearch}
+        placeholder="Search network policies..."
+      />
+
       {/* Table - hide when popup is shown */}
       {!showPopup && (
         <Table
@@ -668,6 +704,17 @@ const ListNetworkPoliciesUI = ({
           <Text color={colors.textDim} dimColor>
             Showing {startIndex + 1}-{endIndex} of {totalCount}
           </Text>
+          {search.submittedSearchQuery && (
+            <>
+              <Text color={colors.textDim} dimColor>
+                {" "}
+                •{" "}
+              </Text>
+              <Text color={colors.warning}>
+                Filtered: &quot;{search.submittedSearchQuery}&quot;
+              </Text>
+            </>
+          )}
         </Box>
       )}
 
@@ -711,6 +758,7 @@ const ListNetworkPoliciesUI = ({
           { key: "c", label: "Create" },
           { key: "e", label: "Edit" },
           { key: "a", label: "Actions" },
+          { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },
         ]}
       />

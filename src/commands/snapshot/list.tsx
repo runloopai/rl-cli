@@ -13,11 +13,13 @@ import { Table, createTextColumn } from "../../components/Table.js";
 import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { Operation } from "../../components/OperationsMenu.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
+import { SearchBar } from "../../components/SearchBar.js";
 import { output, outputError } from "../../utils/output.js";
 import { colors } from "../../utils/theme.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
+import { useListSearch } from "../../hooks/useListSearch.js";
 import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
 import { useNavigation } from "../../store/navigationStore.js";
 import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
@@ -70,8 +72,14 @@ const ListSnapshotsUI = ({
   const [showCreateDevbox, setShowCreateDevbox] = React.useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
+  // Search state
+  const search = useListSearch({
+    onSearchSubmit: () => setSelectedIndex(0),
+    onSearchClear: () => setSelectedIndex(0),
+  });
+
   // Calculate overhead for viewport height
-  const overhead = 13;
+  const overhead = 13 + search.getSearchOverhead();
   const { viewportHeight, terminalWidth } = useViewportHeight({
     overhead,
     minHeight: 5,
@@ -108,6 +116,9 @@ const ListSnapshotsUI = ({
       if (devboxId) {
         queryParams.devbox_id = devboxId;
       }
+      if (search.submittedSearchQuery) {
+        queryParams.search = search.submittedSearchQuery;
+      }
 
       // Fetch ONE page only
       const page = (await client.devboxes.listDiskSnapshots(
@@ -135,7 +146,7 @@ const ListSnapshotsUI = ({
 
       return result;
     },
-    [devboxId],
+    [devboxId, search.submittedSearchQuery],
   );
 
   // Use the shared pagination hook
@@ -160,8 +171,9 @@ const ListSnapshotsUI = ({
       !showPopup &&
       !executingOperation &&
       !showCreateDevbox &&
-      !showDeleteConfirm,
-    deps: [devboxId, PAGE_SIZE],
+      !showDeleteConfirm &&
+      !search.searchMode,
+    deps: [devboxId, PAGE_SIZE, search.submittedSearchQuery],
   });
 
   // Operations for snapshots
@@ -280,6 +292,14 @@ const ListSnapshotsUI = ({
   };
 
   useInput((input, key) => {
+    // Handle search mode input
+    if (search.searchMode) {
+      if (key.escape) {
+        search.cancelSearch();
+      }
+      return;
+    }
+
     // Handle operation result display
     if (operationResult || operationError) {
       if (input === "q" || key.escape || key.return) {
@@ -383,7 +403,12 @@ const ListSnapshotsUI = ({
     } else if (input === "a" && selectedSnapshotItem) {
       setShowPopup(true);
       setSelectedOperation(0);
+    } else if (input === "/") {
+      search.enterSearchMode();
     } else if (key.escape) {
+      if (search.handleEscape()) {
+        return;
+      }
       if (onBack) {
         onBack();
       } else if (onExit) {
@@ -533,6 +558,17 @@ const ListSnapshotsUI = ({
         ]}
       />
 
+      {/* Search bar */}
+      <SearchBar
+        searchMode={search.searchMode}
+        searchQuery={search.searchQuery}
+        submittedSearchQuery={search.submittedSearchQuery}
+        resultCount={totalCount}
+        onSearchChange={search.setSearchQuery}
+        onSearchSubmit={search.submitSearch}
+        placeholder="Search snapshots..."
+      />
+
       {/* Table - hide when popup is shown */}
       {!showPopup && (
         <Table
@@ -584,6 +620,17 @@ const ListSnapshotsUI = ({
           <Text color={colors.textDim} dimColor>
             Showing {startIndex + 1}-{endIndex} of {totalCount}
           </Text>
+          {search.submittedSearchQuery && (
+            <>
+              <Text color={colors.textDim} dimColor>
+                {" "}
+                •{" "}
+              </Text>
+              <Text color={colors.warning}>
+                Filtered: &quot;{search.submittedSearchQuery}&quot;
+              </Text>
+            </>
+          )}
         </Box>
       )}
 
@@ -623,6 +670,7 @@ const ListSnapshotsUI = ({
           },
           { key: "Enter", label: "Details" },
           { key: "a", label: "Actions" },
+          { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },
         ]}
       />
