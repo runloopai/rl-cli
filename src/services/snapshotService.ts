@@ -65,7 +65,10 @@ export async function listSnapshots(
           ? String(snapshotView.name).substring(0, MAX_NAME_LENGTH)
           : undefined,
         commit_message: snapshotView.commit_message
-          ? String(snapshotView.commit_message).substring(0, MAX_COMMIT_MSG_LENGTH)
+          ? String(snapshotView.commit_message).substring(
+              0,
+              MAX_COMMIT_MSG_LENGTH,
+            )
           : undefined,
         create_time_ms: snapshotView.create_time_ms,
         metadata: snapshotView.metadata || {},

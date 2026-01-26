@@ -378,7 +378,10 @@ export const DevboxActionsMenu = ({
       }
 
       // Navigate between fields (only when not actively editing text fields)
-      if (snapshotFormField !== "name" && snapshotFormField !== "commit_message") {
+      if (
+        snapshotFormField !== "name" &&
+        snapshotFormField !== "commit_message"
+      ) {
         if (key.upArrow && currentFieldIndex > 0) {
           setSnapshotFormField(snapshotFields[currentFieldIndex - 1]);
           return;
@@ -425,7 +428,12 @@ export const DevboxActionsMenu = ({
     }
 
     // Handle operation input mode (for exec, upload, tunnel)
-    if (executingOperation && !operationResult && !operationError && !snapshotFormMode) {
+    if (
+      executingOperation &&
+      !operationResult &&
+      !operationError &&
+      !snapshotFormMode
+    ) {
       if (key.return && operationInput.trim()) {
         executeOperation();
       } else if (input === "q" || key.escape) {
@@ -625,7 +633,10 @@ export const DevboxActionsMenu = ({
           if (Object.keys(snapshotMetadata).length > 0) {
             snapshotOptions.metadata = snapshotMetadata;
           }
-          const snapshot = await createDevboxSnapshot(devbox.id, snapshotOptions);
+          const snapshot = await createDevboxSnapshot(
+            devbox.id,
+            snapshotOptions,
+          );
           setOperationResult(`Snapshot created: ${snapshot.id}`);
           // Reset snapshot form state
           setSnapshotFormMode(false);
@@ -1059,7 +1070,9 @@ export const DevboxActionsMenu = ({
                   }
                   bold
                 >
-                  {selectedSnapshotMetadataIndex === 0 ? "Adding New" : "Editing"}
+                  {selectedSnapshotMetadataIndex === 0
+                    ? "Adding New"
+                    : "Editing"}
                 </Text>
                 <Box>
                   {snapshotMetadataInputMode === "key" ? (
@@ -1104,7 +1117,9 @@ export const DevboxActionsMenu = ({
                         : colors.textDim
                     }
                   >
-                    {selectedSnapshotMetadataIndex === 0 ? figures.pointer : " "}{" "}
+                    {selectedSnapshotMetadataIndex === 0
+                      ? figures.pointer
+                      : " "}{" "}
                   </Text>
                   <Text
                     color={
@@ -1193,7 +1208,10 @@ export const DevboxActionsMenu = ({
     return (
       <>
         <Breadcrumb
-          items={[...breadcrumbItems, { label: "Create Snapshot", active: true }]}
+          items={[
+            ...breadcrumbItems,
+            { label: "Create Snapshot", active: true },
+          ]}
         />
         <Header title="Create Snapshot" />
         <Box flexDirection="column" marginBottom={1}>
@@ -1211,7 +1229,9 @@ export const DevboxActionsMenu = ({
           {/* Name field */}
           <Box marginBottom={1}>
             <Text
-              color={snapshotFormField === "name" ? colors.primary : colors.textDim}
+              color={
+                snapshotFormField === "name" ? colors.primary : colors.textDim
+              }
             >
               {snapshotFormField === "name" ? figures.pointer : " "} Name:{" "}
             </Text>
@@ -1258,7 +1278,9 @@ export const DevboxActionsMenu = ({
             <Box>
               <Text
                 color={
-                  snapshotFormField === "metadata" ? colors.primary : colors.textDim
+                  snapshotFormField === "metadata"
+                    ? colors.primary
+                    : colors.textDim
                 }
               >
                 {snapshotFormField === "metadata" ? figures.pointer : " "}{" "}
@@ -1288,7 +1310,9 @@ export const DevboxActionsMenu = ({
           {/* Create button */}
           <Box marginTop={1}>
             <Text
-              color={snapshotFormField === "create" ? colors.success : colors.textDim}
+              color={
+                snapshotFormField === "create" ? colors.success : colors.textDim
+              }
               bold={snapshotFormField === "create"}
             >
               {snapshotFormField === "create" ? figures.pointer : " "}{" "}
@@ -1299,7 +1323,10 @@ export const DevboxActionsMenu = ({
         <NavigationTips
           showArrows
           tips={[
-            { key: "Enter", label: snapshotFormField === "create" ? "Create" : "Select" },
+            {
+              key: "Enter",
+              label: snapshotFormField === "create" ? "Create" : "Select",
+            },
             { key: "q/esc", label: "Cancel" },
           ]}
         />
