@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/runloopai/rl-cli/compare/v1.5.0...v1.6.0) (2026-01-24)
+
+
+### Features
+
+* add standardized search to all table views ([#72](https://github.com/runloopai/rl-cli/issues/72)) ([9fa6eaa](https://github.com/runloopai/rl-cli/commit/9fa6eaaa04a36805d0687b31597d04a230847475))
+
 ## [1.5.0](https://github.com/runloopai/rl-cli/compare/v1.4.1...v1.5.0) (2026-01-24)
 
 
