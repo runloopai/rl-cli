@@ -77,6 +77,25 @@ export const DevboxActionsMenu = ({
   const [copyStatus, setCopyStatus] = React.useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
+  // Snapshot form state
+  const [snapshotFormMode, setSnapshotFormMode] = React.useState(false);
+  const [snapshotName, setSnapshotName] = React.useState("");
+  const [snapshotCommitMessage, setSnapshotCommitMessage] = React.useState("");
+  const [snapshotMetadata, setSnapshotMetadata] = React.useState<
+    Record<string, string>
+  >({});
+  const [snapshotFormField, setSnapshotFormField] = React.useState<
+    "name" | "commit_message" | "metadata" | "create"
+  >("name");
+  const [inSnapshotMetadataSection, setInSnapshotMetadataSection] =
+    React.useState(false);
+  const [snapshotMetadataKey, setSnapshotMetadataKey] = React.useState("");
+  const [snapshotMetadataValue, setSnapshotMetadataValue] = React.useState("");
+  const [snapshotMetadataInputMode, setSnapshotMetadataInputMode] =
+    React.useState<"key" | "value" | null>(null);
+  const [selectedSnapshotMetadataIndex, setSelectedSnapshotMetadataIndex] =
+    React.useState(0);
+
   // Calculate viewport for exec output:
   // - Breadcrumb (3 lines + marginBottom): 4 lines
   // - Command header (border + 2 content + border + marginBottom): 5 lines
@@ -225,14 +244,196 @@ export const DevboxActionsMenu = ({
     ) {
       setShowDeleteConfirm(true);
     }
+    // Show snapshot form
+    if (
+      executingOperation === "snapshot" &&
+      !loading &&
+      devbox &&
+      !snapshotFormMode &&
+      !operationResult &&
+      !operationError
+    ) {
+      setSnapshotFormMode(true);
+      setSnapshotFormField("name");
+    }
   }, [executingOperation]);
 
   // Handle Ctrl+C to exit
   useExitOnCtrlC();
 
   useInput((input, key) => {
-    // Handle operation input mode
-    if (executingOperation && !operationResult && !operationError) {
+    // Handle snapshot metadata section input
+    if (snapshotFormMode && inSnapshotMetadataSection) {
+      const metadataKeys = Object.keys(snapshotMetadata);
+      const maxIndex = metadataKeys.length + 1;
+
+      // Handle input mode (typing key or value)
+      if (snapshotMetadataInputMode) {
+        if (
+          snapshotMetadataInputMode === "key" &&
+          key.return &&
+          snapshotMetadataKey.trim()
+        ) {
+          setSnapshotMetadataInputMode("value");
+          return;
+        } else if (snapshotMetadataInputMode === "value" && key.return) {
+          if (snapshotMetadataKey.trim() && snapshotMetadataValue.trim()) {
+            setSnapshotMetadata({
+              ...snapshotMetadata,
+              [snapshotMetadataKey.trim()]: snapshotMetadataValue.trim(),
+            });
+          }
+          setSnapshotMetadataKey("");
+          setSnapshotMetadataValue("");
+          setSnapshotMetadataInputMode(null);
+          setSelectedSnapshotMetadataIndex(0);
+          return;
+        } else if (key.escape) {
+          setSnapshotMetadataKey("");
+          setSnapshotMetadataValue("");
+          setSnapshotMetadataInputMode(null);
+          return;
+        } else if (key.tab) {
+          setSnapshotMetadataInputMode(
+            snapshotMetadataInputMode === "key" ? "value" : "key",
+          );
+          return;
+        }
+        return;
+      }
+
+      // Navigation mode in metadata section
+      if (key.upArrow && selectedSnapshotMetadataIndex > 0) {
+        setSelectedSnapshotMetadataIndex(selectedSnapshotMetadataIndex - 1);
+      } else if (key.downArrow && selectedSnapshotMetadataIndex < maxIndex) {
+        setSelectedSnapshotMetadataIndex(selectedSnapshotMetadataIndex + 1);
+      } else if (key.return) {
+        if (selectedSnapshotMetadataIndex === 0) {
+          setSnapshotMetadataKey("");
+          setSnapshotMetadataValue("");
+          setSnapshotMetadataInputMode("key");
+        } else if (selectedSnapshotMetadataIndex === maxIndex) {
+          setInSnapshotMetadataSection(false);
+          setSelectedSnapshotMetadataIndex(0);
+          setSnapshotMetadataKey("");
+          setSnapshotMetadataValue("");
+          setSnapshotMetadataInputMode(null);
+        } else if (
+          selectedSnapshotMetadataIndex >= 1 &&
+          selectedSnapshotMetadataIndex <= metadataKeys.length
+        ) {
+          const keyToEdit = metadataKeys[selectedSnapshotMetadataIndex - 1];
+          setSnapshotMetadataKey(keyToEdit || "");
+          setSnapshotMetadataValue(snapshotMetadata[keyToEdit] || "");
+          const newMetadata = { ...snapshotMetadata };
+          delete newMetadata[keyToEdit];
+          setSnapshotMetadata(newMetadata);
+          setSnapshotMetadataInputMode("key");
+        }
+      } else if (
+        (input === "d" || key.delete) &&
+        selectedSnapshotMetadataIndex >= 1 &&
+        selectedSnapshotMetadataIndex <= metadataKeys.length
+      ) {
+        const keyToDelete = metadataKeys[selectedSnapshotMetadataIndex - 1];
+        const newMetadata = { ...snapshotMetadata };
+        delete newMetadata[keyToDelete];
+        setSnapshotMetadata(newMetadata);
+        const newLength = Object.keys(newMetadata).length;
+        if (selectedSnapshotMetadataIndex > newLength) {
+          setSelectedSnapshotMetadataIndex(Math.max(0, newLength));
+        }
+      } else if (key.escape || input === "q") {
+        setInSnapshotMetadataSection(false);
+        setSelectedSnapshotMetadataIndex(0);
+        setSnapshotMetadataKey("");
+        setSnapshotMetadataValue("");
+        setSnapshotMetadataInputMode(null);
+      }
+      return;
+    }
+
+    // Handle snapshot form mode (main form navigation)
+    if (snapshotFormMode && !inSnapshotMetadataSection) {
+      const snapshotFields = [
+        "name",
+        "commit_message",
+        "metadata",
+        "create",
+      ] as const;
+      const currentFieldIndex = snapshotFields.indexOf(snapshotFormField);
+
+      if (input === "q" || key.escape) {
+        // Cancel snapshot form
+        setSnapshotFormMode(false);
+        setSnapshotName("");
+        setSnapshotCommitMessage("");
+        setSnapshotMetadata({});
+        setSnapshotFormField("name");
+        setExecutingOperation(null);
+        if (skipOperationsMenu) {
+          onBack();
+        }
+        return;
+      }
+
+      // Navigate between fields (only when not actively editing text fields)
+      if (
+        snapshotFormField !== "name" &&
+        snapshotFormField !== "commit_message"
+      ) {
+        if (key.upArrow && currentFieldIndex > 0) {
+          setSnapshotFormField(snapshotFields[currentFieldIndex - 1]);
+          return;
+        }
+        if (key.downArrow && currentFieldIndex < snapshotFields.length - 1) {
+          setSnapshotFormField(snapshotFields[currentFieldIndex + 1]);
+          return;
+        }
+      }
+
+      // Handle Enter key
+      if (key.return) {
+        if (snapshotFormField === "name") {
+          // Move to commit_message field
+          setSnapshotFormField("commit_message");
+        } else if (snapshotFormField === "commit_message") {
+          // Move to metadata field
+          setSnapshotFormField("metadata");
+        } else if (snapshotFormField === "metadata") {
+          // Enter metadata section
+          setInSnapshotMetadataSection(true);
+          setSelectedSnapshotMetadataIndex(0);
+        } else if (snapshotFormField === "create") {
+          // Execute snapshot creation
+          executeOperation();
+        }
+        return;
+      }
+
+      // Tab navigation (when not in text input fields)
+      if (
+        key.tab &&
+        snapshotFormField !== "name" &&
+        snapshotFormField !== "commit_message"
+      ) {
+        const nextIndex = key.shift
+          ? Math.max(0, currentFieldIndex - 1)
+          : Math.min(snapshotFields.length - 1, currentFieldIndex + 1);
+        setSnapshotFormField(snapshotFields[nextIndex]);
+        return;
+      }
+
+      return;
+    }
+
+    // Handle operation input mode (for exec, upload, tunnel)
+    if (
+      executingOperation &&
+      !operationResult &&
+      !operationError &&
+      !snapshotFormMode
+    ) {
       if (key.return && operationInput.trim()) {
         executeOperation();
       } else if (input === "q" || key.escape) {
@@ -415,12 +616,34 @@ export const DevboxActionsMenu = ({
           break;
 
         case "snapshot":
-          // Use service layer
+          // Use service layer with form data
+          const snapshotOptions: {
+            name?: string;
+            metadata?: Record<string, string>;
+            commit_message?: string;
+          } = {};
+          if (snapshotName.trim()) {
+            snapshotOptions.name = snapshotName.trim();
+          } else {
+            snapshotOptions.name = `snapshot-${Date.now()}`;
+          }
+          if (snapshotCommitMessage.trim()) {
+            snapshotOptions.commit_message = snapshotCommitMessage.trim();
+          }
+          if (Object.keys(snapshotMetadata).length > 0) {
+            snapshotOptions.metadata = snapshotMetadata;
+          }
           const snapshot = await createDevboxSnapshot(
             devbox.id,
-            operationInput || `snapshot-${Date.now()}`,
+            snapshotOptions,
           );
           setOperationResult(`Snapshot created: ${snapshot.id}`);
+          // Reset snapshot form state
+          setSnapshotFormMode(false);
+          setSnapshotName("");
+          setSnapshotCommitMessage("");
+          setSnapshotMetadata({});
+          setSnapshotFormField("name");
           break;
 
         case "ssh":
@@ -773,12 +996,349 @@ export const DevboxActionsMenu = ({
     );
   }
 
+  // Snapshot form mode
+  if (snapshotFormMode && executingOperation === "snapshot" && devbox) {
+    if (loading) {
+      return (
+        <>
+          <Breadcrumb
+            items={[
+              ...breadcrumbItems,
+              { label: "Create Snapshot", active: true },
+            ]}
+          />
+          <Header title="Creating Snapshot" />
+          <SpinnerComponent message="Creating snapshot..." />
+        </>
+      );
+    }
+
+    const snapshotFields = [
+      { key: "name", label: "Name (optional)" },
+      { key: "metadata", label: "Metadata (optional)" },
+      { key: "create", label: "Create Snapshot" },
+    ] as const;
+
+    const currentFieldIndex = snapshotFields.findIndex(
+      (f) => f.key === snapshotFormField,
+    );
+
+    // Expanded metadata section
+    if (inSnapshotMetadataSection) {
+      const metadataKeys = Object.keys(snapshotMetadata);
+      const maxIndex = metadataKeys.length + 1;
+
+      return (
+        <>
+          <Breadcrumb
+            items={[
+              ...breadcrumbItems,
+              { label: "Create Snapshot", active: true },
+            ]}
+          />
+          <Header title="Create Snapshot - Metadata" />
+          <Box
+            flexDirection="column"
+            borderStyle="round"
+            borderColor={colors.primary}
+            paddingX={1}
+            paddingY={1}
+            marginBottom={1}
+          >
+            <Text color={colors.primary} bold>
+              {figures.hamburger} Manage Metadata
+            </Text>
+
+            {/* Input form - shown when adding or editing */}
+            {snapshotMetadataInputMode && (
+              <Box
+                flexDirection="column"
+                marginTop={1}
+                borderStyle="single"
+                borderColor={
+                  selectedSnapshotMetadataIndex === 0
+                    ? colors.success
+                    : colors.warning
+                }
+                paddingX={1}
+              >
+                <Text
+                  color={
+                    selectedSnapshotMetadataIndex === 0
+                      ? colors.success
+                      : colors.warning
+                  }
+                  bold
+                >
+                  {selectedSnapshotMetadataIndex === 0
+                    ? "Adding New"
+                    : "Editing"}
+                </Text>
+                <Box>
+                  {snapshotMetadataInputMode === "key" ? (
+                    <>
+                      <Text color={colors.primary}>Key: </Text>
+                      <TextInput
+                        value={snapshotMetadataKey || ""}
+                        onChange={setSnapshotMetadataKey}
+                        placeholder="env"
+                      />
+                    </>
+                  ) : (
+                    <Text dimColor>Key: {snapshotMetadataKey || ""}</Text>
+                  )}
+                </Box>
+                <Box>
+                  {snapshotMetadataInputMode === "value" ? (
+                    <>
+                      <Text color={colors.primary}>Value: </Text>
+                      <TextInput
+                        value={snapshotMetadataValue || ""}
+                        onChange={setSnapshotMetadataValue}
+                        placeholder="production"
+                      />
+                    </>
+                  ) : (
+                    <Text dimColor>Value: {snapshotMetadataValue || ""}</Text>
+                  )}
+                </Box>
+              </Box>
+            )}
+
+            {/* Navigation menu - shown when not in input mode */}
+            {!snapshotMetadataInputMode && (
+              <>
+                {/* Add new option */}
+                <Box marginTop={1}>
+                  <Text
+                    color={
+                      selectedSnapshotMetadataIndex === 0
+                        ? colors.primary
+                        : colors.textDim
+                    }
+                  >
+                    {selectedSnapshotMetadataIndex === 0
+                      ? figures.pointer
+                      : " "}{" "}
+                  </Text>
+                  <Text
+                    color={
+                      selectedSnapshotMetadataIndex === 0
+                        ? colors.success
+                        : colors.textDim
+                    }
+                    bold={selectedSnapshotMetadataIndex === 0}
+                  >
+                    + Add new metadata
+                  </Text>
+                </Box>
+
+                {/* Existing items */}
+                {metadataKeys.length > 0 && (
+                  <Box flexDirection="column" marginTop={1}>
+                    {metadataKeys.map((key, index) => {
+                      const itemIndex = index + 1;
+                      const isSelected =
+                        selectedSnapshotMetadataIndex === itemIndex;
+                      return (
+                        <Box key={key}>
+                          <Text
+                            color={isSelected ? colors.primary : colors.textDim}
+                          >
+                            {isSelected ? figures.pointer : " "}{" "}
+                          </Text>
+                          <Text
+                            color={isSelected ? colors.primary : colors.textDim}
+                            bold={isSelected}
+                          >
+                            {key}: {snapshotMetadata[key]}
+                          </Text>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                )}
+
+                {/* Done option */}
+                <Box marginTop={1}>
+                  <Text
+                    color={
+                      selectedSnapshotMetadataIndex === maxIndex
+                        ? colors.primary
+                        : colors.textDim
+                    }
+                  >
+                    {selectedSnapshotMetadataIndex === maxIndex
+                      ? figures.pointer
+                      : " "}{" "}
+                  </Text>
+                  <Text
+                    color={
+                      selectedSnapshotMetadataIndex === maxIndex
+                        ? colors.success
+                        : colors.textDim
+                    }
+                    bold={selectedSnapshotMetadataIndex === maxIndex}
+                  >
+                    {figures.tick} Done
+                  </Text>
+                </Box>
+              </>
+            )}
+
+            {/* Help text */}
+            <Box
+              marginTop={1}
+              borderStyle="single"
+              borderColor={colors.border}
+              paddingX={1}
+            >
+              <Text color={colors.textDim} dimColor>
+                {snapshotMetadataInputMode
+                  ? `[Tab] Switch field • [Enter] ${snapshotMetadataInputMode === "key" ? "Next" : "Save"} • [esc] Cancel`
+                  : `${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedSnapshotMetadataIndex === 0 ? "Add" : selectedSnapshotMetadataIndex === maxIndex ? "Done" : "Edit"} • [d] Delete • [esc] Back`}
+              </Text>
+            </Box>
+          </Box>
+        </>
+      );
+    }
+
+    // Main snapshot form
+    return (
+      <>
+        <Breadcrumb
+          items={[
+            ...breadcrumbItems,
+            { label: "Create Snapshot", active: true },
+          ]}
+        />
+        <Header title="Create Snapshot" />
+        <Box flexDirection="column" marginBottom={1}>
+          <Box marginBottom={1}>
+            <Text color={colors.primary} bold>
+              {(() => {
+                const name = devbox.name || devbox.id;
+                return name.length > 100
+                  ? name.substring(0, 100) + "..."
+                  : name;
+              })()}
+            </Text>
+          </Box>
+
+          {/* Name field */}
+          <Box marginBottom={1}>
+            <Text
+              color={
+                snapshotFormField === "name" ? colors.primary : colors.textDim
+              }
+            >
+              {snapshotFormField === "name" ? figures.pointer : " "} Name:{" "}
+            </Text>
+            {snapshotFormField === "name" ? (
+              <TextInput
+                value={snapshotName}
+                onChange={setSnapshotName}
+                placeholder="my-snapshot (optional)"
+              />
+            ) : (
+              <Text color={colors.text}>
+                {snapshotName || "(auto-generated)"}
+              </Text>
+            )}
+          </Box>
+
+          {/* Commit message field */}
+          <Box marginBottom={1}>
+            <Text
+              color={
+                snapshotFormField === "commit_message"
+                  ? colors.primary
+                  : colors.textDim
+              }
+            >
+              {snapshotFormField === "commit_message" ? figures.pointer : " "}{" "}
+              Commit Message:{" "}
+            </Text>
+            {snapshotFormField === "commit_message" ? (
+              <TextInput
+                value={snapshotCommitMessage}
+                onChange={setSnapshotCommitMessage}
+                placeholder="Describe this snapshot (optional)"
+              />
+            ) : (
+              <Text color={colors.text}>
+                {snapshotCommitMessage || "(none)"}
+              </Text>
+            )}
+          </Box>
+
+          {/* Metadata field */}
+          <Box marginBottom={1} flexDirection="column">
+            <Box>
+              <Text
+                color={
+                  snapshotFormField === "metadata"
+                    ? colors.primary
+                    : colors.textDim
+                }
+              >
+                {snapshotFormField === "metadata" ? figures.pointer : " "}{" "}
+                Metadata:{" "}
+              </Text>
+              <Text color={colors.text}>
+                {Object.keys(snapshotMetadata).length} item(s)
+              </Text>
+              {snapshotFormField === "metadata" && (
+                <Text color={colors.textDim} dimColor>
+                  {" "}
+                  [Enter to manage]
+                </Text>
+              )}
+            </Box>
+            {Object.keys(snapshotMetadata).length > 0 && (
+              <Box marginLeft={4} flexDirection="column">
+                {Object.entries(snapshotMetadata).map(([key, value]) => (
+                  <Text key={key} color={colors.textDim} dimColor>
+                    {key}: {value}
+                  </Text>
+                ))}
+              </Box>
+            )}
+          </Box>
+
+          {/* Create button */}
+          <Box marginTop={1}>
+            <Text
+              color={
+                snapshotFormField === "create" ? colors.success : colors.textDim
+              }
+              bold={snapshotFormField === "create"}
+            >
+              {snapshotFormField === "create" ? figures.pointer : " "}{" "}
+              {figures.play} Create Snapshot
+            </Text>
+          </Box>
+        </Box>
+        <NavigationTips
+          showArrows
+          tips={[
+            {
+              key: "Enter",
+              label: snapshotFormField === "create" ? "Create" : "Select",
+            },
+            { key: "q/esc", label: "Cancel" },
+          ]}
+        />
+      </>
+    );
+  }
+
   // Operation input mode
   if (executingOperation && devbox) {
     const needsInput =
       executingOperation === "exec" ||
       executingOperation === "upload" ||
-      executingOperation === "snapshot" ||
       executingOperation === "tunnel";
 
     if (loading) {
@@ -823,7 +1383,6 @@ export const DevboxActionsMenu = ({
     const prompts: Record<string, string> = {
       exec: "Command to execute:",
       upload: "File path to upload:",
-      snapshot: "Snapshot name (optional):",
       tunnel: "Port number to expose:",
     };
 
@@ -856,9 +1415,7 @@ export const DevboxActionsMenu = ({
                   ? "ls -la"
                   : executingOperation === "upload"
                     ? "/path/to/file"
-                    : executingOperation === "tunnel"
-                      ? "8080"
-                      : "my-snapshot"
+                    : "8080"
               }
             />
           </Box>

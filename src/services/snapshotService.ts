@@ -5,6 +5,7 @@ import { getClient } from "../utils/client.js";
 import type { Snapshot } from "../store/snapshotStore.js";
 import type {
   DevboxListDiskSnapshotsParams,
+  DevboxSnapshotDiskParams,
   DevboxSnapshotView,
 } from "@runloop/api-client/resources/devboxes/devboxes";
 import type { DiskSnapshotsCursorIDPage } from "@runloop/api-client/pagination";
@@ -53,6 +54,7 @@ export async function listSnapshots(
       const MAX_ID_LENGTH = 100;
       const MAX_NAME_LENGTH = 200;
       const MAX_STATUS_LENGTH = 50;
+      const MAX_COMMIT_MSG_LENGTH = 1000;
 
       // Status is constructed/available in API response but not in type definition
       const snapshotView = s as DevboxSnapshotView & { status?: string };
@@ -61,6 +63,12 @@ export async function listSnapshots(
         id: String(snapshotView.id || "").substring(0, MAX_ID_LENGTH),
         name: snapshotView.name
           ? String(snapshotView.name).substring(0, MAX_NAME_LENGTH)
+          : undefined,
+        commit_message: snapshotView.commit_message
+          ? String(snapshotView.commit_message).substring(
+              0,
+              MAX_COMMIT_MSG_LENGTH,
+            )
           : undefined,
         create_time_ms: snapshotView.create_time_ms,
         metadata: snapshotView.metadata || {},
@@ -123,6 +131,7 @@ export async function getSnapshot(id: string): Promise<Snapshot> {
   return {
     id: snapshot.id,
     name: snapshot.name || undefined,
+    commit_message: snapshot.commit_message || undefined,
     create_time_ms: snapshot.create_time_ms,
     metadata: snapshot.metadata || {},
     source_devbox_id: snapshot.source_devbox_id || "",
@@ -137,12 +146,22 @@ export async function getSnapshot(id: string): Promise<Snapshot> {
  */
 export async function createSnapshot(
   devboxId: string,
-  name?: string,
+  options?: DevboxSnapshotDiskParams,
 ): Promise<Snapshot> {
   const client = getClient();
-  const snapshot = await client.devboxes.snapshotDisk(devboxId, {
-    name,
-  });
+  const params: DevboxSnapshotDiskParams = {};
+
+  if (options?.name) {
+    params.name = options.name;
+  }
+  if (options?.commit_message) {
+    params.commit_message = options.commit_message;
+  }
+  if (options?.metadata && Object.keys(options.metadata).length > 0) {
+    params.metadata = options.metadata;
+  }
+
+  const snapshot = await client.devboxes.snapshotDisk(devboxId, params);
 
   return {
     id: snapshot.id,
