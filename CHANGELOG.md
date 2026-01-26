@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.0](https://github.com/runloopai/rl-cli/compare/v1.6.0...v1.7.0) (2026-01-26)
+
+
+### Features
+
+* **devbox:** add streaming exec viewer with kill support and terminal resize stability ([#77](https://github.com/runloopai/rl-cli/issues/77)) ([7cc315b](https://github.com/runloopai/rl-cli/commit/7cc315b1bf4df17bb6b0c6cc73f73a07082ada8c))
+
+
+### Bug Fixes
+
+* **snapshot:** improvements to snapshot UI ([#75](https://github.com/runloopai/rl-cli/issues/75)) ([b04fc98](https://github.com/runloopai/rl-cli/commit/b04fc9898fb94262ea299b0b0fd62e814e60d70c))
+
 ## [1.6.0](https://github.com/runloopai/rl-cli/compare/v1.5.0...v1.6.0) (2026-01-24)
 
 
