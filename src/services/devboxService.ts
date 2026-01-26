@@ -200,12 +200,34 @@ export async function uploadFile(
 /**
  * Create snapshot of devbox
  */
+export interface CreateSnapshotOptions {
+  name?: string;
+  metadata?: Record<string, string>;
+  commit_message?: string;
+}
+
 export async function createSnapshot(
   id: string,
-  name?: string,
+  options?: CreateSnapshotOptions,
 ): Promise<{ id: string; name?: string }> {
   const client = getClient();
-  const snapshot = await client.devboxes.snapshotDisk(id, { name });
+  const params: {
+    name?: string;
+    metadata?: Record<string, string>;
+    commit_message?: string;
+  } = {};
+
+  if (options?.name) {
+    params.name = options.name;
+  }
+  if (options?.metadata && Object.keys(options.metadata).length > 0) {
+    params.metadata = options.metadata;
+  }
+  if (options?.commit_message) {
+    params.commit_message = options.commit_message;
+  }
+
+  const snapshot = await client.devboxes.snapshotDisk(id, params);
 
   return {
     id: String(snapshot.id || "").substring(0, 100),

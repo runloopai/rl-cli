@@ -145,6 +145,21 @@ export function SnapshotDetailScreen({
     });
   }
 
+  // Commit message section (if present)
+  if (snapshot.commit_message) {
+    detailSections.push({
+      title: "Commit Message",
+      icon: figures.info,
+      color: colors.info,
+      fields: [
+        {
+          label: "",
+          value: snapshot.commit_message,
+        },
+      ],
+    });
+  }
+
   // Metadata section
   if (snapshot.metadata && Object.keys(snapshot.metadata).length > 0) {
     const metadataFields = Object.entries(snapshot.metadata).map(
@@ -261,6 +276,22 @@ export function SnapshotDetailScreen({
       );
     }
     lines.push(<Text key="core-space"> </Text>);
+
+    // Commit Message
+    if (snap.commit_message) {
+      lines.push(
+        <Text key="commit-title" color={colors.warning} bold>
+          Commit Message
+        </Text>,
+      );
+      lines.push(
+        <Text key="commit-msg" color={colors.info}>
+          {" "}
+          {snap.commit_message}
+        </Text>,
+      );
+      lines.push(<Text key="commit-space"> </Text>);
+    }
 
     // Metadata
     if (snap.metadata && Object.keys(snap.metadata).length > 0) {
