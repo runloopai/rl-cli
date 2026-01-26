@@ -310,3 +310,85 @@ export async function getDevboxLogs(id: string): Promise<any[]> {
   // Return the logs array directly - formatting is handled by logFormatter
   return response.logs || [];
 }
+
+/**
+ * Execution result interface for async execution
+ */
+export interface ExecutionResult {
+  executionId: string;
+  status: "running" | "completed" | "failed";
+  stdout: string;
+  stderr: string;
+  exit_code?: number;
+}
+
+/**
+ * Execute command asynchronously in devbox
+ * Used for both sync and async modes to enable kill/leave-early functionality
+ */
+export async function execCommandAsync(
+  id: string,
+  command: string,
+): Promise<{ executionId: string; status: string }> {
+  const client = getClient();
+  const result = await client.devboxes.executions.executeAsync(id, { command });
+
+  // Extract execution ID from result
+  const executionId =
+    (result as any).execution_id || (result as any).id || String(result);
+
+  return {
+    executionId: String(executionId).substring(0, 100),
+    status: (result as any).status || "running",
+  };
+}
+
+/**
+ * Get execution status and output
+ * Used for polling in sync mode and checking status
+ */
+export async function getExecution(
+  devboxId: string,
+  executionId: string,
+): Promise<ExecutionResult> {
+  const client = getClient();
+  const result = await client.devboxes.executions.retrieve(
+    devboxId,
+    executionId,
+  );
+
+  // CRITICAL: Truncate output to prevent Yoga crashes
+  const MAX_OUTPUT_LENGTH = 10000;
+
+  let stdout = String((result as any).stdout || "");
+  let stderr = String((result as any).stderr || "");
+
+  if (stdout.length > MAX_OUTPUT_LENGTH) {
+    stdout =
+      stdout.substring(0, MAX_OUTPUT_LENGTH) + "\n... (output truncated)";
+  }
+  if (stderr.length > MAX_OUTPUT_LENGTH) {
+    stderr =
+      stderr.substring(0, MAX_OUTPUT_LENGTH) + "\n... (output truncated)";
+  }
+
+  return {
+    executionId: String(executionId).substring(0, 100),
+    status: (result as any).status || "running",
+    stdout,
+    stderr,
+    exit_code: (result as any).exit_code,
+  };
+}
+
+/**
+ * Kill a running execution
+ * Available in both sync and async modes
+ */
+export async function killExecution(
+  devboxId: string,
+  executionId: string,
+): Promise<void> {
+  const client = getClient();
+  await client.devboxes.executions.kill(devboxId, executionId);
+}

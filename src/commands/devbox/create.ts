@@ -15,6 +15,7 @@ interface CreateOptions {
   entrypoint?: string;
   launchCommands?: string[];
   envVars?: string[];
+  secrets?: string[];
   codeMounts?: string[];
   idleTime?: string;
   idleAction?: string;
@@ -38,6 +39,23 @@ function parseEnvVars(envVars: string[]): Record<string, string> {
     const key = envVar.substring(0, eqIndex);
     const value = envVar.substring(eqIndex + 1);
     result[key] = value;
+  }
+  return result;
+}
+
+// Parse secrets from ENV_VAR=SECRET_NAME format
+function parseSecrets(secrets: string[]): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const secret of secrets) {
+    const eqIndex = secret.indexOf("=");
+    if (eqIndex === -1) {
+      throw new Error(
+        `Invalid secret format: ${secret}. Expected ENV_VAR=SECRET_NAME`,
+      );
+    }
+    const envVarName = secret.substring(0, eqIndex);
+    const secretName = secret.substring(eqIndex + 1);
+    result[envVarName] = secretName;
   }
   return result;
 }
@@ -148,6 +166,11 @@ export async function createDevbox(options: CreateOptions = {}) {
     // Handle code mounts
     if (options.codeMounts && options.codeMounts.length > 0) {
       createRequest.code_mounts = parseCodeMounts(options.codeMounts);
+    }
+
+    // Handle secrets
+    if (options.secrets && options.secrets.length > 0) {
+      createRequest.secrets = parseSecrets(options.secrets);
     }
 
     if (Object.keys(launchParameters).length > 0) {

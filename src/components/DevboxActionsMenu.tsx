@@ -14,8 +14,6 @@ import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useNavigation } from "../store/navigationStore.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import {
-  getDevboxLogs,
-  execCommand,
   suspendDevbox,
   resumeDevbox,
   shutdownDevbox,
@@ -24,7 +22,7 @@ import {
   createTunnel,
   createSSHKey,
 } from "../services/devboxService.js";
-import { LogsViewer } from "./LogsViewer.js";
+import { StreamingLogsViewer } from "./StreamingLogsViewer.js";
 
 type Operation =
   | "exec"
@@ -435,7 +433,16 @@ export const DevboxActionsMenu = ({
       !snapshotFormMode
     ) {
       if (key.return && operationInput.trim()) {
-        executeOperation();
+        // For exec, navigate to dedicated exec screen
+        if (executingOperation === "exec") {
+          navigate("devbox-exec", {
+            devboxId: devbox.id,
+            devboxName: devbox.name || devbox.id,
+            execCommand: operationInput,
+          });
+        } else {
+          executeOperation();
+        }
       } else if (input === "q" || key.escape) {
         setExecutingOperation(null);
         setOperationInput("");
@@ -459,6 +466,40 @@ export const DevboxActionsMenu = ({
           onBack();
         } else {
           setExecutingOperation(null);
+        }
+      } else if (
+        input === "o" &&
+        operationResult &&
+        typeof operationResult === "object" &&
+        (operationResult as any).__customRender === "tunnel"
+      ) {
+        // Open tunnel URL in browser
+        const tunnelUrl = (operationResult as any).__tunnelUrl;
+        if (tunnelUrl) {
+          const openBrowser = async () => {
+            const { exec } = await import("child_process");
+            const platform = process.platform;
+
+            let openCommand: string;
+            if (platform === "darwin") {
+              openCommand = `open "${tunnelUrl}"`;
+            } else if (platform === "win32") {
+              openCommand = `start "${tunnelUrl}"`;
+            } else {
+              openCommand = `xdg-open "${tunnelUrl}"`;
+            }
+
+            exec(openCommand, (error) => {
+              if (error) {
+                setCopyStatus("Could not open browser");
+                setTimeout(() => setCopyStatus(null), 2000);
+              } else {
+                setCopyStatus("Opened in browser!");
+                setTimeout(() => setCopyStatus(null), 2000);
+              }
+            });
+          };
+          openBrowser();
         }
       } else if (
         (key.upArrow || input === "k") &&
@@ -512,6 +553,7 @@ export const DevboxActionsMenu = ({
         setExecScroll(maxScroll);
       } else if (
         input === "c" &&
+        !key.ctrl && // Ignore if Ctrl+C for quit
         operationResult &&
         typeof operationResult === "object" &&
         (operationResult as any).__customRender === "exec"
@@ -594,19 +636,7 @@ export const DevboxActionsMenu = ({
     try {
       setLoading(true);
       switch (executingOperation) {
-        case "exec":
-          // Use service layer (already truncates output to prevent Yoga crashes)
-          const execResult = await execCommand(devbox.id, operationInput);
-          // Format exec result for custom rendering
-          const formattedExecResult: any = {
-            __customRender: "exec",
-            command: operationInput,
-            stdout: execResult.stdout || "",
-            stderr: execResult.stderr || "",
-            exitCode: execResult.exit_code ?? 0,
-          };
-          setOperationResult(formattedExecResult);
-          break;
+        // Note: "exec" is now handled by ExecViewer component directly
 
         case "upload":
           // Use service layer
@@ -689,18 +719,11 @@ export const DevboxActionsMenu = ({
           break;
 
         case "logs":
-          // Use service layer (already truncates and escapes log messages)
-          const logs = await getDevboxLogs(devbox.id);
-          if (logs.length === 0) {
-            setOperationResult("No logs available for this devbox.");
-          } else {
-            const logsResult: any = {
-              __customRender: "logs",
-              __logs: logs,
-              __totalCount: logs.length,
-            };
-            setOperationResult(logsResult);
-          }
+          // Set flag to show streaming logs viewer
+          const logsResult: any = {
+            __customRender: "logs",
+          };
+          setOperationResult(logsResult);
           break;
 
         case "tunnel":
@@ -714,12 +737,13 @@ export const DevboxActionsMenu = ({
             );
           } else {
             const tunnel = await createTunnel(devbox.id, port);
-            setOperationResult(
-              `Tunnel created!\n\n` +
-                `Local Port: ${port}\n` +
-                `Public URL: ${tunnel.url}\n\n` +
-                `You can now access port ${port} on the devbox via:\n${tunnel.url}`,
-            );
+            // Store tunnel result with custom render type to enable "open in browser"
+            const tunnelResult: any = {
+              __customRender: "tunnel",
+              __tunnelUrl: tunnel.url,
+              __port: port,
+            };
+            setOperationResult(tunnelResult);
           }
           break;
 
@@ -948,22 +972,21 @@ export const DevboxActionsMenu = ({
       );
     }
 
-    // Check for custom logs rendering
+    // Check for custom logs rendering - use streaming logs viewer
     if (
       operationResult &&
       typeof operationResult === "object" &&
       (operationResult as any).__customRender === "logs"
     ) {
-      const logs = (operationResult as any).__logs || [];
       return (
-        <LogsViewer
-          logs={logs}
+        <StreamingLogsViewer
+          devboxId={devbox.id}
           breadcrumbItems={[
             ...breadcrumbItems,
             { label: "Logs", active: true },
           ]}
           onBack={() => {
-            // Clear large data structures immediately to prevent memory leaks
+            // Clear state
             setOperationResult(null);
             setOperationError(null);
             setOperationInput("");
@@ -976,8 +999,72 @@ export const DevboxActionsMenu = ({
               setExecutingOperation(null);
             }
           }}
-          title="Logs"
         />
+      );
+    }
+
+    // Check for custom tunnel rendering
+    if (
+      operationResult &&
+      typeof operationResult === "object" &&
+      (operationResult as any).__customRender === "tunnel"
+    ) {
+      const tunnelUrl = (operationResult as any).__tunnelUrl || "";
+      const tunnelPort = (operationResult as any).__port || "";
+
+      return (
+        <>
+          <Breadcrumb
+            items={[...breadcrumbItems, { label: "Open Tunnel", active: true }]}
+          />
+          <Header title="Tunnel Created" />
+          <Box
+            flexDirection="column"
+            borderStyle="round"
+            borderColor={colors.success}
+            paddingX={1}
+            paddingY={1}
+            marginBottom={1}
+          >
+            <Box marginBottom={1}>
+              <Text color={colors.success} bold>
+                {figures.tick} Tunnel created successfully!
+              </Text>
+            </Box>
+            <Box>
+              <Text color={colors.textDim}>Port: </Text>
+              <Text color={colors.primary} bold>
+                {tunnelPort}
+              </Text>
+            </Box>
+            <Box marginTop={1}>
+              <Text color={colors.textDim}>Public URL: </Text>
+            </Box>
+            <Box>
+              <Text color={colors.info} bold>
+                {tunnelUrl}
+              </Text>
+            </Box>
+            <Box marginTop={1}>
+              <Text color={colors.textDim} dimColor>
+                You can now access port {tunnelPort} on the devbox via this URL
+              </Text>
+            </Box>
+            {copyStatus && (
+              <Box marginTop={1}>
+                <Text color={colors.success} bold>
+                  {copyStatus}
+                </Text>
+              </Box>
+            )}
+          </Box>
+          <NavigationTips
+            tips={[
+              { key: "o", label: "Open in Browser" },
+              { key: "Enter/q/esc", label: "Back" },
+            ]}
+          />
+        </>
       );
     }
 
@@ -1420,10 +1507,17 @@ export const DevboxActionsMenu = ({
             />
           </Box>
           <NavigationTips
-            tips={[
-              { key: "Enter", label: "Execute" },
-              { key: "q/esc", label: "Cancel" },
-            ]}
+            tips={
+              executingOperation === "exec"
+                ? [
+                    { key: "Enter", label: "Execute" },
+                    { key: "q/esc", label: "Cancel" },
+                  ]
+                : [
+                    { key: "Enter", label: "Execute" },
+                    { key: "q/esc", label: "Cancel" },
+                  ]
+            }
           />
         </Box>
       </>

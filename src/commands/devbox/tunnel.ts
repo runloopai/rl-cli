@@ -11,6 +11,7 @@ import { getSSHKey, getProxyCommand, checkSSHTools } from "../../utils/ssh.js";
 interface TunnelOptions {
   ports: string;
   output?: string;
+  open?: boolean;
 }
 
 export async function createTunnel(devboxId: string, options: TunnelOptions) {
@@ -68,14 +69,40 @@ export async function createTunnel(devboxId: string, options: TunnelOptions) {
       `${user}@${sshInfo!.url}`,
     ];
 
+    const tunnelUrl = `http://localhost:${localPort}`;
     console.log(
       `Starting tunnel: local port ${localPort} -> remote port ${remotePort}`,
     );
+    console.log(`Tunnel URL: ${tunnelUrl}`);
     console.log("Press Ctrl+C to stop the tunnel.");
 
     const tunnelProcess = spawn("/usr/bin/ssh", tunnelArgs, {
       stdio: "inherit",
     });
+
+    // Open browser if --open flag is set
+    if (options.open) {
+      // Small delay to let the tunnel establish
+      setTimeout(async () => {
+        const { exec } = await import("child_process");
+        const platform = process.platform;
+
+        let openCommand: string;
+        if (platform === "darwin") {
+          openCommand = `open "${tunnelUrl}"`;
+        } else if (platform === "win32") {
+          openCommand = `start "${tunnelUrl}"`;
+        } else {
+          openCommand = `xdg-open "${tunnelUrl}"`;
+        }
+
+        exec(openCommand, (error) => {
+          if (error) {
+            console.log(`\nCould not open browser: ${error.message}`);
+          }
+        });
+      }, 1000);
+    }
 
     tunnelProcess.on("close", (code) => {
       console.log("\nTunnel closed.");

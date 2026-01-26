@@ -46,6 +46,10 @@ export function createProgram(): Command {
     )
     .option("--env-vars <vars...>", "Environment variables (format: KEY=value)")
     .option(
+      "--secrets <secrets...>",
+      "Secrets to inject as environment variables (format: ENV_VAR=SECRET_NAME)",
+    )
+    .option(
       "--code-mounts <mounts...>",
       "Code mount configurations (JSON format)",
     )
@@ -211,6 +215,7 @@ export function createProgram(): Command {
   devbox
     .command("tunnel <id> <ports>")
     .description("Create a port-forwarding tunnel to a devbox")
+    .option("--open", "Open the tunnel URL in browser automatically")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
