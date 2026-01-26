@@ -152,6 +152,16 @@ jest.mock("../src/services/devboxService.ts", () => ({
   execCommand: jest
     .fn()
     .mockResolvedValue({ stdout: "", stderr: "", exit_code: 0 }),
+  execCommandAsync: jest
+    .fn()
+    .mockResolvedValue({ executionId: "exec-123", status: "running" }),
+  getExecution: jest.fn().mockResolvedValue({
+    status: "completed",
+    stdout: "test output",
+    stderr: "",
+    exit_status: 0,
+  }),
+  killExecution: jest.fn().mockResolvedValue(undefined),
   suspendDevbox: jest.fn().mockResolvedValue(undefined),
   resumeDevbox: jest.fn().mockResolvedValue(undefined),
   shutdownDevbox: jest.fn().mockResolvedValue(undefined),
@@ -285,6 +295,40 @@ jest.mock("../src/utils/client.ts", () => ({
     devboxes: {
       create: jest.fn().mockResolvedValue({ id: "test-id", status: "running" }),
       list: jest.fn().mockResolvedValue({ data: [] }),
+      executions: {
+        executeAsync: jest
+          .fn()
+          .mockResolvedValue({ id: "exec-123", status: "running" }),
+        retrieve: jest.fn().mockResolvedValue({
+          status: "completed",
+          stdout: "test output",
+          stderr: "",
+          exit_status: 0,
+        }),
+        kill: jest.fn().mockResolvedValue({}),
+        awaitCompleted: jest.fn().mockResolvedValue({
+          status: "completed",
+          stdout: "test output",
+          stderr: "",
+          exit_status: 0,
+        }),
+        streamStdoutUpdates: jest.fn().mockResolvedValue({
+          [Symbol.asyncIterator]: () => ({
+            next: jest
+              .fn()
+              .mockResolvedValueOnce({
+                value: { output: "line 1\n", offset: 7 },
+                done: false,
+              })
+              .mockResolvedValueOnce({ value: undefined, done: true }),
+          }),
+        }),
+        streamStderrUpdates: jest.fn().mockResolvedValue({
+          [Symbol.asyncIterator]: () => ({
+            next: jest.fn().mockResolvedValue({ value: undefined, done: true }),
+          }),
+        }),
+      },
     },
   })),
 }));

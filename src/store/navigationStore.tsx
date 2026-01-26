@@ -5,6 +5,7 @@ export type ScreenName =
   | "devbox-list"
   | "devbox-detail"
   | "devbox-actions"
+  | "devbox-exec"
   | "devbox-create"
   | "blueprint-list"
   | "blueprint-detail"
@@ -36,6 +37,9 @@ export interface RouteParams {
   devboxName?: string;
   returnScreen?: ScreenName;
   returnParams?: RouteParams;
+  // Exec session params
+  executionId?: string;
+  execCommand?: string;
   [key: string]: string | ScreenName | RouteParams | undefined;
 }
 

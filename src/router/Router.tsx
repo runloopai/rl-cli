@@ -17,6 +17,7 @@ import { MenuScreen } from "../screens/MenuScreen.js";
 import { DevboxListScreen } from "../screens/DevboxListScreen.js";
 import { DevboxDetailScreen } from "../screens/DevboxDetailScreen.js";
 import { DevboxActionsScreen } from "../screens/DevboxActionsScreen.js";
+import { DevboxExecScreen } from "../screens/DevboxExecScreen.js";
 import { DevboxCreateScreen } from "../screens/DevboxCreateScreen.js";
 import { BlueprintListScreen } from "../screens/BlueprintListScreen.js";
 import { BlueprintDetailScreen } from "../screens/BlueprintDetailScreen.js";
@@ -51,6 +52,7 @@ export function Router() {
         case "devbox-list":
         case "devbox-detail":
         case "devbox-actions":
+        case "devbox-exec":
         case "devbox-create":
           // Clear devbox data when leaving devbox screens
           // Keep cache if we're still in devbox context
@@ -111,6 +113,9 @@ export function Router() {
       )}
       {currentScreen === "devbox-actions" && (
         <DevboxActionsScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "devbox-exec" && (
+        <DevboxExecScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "devbox-create" && (
         <DevboxCreateScreen key={currentScreen} {...params} />

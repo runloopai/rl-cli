@@ -6,6 +6,7 @@ import { getClient } from "../utils/client.js";
 import type { Devbox } from "../store/devboxStore.js";
 import type { DevboxesCursorIDPage } from "@runloop/api-client/pagination";
 import type {
+  DevboxAsyncExecutionDetailView,
   DevboxListParams,
   DevboxView,
 } from "@runloop/api-client/resources/devboxes/devboxes";
@@ -309,4 +310,49 @@ export async function getDevboxLogs(id: string): Promise<any[]> {
 
   // Return the logs array directly - formatting is handled by logFormatter
   return response.logs || [];
+}
+
+/**
+ * Execute command asynchronously in devbox
+ * Used for both sync and async modes to enable kill/leave-early functionality
+ */
+export async function execCommandAsync(
+  id: string,
+  command: string,
+): Promise<{ executionId: string; status: string }> {
+  const client = getClient();
+  const result = await client.devboxes.executions.executeAsync(id, { command });
+
+  // Extract execution ID from result
+  const executionId =
+    (result as any).execution_id || (result as any).id || String(result);
+
+  return {
+    executionId: String(executionId).substring(0, 100),
+    status: (result as any).status || "running",
+  };
+}
+
+/**
+ * Get execution status and output
+ * Used for polling in sync mode and checking status
+ */
+export async function getExecution(
+  devboxId: string,
+  executionId: string,
+): Promise<DevboxAsyncExecutionDetailView> {
+  const client = getClient();
+  return client.devboxes.executions.retrieve(devboxId, executionId);
+}
+
+/**
+ * Kill a running execution
+ * Available in both sync and async modes
+ */
+export async function killExecution(
+  devboxId: string,
+  executionId: string,
+): Promise<void> {
+  const client = getClient();
+  await client.devboxes.executions.kill(devboxId, executionId);
 }

@@ -223,8 +223,8 @@ export function ResourceDetailPage<T>({
     // Main view input handling
     if (input === "q" || key.escape) {
       onBack();
-    } else if (input === "c") {
-      // Copy resource ID to clipboard
+    } else if (input === "c" && !key.ctrl) {
+      // Copy resource ID to clipboard (ignore if Ctrl+C for quit)
       copyToClipboard(getId(currentResource));
     } else if (input === "i" && buildDetailLines) {
       setShowDetailedInfo(true);
