@@ -6,6 +6,7 @@ import { getClient } from "../utils/client.js";
 import type { Devbox } from "../store/devboxStore.js";
 import type { DevboxesCursorIDPage } from "@runloop/api-client/pagination";
 import type {
+  DevboxAsyncExecutionDetailView,
   DevboxListParams,
   DevboxView,
 } from "@runloop/api-client/resources/devboxes/devboxes";
@@ -312,17 +313,6 @@ export async function getDevboxLogs(id: string): Promise<any[]> {
 }
 
 /**
- * Execution result interface for async execution
- */
-export interface ExecutionResult {
-  executionId: string;
-  status: "running" | "completed" | "failed";
-  stdout: string;
-  stderr: string;
-  exit_code?: number;
-}
-
-/**
  * Execute command asynchronously in devbox
  * Used for both sync and async modes to enable kill/leave-early functionality
  */
@@ -350,35 +340,9 @@ export async function execCommandAsync(
 export async function getExecution(
   devboxId: string,
   executionId: string,
-): Promise<ExecutionResult> {
+): Promise<DevboxAsyncExecutionDetailView> {
   const client = getClient();
-  const result = await client.devboxes.executions.retrieve(
-    devboxId,
-    executionId,
-  );
-
-  // CRITICAL: Truncate output to prevent Yoga crashes
-  const MAX_OUTPUT_LENGTH = 10000;
-
-  let stdout = String((result as any).stdout || "");
-  let stderr = String((result as any).stderr || "");
-
-  if (stdout.length > MAX_OUTPUT_LENGTH) {
-    stdout =
-      stdout.substring(0, MAX_OUTPUT_LENGTH) + "\n... (output truncated)";
-  }
-  if (stderr.length > MAX_OUTPUT_LENGTH) {
-    stderr =
-      stderr.substring(0, MAX_OUTPUT_LENGTH) + "\n... (output truncated)";
-  }
-
-  return {
-    executionId: String(executionId).substring(0, 100),
-    status: (result as any).status || "running",
-    stdout,
-    stderr,
-    exit_code: (result as any).exit_code,
-  };
+  return client.devboxes.executions.retrieve(devboxId, executionId);
 }
 
 /**

@@ -43,10 +43,10 @@ export const ExecViewer = ({
 }: ExecViewerProps) => {
   // State
   const [status, setStatus] = React.useState<ExecStatus>(
-    existingExecutionId ? "running" : "starting"
+    existingExecutionId ? "running" : "starting",
   );
   const [executionId, setExecutionId] = React.useState<string | null>(
-    existingExecutionId || null
+    existingExecutionId || null,
   );
   const [stdout, setStdout] = React.useState("");
   const [stderr, setStderr] = React.useState("");
@@ -54,15 +54,20 @@ export const ExecViewer = ({
   const [error, setError] = React.useState<string | null>(null);
   const [scroll, setScroll] = React.useState(0);
   const [copyStatus, setCopyStatus] = React.useState<string | null>(null);
-  const [startTime] = React.useState(Date.now());
   const [elapsedTime, setElapsedTime] = React.useState(0);
+  const [finalDuration, setFinalDuration] = React.useState<number | null>(null);
   const [autoScroll, setAutoScroll] = React.useState(true);
+
+  // Use ref for start time so we can set it when execution actually starts
+  const startTimeRef = React.useRef<number>(Date.now());
 
   // Refs for cleanup
   const abortControllerRef = React.useRef<AbortController | null>(null);
-  const pollIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
   const streamCleanupRef = React.useRef<(() => void) | null>(null);
-  
+
   // Ref for callback to avoid stale closures
   const onExecutionStartRef = React.useRef(onExecutionStart);
   onExecutionStartRef.current = onExecutionStart;
@@ -73,15 +78,15 @@ export const ExecViewer = ({
   // Handle Ctrl+C
   useExitOnCtrlC();
 
-  // Elapsed time updater
+  // Elapsed time updater (in milliseconds)
   React.useEffect(() => {
     if (status === "running" || status === "starting") {
       const timer = setInterval(() => {
-        setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+        setElapsedTime(Date.now() - startTimeRef.current);
       }, 100);
       return () => clearInterval(timer);
     }
-  }, [status, startTime]);
+  }, [status]);
 
   // Track if execution has started to prevent re-execution on re-renders
   const executionStartedRef = React.useRef(false);
@@ -104,26 +109,32 @@ export const ExecViewer = ({
       if (initialExistingExecutionIdRef.current) {
         try {
           // Fetch current output state before resuming
-          const currentState = await getExecution(devboxId, initialExistingExecutionIdRef.current);
-          setStdout(currentState.stdout);
-          setStderr(currentState.stderr);
+          const currentState = await getExecution(
+            devboxId,
+            initialExistingExecutionIdRef.current,
+          );
+          setStdout(currentState.stdout ?? "");
+          setStderr(currentState.stderr ?? "");
           if (currentState.status === "completed") {
+            setFinalDuration(Date.now() - startTimeRef.current);
             setStatus("completed");
-            setExitCode(currentState.exit_code ?? 0);
+            setExitCode(currentState.exit_status ?? 0);
             return;
           }
         } catch {
           // If fetch fails, just continue with polling
         }
 
-        // Always use polling for resume - more reliable than trying to reconnect streams
-        startPolling(initialExistingExecutionIdRef.current);
+        // Reconnect to streams - they'll replay from offset 0
+        startStreaming(initialExistingExecutionIdRef.current);
         return;
       }
 
       // Start a new execution
       try {
         const result = await execCommandAsync(devboxId, command);
+        // Reset start time to when execution actually begins
+        startTimeRef.current = Date.now();
         setExecutionId(result.executionId);
         setStatus("running");
 
@@ -154,8 +165,6 @@ export const ExecViewer = ({
         abortControllerRef.current.abort();
       }
     };
-  // Only depend on values that don't change during execution
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [devboxId, command]);
 
   // Start streaming for live output
@@ -167,23 +176,27 @@ export const ExecViewer = ({
     let stderrOffset = 0;
     let isCompleted = false;
 
-    // Poll for status while streaming
-    const statusPollInterval = setInterval(async () => {
+    // Wait for execution to complete using long-polling
+    const waitForCompletion = async () => {
       try {
-        const result = await getExecution(devboxId, execId);
-        if (result.status === "completed") {
-          isCompleted = true;
-          // Get final output to ensure we have everything
-          setStdout(result.stdout);
-          setStderr(result.stderr);
-          setExitCode(result.exit_code ?? 0);
-          setStatus("completed");
-          clearInterval(statusPollInterval);
-        }
+        const result = await client.devboxes.executions.awaitCompleted(
+          devboxId,
+          execId,
+        );
+        isCompleted = true;
+        // Get final output to ensure we have everything
+        setStdout(result.stdout ?? "");
+        setStderr(result.stderr ?? "");
+        setExitCode(result.exit_status ?? 0);
+        setFinalDuration(Date.now() - startTimeRef.current);
+        setStatus("completed");
       } catch {
-        // Ignore errors during status polling
+        // Ignore errors - execution may have been killed
       }
-    }, 1000);
+    };
+
+    // Start waiting for completion
+    waitForCompletion();
 
     // Stream stdout
     const streamStdout = async () => {
@@ -245,7 +258,7 @@ export const ExecViewer = ({
           }
         }
       } catch {
-        // Stream ended or error - ignore, status polling will handle completion
+        // Stream ended or error - ignore, awaitCompleted will handle completion
       }
     };
 
@@ -254,7 +267,6 @@ export const ExecViewer = ({
     streamStderr();
 
     streamCleanupRef.current = () => {
-      clearInterval(statusPollInterval);
       abortControllerRef.current?.abort();
     };
   };
@@ -264,11 +276,12 @@ export const ExecViewer = ({
     const poll = async () => {
       try {
         const result = await getExecution(devboxId, execId);
-        setStdout(result.stdout);
-        setStderr(result.stderr);
+        setStdout(result.stdout ?? "");
+        setStderr(result.stderr ?? "");
 
         if (result.status === "completed") {
-          setExitCode(result.exit_code ?? 0);
+          setExitCode(result.exit_status ?? 0);
+          setFinalDuration(Date.now() - startTimeRef.current);
           setStatus("completed");
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
@@ -296,6 +309,7 @@ export const ExecViewer = ({
 
     try {
       await killExecution(devboxId, executionId);
+      setFinalDuration(Date.now() - startTimeRef.current);
       setStatus("killed");
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
@@ -422,7 +436,7 @@ export const ExecViewer = ({
   // User actions (scroll up) disable autoScroll, scroll to bottom re-enables it
   React.useEffect(() => {
     if (!autoScroll) return;
-    
+
     const allLines = [...stdout.split("\n"), ...stderr.split("\n")].filter(
       (line) => line !== "",
     );
@@ -430,12 +444,14 @@ export const ExecViewer = ({
       0,
       allLines.length - execViewport.viewportHeight,
     );
-    
+
     setScroll(maxScroll);
   }, [stdout, stderr, autoScroll, execViewport.viewportHeight]);
 
-  // Format elapsed time
-  const formatTime = (seconds: number): string => {
+  // Format elapsed time (input is milliseconds)
+  const formatTime = (ms: number): string => {
+    if (ms < 1000) return `${ms}ms`;
+    const seconds = Math.floor(ms / 1000);
     if (seconds < 60) return `${seconds}s`;
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -448,15 +464,23 @@ export const ExecViewer = ({
       case "starting":
         return { text: "Starting...", color: colors.info, icon: "●" };
       case "running":
-        return { text: `Running (${formatTime(elapsedTime)})`, color: colors.warning, icon: "●" };
+        return {
+          text: `Running (${formatTime(elapsedTime)})`,
+          color: colors.warning,
+          icon: "●",
+        };
       case "completed":
         return {
-          text: `Completed (exit: ${exitCode}) in ${formatTime(elapsedTime)}`,
+          text: `Completed (exit: ${exitCode}) in ${formatTime(finalDuration ?? elapsedTime)}`,
           color: exitCode === 0 ? colors.success : colors.error,
           icon: exitCode === 0 ? figures.tick : figures.cross,
         };
       case "killed":
-        return { text: `Killed after ${formatTime(elapsedTime)}`, color: colors.warning, icon: figures.cross };
+        return {
+          text: `Killed after ${formatTime(finalDuration ?? elapsedTime)}`,
+          color: colors.warning,
+          icon: figures.cross,
+        };
       case "failed":
         return { text: "Failed", color: colors.error, icon: figures.cross };
       default:
@@ -504,9 +528,7 @@ export const ExecViewer = ({
 
   return (
     <>
-      <Breadcrumb
-        items={breadcrumbItems}
-      />
+      <Breadcrumb items={breadcrumbItems} />
 
       {/* Command header */}
       <Box
@@ -563,9 +585,7 @@ export const ExecViewer = ({
             <Text color={colors.info}>
               <Spinner type="dots" />
             </Text>
-            <Text color={colors.textDim}>
-              {" "}Waiting for output...
-            </Text>
+            <Text color={colors.textDim}> Waiting for output...</Text>
           </Box>
         ) : allLines.length === 0 ? (
           <Text color={colors.textDim} dimColor>
@@ -607,7 +627,9 @@ export const ExecViewer = ({
               {allLines.length}
             </Text>
             {hasLess && <Text color={colors.primary}> {figures.arrowUp}</Text>}
-            {hasMore && <Text color={colors.primary}> {figures.arrowDown}</Text>}
+            {hasMore && (
+              <Text color={colors.primary}> {figures.arrowDown}</Text>
+            )}
           </>
         )}
         {stdout && (

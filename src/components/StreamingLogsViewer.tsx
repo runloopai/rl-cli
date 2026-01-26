@@ -35,7 +35,9 @@ export const StreamingLogsViewer = ({
   const [isPolling, setIsPolling] = React.useState(true);
 
   // Refs for cleanup
-  const pollIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
 
   // Calculate viewport
   const logsViewport = useViewportHeight({ overhead: 10, minHeight: 10 });
@@ -218,9 +220,14 @@ export const StreamingLogsViewer = ({
     for (let i = actualScroll; i < logs.length; i++) {
       const parts = parseAnyLogEntry(logs[i]);
       const sanitized = sanitizeMessage(parts.message);
-      const totalLength = parts.timestamp.length + parts.level.length + parts.source.length + sanitized.length + 10;
+      const totalLength =
+        parts.timestamp.length +
+        parts.level.length +
+        parts.source.length +
+        sanitized.length +
+        10;
       const entryLines = Math.ceil(totalLength / contentWidth);
-      
+
       if (lineCount + entryLines > viewportHeight && visibleLogs.length > 0) {
         break;
       }
@@ -281,9 +288,7 @@ export const StreamingLogsViewer = ({
                 <Spinner type="dots" />{" "}
               </Text>
             )}
-            <Text color={colors.textDim}>
-              Waiting for logs...
-            </Text>
+            <Text color={colors.textDim}>Waiting for logs...</Text>
           </Box>
         ) : (
           visibleLogs.map((log: AnyLog, index: number) => {
@@ -301,8 +306,10 @@ export const StreamingLogsViewer = ({
             const exitCode =
               parts.exitCode !== null ? `exit=${parts.exitCode} ` : "";
 
-            const levelColor = levelColorMap[parts.levelColor] || colors.textDim;
-            const sourceColor = sourceColorMap[parts.sourceColor] || colors.textDim;
+            const levelColor =
+              levelColorMap[parts.levelColor] || colors.textDim;
+            const sourceColor =
+              sourceColorMap[parts.sourceColor] || colors.textDim;
 
             if (logsWrapMode) {
               return (
@@ -327,7 +334,9 @@ export const StreamingLogsViewer = ({
                     <Text>{fullMessage}</Text>
                     {exitCode && (
                       <Text
-                        color={parts.exitCode === 0 ? colors.success : colors.error}
+                        color={
+                          parts.exitCode === 0 ? colors.success : colors.error
+                        }
                       >
                         {" "}
                         {exitCode}
@@ -341,7 +350,8 @@ export const StreamingLogsViewer = ({
               const exitPart = exitCode ? ` ${exitCode}` : "";
               const prefix = `${parts.timestamp} ${parts.level} [${parts.source}] ${shellPart}${cmd}`;
               const suffix = exitPart;
-              const availableForMessage = contentWidth - prefix.length - suffix.length;
+              const availableForMessage =
+                contentWidth - prefix.length - suffix.length;
 
               let displayMessage: string;
               if (availableForMessage <= 3) {
@@ -349,7 +359,8 @@ export const StreamingLogsViewer = ({
               } else if (fullMessage.length <= availableForMessage) {
                 displayMessage = fullMessage;
               } else {
-                displayMessage = fullMessage.substring(0, availableForMessage - 3) + "...";
+                displayMessage =
+                  fullMessage.substring(0, availableForMessage - 3) + "...";
               }
 
               return (
@@ -374,7 +385,9 @@ export const StreamingLogsViewer = ({
                     <Text>{displayMessage}</Text>
                     {exitCode && (
                       <Text
-                        color={parts.exitCode === 0 ? colors.success : colors.error}
+                        color={
+                          parts.exitCode === 0 ? colors.success : colors.error
+                        }
                       >
                         {" "}
                         {exitCode}
@@ -394,22 +407,29 @@ export const StreamingLogsViewer = ({
           {figures.hamburger} {logs.length}
         </Text>
         <Text color={colors.textDim} dimColor>
-          {" "}logs
+          {" "}
+          logs
         </Text>
         {logs.length > 0 && (
           <>
             <Text color={colors.textDim} dimColor>
-              {" "}•{" "}
+              {" "}
+              •{" "}
             </Text>
             <Text color={colors.textDim} dimColor>
-              {actualScroll + 1}-{Math.min(actualScroll + visibleLogs.length, logs.length)} of {logs.length}
+              {actualScroll + 1}-
+              {Math.min(actualScroll + visibleLogs.length, logs.length)} of{" "}
+              {logs.length}
             </Text>
             {hasLess && <Text color={colors.primary}> {figures.arrowUp}</Text>}
-            {hasMore && <Text color={colors.primary}> {figures.arrowDown}</Text>}
+            {hasMore && (
+              <Text color={colors.primary}> {figures.arrowDown}</Text>
+            )}
           </>
         )}
         <Text color={colors.textDim} dimColor>
-          {" "}•{" "}
+          {" "}
+          •{" "}
         </Text>
         {isPolling ? (
           <>
@@ -422,7 +442,8 @@ export const StreamingLogsViewer = ({
           <Text color={colors.textDim}>Paused</Text>
         )}
         <Text color={colors.textDim} dimColor>
-          {" "}•{" "}
+          {" "}
+          •{" "}
         </Text>
         <Text
           color={logsWrapMode ? colors.success : colors.textDim}
@@ -433,7 +454,8 @@ export const StreamingLogsViewer = ({
         {copyStatus && (
           <>
             <Text color={colors.textDim} dimColor>
-              {" "}•{" "}
+              {" "}
+              •{" "}
             </Text>
             <Text color={colors.success} bold>
               {copyStatus}

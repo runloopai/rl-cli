@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.github
+.husky
+*.log
+*.md
+!README.md
+.cursor
+.env*
+coverage
+.DS_Store

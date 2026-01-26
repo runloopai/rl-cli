@@ -65,7 +65,7 @@ export function DevboxExecScreen({
         executionId: newExecutionId,
       });
     },
-    [replace, params]
+    [replace, params],
   );
 
   // Handle back navigation
