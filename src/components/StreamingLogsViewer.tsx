@@ -4,7 +4,6 @@
  */
 import React from "react";
 import { Box, Text, useInput } from "ink";
-import Spinner from "ink-spinner";
 import figures from "figures";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { NavigationTips } from "./NavigationTips.js";
@@ -19,6 +18,22 @@ interface StreamingLogsViewerProps {
   breadcrumbItems?: Array<{ label: string; active?: boolean }>;
   onBack: () => void;
 }
+
+// Color maps - defined outside component to avoid recreation on every render
+const levelColorMap: Record<string, string> = {
+  red: colors.error,
+  yellow: colors.warning,
+  blue: colors.primary,
+  gray: colors.textDim,
+};
+const sourceColorMap: Record<string, string> = {
+  magenta: "#d33682",
+  cyan: colors.info,
+  green: colors.success,
+  yellow: colors.warning,
+  gray: colors.textDim,
+  white: colors.text,
+};
 
 export const StreamingLogsViewer = ({
   devboxId,
@@ -39,17 +54,45 @@ export const StreamingLogsViewer = ({
     null,
   );
 
-  // Calculate viewport
-  const logsViewport = useViewportHeight({ overhead: 10, minHeight: 10 });
+  // Calculate viewport - overhead increased to reduce overdraw/flashing
+  const logsViewport = useViewportHeight({ overhead: 11, minHeight: 10 });
 
   // Handle Ctrl+C
   useExitOnCtrlC();
 
-  // Fetch logs function
+  // Fetch logs function - only update state if logs actually changed
   const fetchLogs = React.useCallback(async () => {
     try {
       const newLogs = await getDevboxLogs(devboxId);
-      setLogs(newLogs);
+
+      // Only update logs state if the logs have actually changed
+      // This prevents unnecessary re-renders that cause flashing in non-tmux terminals
+      setLogs((prevLogs) => {
+        // Quick length check first
+        if (prevLogs.length !== newLogs.length) {
+          return newLogs;
+        }
+        // If same length, check if last log entry is different (most common case for streaming)
+        if (newLogs.length > 0) {
+          const prevLast = prevLogs[prevLogs.length - 1];
+          const newLast = newLogs[newLogs.length - 1];
+          // Compare by timestamp and message for efficiency
+          if (
+            prevLast &&
+            newLast &&
+            "timestamp" in prevLast &&
+            "timestamp" in newLast &&
+            "message" in prevLast &&
+            "message" in newLast &&
+            prevLast.timestamp === newLast.timestamp &&
+            prevLast.message === newLast.message
+          ) {
+            // Logs haven't changed, return previous state to avoid re-render
+            return prevLogs;
+          }
+        }
+        return newLogs;
+      });
       setError(null);
       if (loading) setLoading(false);
     } catch (err) {
@@ -243,21 +286,163 @@ export const StreamingLogsViewer = ({
   const hasMore = actualScroll + visibleLogs.length < logs.length;
   const hasLess = actualScroll > 0;
 
-  // Color maps
-  const levelColorMap: Record<string, string> = {
-    red: colors.error,
-    yellow: colors.warning,
-    blue: colors.primary,
-    gray: colors.textDim,
-  };
-  const sourceColorMap: Record<string, string> = {
-    magenta: "#d33682",
-    cyan: colors.info,
-    green: colors.success,
-    yellow: colors.warning,
-    gray: colors.textDim,
-    white: colors.text,
-  };
+  // Build lines array - always render exactly viewportHeight lines for stable structure
+  // This prevents Ink from doing structural redraws that cause flashing
+  const renderLines = React.useMemo(() => {
+    const lines: React.ReactNode[] = [];
+
+    if (loading) {
+      // First line shows loading message
+      lines.push(
+        <Box key="loading" width={contentWidth}>
+          <Text color={colors.textDim}>● Loading logs...</Text>
+        </Box>,
+      );
+    } else if (error) {
+      // First line shows error
+      lines.push(
+        <Box key="error" width={contentWidth}>
+          <Text color={colors.error}>
+            {figures.cross} Error: {error}
+          </Text>
+        </Box>,
+      );
+    } else if (logs.length === 0) {
+      // First line shows waiting message
+      lines.push(
+        <Box key="waiting" width={contentWidth}>
+          <Text color={colors.textDim}>
+            {isPolling ? "● " : ""}Waiting for logs...
+          </Text>
+        </Box>,
+      );
+    } else {
+      // Render visible log entries
+      for (let i = 0; i < visibleLogs.length; i++) {
+        const log = visibleLogs[i];
+        const parts = parseAnyLogEntry(log);
+        const sanitizedMessage = sanitizeMessage(parts.message);
+        const MAX_MESSAGE_LENGTH = 1000;
+        const fullMessage =
+          sanitizedMessage.length > MAX_MESSAGE_LENGTH
+            ? sanitizedMessage.substring(0, MAX_MESSAGE_LENGTH) + "..."
+            : sanitizedMessage;
+
+        const cmd = parts.cmd
+          ? `$ ${parts.cmd.substring(0, 40)}${parts.cmd.length > 40 ? "..." : ""} `
+          : "";
+        const exitCode =
+          parts.exitCode !== null ? `exit=${parts.exitCode} ` : "";
+
+        const levelColor = levelColorMap[parts.levelColor] || colors.textDim;
+        const sourceColor = sourceColorMap[parts.sourceColor] || colors.textDim;
+
+        if (logsWrapMode) {
+          lines.push(
+            <Box key={i} width={contentWidth} flexDirection="column">
+              <Text wrap="wrap">
+                <Text color={colors.textDim} dimColor>
+                  {parts.timestamp}
+                </Text>
+                <Text> </Text>
+                <Text color={levelColor} bold={parts.levelColor === "red"}>
+                  {parts.level}
+                </Text>
+                <Text> </Text>
+                <Text color={sourceColor}>[{parts.source}]</Text>
+                <Text> </Text>
+                {parts.shellName && (
+                  <Text color={colors.textDim} dimColor>
+                    ({parts.shellName}){" "}
+                  </Text>
+                )}
+                {cmd && <Text color={colors.info}>{cmd}</Text>}
+                <Text>{fullMessage}</Text>
+                {exitCode && (
+                  <Text
+                    color={parts.exitCode === 0 ? colors.success : colors.error}
+                  >
+                    {" "}
+                    {exitCode}
+                  </Text>
+                )}
+              </Text>
+            </Box>,
+          );
+        } else {
+          const shellPart = parts.shellName ? `(${parts.shellName}) ` : "";
+          const exitPart = exitCode ? ` ${exitCode}` : "";
+          const prefix = `${parts.timestamp} ${parts.level} [${parts.source}] ${shellPart}${cmd}`;
+          const suffix = exitPart;
+          const availableForMessage =
+            contentWidth - prefix.length - suffix.length;
+
+          let displayMessage: string;
+          if (availableForMessage <= 3) {
+            displayMessage = "";
+          } else if (fullMessage.length <= availableForMessage) {
+            displayMessage = fullMessage;
+          } else {
+            displayMessage =
+              fullMessage.substring(0, availableForMessage - 3) + "...";
+          }
+
+          lines.push(
+            <Box key={i} width={contentWidth}>
+              <Text wrap="truncate-end">
+                <Text color={colors.textDim} dimColor>
+                  {parts.timestamp}
+                </Text>
+                <Text> </Text>
+                <Text color={levelColor} bold={parts.levelColor === "red"}>
+                  {parts.level}
+                </Text>
+                <Text> </Text>
+                <Text color={sourceColor}>[{parts.source}]</Text>
+                <Text> </Text>
+                {parts.shellName && (
+                  <Text color={colors.textDim} dimColor>
+                    ({parts.shellName}){" "}
+                  </Text>
+                )}
+                {cmd && <Text color={colors.info}>{cmd}</Text>}
+                <Text>{displayMessage}</Text>
+                {exitCode && (
+                  <Text
+                    color={parts.exitCode === 0 ? colors.success : colors.error}
+                  >
+                    {" "}
+                    {exitCode}
+                  </Text>
+                )}
+              </Text>
+            </Box>,
+          );
+        }
+      }
+    }
+
+    // Pad with empty lines to maintain consistent structure
+    // This prevents Ink from doing structural redraws
+    while (lines.length < viewportHeight) {
+      lines.push(
+        <Box key={`pad-${lines.length}`} width={contentWidth}>
+          <Text> </Text>
+        </Box>,
+      );
+    }
+
+    return lines;
+  }, [
+    loading,
+    error,
+    logs.length,
+    visibleLogs,
+    isPolling,
+    logsWrapMode,
+    contentWidth,
+    viewportHeight,
+  ]);
 
   return (
     <>
@@ -270,135 +455,7 @@ export const StreamingLogsViewer = ({
         paddingX={1}
         height={viewportHeight + 2}
       >
-        {loading ? (
-          <Box>
-            <Text color={colors.info}>
-              <Spinner type="dots" />
-            </Text>
-            <Text color={colors.textDim}> Loading logs...</Text>
-          </Box>
-        ) : error ? (
-          <Text color={colors.error}>
-            {figures.cross} Error: {error}
-          </Text>
-        ) : logs.length === 0 ? (
-          <Box>
-            {isPolling && (
-              <Text color={colors.info}>
-                <Spinner type="dots" />{" "}
-              </Text>
-            )}
-            <Text color={colors.textDim}>Waiting for logs...</Text>
-          </Box>
-        ) : (
-          visibleLogs.map((log: AnyLog, index: number) => {
-            const parts = parseAnyLogEntry(log);
-            const sanitizedMessage = sanitizeMessage(parts.message);
-            const MAX_MESSAGE_LENGTH = 1000;
-            const fullMessage =
-              sanitizedMessage.length > MAX_MESSAGE_LENGTH
-                ? sanitizedMessage.substring(0, MAX_MESSAGE_LENGTH) + "..."
-                : sanitizedMessage;
-
-            const cmd = parts.cmd
-              ? `$ ${parts.cmd.substring(0, 40)}${parts.cmd.length > 40 ? "..." : ""} `
-              : "";
-            const exitCode =
-              parts.exitCode !== null ? `exit=${parts.exitCode} ` : "";
-
-            const levelColor =
-              levelColorMap[parts.levelColor] || colors.textDim;
-            const sourceColor =
-              sourceColorMap[parts.sourceColor] || colors.textDim;
-
-            if (logsWrapMode) {
-              return (
-                <Box key={index} width={contentWidth} flexDirection="column">
-                  <Text wrap="wrap">
-                    <Text color={colors.textDim} dimColor>
-                      {parts.timestamp}
-                    </Text>
-                    <Text> </Text>
-                    <Text color={levelColor} bold={parts.levelColor === "red"}>
-                      {parts.level}
-                    </Text>
-                    <Text> </Text>
-                    <Text color={sourceColor}>[{parts.source}]</Text>
-                    <Text> </Text>
-                    {parts.shellName && (
-                      <Text color={colors.textDim} dimColor>
-                        ({parts.shellName}){" "}
-                      </Text>
-                    )}
-                    {cmd && <Text color={colors.info}>{cmd}</Text>}
-                    <Text>{fullMessage}</Text>
-                    {exitCode && (
-                      <Text
-                        color={
-                          parts.exitCode === 0 ? colors.success : colors.error
-                        }
-                      >
-                        {" "}
-                        {exitCode}
-                      </Text>
-                    )}
-                  </Text>
-                </Box>
-              );
-            } else {
-              const shellPart = parts.shellName ? `(${parts.shellName}) ` : "";
-              const exitPart = exitCode ? ` ${exitCode}` : "";
-              const prefix = `${parts.timestamp} ${parts.level} [${parts.source}] ${shellPart}${cmd}`;
-              const suffix = exitPart;
-              const availableForMessage =
-                contentWidth - prefix.length - suffix.length;
-
-              let displayMessage: string;
-              if (availableForMessage <= 3) {
-                displayMessage = "";
-              } else if (fullMessage.length <= availableForMessage) {
-                displayMessage = fullMessage;
-              } else {
-                displayMessage =
-                  fullMessage.substring(0, availableForMessage - 3) + "...";
-              }
-
-              return (
-                <Box key={index} width={contentWidth}>
-                  <Text wrap="truncate-end">
-                    <Text color={colors.textDim} dimColor>
-                      {parts.timestamp}
-                    </Text>
-                    <Text> </Text>
-                    <Text color={levelColor} bold={parts.levelColor === "red"}>
-                      {parts.level}
-                    </Text>
-                    <Text> </Text>
-                    <Text color={sourceColor}>[{parts.source}]</Text>
-                    <Text> </Text>
-                    {parts.shellName && (
-                      <Text color={colors.textDim} dimColor>
-                        ({parts.shellName}){" "}
-                      </Text>
-                    )}
-                    {cmd && <Text color={colors.info}>{cmd}</Text>}
-                    <Text>{displayMessage}</Text>
-                    {exitCode && (
-                      <Text
-                        color={
-                          parts.exitCode === 0 ? colors.success : colors.error
-                        }
-                      >
-                        {" "}
-                        {exitCode}
-                      </Text>
-                    )}
-                  </Text>
-                </Box>
-              );
-            }
-          })
-        )}
+        {renderLines}
       </Box>
 
       {/* Statistics bar */}
@@ -432,14 +489,9 @@ export const StreamingLogsViewer = ({
           •{" "}
         </Text>
         {isPolling ? (
-          <>
-            <Text color={colors.success}>
-              <Spinner type="dots" />
-            </Text>
-            <Text color={colors.success}> Live</Text>
-          </>
+          <Text color={colors.success}>● Live</Text>
         ) : (
-          <Text color={colors.textDim}>Paused</Text>
+          <Text color={colors.textDim}>○ Paused</Text>
         )}
         <Text color={colors.textDim} dimColor>
           {" "}
