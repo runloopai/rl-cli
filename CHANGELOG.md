@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1](https://github.com/runloopai/rl-cli/compare/v1.7.0...v1.7.1) (2026-01-27)
+
+
+### Bug Fixes
+
+* **devbox:** fixed log flashing on some terminals ([#78](https://github.com/runloopai/rl-cli/issues/78)) ([8107796](https://github.com/runloopai/rl-cli/commit/81077960c928c5d2c2e623c342242f3882fb0bfb))
+
 ## [1.7.0](https://github.com/runloopai/rl-cli/compare/v1.6.0...v1.7.0) (2026-01-26)
 
 
