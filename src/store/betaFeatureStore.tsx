@@ -74,9 +74,7 @@ export function BetaFeatureProvider({ children }: BetaFeatureProviderProps) {
 export function useBetaFeatures(): BetaFeatureContextValue {
   const context = React.useContext(BetaFeatureContext);
   if (!context) {
-    throw new Error(
-      "useBetaFeatures must be used within BetaFeatureProvider",
-    );
+    throw new Error("useBetaFeatures must be used within BetaFeatureProvider");
   }
   return context;
 }

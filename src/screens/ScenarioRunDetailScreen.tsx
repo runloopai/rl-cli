@@ -6,7 +6,10 @@ import React from "react";
 import { Text } from "ink";
 import figures from "figures";
 import { useNavigation } from "../store/navigationStore.js";
-import { useBenchmarkStore, type ScenarioRun } from "../store/benchmarkStore.js";
+import {
+  useBenchmarkStore,
+  type ScenarioRun,
+} from "../store/benchmarkStore.js";
 import {
   ResourceDetailPage,
   formatTimestamp,
@@ -66,8 +69,14 @@ export function ScenarioRunDetailScreen({
   const run = fetchedRun || runFromStore;
 
   // Build breadcrumb items
-  const buildBreadcrumbItems = (lastLabel: string, active = true): BreadcrumbItem[] => {
-    const items: BreadcrumbItem[] = [{ label: "Home" }, { label: "Benchmarks" }];
+  const buildBreadcrumbItems = (
+    lastLabel: string,
+    active = true,
+  ): BreadcrumbItem[] => {
+    const items: BreadcrumbItem[] = [
+      { label: "Home" },
+      { label: "Benchmarks" },
+    ];
     if (benchmarkRunId) {
       items.push({ label: `Run: ${benchmarkRunId.substring(0, 8)}...` });
     }
@@ -91,7 +100,10 @@ export function ScenarioRunDetailScreen({
     return (
       <>
         <Breadcrumb items={buildBreadcrumbItems("Error")} />
-        <ErrorMessage message="Failed to load scenario run details" error={error} />
+        <ErrorMessage
+          message="Failed to load scenario run details"
+          error={error}
+        />
       </>
     );
   }
@@ -120,9 +132,10 @@ export function ScenarioRunDetailScreen({
       value: formatTimestamp(run.start_time_ms),
     });
   }
-  const endTimeMs = run.start_time_ms && run.duration_ms
-    ? run.start_time_ms + run.duration_ms
-    : undefined;
+  const endTimeMs =
+    run.start_time_ms && run.duration_ms
+      ? run.start_time_ms + run.duration_ms
+      : undefined;
   if (endTimeMs) {
     basicFields.push({
       label: "Ended",
@@ -258,9 +271,10 @@ export function ScenarioRunDetailScreen({
         </Text>,
       );
     }
-    const detailEndTimeMs = r.start_time_ms && r.duration_ms
-      ? r.start_time_ms + r.duration_ms
-      : undefined;
+    const detailEndTimeMs =
+      r.start_time_ms && r.duration_ms
+        ? r.start_time_ms + r.duration_ms
+        : undefined;
     if (detailEndTimeMs) {
       lines.push(
         <Text key="core-ended" dimColor>
@@ -331,7 +345,9 @@ export function ScenarioRunDetailScreen({
   // Build breadcrumb prefix
   const breadcrumbPrefix = [{ label: "Home" }, { label: "Benchmarks" }];
   if (benchmarkRunId) {
-    breadcrumbPrefix.push({ label: `Run: ${benchmarkRunId.substring(0, 8)}...` });
+    breadcrumbPrefix.push({
+      label: `Run: ${benchmarkRunId.substring(0, 8)}...`,
+    });
   }
   breadcrumbPrefix.push({ label: "Scenario Runs" });
 

@@ -103,10 +103,13 @@ export const useBenchmarkStore = create<BenchmarkState>((set, get) => ({
   setBenchmarkRuns: (runs) => set({ benchmarkRuns: runs }),
   setBenchmarkRunsLoading: (loading) => set({ benchmarkRunsLoading: loading }),
   setBenchmarkRunsError: (error) => set({ benchmarkRunsError: error }),
-  setBenchmarkRunsTotalCount: (count) => set({ benchmarkRunsTotalCount: count }),
+  setBenchmarkRunsTotalCount: (count) =>
+    set({ benchmarkRunsTotalCount: count }),
   setBenchmarkRunsHasMore: (hasMore) => set({ benchmarkRunsHasMore: hasMore }),
-  setBenchmarkRunsCurrentPage: (page) => set({ benchmarkRunsCurrentPage: page }),
-  setSelectedBenchmarkRunIndex: (index) => set({ selectedBenchmarkRunIndex: index }),
+  setBenchmarkRunsCurrentPage: (page) =>
+    set({ benchmarkRunsCurrentPage: page }),
+  setSelectedBenchmarkRunIndex: (index) =>
+    set({ selectedBenchmarkRunIndex: index }),
 
   // Scenario Run Actions
   setScenarioRuns: (runs) => set({ scenarioRuns: runs }),
@@ -115,7 +118,8 @@ export const useBenchmarkStore = create<BenchmarkState>((set, get) => ({
   setScenarioRunsTotalCount: (count) => set({ scenarioRunsTotalCount: count }),
   setScenarioRunsHasMore: (hasMore) => set({ scenarioRunsHasMore: hasMore }),
   setScenarioRunsCurrentPage: (page) => set({ scenarioRunsCurrentPage: page }),
-  setSelectedScenarioRunIndex: (index) => set({ selectedScenarioRunIndex: index }),
+  setSelectedScenarioRunIndex: (index) =>
+    set({ selectedScenarioRunIndex: index }),
   setBenchmarkRunIdFilter: (id) => set({ benchmarkRunIdFilter: id }),
 
   // Cache management
@@ -130,7 +134,9 @@ export const useBenchmarkStore = create<BenchmarkState>((set, get) => ({
       }
     }
 
-    const plainData = data.map((d) => JSON.parse(JSON.stringify(d)) as BenchmarkRun);
+    const plainData = data.map(
+      (d) => JSON.parse(JSON.stringify(d)) as BenchmarkRun,
+    );
     cache.set(page, plainData);
     set({});
   },
@@ -150,7 +156,9 @@ export const useBenchmarkStore = create<BenchmarkState>((set, get) => ({
       }
     }
 
-    const plainData = data.map((d) => JSON.parse(JSON.stringify(d)) as ScenarioRun);
+    const plainData = data.map(
+      (d) => JSON.parse(JSON.stringify(d)) as ScenarioRun,
+    );
     cache.set(page, plainData);
     set({});
   },

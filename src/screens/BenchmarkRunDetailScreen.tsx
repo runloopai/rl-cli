@@ -6,7 +6,10 @@ import React from "react";
 import { Text } from "ink";
 import figures from "figures";
 import { useNavigation } from "../store/navigationStore.js";
-import { useBenchmarkStore, type BenchmarkRun } from "../store/benchmarkStore.js";
+import {
+  useBenchmarkStore,
+  type BenchmarkRun,
+} from "../store/benchmarkStore.js";
 import {
   ResourceDetailPage,
   formatTimestamp,
@@ -92,7 +95,10 @@ export function BenchmarkRunDetailScreen({
             { label: "Error", active: true },
           ]}
         />
-        <ErrorMessage message="Failed to load benchmark run details" error={error} />
+        <ErrorMessage
+          message="Failed to load benchmark run details"
+          error={error}
+        />
       </>
     );
   }
@@ -128,9 +134,10 @@ export function BenchmarkRunDetailScreen({
       value: formatTimestamp(run.start_time_ms),
     });
   }
-  const endTimeMs = run.start_time_ms && run.duration_ms
-    ? run.start_time_ms + run.duration_ms
-    : undefined;
+  const endTimeMs =
+    run.start_time_ms && run.duration_ms
+      ? run.start_time_ms + run.duration_ms
+      : undefined;
   if (endTimeMs) {
     basicFields.push({
       label: "Ended",
@@ -238,9 +245,10 @@ export function BenchmarkRunDetailScreen({
         </Text>,
       );
     }
-    const detailEndTimeMs = r.start_time_ms && r.duration_ms
-      ? r.start_time_ms + r.duration_ms
-      : undefined;
+    const detailEndTimeMs =
+      r.start_time_ms && r.duration_ms
+        ? r.start_time_ms + r.duration_ms
+        : undefined;
     if (detailEndTimeMs) {
       lines.push(
         <Text key="core-ended" dimColor>

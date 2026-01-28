@@ -106,7 +106,10 @@ export function Router() {
         case "benchmark-run-detail":
         case "scenario-run-list":
         case "scenario-run-detail":
-          if (!currentScreen.startsWith("benchmark") && !currentScreen.startsWith("scenario")) {
+          if (
+            !currentScreen.startsWith("benchmark") &&
+            !currentScreen.startsWith("scenario")
+          ) {
             useBenchmarkStore.getState().clearAll();
           }
           break;

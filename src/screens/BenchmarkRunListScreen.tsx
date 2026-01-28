@@ -9,7 +9,11 @@ import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
 import { NavigationTips } from "../components/NavigationTips.js";
-import { Table, createTextColumn, createComponentColumn } from "../components/Table.js";
+import {
+  Table,
+  createTextColumn,
+  createComponentColumn,
+} from "../components/Table.js";
 import { ActionsPopup } from "../components/ActionsPopup.js";
 import { Operation } from "../components/OperationsMenu.js";
 import { formatTimeAgo } from "../components/ResourceListView.js";
@@ -129,7 +133,9 @@ export function BenchmarkRunListScreen() {
         "Status",
         (run, _index, isSelected) => {
           const statusDisplay = getStatusDisplay(run.state);
-          const text = statusDisplay.text.slice(0, statusWidth).padEnd(statusWidth, " ");
+          const text = statusDisplay.text
+            .slice(0, statusWidth)
+            .padEnd(statusWidth, " ");
           return (
             <Text
               color={isSelected ? colors.text : statusDisplay.color}
@@ -377,7 +383,12 @@ export function BenchmarkRunListScreen() {
               label: op.label,
               color: op.color,
               icon: op.icon,
-              shortcut: op.key === "view_details" ? "v" : op.key === "view_scenarios" ? "s" : "",
+              shortcut:
+                op.key === "view_details"
+                  ? "v"
+                  : op.key === "view_scenarios"
+                    ? "s"
+                    : "",
             }))}
             selectedOperation={selectedOperation}
             onClose={() => setShowPopup(false)}

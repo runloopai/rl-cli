@@ -9,7 +9,11 @@ import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb, type BreadcrumbItem } from "../components/Breadcrumb.js";
 import { NavigationTips } from "../components/NavigationTips.js";
-import { Table, createTextColumn, createComponentColumn } from "../components/Table.js";
+import {
+  Table,
+  createTextColumn,
+  createComponentColumn,
+} from "../components/Table.js";
 import { ActionsPopup } from "../components/ActionsPopup.js";
 import { Operation } from "../components/OperationsMenu.js";
 import { formatTimeAgo } from "../components/ResourceListView.js";
@@ -131,7 +135,9 @@ export function ScenarioRunListScreen({
         "Status",
         (run, _index, isSelected) => {
           const statusDisplay = getStatusDisplay(run.state);
-          const text = statusDisplay.text.slice(0, statusWidth).padEnd(statusWidth, " ");
+          const text = statusDisplay.text
+            .slice(0, statusWidth)
+            .padEnd(statusWidth, " ");
           return (
             <Text
               color={isSelected ? colors.text : statusDisplay.color}
@@ -274,7 +280,9 @@ export function ScenarioRunListScreen({
     { label: "Benchmarks" },
   ];
   if (benchmarkRunId) {
-    breadcrumbItems.push({ label: `Run: ${benchmarkRunId.substring(0, 8)}...` });
+    breadcrumbItems.push({
+      label: `Run: ${benchmarkRunId.substring(0, 8)}...`,
+    });
   }
   breadcrumbItems.push({ label: "Scenario Runs", active: true });
 
