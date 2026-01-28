@@ -32,7 +32,11 @@ jobs:
             cli
             mcp
             devbox
+            benchmark
+            secret  
             blueprint
+            storage-object
+            network-policy
             main
             snapshot
             config
