@@ -16,6 +16,8 @@ export interface FormTextInputProps {
   error?: string;
   /** Called when Enter is pressed in the text input */
   onSubmit?: () => void;
+  /** Character to mask input with (e.g., "*" for passwords) */
+  mask?: string;
 }
 
 export const FormTextInput = ({
@@ -26,7 +28,11 @@ export const FormTextInput = ({
   placeholder,
   error,
   onSubmit,
+  mask,
 }: FormTextInputProps) => {
+  // Display value: use mask character if provided
+  const displayValue = mask && value ? mask.repeat(value.length) : value;
+
   return (
     <FormField label={label} isActive={isActive} error={error}>
       {isActive ? (
@@ -35,10 +41,11 @@ export const FormTextInput = ({
           onChange={onChange}
           placeholder={placeholder}
           onSubmit={onSubmit}
+          mask={mask}
         />
       ) : (
         <Text color={error ? colors.error : colors.text}>
-          {value || "(empty)"}
+          {displayValue || "(empty)"}
         </Text>
       )}
     </FormField>
