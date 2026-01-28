@@ -9,6 +9,7 @@ import { useBlueprintStore } from "../store/blueprintStore.js";
 import { useSnapshotStore } from "../store/snapshotStore.js";
 import { useNetworkPolicyStore } from "../store/networkPolicyStore.js";
 import { useObjectStore } from "../store/objectStore.js";
+import { useBenchmarkStore } from "../store/benchmarkStore.js";
 import { ErrorBoundary } from "../components/ErrorBoundary.js";
 import type { ScreenName } from "../router/types.js";
 
@@ -34,6 +35,11 @@ import { SecretCreateScreen } from "../screens/SecretCreateScreen.js";
 import { ObjectListScreen } from "../screens/ObjectListScreen.js";
 import { ObjectDetailScreen } from "../screens/ObjectDetailScreen.js";
 import { SSHSessionScreen } from "../screens/SSHSessionScreen.js";
+import { BenchmarkMenuScreen } from "../screens/BenchmarkMenuScreen.js";
+import { BenchmarkRunListScreen } from "../screens/BenchmarkRunListScreen.js";
+import { BenchmarkRunDetailScreen } from "../screens/BenchmarkRunDetailScreen.js";
+import { ScenarioRunListScreen } from "../screens/ScenarioRunListScreen.js";
+import { ScenarioRunDetailScreen } from "../screens/ScenarioRunDetailScreen.js";
 
 /**
  * Router component that renders the current screen
@@ -92,6 +98,19 @@ export function Router() {
         case "object-detail":
           if (!currentScreen.startsWith("object")) {
             useObjectStore.getState().clearAll();
+          }
+          break;
+
+        case "benchmark-menu":
+        case "benchmark-run-list":
+        case "benchmark-run-detail":
+        case "scenario-run-list":
+        case "scenario-run-detail":
+          if (
+            !currentScreen.startsWith("benchmark") &&
+            !currentScreen.startsWith("scenario")
+          ) {
+            useBenchmarkStore.getState().clearAll();
           }
           break;
       }
@@ -168,6 +187,21 @@ export function Router() {
       )}
       {currentScreen === "ssh-session" && (
         <SSHSessionScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "benchmark-menu" && (
+        <BenchmarkMenuScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "benchmark-run-list" && (
+        <BenchmarkRunListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "benchmark-run-detail" && (
+        <BenchmarkRunDetailScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "scenario-run-list" && (
+        <ScenarioRunListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "scenario-run-detail" && (
+        <ScenarioRunDetailScreen key={currentScreen} {...params} />
       )}
     </ErrorBoundary>
   );

@@ -102,6 +102,15 @@ export function clearDetectedTheme(): void {
 }
 
 /**
+ * Check if beta features are enabled via the RL_CLI_BETA environment variable.
+ * Set RL_CLI_BETA=1 or RL_CLI_BETA=true to enable beta features.
+ */
+export function isBetaEnabled(): boolean {
+  const betaValue = process.env.RL_CLI_BETA?.toLowerCase();
+  return betaValue === "1" || betaValue === "true";
+}
+
+/**
  * Returns the detailed error message for when the API key is not configured.
  * This message provides instructions on how to set up the API key.
  */

@@ -3,6 +3,7 @@ import React from "react";
 export type ScreenName =
   | "menu"
   | "settings-menu"
+  | "benchmark-menu"
   | "devbox-list"
   | "devbox-detail"
   | "devbox-actions"
@@ -21,7 +22,11 @@ export type ScreenName =
   | "secret-create"
   | "object-list"
   | "object-detail"
-  | "ssh-session";
+  | "ssh-session"
+  | "benchmark-run-list"
+  | "benchmark-run-detail"
+  | "scenario-run-list"
+  | "scenario-run-detail";
 
 export interface RouteParams {
   devboxId?: string;
@@ -45,6 +50,9 @@ export interface RouteParams {
   // Exec session params
   executionId?: string;
   execCommand?: string;
+  // Benchmark params
+  benchmarkRunId?: string;
+  scenarioRunId?: string;
   [key: string]: string | ScreenName | RouteParams | undefined;
 }
 

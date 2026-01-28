@@ -9,6 +9,7 @@ import { processUtils } from "../utils/processUtils.js";
 
 import { Router } from "../router/Router.js";
 import { NavigationProvider } from "../store/navigationStore.js";
+import { BetaFeatureProvider } from "../store/betaFeatureStore.js";
 import type { ScreenName } from "../store/navigationStore.js";
 
 function AppInner() {
@@ -25,12 +26,14 @@ function App({
   focusDevboxId?: string;
 }) {
   return (
-    <NavigationProvider
-      initialScreen={initialScreen}
-      initialParams={focusDevboxId ? { focusDevboxId } : {}}
-    >
-      <AppInner />
-    </NavigationProvider>
+    <BetaFeatureProvider>
+      <NavigationProvider
+        initialScreen={initialScreen}
+        initialParams={focusDevboxId ? { focusDevboxId } : {}}
+      >
+        <AppInner />
+      </NavigationProvider>
+    </BetaFeatureProvider>
   );
 }
 

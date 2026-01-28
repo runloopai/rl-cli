@@ -13,6 +13,13 @@ export type {
   NavigationProviderProps,
 } from "./navigationStore.js";
 
+export {
+  BetaFeatureProvider,
+  useBetaFeatures,
+  useBetaFeature,
+} from "./betaFeatureStore.js";
+export type { BetaFeature } from "./betaFeatureStore.js";
+
 export { useDevboxStore } from "./devboxStore.js";
 export type { Devbox } from "./devboxStore.js";
 

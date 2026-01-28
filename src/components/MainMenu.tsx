@@ -9,6 +9,8 @@ import { colors } from "../utils/theme.js";
 import { execCommand } from "../utils/exec.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { useUpdateCheck } from "../hooks/useUpdateCheck.js";
+import { useBetaFeatures } from "../store/betaFeatureStore.js";
+import type { BetaFeature } from "../store/betaFeatureStore.js";
 
 interface MenuItem {
   key: string;
@@ -16,9 +18,11 @@ interface MenuItem {
   description: string;
   icon: string;
   color: string;
+  /** If set, this item is only shown when the specified beta feature is enabled */
+  betaFeature?: BetaFeature;
 }
 
-const menuItems: MenuItem[] = [
+const allMenuItems: MenuItem[] = [
   {
     key: "devboxes",
     label: "Devboxes",
@@ -48,6 +52,14 @@ const menuItems: MenuItem[] = [
     color: colors.secondary,
   },
   {
+    key: "benchmarks",
+    label: "Benchmarks",
+    description: "Performance testing and evaluation",
+    icon: "▶",
+    color: colors.success,
+    betaFeature: "benchmarks",
+  },
+  {
     key: "settings",
     label: "Settings",
     description: "Network policies, secrets, and more",
@@ -72,10 +84,29 @@ function getLayoutMode(height: number): LayoutMode {
   return "minimal"; // No banner + labels only
 }
 
+// Helper component for rendering beta badge
+const BetaBadge = () => (
+  <Text color={colors.warning} bold>
+    {" "}
+    [BETA]
+  </Text>
+);
+
 export const MainMenu = ({ onSelect }: MainMenuProps) => {
   const { exit } = useApp();
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const { stdout } = useStdout();
+  const { isFeatureEnabled } = useBetaFeatures();
+
+  // Filter menu items based on beta feature flags
+  const menuItems = React.useMemo(() => {
+    return allMenuItems.filter((item) => {
+      if (item.betaFeature) {
+        return isFeatureEnabled(item.betaFeature);
+      }
+      return true;
+    });
+  }, [isFeatureEnabled]);
 
   // Get raw terminal dimensions, responding to resize events
   // Default to 20 rows / 80 cols if we can't detect
@@ -117,6 +148,27 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
   // Handle Ctrl+C to exit
   useExitOnCtrlC();
 
+  // Helper to select menu item by key (if available in filtered list)
+  const selectByKey = React.useCallback(
+    (key: string) => {
+      if (menuItems.some((item) => item.key === key)) {
+        onSelect(key);
+      }
+    },
+    [menuItems, onSelect],
+  );
+
+  // Helper to select menu item by number (1-indexed, based on filtered list)
+  const selectByNumber = React.useCallback(
+    (num: number) => {
+      const index = num - 1;
+      if (index >= 0 && index < menuItems.length) {
+        onSelect(menuItems[index].key);
+      }
+    },
+    [menuItems, onSelect],
+  );
+
   useInput((input, key) => {
     if (key.upArrow && selectedIndex > 0) {
       setSelectedIndex(selectedIndex - 1);
@@ -126,16 +178,20 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       onSelect(menuItems[selectedIndex].key);
     } else if (key.escape) {
       exit();
-    } else if (input === "d" || input === "1") {
-      onSelect("devboxes");
-    } else if (input === "b" || input === "2") {
-      onSelect("blueprints");
-    } else if (input === "s" || input === "3") {
-      onSelect("snapshots");
-    } else if (input === "o" || input === "4") {
-      onSelect("objects");
-    } else if (input === "n" || input === "5") {
-      onSelect("settings");
+    } else if (input === "d") {
+      selectByKey("devboxes");
+    } else if (input === "b") {
+      selectByKey("blueprints");
+    } else if (input === "s") {
+      selectByKey("snapshots");
+    } else if (input === "o") {
+      selectByKey("objects");
+    } else if (input === "e") {
+      selectByKey("benchmarks");
+    } else if (input === "n") {
+      selectByKey("settings");
+    } else if (input >= "1" && input <= "9") {
+      selectByNumber(parseInt(input, 10));
     } else if (input === "u" && updateAvailable) {
       // Release terminal and exec into update command (never returns)
       execCommand("sh", [
@@ -148,12 +204,13 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
   const layoutMode = getLayoutMode(terminalHeight);
 
   // Navigation tips for all layouts
+  const quickSelectRange = `1-${menuItems.length}`;
   const navTips = (
     <NavigationTips
       showArrows
       paddingX={2}
       tips={[
-        { key: "1-5", label: "Quick select" },
+        { key: quickSelectRange, label: "Quick select" },
         { key: "Enter", label: "Select" },
         { key: "Esc", label: "Quit" },
         { key: "u", label: "Update", condition: !!updateAvailable },
@@ -189,6 +246,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
                 >
                   {item.label}
                 </Text>
+                {item.betaFeature && <BetaBadge />}
                 <Text color={colors.textDim} dimColor>
                   {" "}
                   [{index + 1}]
@@ -234,6 +292,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
                 >
                   {item.label}
                 </Text>
+                {item.betaFeature && <BetaBadge />}
                 <Text color={colors.textDim} dimColor>
                   {isNarrow
                     ? ` [${index + 1}]`
@@ -285,6 +344,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
                 >
                   {item.label}
                 </Text>
+                {item.betaFeature && <BetaBadge />}
                 {!isNarrow && (
                   <Text color={colors.textDim} dimColor>
                     {" "}
@@ -346,6 +406,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
                   >
                     {item.label}
                   </Text>
+                  {item.betaFeature && <BetaBadge />}
                   <Text color={colors.textDim} dimColor>
                     {" "}
                     [{index + 1}]
@@ -386,6 +447,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
                 >
                   {item.label}
                 </Text>
+                {item.betaFeature && <BetaBadge />}
                 <Text color={colors.textDim}> </Text>
                 <Text color={colors.textDim} dimColor>
                   {item.description}

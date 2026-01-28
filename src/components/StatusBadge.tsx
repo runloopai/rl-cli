@@ -128,6 +128,82 @@ export const getStatusDisplay = (status: string): StatusDisplay => {
         label: "Building: In Progress",
       };
 
+    // === BENCHMARK/SCENARIO STATES ===
+    case "completed":
+      return {
+        icon: figures.tick,
+        color: colors.success,
+        text: "COMPLETED ",
+        label: "Completed",
+      };
+    case "canceled":
+      return {
+        icon: figures.cross,
+        color: colors.textDim,
+        text: "CANCELED  ",
+        label: "Canceled",
+      };
+    case "scoring":
+      return {
+        icon: figures.arrowUp,
+        color: colors.warning,
+        text: "SCORING   ",
+        label: "Scoring",
+      };
+    case "scored":
+      return {
+        icon: figures.tick,
+        color: colors.info,
+        text: "SCORED    ",
+        label: "Scored",
+      };
+    case "timeout":
+      return {
+        icon: figures.warning,
+        color: colors.error,
+        text: "TIMEOUT   ",
+        label: "Timeout",
+      };
+
+    // === GENERIC STATES ===
+    case "active":
+      return {
+        icon: figures.tick,
+        color: colors.success,
+        text: "ACTIVE    ",
+        label: "Active",
+      };
+
+    // === STORAGE OBJECT STATES ===
+    case "UPLOADING":
+      return {
+        icon: figures.arrowUp,
+        color: colors.warning,
+        text: "UPLOADING ",
+        label: "Uploading",
+      };
+    case "READ_ONLY":
+      return {
+        icon: figures.tick,
+        color: colors.success,
+        text: "READ_ONLY ",
+        label: "Read Only",
+      };
+    case "DELETED":
+      return {
+        icon: figures.cross,
+        color: colors.textDim,
+        text: "DELETED   ",
+        label: "Deleted",
+      };
+    case "ERROR":
+      return {
+        icon: figures.warning,
+        color: colors.error,
+        text: "ERROR     ",
+        label: "Error",
+      };
+
     default:
       // Truncate and pad any unknown status to 10 chars to match column width
       const truncated = status.toUpperCase().slice(0, 10);
