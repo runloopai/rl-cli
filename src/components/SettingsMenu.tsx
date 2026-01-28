@@ -96,10 +96,7 @@ export const SettingsMenu = ({ onSelect, onBack }: SettingsMenuProps) => {
   return (
     <Box flexDirection="column">
       <Breadcrumb
-        items={[
-          { label: "Home" },
-          { label: "Settings", active: true },
-        ]}
+        items={[{ label: "Home" }, { label: "Settings", active: true }]}
       />
 
       <Box paddingX={2} marginBottom={1}>

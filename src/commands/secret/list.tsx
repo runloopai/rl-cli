@@ -100,19 +100,22 @@ const ListSecretsUI = ({
       // Extract data and filter by search if needed
       if (result.secrets && Array.isArray(result.secrets)) {
         let filtered = result.secrets;
-        
+
         // Client-side search filtering
         if (search.submittedSearchQuery) {
           const query = search.submittedSearchQuery.toLowerCase();
-          filtered = filtered.filter((s: SecretListItem) =>
-            s.name?.toLowerCase().includes(query) ||
-            s.id?.toLowerCase().includes(query)
+          filtered = filtered.filter(
+            (s: SecretListItem) =>
+              s.name?.toLowerCase().includes(query) ||
+              s.id?.toLowerCase().includes(query),
           );
         }
 
         // Client-side pagination
         const startIdx = params.startingAt
-          ? filtered.findIndex((s: SecretListItem) => s.id === params.startingAt) + 1
+          ? filtered.findIndex(
+              (s: SecretListItem) => s.id === params.startingAt,
+            ) + 1
           : 0;
         const pageItems = filtered.slice(startIdx, startIdx + params.limit);
 
@@ -189,17 +192,12 @@ const ListSecretsUI = ({
   // Build columns
   const columns = React.useMemo(
     () => [
-      createTextColumn(
-        "id",
-        "ID",
-        (secret: SecretListItem) => secret.id,
-        {
-          width: idWidth + 1,
-          color: colors.idColor,
-          dimColor: false,
-          bold: false,
-        },
-      ),
+      createTextColumn("id", "ID", (secret: SecretListItem) => secret.id, {
+        width: idWidth + 1,
+        color: colors.idColor,
+        dimColor: false,
+        bold: false,
+      }),
       createTextColumn(
         "name",
         "Name",
@@ -254,9 +252,7 @@ const ListSecretsUI = ({
       switch (operationKey) {
         case "delete":
           await client.secrets.delete(secret.name);
-          setOperationResult(
-            `Secret "${secret.name}" deleted successfully`,
-          );
+          setOperationResult(`Secret "${secret.name}" deleted successfully`);
           break;
       }
     } catch (err) {
@@ -471,7 +467,9 @@ const ListSecretsUI = ({
   if (loading && secrets.length === 0) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Settings" }, { label: "Secrets", active: true }]} />
+        <Breadcrumb
+          items={[{ label: "Settings" }, { label: "Secrets", active: true }]}
+        />
         <SpinnerComponent message="Loading secrets..." />
       </>
     );
@@ -481,7 +479,9 @@ const ListSecretsUI = ({
   if (error) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Settings" }, { label: "Secrets", active: true }]} />
+        <Breadcrumb
+          items={[{ label: "Settings" }, { label: "Secrets", active: true }]}
+        />
         <ErrorMessage message="Failed to list secrets" error={error} />
       </>
     );
@@ -490,7 +490,9 @@ const ListSecretsUI = ({
   // Main list view
   return (
     <>
-      <Breadcrumb items={[{ label: "Settings" }, { label: "Secrets", active: true }]} />
+      <Breadcrumb
+        items={[{ label: "Settings" }, { label: "Secrets", active: true }]}
+      />
 
       {/* Search bar */}
       <SearchBar

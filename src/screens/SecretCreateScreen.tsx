@@ -11,9 +11,7 @@ export function SecretCreateScreen() {
   return (
     <SecretCreatePage
       onBack={goBack}
-      onCreate={(secret) =>
-        navigate("secret-detail", { secretId: secret.id })
-      }
+      onCreate={(secret) => navigate("secret-detail", { secretId: secret.id })}
     />
   );
 }

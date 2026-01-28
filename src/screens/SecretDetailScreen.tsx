@@ -266,7 +266,12 @@ export function SecretDetailScreen({ secretId }: SecretDetailScreenProps) {
         Raw JSON
       </Text>,
     );
-    const jsonObj = { id: s.id, name: s.name, create_time_ms: s.create_time_ms, update_time_ms: s.update_time_ms };
+    const jsonObj = {
+      id: s.id,
+      name: s.name,
+      create_time_ms: s.create_time_ms,
+      update_time_ms: s.update_time_ms,
+    };
     const jsonLines = JSON.stringify(jsonObj, null, 2).split("\n");
     jsonLines.forEach((line, idx) => {
       lines.push(

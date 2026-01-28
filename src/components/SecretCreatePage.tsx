@@ -276,7 +276,8 @@ export const SecretCreatePage = ({
 
           if (field.type === "text") {
             const value = formData[field.key as keyof FormData] as string;
-            const hasError = field.key === "name" && validationError === "Name is required";
+            const hasError =
+              field.key === "name" && validationError === "Name is required";
             return (
               <FormTextInput
                 key={field.key}
@@ -298,7 +299,8 @@ export const SecretCreatePage = ({
 
           if (field.type === "password") {
             const value = formData[field.key as keyof FormData] as string;
-            const hasError = field.key === "value" && validationError === "Value is required";
+            const hasError =
+              field.key === "value" && validationError === "Value is required";
             // Display masked value when not active
             const maskedValue = "*".repeat(value.length);
             return (
