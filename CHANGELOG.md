@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/runloopai/rl-cli/compare/v1.8.0...v1.8.1) (2026-01-28)
+
+
+### Bug Fixes
+
+* **secret:** obscure secret value entry within tui ([#86](https://github.com/runloopai/rl-cli/issues/86)) ([8697e5c](https://github.com/runloopai/rl-cli/commit/8697e5c94d6f24af00c02e2f9a09af32c3c3b35a))
+
 ## [1.8.0](https://github.com/runloopai/rl-cli/compare/v1.7.1...v1.8.0) (2026-01-28)
 
 
