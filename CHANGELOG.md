@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.0](https://github.com/runloopai/rl-cli/compare/v1.7.1...v1.8.0) (2026-01-28)
+
+
+### Features
+
+* adding secrets and reorganizing main menu to have a settings page ([#81](https://github.com/runloopai/rl-cli/issues/81)) ([69aa213](https://github.com/runloopai/rl-cli/commit/69aa213ce556799a949eb4f10f66b9cf239c7ee4))
+* **benchmark:** adding benchmark runs and scenarios to the cli ([#84](https://github.com/runloopai/rl-cli/issues/84)) ([bda1e91](https://github.com/runloopai/rl-cli/commit/bda1e9105480bbd1ff7525fed9e0373829dc4cf6))
+
 ## [1.7.1](https://github.com/runloopai/rl-cli/compare/v1.7.0...v1.7.1) (2026-01-27)
 
 
