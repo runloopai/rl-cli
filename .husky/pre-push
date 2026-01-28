@@ -2,19 +2,19 @@
 # This hook runs format:check, lint, and docs:commands
 
 echo "Running format:check..."
-if ! npm run format:check; then
+if ! pnpm run format:check; then
   echo ""
   echo "❌ Code formatting check failed"
-  echo "   Please run 'npm run format' to fix formatting issues"
+  echo "   Please run 'pnpm run format' to fix formatting issues"
   echo ""
   exit 1
 fi
 
 echo "Running lint..."
-if ! npm run lint; then
+if ! pnpm run lint; then
   echo ""
   echo "❌ Linting failed"
-  echo "   Please run 'npm run lint:fix' to fix linting issues"
+  echo "   Please run 'pnpm run lint:fix' to fix linting issues"
   echo ""
   exit 1
 fi
@@ -22,7 +22,7 @@ fi
 echo "Running docs:commands to ensure README.md is up to date..."
 
 # Run the docs generation script
-npm run docs:commands
+pnpm run docs:commands
 
 # Check if README.md has uncommitted changes
 if ! git diff --quiet README.md; then

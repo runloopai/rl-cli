@@ -36,10 +36,12 @@ rli devbox delete <devbox-id>
 
 ## Installation
 
-Install globally via npm:
+Install globally via npm or pnpm:
 
 ```bash
 npm install -g @runloop/rl-cli
+# or
+pnpm add -g @runloop/rl-cli
 ```
 
 ## Setup
@@ -197,13 +199,13 @@ The TUI supports both light and dark terminal themes and will automatically sele
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Build
-npm run build
+pnpm run build
 
 # Watch mode
-npm run dev
+pnpm run dev
 
 ## Contributing
 
