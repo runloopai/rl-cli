@@ -25,6 +25,9 @@ export function MenuScreen() {
       case "objects":
         navigate("object-list");
         break;
+      case "benchmarks":
+        navigate("benchmark-menu");
+        break;
       default:
         // Fallback for any other screen names
         navigate(key as ScreenName);
