@@ -301,13 +301,11 @@ export const SecretCreatePage = ({
             const value = formData[field.key as keyof FormData] as string;
             const hasError =
               field.key === "value" && validationError === "Value is required";
-            // Display masked value when not active
-            const maskedValue = "*".repeat(value.length);
             return (
               <FormTextInput
                 key={field.key}
                 label={field.label}
-                value={isActive ? value : maskedValue}
+                value={value}
                 onChange={(newValue) => {
                   setFormData({ ...formData, [field.key]: newValue });
                   if (validationError) {
@@ -318,6 +316,7 @@ export const SecretCreatePage = ({
                 isActive={isActive}
                 placeholder="Enter secret value"
                 error={hasError ? validationError : undefined}
+                mask="*"
               />
             );
           }
