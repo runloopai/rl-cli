@@ -104,7 +104,8 @@ Make sure `rli` is in your PATH. Test by running `which rli` (macOS/Linux) or `w
 
 If not found:
 - If installed via npm globally: `npm install -g @runloop/rl-cli`
-- Check your npm global bin directory is in PATH: `npm config get prefix`
+- If installed via pnpm globally: `pnpm add -g @runloop/rl-cli`
+- Check your npm/pnpm global bin directory is in PATH
 
 ### "API key not configured"
 

@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     git \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
+    && npm install -g pnpm@9 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -17,10 +18,10 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy package files first for better caching
-COPY package.json package-lock.json ./
+COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .

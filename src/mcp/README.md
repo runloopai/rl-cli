@@ -7,7 +7,7 @@ MCP (Model Context Protocol) server for managing Runloop devboxes.
 To build the `.mcpb` bundle:
 
 ```bash
-npm run build:mcp
+pnpm run build:mcp
 ```
 
 This will:

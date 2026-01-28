@@ -143,8 +143,8 @@ Message endpoint: http://localhost:3000/message
 ### Command not found
 
 If you get "command not found: rli":
-- Install globally: `npm install -g @runloop/rl-cli`
-- Check your PATH includes npm global bin directory
+- Install globally: `npm install -g @runloop/rl-cli` or `pnpm add -g @runloop/rl-cli`
+- Check your PATH includes npm/pnpm global bin directory
 
 ### API key not configured
 
