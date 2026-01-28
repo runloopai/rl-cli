@@ -7,7 +7,7 @@ Thank you for your interest in contributing to the Runloop CLI! This document pr
 ### Prerequisites
 
 - Node.js >= 18.0.0
-- npm
+- pnpm
 
 ### Development Setup
 
@@ -21,19 +21,19 @@ cd rl-cli
 2. Install dependencies:
 
 ```bash
-npm install
+pnpm install
 ```
 
 3. Build the project:
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 4. Link for local development:
 
 ```bash
-npm link
+pnpm link --global
 ```
 
 Now you can use `rli` commands locally with your changes.
@@ -42,10 +42,10 @@ Now you can use `rli` commands locally with your changes.
 
 ```bash
 # Watch mode - rebuilds on file changes
-npm run dev
+pnpm run dev
 
 # Run the CLI
-npm start -- <command>
+pnpm start -- <command>
 
 # Or after linking
 rli <command>
@@ -59,33 +59,33 @@ This project uses Prettier and ESLint to maintain code quality.
 
 ```bash
 # Check formatting
-npm run format:check
+pnpm run format:check
 
 # Auto-fix formatting
-npm run format
+pnpm run format
 ```
 
 ### Linting
 
 ```bash
 # Run linter
-npm run lint
+pnpm run lint
 
 # Auto-fix lint issues
-npm run lint:fix
+pnpm run lint:fix
 ```
 
 ## Testing
 
 ```bash
 # Run all tests
-npm test
+pnpm test
 
 # Run component tests with coverage
-npm run test:components
+pnpm run test:components
 
 # Watch mode
-npm run test:watch
+pnpm run test:watch
 ```
 
 Please ensure all tests pass before submitting a pull request.
