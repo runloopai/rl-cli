@@ -19,8 +19,8 @@ export function MenuScreen() {
       case "snapshots":
         navigate("snapshot-list");
         break;
-      case "network-policies":
-        navigate("network-policy-list");
+      case "settings":
+        navigate("settings-menu");
         break;
       case "objects":
         navigate("object-list");

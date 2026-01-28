@@ -48,10 +48,10 @@ const menuItems: MenuItem[] = [
     color: colors.secondary,
   },
   {
-    key: "network-policies",
-    label: "Network Policies",
-    description: "Manage egress network access rules",
-    icon: "◇",
+    key: "settings",
+    label: "Settings",
+    description: "Network policies, secrets, and more",
+    icon: "⚙",
     color: colors.info,
   },
 ];
@@ -135,7 +135,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
     } else if (input === "o" || input === "4") {
       onSelect("objects");
     } else if (input === "n" || input === "5") {
-      onSelect("network-policies");
+      onSelect("settings");
     } else if (input === "u" && updateAvailable) {
       // Release terminal and exec into update command (never returns)
       execCommand("sh", [

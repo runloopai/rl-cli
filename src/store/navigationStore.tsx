@@ -2,6 +2,7 @@ import React from "react";
 
 export type ScreenName =
   | "menu"
+  | "settings-menu"
   | "devbox-list"
   | "devbox-detail"
   | "devbox-actions"
@@ -15,6 +16,9 @@ export type ScreenName =
   | "network-policy-list"
   | "network-policy-detail"
   | "network-policy-create"
+  | "secret-list"
+  | "secret-detail"
+  | "secret-create"
   | "object-list"
   | "object-detail"
   | "ssh-session";
@@ -25,6 +29,7 @@ export interface RouteParams {
   blueprintName?: string;
   snapshotId?: string;
   networkPolicyId?: string;
+  secretId?: string;
   objectId?: string;
   operation?: string;
   focusDevboxId?: string;
