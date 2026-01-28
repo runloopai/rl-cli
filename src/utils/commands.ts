@@ -386,9 +386,8 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: text)",
     )
     .action(async (snapshotId, options) => {
-      const { getSnapshotStatus } = await import(
-        "../commands/snapshot/status.js"
-      );
+      const { getSnapshotStatus } =
+        await import("../commands/snapshot/status.js");
       await getSnapshotStatus({ snapshotId, ...options });
     });
 
@@ -431,9 +430,8 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: json)",
     )
     .action(async (options) => {
-      const { createBlueprint } = await import(
-        "../commands/blueprint/create.js"
-      );
+      const { createBlueprint } =
+        await import("../commands/blueprint/create.js");
       await createBlueprint(options);
     });
 
@@ -457,9 +455,8 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: text)",
     )
     .action(async (id, options) => {
-      const { getBlueprintLogs } = await import(
-        "../commands/blueprint/logs.js"
-      );
+      const { getBlueprintLogs } =
+        await import("../commands/blueprint/logs.js");
       await getBlueprintLogs({ id, ...options });
     });
 
@@ -476,9 +473,8 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: text)",
     )
     .action(async (name, options) => {
-      const { pruneBlueprints } = await import(
-        "../commands/blueprint/prune.js"
-      );
+      const { pruneBlueprints } =
+        await import("../commands/blueprint/prune.js");
       await pruneBlueprints(name, options);
     });
 
@@ -514,9 +510,8 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: json)",
     )
     .action(async (options) => {
-      const { createBlueprintFromDockerfile } = await import(
-        "../commands/blueprint/from-dockerfile.js"
-      );
+      const { createBlueprintFromDockerfile } =
+        await import("../commands/blueprint/from-dockerfile.js");
       await createBlueprintFromDockerfile(options);
     });
 
@@ -594,9 +589,8 @@ export function createProgram(): Command {
     .action(async (path, options) => {
       const { uploadObject } = await import("../commands/object/upload.js");
       if (!options.output) {
-        const { runInteractiveCommand } = await import(
-          "../utils/interactiveCommand.js"
-        );
+        const { runInteractiveCommand } =
+          await import("../utils/interactiveCommand.js");
         await runInteractiveCommand(() => uploadObject({ path, ...options }));
       } else {
         await uploadObject({ path, ...options });
@@ -632,9 +626,8 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: json)",
     )
     .action(async (options) => {
-      const { listNetworkPolicies } = await import(
-        "../commands/network-policy/list.js"
-      );
+      const { listNetworkPolicies } =
+        await import("../commands/network-policy/list.js");
       await listNetworkPolicies(options);
     });
 
@@ -646,9 +639,8 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: json)",
     )
     .action(async (id, options) => {
-      const { getNetworkPolicy } = await import(
-        "../commands/network-policy/get.js"
-      );
+      const { getNetworkPolicy } =
+        await import("../commands/network-policy/get.js");
       await getNetworkPolicy({ id, ...options });
     });
 
@@ -668,9 +660,8 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: text)",
     )
     .action(async (options) => {
-      const { createNetworkPolicy } = await import(
-        "../commands/network-policy/create.js"
-      );
+      const { createNetworkPolicy } =
+        await import("../commands/network-policy/create.js");
       await createNetworkPolicy(options);
     });
 
@@ -683,9 +674,8 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: text)",
     )
     .action(async (id, options) => {
-      const { deleteNetworkPolicy } = await import(
-        "../commands/network-policy/delete.js"
-      );
+      const { deleteNetworkPolicy } =
+        await import("../commands/network-policy/delete.js");
       await deleteNetworkPolicy(id, options);
     });
 
