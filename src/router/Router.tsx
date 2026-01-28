@@ -27,6 +27,10 @@ import { SnapshotDetailScreen } from "../screens/SnapshotDetailScreen.js";
 import { NetworkPolicyListScreen } from "../screens/NetworkPolicyListScreen.js";
 import { NetworkPolicyDetailScreen } from "../screens/NetworkPolicyDetailScreen.js";
 import { NetworkPolicyCreateScreen } from "../screens/NetworkPolicyCreateScreen.js";
+import { SettingsMenuScreen } from "../screens/SettingsMenuScreen.js";
+import { SecretListScreen } from "../screens/SecretListScreen.js";
+import { SecretDetailScreen } from "../screens/SecretDetailScreen.js";
+import { SecretCreateScreen } from "../screens/SecretCreateScreen.js";
 import { ObjectListScreen } from "../screens/ObjectListScreen.js";
 import { ObjectDetailScreen } from "../screens/ObjectDetailScreen.js";
 import { SSHSessionScreen } from "../screens/SSHSessionScreen.js";
@@ -105,6 +109,9 @@ export function Router() {
       {currentScreen === "menu" && (
         <MenuScreen key={currentScreen} {...params} />
       )}
+      {currentScreen === "settings-menu" && (
+        <SettingsMenuScreen key={currentScreen} {...params} />
+      )}
       {currentScreen === "devbox-list" && (
         <DevboxListScreen key={currentScreen} {...params} />
       )}
@@ -143,6 +150,15 @@ export function Router() {
       )}
       {currentScreen === "network-policy-create" && (
         <NetworkPolicyCreateScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "secret-list" && (
+        <SecretListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "secret-detail" && (
+        <SecretDetailScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "secret-create" && (
+        <SecretCreateScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "object-list" && (
         <ObjectListScreen key={currentScreen} {...params} />
