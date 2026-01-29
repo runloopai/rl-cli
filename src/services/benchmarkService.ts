@@ -2,9 +2,25 @@
  * Benchmark Service - Handles all benchmark-related API calls
  */
 import { getClient } from "../utils/client.js";
-import type { BenchmarkRun, ScenarioRun } from "../store/benchmarkStore.js";
+import type {
+  BenchmarkRun,
+  ScenarioRun,
+  Benchmark,
+} from "../store/benchmarkStore.js";
 import type { BenchmarkRunListParams } from "@runloop/api-client/resources/benchmark-runs";
 import type { RunListParams } from "@runloop/api-client/resources/scenarios/runs";
+
+export interface ListBenchmarksOptions {
+  limit: number;
+  startingAfter?: string;
+  search?: string;
+}
+
+export interface ListBenchmarksResult {
+  benchmarks: Benchmark[];
+  totalCount: number;
+  hasMore: boolean;
+}
 
 export interface ListBenchmarkRunsOptions {
   limit: number;
@@ -119,4 +135,72 @@ export async function listScenarioRuns(
 export async function getScenarioRun(id: string): Promise<ScenarioRun> {
   const client = getClient();
   return client.scenarios.runs.retrieve(id);
+}
+
+/**
+ * List benchmark definitions with pagination
+ */
+export async function listBenchmarks(
+  options: ListBenchmarksOptions
+): Promise<ListBenchmarksResult> {
+  const client = getClient();
+
+  const queryParams: { limit?: number; starting_after?: string; search?: string } = {
+    limit: options.limit,
+  };
+
+  if (options.startingAfter) {
+    queryParams.starting_after = options.startingAfter;
+  }
+
+  if (options.search) {
+    queryParams.search = options.search;
+  }
+
+  const page = await client.benchmarks.list(queryParams);
+  const benchmarks = page.benchmarks || [];
+
+  return {
+    benchmarks,
+    totalCount: page.total_count || benchmarks.length,
+    hasMore: page.has_more || false,
+  };
+}
+
+/**
+ * Get benchmark definition by ID
+ */
+export async function getBenchmark(id: string): Promise<Benchmark> {
+  const client = getClient();
+  return client.benchmarks.retrieve(id);
+}
+
+/**
+ * Create/start a benchmark run with selected benchmarks
+ */
+export async function createBenchmarkRun(
+  benchmarkIds: string[],
+  options?: { name?: string; metadata?: Record<string, string> }
+): Promise<BenchmarkRun> {
+  const client = getClient();
+
+  const createParams: {
+    benchmark_ids: string[];
+    name?: string;
+    metadata?: Record<string, string>;
+  } = {
+    benchmark_ids: benchmarkIds,
+  };
+
+  if (options?.name) {
+    createParams.name = options.name;
+  }
+
+  if (options?.metadata) {
+    createParams.metadata = options.metadata;
+  }
+
+  // Use type assertion since the API client types may not be fully defined
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (client.benchmarkRuns as any).create(createParams);
 }

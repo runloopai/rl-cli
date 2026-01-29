@@ -10,8 +10,14 @@ export function BenchmarkMenuScreen() {
 
   const handleSelect = (key: string) => {
     switch (key) {
+      case "benchmarks":
+        navigate("benchmark-list");
+        break;
       case "benchmark-runs":
         navigate("benchmark-run-list");
+        break;
+      case "benchmark-jobs":
+        navigate("benchmark-job-list");
         break;
       case "scenario-runs":
         navigate("scenario-run-list");

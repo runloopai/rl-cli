@@ -1,5 +1,5 @@
 /**
- * BenchmarkRunListScreen - List view for benchmark runs
+ * BenchmarkJobListScreen - List view for benchmark jobs
  */
 import React from "react";
 import { Box, Text, useInput, useApp } from "ink";
@@ -24,10 +24,9 @@ import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../hooks/useCursorPagination.js";
 import { useListSearch } from "../hooks/useListSearch.js";
-import { listBenchmarkRuns } from "../services/benchmarkService.js";
-import type { BenchmarkRun } from "../store/benchmarkStore.js";
+import { listBenchmarkJobs, type BenchmarkJob } from "../services/benchmarkJobService.js";
 
-export function BenchmarkRunListScreen() {
+export function BenchmarkJobListScreen() {
   const { exit: inkExit } = useApp();
   const { navigate, goBack } = useNavigation();
   const [selectedIndex, setSelectedIndex] = React.useState(0);
@@ -53,31 +52,68 @@ export function BenchmarkRunListScreen() {
   const fixedWidth = 6;
   const idWidth = 25;
   const statusWidth = 12;
-  const timeWidth = 18;
-  const baseWidth = fixedWidth + idWidth + statusWidth + timeWidth;
+  const scoreWidth = 8;
+  const statsWidth = 14;
+  const timeWidth = 14;
+  const baseWidth = fixedWidth + idWidth + statusWidth + scoreWidth + statsWidth + timeWidth;
   const remainingWidth = terminalWidth - baseWidth;
-  const nameWidth = Math.min(80, Math.max(15, remainingWidth));
+  const nameWidth = Math.min(60, Math.max(15, remainingWidth));
+
+  // Helper to get score from job outcomes
+  const getJobScore = (job: BenchmarkJob): string => {
+    if (!job.benchmark_outcomes || job.benchmark_outcomes.length === 0) {
+      return "-";
+    }
+    // Calculate average score across all outcomes
+    const scores = job.benchmark_outcomes
+      .map((o) => o.average_score)
+      .filter((s): s is number => s !== null && s !== undefined);
+    if (scores.length === 0) return "-";
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    return avg.toFixed(2);
+  };
+
+  // Helper to get stats from job
+  const getJobStats = (job: BenchmarkJob): string => {
+    if (!job.benchmark_outcomes || job.benchmark_outcomes.length === 0) {
+      if (job.in_progress_runs && job.in_progress_runs.length > 0) {
+        return `${job.in_progress_runs.length} running`;
+      }
+      return "-";
+    }
+    const totalCompleted = job.benchmark_outcomes.reduce((acc, o) => acc + o.n_completed, 0);
+    const totalFailed = job.benchmark_outcomes.reduce((acc, o) => acc + o.n_failed, 0);
+    const totalTimeout = job.benchmark_outcomes.reduce((acc, o) => acc + o.n_timeout, 0);
+    
+    const parts: string[] = [];
+    if (totalCompleted > 0) parts.push(`${totalCompleted}✓`);
+    if (totalFailed > 0) parts.push(`${totalFailed}✗`);
+    if (totalTimeout > 0) parts.push(`${totalTimeout}⏱`);
+    
+    return parts.length > 0 ? parts.join(" ") : "-";
+  };
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
     async (params: { limit: number; startingAt?: string }) => {
-      const result = await listBenchmarkRuns({
+      const result = await listBenchmarkJobs({
         limit: params.limit,
         startingAfter: params.startingAt,
+        name: search.submittedSearchQuery || undefined,
       });
 
       return {
-        items: result.benchmarkRuns,
+        items: result.jobs,
         hasMore: result.hasMore,
         totalCount: result.totalCount,
       };
     },
-    [],
+    [search.submittedSearchQuery],
   );
 
   // Use the shared pagination hook
   const {
-    items: benchmarkRuns,
+    items: benchmarkJobs,
     loading,
     navigating,
     error,
@@ -87,17 +123,16 @@ export function BenchmarkRunListScreen() {
     totalCount,
     nextPage,
     prevPage,
-    refresh,
   } = useCursorPagination({
     fetchPage,
     pageSize: PAGE_SIZE,
-    getItemId: (run: BenchmarkRun) => run.id,
+    getItemId: (job: BenchmarkJob) => job.id,
     pollInterval: 5000,
     pollingEnabled: !showPopup && !search.searchMode,
-    deps: [PAGE_SIZE],
+    deps: [PAGE_SIZE, search.submittedSearchQuery],
   });
 
-  // Operations for benchmark runs
+  // Operations for benchmark jobs
   const operations: Operation[] = React.useMemo(
     () => [
       {
@@ -107,14 +142,8 @@ export function BenchmarkRunListScreen() {
         icon: figures.pointer,
       },
       {
-        key: "view_scenarios",
-        label: "View Scenario Runs",
-        color: colors.info,
-        icon: figures.arrowRight,
-      },
-      {
-        key: "create_job",
-        label: "Create Job",
+        key: "create_new",
+        label: "Create New Job",
         color: colors.success,
         icon: figures.play,
       },
@@ -125,20 +154,20 @@ export function BenchmarkRunListScreen() {
   // Build columns
   const columns = React.useMemo(
     () => [
-      createTextColumn("id", "ID", (run: BenchmarkRun) => run.id, {
+      createTextColumn("id", "ID", (job: BenchmarkJob) => job.id, {
         width: idWidth + 1,
         color: colors.idColor,
         dimColor: false,
         bold: false,
       }),
-      createTextColumn("name", "Name", (run: BenchmarkRun) => run.name || "", {
+      createTextColumn("name", "Name", (job: BenchmarkJob) => job.name || "", {
         width: nameWidth,
       }),
-      createComponentColumn<BenchmarkRun>(
+      createComponentColumn<BenchmarkJob>(
         "status",
         "Status",
-        (run, _index, isSelected) => {
-          const statusDisplay = getStatusDisplay(run.state);
+        (job, _index, isSelected) => {
+          const statusDisplay = getStatusDisplay(job.state);
           const text = statusDisplay.text
             .slice(0, statusWidth)
             .padEnd(statusWidth, " ");
@@ -154,11 +183,40 @@ export function BenchmarkRunListScreen() {
         },
         { width: statusWidth },
       ),
+      createComponentColumn<BenchmarkJob>(
+        "score",
+        "Score",
+        (job, _index, isSelected) => {
+          const score = getJobScore(job);
+          const scoreColor = score === "-" ? colors.textDim : colors.success;
+          return (
+            <Text
+              color={isSelected ? colors.text : scoreColor}
+              bold={isSelected || score !== "-"}
+              inverse={isSelected}
+            >
+              {score.padEnd(scoreWidth, " ")}
+            </Text>
+          );
+        },
+        { width: scoreWidth },
+      ),
+      createTextColumn(
+        "stats",
+        "Results",
+        (job: BenchmarkJob) => getJobStats(job),
+        {
+          width: statsWidth,
+          color: colors.textDim,
+          dimColor: false,
+          bold: false,
+        },
+      ),
       createTextColumn(
         "created",
         "Created",
-        (run: BenchmarkRun) =>
-          run.start_time_ms ? formatTimeAgo(run.start_time_ms) : "",
+        (job: BenchmarkJob) =>
+          job.create_time_ms ? formatTimeAgo(job.create_time_ms) : "",
         {
           width: timeWidth,
           color: colors.textDim,
@@ -167,7 +225,7 @@ export function BenchmarkRunListScreen() {
         },
       ),
     ],
-    [idWidth, nameWidth, statusWidth, timeWidth],
+    [idWidth, nameWidth, statusWidth, scoreWidth, statsWidth, timeWidth],
   );
 
   // Handle Ctrl+C to exit
@@ -175,17 +233,17 @@ export function BenchmarkRunListScreen() {
 
   // Ensure selected index is within bounds
   React.useEffect(() => {
-    if (benchmarkRuns.length > 0 && selectedIndex >= benchmarkRuns.length) {
-      setSelectedIndex(Math.max(0, benchmarkRuns.length - 1));
+    if (benchmarkJobs.length > 0 && selectedIndex >= benchmarkJobs.length) {
+      setSelectedIndex(Math.max(0, benchmarkJobs.length - 1));
     }
-  }, [benchmarkRuns.length, selectedIndex]);
+  }, [benchmarkJobs.length, selectedIndex]);
 
-  const selectedRun = benchmarkRuns[selectedIndex];
+  const selectedJob = benchmarkJobs[selectedIndex];
 
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + benchmarkRuns.length;
+  const endIndex = startIndex + benchmarkJobs.length;
 
   useInput((input, key) => {
     // Handle search mode input
@@ -206,28 +264,19 @@ export function BenchmarkRunListScreen() {
         setShowPopup(false);
         const operationKey = operations[selectedOperation].key;
 
-        if (operationKey === "view_details") {
-          navigate("benchmark-run-detail", {
-            benchmarkRunId: selectedRun.id,
+        if (operationKey === "view_details" && selectedJob) {
+          navigate("benchmark-job-detail", {
+            benchmarkJobId: selectedJob.id,
           });
-        } else if (operationKey === "view_scenarios") {
-          navigate("scenario-run-list", {
-            benchmarkRunId: selectedRun.id,
-          });
-        } else if (operationKey === "create_job") {
+        } else if (operationKey === "create_new") {
           navigate("benchmark-job-create");
         }
-      } else if (input === "v" && selectedRun) {
+      } else if (input === "v" && selectedJob) {
         setShowPopup(false);
-        navigate("benchmark-run-detail", {
-          benchmarkRunId: selectedRun.id,
+        navigate("benchmark-job-detail", {
+          benchmarkJobId: selectedJob.id,
         });
-      } else if (input === "s" && selectedRun) {
-        setShowPopup(false);
-        navigate("scenario-run-list", {
-          benchmarkRunId: selectedRun.id,
-        });
-      } else if (input === "j") {
+      } else if (input === "n") {
         setShowPopup(false);
         navigate("benchmark-job-create");
       } else if (key.escape || input === "q") {
@@ -237,12 +286,12 @@ export function BenchmarkRunListScreen() {
       return;
     }
 
-    const pageRuns = benchmarkRuns.length;
+    const pageJobs = benchmarkJobs.length;
 
     // Handle list view navigation
     if (key.upArrow && selectedIndex > 0) {
       setSelectedIndex(selectedIndex - 1);
-    } else if (key.downArrow && selectedIndex < pageRuns - 1) {
+    } else if (key.downArrow && selectedIndex < pageJobs - 1) {
       setSelectedIndex(selectedIndex + 1);
     } else if (
       (input === "n" || key.rightArrow) &&
@@ -260,14 +309,14 @@ export function BenchmarkRunListScreen() {
     ) {
       prevPage();
       setSelectedIndex(0);
-    } else if (key.return && selectedRun) {
-      navigate("benchmark-run-detail", {
-        benchmarkRunId: selectedRun.id,
+    } else if (key.return && selectedJob) {
+      navigate("benchmark-job-detail", {
+        benchmarkJobId: selectedJob.id,
       });
-    } else if (input === "a" && selectedRun) {
+    } else if (input === "a" && selectedJob) {
       setShowPopup(true);
       setSelectedOperation(0);
-    } else if (input === "j") {
+    } else if (input === "c") {
       // Quick shortcut to create a new job
       navigate("benchmark-job-create");
     } else if (input === "/") {
@@ -281,17 +330,16 @@ export function BenchmarkRunListScreen() {
   });
 
   // Loading state
-  if (loading && benchmarkRuns.length === 0) {
+  if (loading && benchmarkJobs.length === 0) {
     return (
       <>
         <Breadcrumb
           items={[
             { label: "Home" },
-            { label: "Benchmarks" },
-            { label: "Benchmark Runs", active: true },
+            { label: "Benchmark Jobs", active: true },
           ]}
         />
-        <SpinnerComponent message="Loading benchmark runs..." />
+        <SpinnerComponent message="Loading benchmark jobs..." />
       </>
     );
   }
@@ -303,11 +351,10 @@ export function BenchmarkRunListScreen() {
         <Breadcrumb
           items={[
             { label: "Home" },
-            { label: "Benchmarks" },
-            { label: "Benchmark Runs", active: true },
+            { label: "Benchmark Jobs", active: true },
           ]}
         />
-        <ErrorMessage message="Failed to list benchmark runs" error={error} />
+        <ErrorMessage message="Failed to list benchmark jobs" error={error} />
       </>
     );
   }
@@ -318,8 +365,7 @@ export function BenchmarkRunListScreen() {
       <Breadcrumb
         items={[
           { label: "Home" },
-          { label: "Benchmarks" },
-          { label: "Benchmark Runs", active: true },
+          { label: "Benchmark Jobs", active: true },
         ]}
       />
 
@@ -331,20 +377,20 @@ export function BenchmarkRunListScreen() {
         resultCount={totalCount}
         onSearchChange={search.setSearchQuery}
         onSearchSubmit={search.submitSearch}
-        placeholder="Search benchmark runs..."
+        placeholder="Search benchmark jobs..."
       />
 
       {/* Table */}
       {!showPopup && (
         <Table
-          data={benchmarkRuns}
-          keyExtractor={(run: BenchmarkRun) => run.id}
+          data={benchmarkJobs}
+          keyExtractor={(job: BenchmarkJob) => job.id}
           selectedIndex={selectedIndex}
-          title={`benchmark_runs[${totalCount}]`}
+          title={`benchmark_jobs[${totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
-              {figures.info} No benchmark runs found
+              {figures.info} No benchmark jobs found
             </Text>
           }
         />
@@ -388,10 +434,10 @@ export function BenchmarkRunListScreen() {
       )}
 
       {/* Actions Popup */}
-      {showPopup && selectedRun && (
+      {showPopup && selectedJob && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            devbox={selectedRun}
+            devbox={selectedJob}
             operations={operations.map((op) => ({
               key: op.key,
               label: op.label,
@@ -400,11 +446,9 @@ export function BenchmarkRunListScreen() {
               shortcut:
                 op.key === "view_details"
                   ? "v"
-                  : op.key === "view_scenarios"
-                    ? "s"
-                    : op.key === "create_job"
-                      ? "j"
-                      : "",
+                  : op.key === "create_new"
+                    ? "n"
+                    : "",
             }))}
             selectedOperation={selectedOperation}
             onClose={() => setShowPopup(false)}
@@ -422,7 +466,7 @@ export function BenchmarkRunListScreen() {
             condition: hasMore || hasPrev,
           },
           { key: "Enter", label: "Details" },
-          { key: "j", label: "New Job" },
+          { key: "c", label: "New Job" },
           { key: "a", label: "Actions" },
           { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },

@@ -14,6 +14,7 @@ import { SuccessMessage } from "./SuccessMessage.js";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { NavigationTips } from "./NavigationTips.js";
 import { MetadataDisplay } from "./MetadataDisplay.js";
+import { ResourcePicker } from "./ResourcePicker.js";
 import {
   FormTextInput,
   FormSelect,
@@ -22,6 +23,12 @@ import {
 } from "./form/index.js";
 import { colors } from "../utils/theme.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
+import { listBlueprints } from "../services/blueprintService.js";
+import { listSnapshots } from "../services/snapshotService.js";
+import { listNetworkPolicies } from "../services/networkPolicyService.js";
+import type { Blueprint } from "../store/blueprintStore.js";
+import type { Snapshot } from "../store/snapshotStore.js";
+import type { NetworkPolicy } from "../store/networkPolicyStore.js";
 
 interface DevboxCreatePageProps {
   onBack: () => void;
@@ -40,9 +47,11 @@ type FormField =
   | "custom_disk"
   | "keep_alive"
   | "metadata"
-  | "blueprint_id"
-  | "snapshot_id"
+  | "source"
   | "network_policy_id";
+
+const sourceTypes = ["blueprint", "snapshot"] as const;
+type SourceTypeToggle = (typeof sourceTypes)[number];
 
 interface FormData {
   name: string;
@@ -107,11 +116,22 @@ export const DevboxCreatePage = ({
   const [creating, setCreating] = React.useState(false);
   const [result, setResult] = React.useState<DevboxView | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
+  
+  // Source picker states (toggle between blueprint/snapshot)
+  const [sourceTypeToggle, setSourceTypeToggle] = React.useState<"blueprint" | "snapshot">(
+    initialSnapshotId ? "snapshot" : "blueprint"
+  );
+  const [showBlueprintPicker, setShowBlueprintPicker] = React.useState(false);
+  const [showSnapshotPicker, setShowSnapshotPicker] = React.useState(false);
+  const [showNetworkPolicyPicker, setShowNetworkPolicyPicker] = React.useState(false);
+  const [selectedBlueprintName, setSelectedBlueprintName] = React.useState<string>("");
+  const [selectedSnapshotName, setSelectedSnapshotName] = React.useState<string>("");
+  const [selectedNetworkPolicyName, setSelectedNetworkPolicyName] = React.useState<string>("");
 
   const baseFields: Array<{
     key: FormField;
     label: string;
-    type: "text" | "select" | "metadata" | "action";
+    type: "text" | "select" | "metadata" | "action" | "picker" | "source";
     placeholder?: string;
   }> = [
     { key: "create", label: "Devbox Create", type: "action" },
@@ -124,7 +144,7 @@ export const DevboxCreatePage = ({
   const customFields: Array<{
     key: FormField;
     label: string;
-    type: "text" | "select" | "metadata" | "action";
+    type: "text" | "select" | "metadata" | "action" | "picker" | "source";
     placeholder?: string;
   }> =
     formData.resource_size === "CUSTOM_SIZE"
@@ -153,7 +173,7 @@ export const DevboxCreatePage = ({
   const remainingFields: Array<{
     key: FormField;
     label: string;
-    type: "text" | "select" | "metadata" | "action";
+    type: "text" | "select" | "metadata" | "action" | "picker" | "source";
     placeholder?: string;
   }> = [
     {
@@ -163,22 +183,16 @@ export const DevboxCreatePage = ({
       placeholder: "3600",
     },
     {
-      key: "blueprint_id",
-      label: "Blueprint ID (optional)",
-      type: "text",
-      placeholder: "bpt_xxx",
-    },
-    {
-      key: "snapshot_id",
-      label: "Snapshot ID (optional)",
-      type: "text",
-      placeholder: "snp_xxx",
+      key: "source",
+      label: "Source (optional)",
+      type: "source",
+      placeholder: "Select Blueprint or Snapshot...",
     },
     {
       key: "network_policy_id",
-      label: "Network Policy ID (optional)",
-      type: "text",
-      placeholder: "np_xxx",
+      label: "Network Policy (optional)",
+      type: "picker",
+      placeholder: "Select a network policy...",
     },
     { key: "metadata", label: "Metadata (optional)", type: "metadata" },
   ];
@@ -203,6 +217,13 @@ export const DevboxCreatePage = ({
     resourceSizes,
     (value) => setFormData({ ...formData, resource_size: value }),
     currentField === "resource_size",
+  );
+
+  const handleSourceTypeNav = useFormSelectNavigation(
+    sourceTypeToggle,
+    sourceTypes,
+    (value) => setSourceTypeToggle(value),
+    currentField === "source",
   );
 
   // Main form input handler - active when not in metadata section
@@ -256,6 +277,37 @@ export const DevboxCreatePage = ({
         return;
       }
 
+      // Enter key on source field to open the appropriate picker
+      if (currentField === "source" && key.return) {
+        // If something is already selected, open that type's picker to change it
+        const hasBlueprint = !!(selectedBlueprintName || formData.blueprint_id);
+        const hasSnapshot = !!(selectedSnapshotName || formData.snapshot_id);
+        
+        if (hasBlueprint) {
+          setShowBlueprintPicker(true);
+        } else if (hasSnapshot) {
+          setShowSnapshotPicker(true);
+        } else {
+          // Nothing selected, use the toggle value
+          if (sourceTypeToggle === "blueprint") {
+            setShowBlueprintPicker(true);
+          } else {
+            setShowSnapshotPicker(true);
+          }
+        }
+        return;
+      }
+      
+      // Delete key on source field to clear selection
+      if (currentField === "source" && (input === "d" || key.delete)) {
+        handleClearSource();
+        return;
+      }
+      if (currentField === "network_policy_id" && key.return) {
+        setShowNetworkPolicyPicker(true);
+        return;
+      }
+
       // Handle Enter on any field to submit
       if (key.return) {
         handleCreate();
@@ -265,6 +317,7 @@ export const DevboxCreatePage = ({
       // Handle select field navigation using shared hooks
       if (handleArchitectureNav(input, key)) return;
       if (handleResourceSizeNav(input, key)) return;
+      if (handleSourceTypeNav(input, key)) return;
 
       // Navigation (up/down arrows and tab/shift+tab)
       if ((key.upArrow || (key.tab && key.shift)) && currentFieldIndex > 0) {
@@ -280,8 +333,47 @@ export const DevboxCreatePage = ({
         return;
       }
     },
-    { isActive: !inMetadataSection },
+    { isActive: !inMetadataSection && !showBlueprintPicker && !showSnapshotPicker && !showNetworkPolicyPicker },
   );
+
+  // Handle blueprint selection
+  const handleBlueprintSelect = React.useCallback((blueprints: Blueprint[]) => {
+    if (blueprints.length > 0) {
+      const blueprint = blueprints[0];
+      setFormData((prev) => ({ ...prev, blueprint_id: blueprint.id, snapshot_id: "" }));
+      setSelectedBlueprintName(blueprint.name || blueprint.id);
+      setSelectedSnapshotName("");
+    }
+    setShowBlueprintPicker(false);
+  }, []);
+
+  // Handle snapshot selection
+  const handleSnapshotSelect = React.useCallback((snapshots: Snapshot[]) => {
+    if (snapshots.length > 0) {
+      const snapshot = snapshots[0];
+      setFormData((prev) => ({ ...prev, snapshot_id: snapshot.id, blueprint_id: "" }));
+      setSelectedSnapshotName(snapshot.name || snapshot.id);
+      setSelectedBlueprintName("");
+    }
+    setShowSnapshotPicker(false);
+  }, []);
+
+  // Handle network policy selection
+  const handleNetworkPolicySelect = React.useCallback((policies: NetworkPolicy[]) => {
+    if (policies.length > 0) {
+      const policy = policies[0];
+      setFormData((prev) => ({ ...prev, network_policy_id: policy.id }));
+      setSelectedNetworkPolicyName(policy.name || policy.id);
+    }
+    setShowNetworkPolicyPicker(false);
+  }, []);
+
+  // Handle clearing source
+  const handleClearSource = React.useCallback(() => {
+    setFormData((prev) => ({ ...prev, blueprint_id: "", snapshot_id: "" }));
+    setSelectedBlueprintName("");
+    setSelectedSnapshotName("");
+  }, []);
 
   // Metadata section input handler - active when in metadata section
   useInput(
@@ -552,6 +644,115 @@ export const DevboxCreatePage = ({
     );
   }
 
+  // Blueprint picker screen
+  if (showBlueprintPicker) {
+    return (
+      <ResourcePicker<Blueprint>
+        config={{
+          title: "Select Blueprint",
+          fetchPage: async (params) => {
+            const result = await listBlueprints({
+              limit: params.limit,
+              startingAfter: params.startingAt,
+              search: params.search,
+            });
+            return {
+              items: result.blueprints,
+              hasMore: result.hasMore,
+              totalCount: result.totalCount,
+            };
+          },
+          getItemId: (blueprint) => blueprint.id,
+          getItemLabel: (blueprint) => blueprint.name || blueprint.id,
+          getItemStatus: (blueprint) => blueprint.status,
+          mode: "single",
+          emptyMessage: "No blueprints found",
+          searchPlaceholder: "Search blueprints...",
+          breadcrumbItems: [
+            { label: "Devboxes" },
+            { label: "Create" },
+            { label: "Select Blueprint", active: true },
+          ],
+        }}
+        onSelect={handleBlueprintSelect}
+        onCancel={() => setShowBlueprintPicker(false)}
+        initialSelected={formData.blueprint_id ? [formData.blueprint_id] : []}
+      />
+    );
+  }
+
+  // Snapshot picker screen
+  if (showSnapshotPicker) {
+    return (
+      <ResourcePicker<Snapshot>
+        config={{
+          title: "Select Snapshot",
+          fetchPage: async (params) => {
+            const result = await listSnapshots({
+              limit: params.limit,
+              startingAfter: params.startingAt,
+            });
+            return {
+              items: result.snapshots,
+              hasMore: result.hasMore,
+              totalCount: result.totalCount,
+            };
+          },
+          getItemId: (snapshot) => snapshot.id,
+          getItemLabel: (snapshot) => snapshot.name || snapshot.id,
+          getItemStatus: (snapshot) => snapshot.status,
+          mode: "single",
+          emptyMessage: "No snapshots found",
+          searchPlaceholder: "Search snapshots...",
+          breadcrumbItems: [
+            { label: "Devboxes" },
+            { label: "Create" },
+            { label: "Select Snapshot", active: true },
+          ],
+        }}
+        onSelect={handleSnapshotSelect}
+        onCancel={() => setShowSnapshotPicker(false)}
+        initialSelected={formData.snapshot_id ? [formData.snapshot_id] : []}
+      />
+    );
+  }
+
+  // Network policy picker screen
+  if (showNetworkPolicyPicker) {
+    return (
+      <ResourcePicker<NetworkPolicy>
+        config={{
+          title: "Select Network Policy",
+          fetchPage: async (params) => {
+            const result = await listNetworkPolicies({
+              limit: params.limit,
+              startingAfter: params.startingAt,
+              search: params.search,
+            });
+            return {
+              items: result.networkPolicies,
+              hasMore: result.hasMore,
+              totalCount: result.totalCount,
+            };
+          },
+          getItemId: (policy) => policy.id,
+          getItemLabel: (policy) => policy.name || policy.id,
+          mode: "single",
+          emptyMessage: "No network policies found",
+          searchPlaceholder: "Search network policies...",
+          breadcrumbItems: [
+            { label: "Devboxes" },
+            { label: "Create" },
+            { label: "Select Network Policy", active: true },
+          ],
+        }}
+        onSelect={handleNetworkPolicySelect}
+        onCancel={() => setShowNetworkPolicyPicker(false)}
+        initialSelected={formData.network_policy_id ? [formData.network_policy_id] : []}
+      />
+    );
+  }
+
   // Form screen
   return (
     <>
@@ -606,6 +807,99 @@ export const DevboxCreatePage = ({
                 }
                 isActive={isActive}
               />
+            );
+          }
+
+          if (field.type === "source") {
+            // Check if either blueprint or snapshot is selected
+            const selectedBlueprintValue = selectedBlueprintName || formData.blueprint_id;
+            const selectedSnapshotValue = selectedSnapshotName || formData.snapshot_id;
+            const hasBlueprint = !!selectedBlueprintValue;
+            const hasSnapshot = !!selectedSnapshotValue;
+            const hasSelection = hasBlueprint || hasSnapshot;
+
+            // If something is selected, show it clearly with its type
+            if (hasSelection) {
+              const selectedType = hasBlueprint ? "Blueprint" : "Snapshot";
+              const selectedValue = hasBlueprint ? selectedBlueprintValue : selectedSnapshotValue;
+
+              return (
+                <Box key={field.key} marginBottom={0}>
+                  <Text color={isActive ? colors.primary : colors.textDim}>
+                    {isActive ? figures.pointer : " "} {field.label}:{" "}
+                  </Text>
+                  <Text color={colors.success}>{selectedType}: </Text>
+                  <Text color={colors.idColor}>{selectedValue}</Text>
+                  {isActive && (
+                    <Text color={colors.textDim} dimColor>
+                      {" "}[Enter to change, d to clear]
+                    </Text>
+                  )}
+                </Box>
+              );
+            }
+
+            // Nothing selected - show toggle to choose type
+            return (
+              <Box key={field.key} marginBottom={0}>
+                <Text color={isActive ? colors.primary : colors.textDim}>
+                  {isActive ? figures.pointer : " "} {field.label}:{" "}
+                </Text>
+                {/* Toggle between Blueprint and Snapshot */}
+                <Text color={isActive ? colors.text : colors.textDim}>
+                  {isActive ? figures.arrowLeft : ""}{" "}
+                </Text>
+                <Text
+                  color={sourceTypeToggle === "blueprint" ? colors.primary : colors.textDim}
+                  bold={sourceTypeToggle === "blueprint"}
+                >
+                  Blueprint
+                </Text>
+                <Text color={colors.textDim}> / </Text>
+                <Text
+                  color={sourceTypeToggle === "snapshot" ? colors.primary : colors.textDim}
+                  bold={sourceTypeToggle === "snapshot"}
+                >
+                  Snapshot
+                </Text>
+                <Text color={isActive ? colors.text : colors.textDim}>
+                  {" "}{isActive ? figures.arrowRight : ""}
+                </Text>
+                {isActive && (
+                  <Text color={colors.textDim} dimColor>
+                    {" "}[Enter to select]
+                  </Text>
+                )}
+              </Box>
+            );
+          }
+
+          if (field.type === "picker") {
+            const value = fieldData as string;
+            const displayName =
+              field.key === "network_policy_id"
+                ? selectedNetworkPolicyName || value
+                : value;
+
+            return (
+              <Box key={field.key} marginBottom={0}>
+                <Text color={isActive ? colors.primary : colors.textDim}>
+                  {isActive ? figures.pointer : " "} {field.label}:{" "}
+                </Text>
+                {displayName ? (
+                  <Text color={colors.idColor}>{displayName}</Text>
+                ) : (
+                  <Text color={colors.textDim} dimColor>
+                    {field.placeholder || "(none)"}
+                  </Text>
+                )}
+                {isActive && (
+                  <Text color={colors.textDim} dimColor>
+                    {" "}
+                    [Enter to {displayName ? "change" : "select"}]
+                  </Text>
+                )}
+              </Box>
             );
           }
 
