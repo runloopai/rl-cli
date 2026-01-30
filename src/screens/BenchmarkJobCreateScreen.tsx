@@ -17,7 +17,11 @@ import { colors } from "../utils/theme.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { listBenchmarks } from "../services/benchmarkService.js";
 import { listAgents, type Agent } from "../services/agentService.js";
-import { createBenchmarkJob, type BenchmarkJob, type AgentConfig } from "../services/benchmarkJobService.js";
+import {
+  createBenchmarkJob,
+  type BenchmarkJob,
+  type AgentConfig,
+} from "../services/benchmarkJobService.js";
 import type { Benchmark } from "../store/benchmarkStore.js";
 
 type FormField =
@@ -38,7 +42,13 @@ interface FormData {
   concurrentTrials: string;
 }
 
-type ScreenState = "form" | "picking_benchmark" | "picking_agents" | "creating" | "success" | "error";
+type ScreenState =
+  | "form"
+  | "picking_benchmark"
+  | "picking_agents"
+  | "creating"
+  | "success"
+  | "error";
 
 interface BenchmarkJobCreateScreenProps {
   initialBenchmarkIds?: string;
@@ -114,9 +124,10 @@ export function BenchmarkJobCreateScreen({
   initialBenchmarkIds,
 }: BenchmarkJobCreateScreenProps) {
   const { navigate, goBack } = useNavigation();
-  
+
   const [screenState, setScreenState] = React.useState<ScreenState>("form");
-  const [currentField, setCurrentField] = React.useState<FormField>("benchmark");
+  const [currentField, setCurrentField] =
+    React.useState<FormField>("benchmark");
   const [formData, setFormData] = React.useState<FormData>({
     benchmarkId: initialBenchmarkIds || "",
     benchmarkName: "",
@@ -188,7 +199,8 @@ export function BenchmarkJobCreateScreen({
   const currentFieldDef = fields.find((f) => f.key === currentField);
 
   // Check if form is valid
-  const isFormValid = formData.benchmarkId !== "" && formData.agentIds.length > 0;
+  const isFormValid =
+    formData.benchmarkId !== "" && formData.agentIds.length > 0;
 
   // Memoize the fetchBenchmarksPage function
   const fetchBenchmarksPage = React.useCallback(
@@ -204,7 +216,7 @@ export function BenchmarkJobCreateScreen({
         totalCount: result.totalCount,
       };
     },
-    []
+    [],
   );
 
   // Memoize the fetchAgentsPage function - fetches all agents
@@ -221,7 +233,7 @@ export function BenchmarkJobCreateScreen({
         filteredAgents = result.agents.filter(
           (agent) =>
             agent.name.toLowerCase().includes(searchLower) ||
-            agent.id.toLowerCase().includes(searchLower)
+            agent.id.toLowerCase().includes(searchLower),
         );
       }
       return {
@@ -230,7 +242,7 @@ export function BenchmarkJobCreateScreen({
         totalCount: filteredAgents.length,
       };
     },
-    []
+    [],
   );
 
   // Memoize benchmark picker config (single-select)
@@ -253,7 +265,7 @@ export function BenchmarkJobCreateScreen({
         { label: "Select Benchmark", active: true },
       ],
     }),
-    [fetchBenchmarksPage]
+    [fetchBenchmarksPage],
   );
 
   // Memoize agent picker config (multi-select)
@@ -276,7 +288,7 @@ export function BenchmarkJobCreateScreen({
         { label: "Select Agents", active: true },
       ],
     }),
-    [fetchAgentsPage]
+    [fetchAgentsPage],
   );
 
   // Handle benchmark selection (single)
@@ -311,21 +323,23 @@ export function BenchmarkJobCreateScreen({
 
     try {
       // Build agent configs for each selected agent
-      const agentConfigs: AgentConfig[] = formData.agentIds.map((agentId, index) => {
-        const config: AgentConfig = {
-          name: formData.agentNames[index],
-          agentId: agentId,
-        };
+      const agentConfigs: AgentConfig[] = formData.agentIds.map(
+        (agentId, index) => {
+          const config: AgentConfig = {
+            name: formData.agentNames[index],
+            agentId: agentId,
+          };
 
-        if (formData.agentTimeout) {
-          const timeout = parseInt(formData.agentTimeout, 10);
-          if (!isNaN(timeout) && timeout > 0) {
-            config.timeoutSeconds = timeout;
+          if (formData.agentTimeout) {
+            const timeout = parseInt(formData.agentTimeout, 10);
+            if (!isNaN(timeout) && timeout > 0) {
+              config.timeoutSeconds = timeout;
+            }
           }
-        }
 
-        return config;
-      });
+          return config;
+        },
+      );
 
       const job = await createBenchmarkJob({
         name: formData.name || undefined,
@@ -360,9 +374,15 @@ export function BenchmarkJobCreateScreen({
     } else if (key.return) {
       if (currentFieldDef?.type === "picker" && currentField === "benchmark") {
         setScreenState("picking_benchmark");
-      } else if (currentFieldDef?.type === "picker" && currentField === "agents") {
+      } else if (
+        currentFieldDef?.type === "picker" &&
+        currentField === "agents"
+      ) {
         setScreenState("picking_agents");
-      } else if (currentFieldDef?.type === "action" && currentField === "create") {
+      } else if (
+        currentFieldDef?.type === "action" &&
+        currentField === "create"
+      ) {
         handleCreate();
       } else if (currentFieldIndex < fieldKeys.length - 1) {
         // Move to next field on Enter for text inputs
@@ -417,7 +437,9 @@ export function BenchmarkJobCreateScreen({
     return (
       <SuccessScreen
         job={createdJob}
-        onViewDetails={() => navigate("benchmark-job-detail", { benchmarkJobId: createdJob.id })}
+        onViewDetails={() =>
+          navigate("benchmark-job-detail", { benchmarkJobId: createdJob.id })
+        }
         onGoToList={() => navigate("benchmark-job-list")}
         onBack={goBack}
       />
@@ -524,7 +546,8 @@ export function BenchmarkJobCreateScreen({
                   <Box>
                     <Text color={colors.textDim} dimColor>
                       {field.label}
-                      {field.required && <Text color={colors.error}>*</Text>}:{" "}
+                      {field.required && <Text color={colors.error}>*</Text>}
+                      :{" "}
                     </Text>
                     {value ? (
                       <Text color={colors.idColor}>{value}</Text>
@@ -546,7 +569,8 @@ export function BenchmarkJobCreateScreen({
                 <Box>
                   <Text color={colors.textDim} dimColor>
                     {field.label}
-                    {field.required && <Text color={colors.error}>*</Text>}:{" "}
+                    {field.required && <Text color={colors.error}>*</Text>}
+                    :{" "}
                   </Text>
                   {isSelected ? (
                     <TextInput
@@ -555,9 +579,15 @@ export function BenchmarkJobCreateScreen({
                         if (field.key === "name") {
                           setFormData((prev) => ({ ...prev, name: val }));
                         } else if (field.key === "agent_timeout") {
-                          setFormData((prev) => ({ ...prev, agentTimeout: val }));
+                          setFormData((prev) => ({
+                            ...prev,
+                            agentTimeout: val,
+                          }));
                         } else if (field.key === "concurrent_trials") {
-                          setFormData((prev) => ({ ...prev, concurrentTrials: val }));
+                          setFormData((prev) => ({
+                            ...prev,
+                            concurrentTrials: val,
+                          }));
                         }
                       }}
                       placeholder={field.placeholder}
@@ -586,7 +616,15 @@ export function BenchmarkJobCreateScreen({
       <NavigationTips
         showArrows
         tips={[
-          { key: "Enter", label: currentFieldDef?.type === "picker" ? "Select" : currentFieldDef?.type === "action" ? "Create" : "Next" },
+          {
+            key: "Enter",
+            label:
+              currentFieldDef?.type === "picker"
+                ? "Select"
+                : currentFieldDef?.type === "action"
+                  ? "Create"
+                  : "Next",
+          },
           { key: "Esc", label: "Back" },
         ]}
       />

@@ -1,6 +1,7 @@
 /**
  * ResourcePicker - Reusable component for selecting resources
  * Supports single-select and multi-select modes with search and pagination
+ * Uses Table component for consistent styling with resource list views
  */
 import React from "react";
 import { Box, Text, useInput } from "ink";
@@ -10,7 +11,12 @@ import { NavigationTips } from "./NavigationTips.js";
 import { SpinnerComponent } from "./Spinner.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { SearchBar } from "./SearchBar.js";
-import { colors, sanitizeWidth } from "../utils/theme.js";
+import { Table, type Column, createTextColumn, createComponentColumn } from "./Table.js";
+
+// Re-export Column helpers for convenience
+export type { Column };
+export { createTextColumn, createComponentColumn };
+import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../hooks/useCursorPagination.js";
@@ -37,11 +43,14 @@ export interface ResourcePickerConfig<T> {
   /** Extract unique ID from an item */
   getItemId: (item: T) => string;
 
-  /** Get display label for an item */
+  /** Get display label for an item (used for simple mode or as fallback) */
   getItemLabel: (item: T) => string;
 
-  /** Get optional status for an item (shown as badge) */
+  /** Get optional status for an item (used for simple mode) */
   getItemStatus?: (item: T) => string | undefined;
+
+  /** Column definitions for table display (if not provided, uses simple label/status) */
+  columns?: Column<T>[];
 
   /** Selection mode */
   mode: "single" | "multi";
@@ -60,10 +69,6 @@ export interface ResourcePickerConfig<T> {
 
   /** Breadcrumb items */
   breadcrumbItems?: BreadcrumbItem[];
-
-  /** Column widths */
-  labelWidth?: number;
-  statusWidth?: number;
 }
 
 export interface ResourcePickerProps<T> {
@@ -91,7 +96,7 @@ export function ResourcePicker<T>({
 }: ResourcePickerProps<T>) {
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(
-    new Set(initialSelected)
+    new Set(initialSelected),
   );
 
   // Search state
@@ -109,13 +114,8 @@ export function ResourcePicker<T>({
 
   const PAGE_SIZE = viewportHeight;
 
-  // Column widths
-  const checkboxWidth = config.mode === "multi" ? 4 : 0;
-  const pointerWidth = 2;
-  const statusWidth = config.statusWidth || 12;
-  const baseWidth = checkboxWidth + pointerWidth + statusWidth + 4;
-  const remainingWidth = terminalWidth - baseWidth;
-  const labelWidth = config.labelWidth || Math.min(60, Math.max(20, remainingWidth));
+  // terminalWidth available from viewport hook for column calculations
+  void terminalWidth;
 
   // Store fetchPage in a ref to avoid dependency issues
   const fetchPageRef = React.useRef(config.fetchPage);
@@ -132,7 +132,7 @@ export function ResourcePicker<T>({
         search: search.submittedSearchQuery || undefined,
       });
     },
-    [search.submittedSearchQuery]
+    [search.submittedSearchQuery],
   );
 
   // Use the shared pagination hook
@@ -168,26 +168,30 @@ export function ResourcePicker<T>({
 
   const selectedItem = items[selectedIndex];
   const minSelection = config.minSelection ?? 1;
-  const canConfirm = config.mode === "single" 
-    ? selectedItem !== undefined
-    : selectedIds.size >= minSelection;
+  const canConfirm =
+    config.mode === "single"
+      ? selectedItem !== undefined
+      : selectedIds.size >= minSelection;
 
   // Toggle selection for multi-select
-  const toggleSelection = React.useCallback((item: T) => {
-    const id = config.getItemId(item);
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        if (config.maxSelection && next.size >= config.maxSelection) {
-          return prev; // Don't add if at max
+  const toggleSelection = React.useCallback(
+    (item: T) => {
+      const id = config.getItemId(item);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) {
+          next.delete(id);
+        } else {
+          if (config.maxSelection && next.size >= config.maxSelection) {
+            return prev; // Don't add if at max
+          }
+          next.add(id);
         }
-        next.add(id);
-      }
-      return next;
-    });
-  }, [config.getItemId, config.maxSelection]);
+        return next;
+      });
+    },
+    [config.getItemId, config.maxSelection],
+  );
 
   // Handle confirmation
   const handleConfirm = React.useCallback(() => {
@@ -197,7 +201,7 @@ export function ResourcePicker<T>({
       }
     } else {
       const selectedItems = items.filter((item) =>
-        selectedIds.has(config.getItemId(item))
+        selectedIds.has(config.getItemId(item)),
       );
       // Also include items from previous pages that were selected
       // For now, we only return items from current view
@@ -270,8 +274,12 @@ export function ResourcePicker<T>({
   if (loading && items.length === 0) {
     return (
       <>
-        {config.breadcrumbItems && <Breadcrumb items={config.breadcrumbItems} />}
-        <SpinnerComponent message={`Loading ${config.title.toLowerCase()}...`} />
+        {config.breadcrumbItems && (
+          <Breadcrumb items={config.breadcrumbItems} />
+        )}
+        <SpinnerComponent
+          message={`Loading ${config.title.toLowerCase()}...`}
+        />
       </>
     );
   }
@@ -280,88 +288,22 @@ export function ResourcePicker<T>({
   if (error) {
     return (
       <>
-        {config.breadcrumbItems && <Breadcrumb items={config.breadcrumbItems} />}
+        {config.breadcrumbItems && (
+          <Breadcrumb items={config.breadcrumbItems} />
+        )}
         <ErrorMessage message={`Failed to load resources`} error={error} />
         <NavigationTips tips={[{ key: "Esc", label: "Cancel" }]} />
       </>
     );
   }
 
-  // Render item row
-  const renderItem = (item: T, index: number) => {
-    const isHighlighted = index === selectedIndex;
-    const id = config.getItemId(item);
-    const isSelected = selectedIds.has(id);
-    const label = config.getItemLabel(item);
-    const status = config.getItemStatus?.(item);
-
-    const safeLabelWidth = sanitizeWidth(labelWidth, 1, 100);
-    const safeStatusWidth = sanitizeWidth(statusWidth, 1, 30);
-
-    // Truncate label if needed
-    let displayLabel = label;
-    if (displayLabel.length > safeLabelWidth) {
-      displayLabel = displayLabel.slice(0, safeLabelWidth - 1) + "…";
-    }
-    displayLabel = displayLabel.padEnd(safeLabelWidth, " ");
-
-    return (
-      <Box key={id}>
-        {/* Pointer */}
-        <Text color={isHighlighted ? colors.primary : colors.textDim}>
-          {isHighlighted ? figures.pointer : " "}
-        </Text>
-        <Text> </Text>
-
-        {/* Checkbox for multi-select */}
-        {config.mode === "multi" && (
-          <>
-            <Text color={isSelected ? colors.success : colors.textDim}>
-              {isSelected ? figures.checkboxOn : figures.checkboxOff}
-            </Text>
-            <Text> </Text>
-          </>
-        )}
-
-        {/* Label */}
-        <Text
-          color={isHighlighted ? colors.text : colors.text}
-          bold={isHighlighted}
-          inverse={isHighlighted}
-        >
-          {displayLabel}
-        </Text>
-
-        {/* Status badge */}
-        {status && (
-          <>
-            <Text> </Text>
-            <Text color={colors.textDim} dimColor>
-              {status.slice(0, safeStatusWidth).padEnd(safeStatusWidth, " ")}
-            </Text>
-          </>
-        )}
-      </Box>
-    );
-  };
+  // Calculate pagination info for display
+  const startIndex = currentPage * PAGE_SIZE;
+  const endIndex = Math.min(startIndex + PAGE_SIZE, totalCount);
 
   return (
     <>
       {config.breadcrumbItems && <Breadcrumb items={config.breadcrumbItems} />}
-
-      {/* Title */}
-      <Box paddingX={1} marginBottom={1}>
-        <Text color={colors.primary} bold>
-          {config.title}
-        </Text>
-        {config.mode === "multi" && (
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            ({selectedIds.size} selected
-            {minSelection > 0 && `, min ${minSelection}`})
-          </Text>
-        )}
-      </Box>
 
       {/* Search bar */}
       <SearchBar
@@ -374,24 +316,69 @@ export function ResourcePicker<T>({
         placeholder={config.searchPlaceholder || "Search..."}
       />
 
-      {/* Items list */}
-      <Box
-        flexDirection="column"
-        borderStyle="round"
-        borderColor={colors.border}
-        paddingX={1}
-        paddingY={0}
-      >
-        {items.length === 0 ? (
-          <Box paddingY={1}>
+      {/* Table view */}
+      {config.columns ? (
+        <Table
+          data={items}
+          keyExtractor={config.getItemId}
+          selectedIndex={selectedIndex}
+          title={`${config.title.toLowerCase()}[${totalCount}]${config.mode === "multi" ? ` (${selectedIds.size} selected)` : ""}`}
+          columns={config.columns}
+          emptyState={
             <Text color={colors.textDim}>
               {figures.info} {config.emptyMessage || "No items found"}
             </Text>
-          </Box>
-        ) : (
-          items.map((item, index) => renderItem(item, index))
-        )}
-      </Box>
+          }
+        />
+      ) : (
+        // Fallback simple list view if no columns provided
+        <Box
+          flexDirection="column"
+          borderStyle="round"
+          borderColor={colors.border}
+          paddingX={1}
+          paddingY={0}
+        >
+          {items.length === 0 ? (
+            <Box paddingY={1}>
+              <Text color={colors.textDim}>
+                {figures.info} {config.emptyMessage || "No items found"}
+              </Text>
+            </Box>
+          ) : (
+            items.map((item, index) => {
+              const isHighlighted = index === selectedIndex;
+              const id = config.getItemId(item);
+              const label = config.getItemLabel(item);
+              const status = config.getItemStatus?.(item);
+
+              return (
+                <Box key={id}>
+                  <Text color={isHighlighted ? colors.primary : colors.textDim}>
+                    {isHighlighted ? figures.pointer : " "}
+                  </Text>
+                  <Text> </Text>
+                  <Text
+                    color={colors.text}
+                    bold={isHighlighted}
+                    inverse={isHighlighted}
+                  >
+                    {label}
+                  </Text>
+                  {status && (
+                    <>
+                      <Text> </Text>
+                      <Text color={colors.textDim} dimColor>
+                        {status}
+                      </Text>
+                    </>
+                  )}
+                </Box>
+              );
+            })
+          )}
+        </Box>
+      )}
 
       {/* Statistics Bar */}
       <Box marginTop={1} paddingX={1}>
@@ -419,6 +406,13 @@ export function ResourcePicker<T>({
             )}
           </>
         )}
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          •{" "}
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          Showing {startIndex + 1}-{endIndex} of {totalCount}
+        </Text>
       </Box>
 
       {/* Help Bar */}

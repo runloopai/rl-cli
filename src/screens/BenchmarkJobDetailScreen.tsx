@@ -6,7 +6,10 @@ import React from "react";
 import { Text } from "ink";
 import figures from "figures";
 import { useNavigation } from "../store/navigationStore.js";
-import { useBenchmarkJobStore, type BenchmarkJob } from "../store/benchmarkJobStore.js";
+import {
+  useBenchmarkJobStore,
+  type BenchmarkJob,
+} from "../store/benchmarkJobStore.js";
 import {
   ResourceDetailPage,
   formatTimestamp,
@@ -141,7 +144,7 @@ export function BenchmarkJobDetailScreen({
       value: formatTimestamp(job.create_time_ms),
     });
   }
-  
+
   // Calculate overall score if available
   if (job.benchmark_outcomes && job.benchmark_outcomes.length > 0) {
     const scores = job.benchmark_outcomes
@@ -151,25 +154,42 @@ export function BenchmarkJobDetailScreen({
       const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
       basicFields.push({
         label: "Overall Score",
-        value: <Text color={colors.success} bold>{avgScore.toFixed(2)}</Text>,
+        value: (
+          <Text color={colors.success} bold>
+            {avgScore.toFixed(2)}
+          </Text>
+        ),
       });
     }
   }
 
   // Summary stats
   if (job.benchmark_outcomes && job.benchmark_outcomes.length > 0) {
-    const totalCompleted = job.benchmark_outcomes.reduce((acc, o) => acc + o.n_completed, 0);
-    const totalFailed = job.benchmark_outcomes.reduce((acc, o) => acc + o.n_failed, 0);
-    const totalTimeout = job.benchmark_outcomes.reduce((acc, o) => acc + o.n_timeout, 0);
+    const totalCompleted = job.benchmark_outcomes.reduce(
+      (acc, o) => acc + o.n_completed,
+      0,
+    );
+    const totalFailed = job.benchmark_outcomes.reduce(
+      (acc, o) => acc + o.n_failed,
+      0,
+    );
+    const totalTimeout = job.benchmark_outcomes.reduce(
+      (acc, o) => acc + o.n_timeout,
+      0,
+    );
     const total = totalCompleted + totalFailed + totalTimeout;
-    
+
     basicFields.push({
       label: "Scenarios",
       value: (
         <Text>
           <Text color={colors.success}>{totalCompleted} completed</Text>
-          {totalFailed > 0 && <Text color={colors.error}> / {totalFailed} failed</Text>}
-          {totalTimeout > 0 && <Text color={colors.warning}> / {totalTimeout} timeout</Text>}
+          {totalFailed > 0 && (
+            <Text color={colors.error}> / {totalFailed} failed</Text>
+          )}
+          {totalTimeout > 0 && (
+            <Text color={colors.warning}> / {totalTimeout} timeout</Text>
+          )}
           <Text dimColor> ({total} total)</Text>
         </Text>
       ),
@@ -213,10 +233,13 @@ export function BenchmarkJobDetailScreen({
   if (job.benchmark_outcomes) {
     job.benchmark_outcomes.forEach((outcome) => {
       const total = outcome.n_completed + outcome.n_failed + outcome.n_timeout;
-      const status = outcome.n_failed > 0 || outcome.n_timeout > 0 
-        ? (outcome.n_completed === 0 ? "failed" : "completed")
-        : "completed";
-      
+      const status =
+        outcome.n_failed > 0 || outcome.n_timeout > 0
+          ? outcome.n_completed === 0
+            ? "failed"
+            : "completed"
+          : "completed";
+
       agentRuns.push({
         agentName: outcome.agent_name,
         modelName: outcome.model_name || undefined,
@@ -236,10 +259,10 @@ export function BenchmarkJobDetailScreen({
     job.in_progress_runs.forEach((run) => {
       // Get agent name from agent_config if available
       let agentName = "Unknown Agent";
-      if (run.agent_config && 'name' in run.agent_config) {
+      if (run.agent_config && "name" in run.agent_config) {
         agentName = (run.agent_config as any).name;
       }
-      
+
       agentRuns.push({
         agentName,
         status: "running",
@@ -253,7 +276,7 @@ export function BenchmarkJobDetailScreen({
   // Add pending agents from job_spec that don't have runs yet
   if (job.job_spec?.agent_configs) {
     const runningOrCompletedAgents = new Set(agentRuns.map((r) => r.agentName));
-    
+
     job.job_spec.agent_configs.forEach((agent) => {
       if (!runningOrCompletedAgents.has(agent.name)) {
         agentRuns.push({
@@ -269,64 +292,113 @@ export function BenchmarkJobDetailScreen({
   if (agentRuns.length > 0) {
     const runsFields = agentRuns.map((run) => {
       const parts: React.ReactNode[] = [];
-      
+
       // Status indicator
       switch (run.status) {
         case "pending":
-          parts.push(<Text key="status" color={colors.textDim}>{figures.circleDotted} Pending</Text>);
+          parts.push(
+            <Text key="status" color={colors.textDim}>
+              {figures.circleDotted} Pending
+            </Text>,
+          );
           break;
         case "running":
-          parts.push(<Text key="status" color={colors.info}>{figures.play} Running</Text>);
+          parts.push(
+            <Text key="status" color={colors.info}>
+              {figures.play} Running
+            </Text>,
+          );
           if (run.duration) {
-            parts.push(<Text key="dur" dimColor> ({formatDuration(run.duration)})</Text>);
+            parts.push(
+              <Text key="dur" dimColor>
+                {" "}
+                ({formatDuration(run.duration)})
+              </Text>,
+            );
           }
           break;
         case "completed":
-          parts.push(<Text key="status" color={colors.success}>{figures.tick} Completed</Text>);
+          parts.push(
+            <Text key="status" color={colors.success}>
+              {figures.tick} Completed
+            </Text>,
+          );
           if (run.score !== undefined) {
-            parts.push(<Text key="score" color={colors.success} bold> Score: {run.score.toFixed(2)}</Text>);
+            parts.push(
+              <Text key="score" color={colors.success} bold>
+                {" "}
+                Score: {run.score.toFixed(2)}
+              </Text>,
+            );
           }
           break;
         case "failed":
-          parts.push(<Text key="status" color={colors.error}>{figures.cross} Failed</Text>);
+          parts.push(
+            <Text key="status" color={colors.error}>
+              {figures.cross} Failed
+            </Text>,
+          );
           if (run.score !== undefined) {
-            parts.push(<Text key="score" dimColor> Score: {run.score.toFixed(2)}</Text>);
+            parts.push(
+              <Text key="score" dimColor>
+                {" "}
+                Score: {run.score.toFixed(2)}
+              </Text>,
+            );
           }
           break;
         case "timeout":
-          parts.push(<Text key="status" color={colors.warning}>{figures.warning} Timeout</Text>);
+          parts.push(
+            <Text key="status" color={colors.warning}>
+              {figures.warning} Timeout
+            </Text>,
+          );
           break;
       }
-      
+
       // Stats for completed/failed runs
       if (run.nCompleted !== undefined) {
         parts.push(
           <Text key="stats" dimColor>
-            {" "}({run.nCompleted}✓{run.nFailed ? ` ${run.nFailed}✗` : ""}{run.nTimeout ? ` ${run.nTimeout}⏱` : ""})
-          </Text>
+            {" "}
+            ({run.nCompleted}✓{run.nFailed ? ` ${run.nFailed}✗` : ""}
+            {run.nTimeout ? ` ${run.nTimeout}⏱` : ""})
+          </Text>,
         );
       }
-      
+
       // Duration for completed runs
       if (run.status !== "running" && run.duration) {
-        parts.push(<Text key="dur" dimColor> {formatDuration(run.duration)}</Text>);
+        parts.push(
+          <Text key="dur" dimColor>
+            {" "}
+            {formatDuration(run.duration)}
+          </Text>,
+        );
       }
-      
+
       // Benchmark Run ID (clickable hint)
       if (run.benchmarkRunId) {
         parts.push(
           <Text key="id" dimColor>
             {"\n"}
-            {"  "}{figures.arrowRight} Run: <Text color={colors.idColor}>{run.benchmarkRunId}</Text>
-          </Text>
+            {"  "}
+            {figures.arrowRight} Run:{" "}
+            <Text color={colors.idColor}>{run.benchmarkRunId}</Text>
+          </Text>,
         );
       }
-      
+
       // Model name
       if (run.modelName) {
-        parts.push(<Text key="model" dimColor> [{run.modelName}]</Text>);
+        parts.push(
+          <Text key="model" dimColor>
+            {" "}
+            [{run.modelName}]
+          </Text>,
+        );
       }
-      
+
       return {
         label: run.agentName,
         value: <Text>{parts}</Text>,
@@ -335,8 +407,10 @@ export function BenchmarkJobDetailScreen({
 
     const pendingCount = agentRuns.filter((r) => r.status === "pending").length;
     const runningCount = agentRuns.filter((r) => r.status === "running").length;
-    const completedCount = agentRuns.filter((r) => r.status === "completed" || r.status === "failed").length;
-    
+    const completedCount = agentRuns.filter(
+      (r) => r.status === "completed" || r.status === "failed",
+    ).length;
+
     let sectionTitle = `Benchmark Runs (${agentRuns.length} agents)`;
     if (pendingCount > 0 || runningCount > 0) {
       const statusParts: string[] = [];
@@ -358,18 +432,19 @@ export function BenchmarkJobDetailScreen({
   if (job.job_spec) {
     const spec = job.job_spec;
     const specFields = [];
-    
+
     if (spec.scenario_ids && spec.scenario_ids.length > 0) {
       specFields.push({
         label: "Scenarios",
         value: `${spec.scenario_ids.length} scenario(s)`,
       });
     }
-    
+
     if (spec.orchestrator_config) {
       const orch = spec.orchestrator_config;
       const orchParts: string[] = [];
-      if (orch.n_concurrent_trials) orchParts.push(`${orch.n_concurrent_trials} concurrent`);
+      if (orch.n_concurrent_trials)
+        orchParts.push(`${orch.n_concurrent_trials} concurrent`);
       if (orch.n_attempts) orchParts.push(`${orch.n_attempts} retries`);
       if (orch.timeout_multiplier && orch.timeout_multiplier !== 1) {
         orchParts.push(`${orch.timeout_multiplier}x timeout`);
@@ -396,14 +471,14 @@ export function BenchmarkJobDetailScreen({
   if (job.job_source) {
     const source = job.job_source;
     const sourceFields = [];
-    
-    if ('type' in source) {
+
+    if ("type" in source) {
       sourceFields.push({
         label: "Source Type",
         value: source.type,
       });
     }
-    if ('benchmark_id' in source && source.benchmark_id) {
+    if ("benchmark_id" in source && source.benchmark_id) {
       sourceFields.push({
         label: "Benchmark ID",
         value: <Text color={colors.idColor}>{source.benchmark_id}</Text>,
@@ -419,18 +494,21 @@ export function BenchmarkJobDetailScreen({
       });
     }
   }
-  
+
   // Collect benchmark run IDs for operations
   const benchmarkRunIds: { id: string; agentName: string }[] = [];
   if (job.benchmark_outcomes) {
     job.benchmark_outcomes.forEach((outcome) => {
-      benchmarkRunIds.push({ id: outcome.benchmark_run_id, agentName: outcome.agent_name });
+      benchmarkRunIds.push({
+        id: outcome.benchmark_run_id,
+        agentName: outcome.agent_name,
+      });
     });
   }
   if (job.in_progress_runs) {
     job.in_progress_runs.forEach((run) => {
       let agentName = "Unknown Agent";
-      if (run.agent_config && 'name' in run.agent_config) {
+      if (run.agent_config && "name" in run.agent_config) {
         agentName = (run.agent_config as any).name;
       }
       // Avoid duplicates
@@ -442,7 +520,7 @@ export function BenchmarkJobDetailScreen({
 
   // Operations available for benchmark jobs
   const operations: ResourceOperation[] = [];
-  
+
   // Add "View Run" operations for each benchmark run (limit to first 9 for shortcuts)
   benchmarkRunIds.slice(0, 9).forEach((run, idx) => {
     operations.push({
@@ -453,7 +531,7 @@ export function BenchmarkJobDetailScreen({
       shortcut: String(idx + 1),
     });
   });
-  
+
   // Always add create new job option
   operations.push({
     key: "create-new",
@@ -468,7 +546,9 @@ export function BenchmarkJobDetailScreen({
     if (operation.startsWith("view-run-")) {
       const idx = parseInt(operation.replace("view-run-", ""), 10);
       if (benchmarkRunIds[idx]) {
-        navigate("benchmark-run-detail", { benchmarkRunId: benchmarkRunIds[idx].id });
+        navigate("benchmark-run-detail", {
+          benchmarkRunId: benchmarkRunIds[idx].id,
+        });
       }
     } else if (operation === "create-new") {
       navigate("benchmark-job-create");
@@ -527,24 +607,33 @@ export function BenchmarkJobDetailScreen({
         Benchmark Runs
       </Text>,
     );
-    
+
     // Completed runs from benchmark_outcomes
     if (j.benchmark_outcomes && j.benchmark_outcomes.length > 0) {
       j.benchmark_outcomes.forEach((outcome, idx) => {
-        const scoreStr = outcome.average_score !== undefined && outcome.average_score !== null
-          ? `Score: ${outcome.average_score.toFixed(2)}`
-          : "No score";
+        const scoreStr =
+          outcome.average_score !== undefined && outcome.average_score !== null
+            ? `Score: ${outcome.average_score.toFixed(2)}`
+            : "No score";
         const statsStr = `${outcome.n_completed}✓ ${outcome.n_failed}✗ ${outcome.n_timeout}⏱`;
-        const durationStr = outcome.duration_ms ? formatDuration(outcome.duration_ms) : "";
+        const durationStr = outcome.duration_ms
+          ? formatDuration(outcome.duration_ms)
+          : "";
         const statusIcon = outcome.n_failed > 0 ? figures.cross : figures.tick;
-        const statusColor = outcome.n_failed > 0 ? colors.error : colors.success;
-        
+        const statusColor =
+          outcome.n_failed > 0 ? colors.error : colors.success;
+
         lines.push(
           <Text key={`outcome-${idx}`}>
             {" "}
             <Text color={statusColor}>{statusIcon}</Text>
-            <Text color={colors.info}> {outcome.agent_name || `Agent ${idx + 1}`}</Text>
-            <Text dimColor>: {scoreStr} ({statsStr}) {durationStr}</Text>
+            <Text color={colors.info}>
+              {" "}
+              {outcome.agent_name || `Agent ${idx + 1}`}
+            </Text>
+            <Text dimColor>
+              : {scoreStr} ({statsStr}) {durationStr}
+            </Text>
           </Text>,
         );
         lines.push(
@@ -552,30 +641,49 @@ export function BenchmarkJobDetailScreen({
             {"   "}Run ID: {outcome.benchmark_run_id}
           </Text>,
         );
-        
+
         // Show scenario outcomes
         if (outcome.scenario_outcomes && outcome.scenario_outcomes.length > 0) {
           outcome.scenario_outcomes.forEach((scenario, sIdx) => {
-            const scenarioScore = scenario.score !== undefined && scenario.score !== null
-              ? scenario.score.toFixed(2)
-              : "-";
-            const scenarioDur = scenario.duration_ms ? formatDuration(scenario.duration_ms) : "";
-            const scenarioIcon = scenario.state === "COMPLETED" ? figures.tick : 
-                                 scenario.state === "FAILED" ? figures.cross : figures.warning;
-            const scenarioColor = scenario.state === "COMPLETED" ? colors.success :
-                                  scenario.state === "FAILED" ? colors.error : colors.warning;
+            const scenarioScore =
+              scenario.score !== undefined && scenario.score !== null
+                ? scenario.score.toFixed(2)
+                : "-";
+            const scenarioDur = scenario.duration_ms
+              ? formatDuration(scenario.duration_ms)
+              : "";
+            const scenarioIcon =
+              scenario.state === "COMPLETED"
+                ? figures.tick
+                : scenario.state === "FAILED"
+                  ? figures.cross
+                  : figures.warning;
+            const scenarioColor =
+              scenario.state === "COMPLETED"
+                ? colors.success
+                : scenario.state === "FAILED"
+                  ? colors.error
+                  : colors.warning;
             lines.push(
               <Text key={`outcome-${idx}-scenario-${sIdx}`}>
                 {"   "}
                 <Text color={scenarioColor}>{scenarioIcon}</Text>
-                <Text dimColor> {scenario.scenario_name}: {scenario.state} (score: {scenarioScore}) {scenarioDur}</Text>
+                <Text dimColor>
+                  {" "}
+                  {scenario.scenario_name}: {scenario.state} (score:{" "}
+                  {scenarioScore}) {scenarioDur}
+                </Text>
               </Text>,
             );
             if (scenario.failure_reason) {
               lines.push(
-                <Text key={`outcome-${idx}-scenario-${sIdx}-fail`} color={colors.error}>
+                <Text
+                  key={`outcome-${idx}-scenario-${sIdx}-fail`}
+                  color={colors.error}
+                >
                   {"     "}
-                  {scenario.failure_reason.exception_type}: {scenario.failure_reason.exception_message}
+                  {scenario.failure_reason.exception_type}:{" "}
+                  {scenario.failure_reason.exception_message}
                 </Text>,
               );
             }
@@ -588,11 +696,13 @@ export function BenchmarkJobDetailScreen({
     if (j.in_progress_runs && j.in_progress_runs.length > 0) {
       j.in_progress_runs.forEach((run, idx) => {
         let agentName = "Unknown Agent";
-        if (run.agent_config && 'name' in run.agent_config) {
+        if (run.agent_config && "name" in run.agent_config) {
           agentName = (run.agent_config as any).name;
         }
-        const durationStr = run.duration_ms ? formatDuration(run.duration_ms) : "";
-        
+        const durationStr = run.duration_ms
+          ? formatDuration(run.duration_ms)
+          : "";
+
         lines.push(
           <Text key={`run-${idx}`}>
             {" "}
@@ -612,13 +722,15 @@ export function BenchmarkJobDetailScreen({
     // Pending agents
     if (j.job_spec?.agent_configs) {
       const runningOrCompletedAgents = new Set<string>();
-      j.benchmark_outcomes?.forEach((o) => runningOrCompletedAgents.add(o.agent_name));
+      j.benchmark_outcomes?.forEach((o) =>
+        runningOrCompletedAgents.add(o.agent_name),
+      );
       j.in_progress_runs?.forEach((r) => {
-        if (r.agent_config && 'name' in r.agent_config) {
+        if (r.agent_config && "name" in r.agent_config) {
           runningOrCompletedAgents.add((r.agent_config as any).name);
         }
       });
-      
+
       j.job_spec.agent_configs.forEach((agent, idx) => {
         if (!runningOrCompletedAgents.has(agent.name)) {
           lines.push(
@@ -631,7 +743,7 @@ export function BenchmarkJobDetailScreen({
         }
       });
     }
-    
+
     lines.push(<Text key="runs-space"> </Text>);
 
     // Job Configuration
@@ -652,7 +764,8 @@ export function BenchmarkJobDetailScreen({
       if (j.job_spec.orchestrator_config) {
         const orch = j.job_spec.orchestrator_config;
         const orchInfo = [];
-        if (orch.n_concurrent_trials) orchInfo.push(`${orch.n_concurrent_trials} concurrent`);
+        if (orch.n_concurrent_trials)
+          orchInfo.push(`${orch.n_concurrent_trials} concurrent`);
         if (orch.n_attempts) orchInfo.push(`${orch.n_attempts} retries`);
         if (orchInfo.length > 0) {
           lines.push(
@@ -686,7 +799,10 @@ export function BenchmarkJobDetailScreen({
   };
 
   // Check if job is still in progress for polling
-  const isRunning = job.state === "running" || job.state === "queued" || job.state === "initializing";
+  const isRunning =
+    job.state === "running" ||
+    job.state === "queued" ||
+    job.state === "initializing";
 
   return (
     <ResourceDetailPage

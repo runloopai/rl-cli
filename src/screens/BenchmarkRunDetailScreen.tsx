@@ -156,7 +156,11 @@ export function BenchmarkRunDetailScreen({
   if (run.score !== undefined && run.score !== null) {
     basicFields.push({
       label: "Score",
-      value: <Text color={colors.success} bold>{run.score.toFixed(2)}</Text>,
+      value: (
+        <Text color={colors.success} bold>
+          {run.score.toFixed(2)}
+        </Text>
+      ),
     });
   }
 
@@ -204,11 +208,16 @@ export function BenchmarkRunDetailScreen({
   }
 
   // Environment Variables section
-  if (run.environment_variables && Object.keys(run.environment_variables).length > 0) {
-    const envFields = Object.entries(run.environment_variables).map(([key, value]) => ({
-      label: key,
-      value: <Text color={colors.secondary}>{value}</Text>,
-    }));
+  if (
+    run.environment_variables &&
+    Object.keys(run.environment_variables).length > 0
+  ) {
+    const envFields = Object.entries(run.environment_variables).map(
+      ([key, value]) => ({
+        label: key,
+        value: <Text color={colors.secondary}>{value}</Text>,
+      }),
+    );
 
     detailSections.push({
       title: "Environment Variables",
@@ -220,10 +229,12 @@ export function BenchmarkRunDetailScreen({
 
   // Secrets Provided section (show keys only, not values)
   if (run.secrets_provided && Object.keys(run.secrets_provided).length > 0) {
-    const secretFields = Object.entries(run.secrets_provided).map(([envVar, secretName]) => ({
-      label: envVar,
-      value: <Text color={colors.warning}>{secretName} (secret)</Text>,
-    }));
+    const secretFields = Object.entries(run.secrets_provided).map(
+      ([envVar, secretName]) => ({
+        label: envVar,
+        value: <Text color={colors.warning}>{secretName} (secret)</Text>,
+      }),
+    );
 
     detailSections.push({
       title: "Secrets Provided",
@@ -359,7 +370,10 @@ export function BenchmarkRunDetailScreen({
     lines.push(<Text key="timing-space"> </Text>);
 
     // Environment Variables
-    if (r.environment_variables && Object.keys(r.environment_variables).length > 0) {
+    if (
+      r.environment_variables &&
+      Object.keys(r.environment_variables).length > 0
+    ) {
       lines.push(
         <Text key="env-title" color={colors.success} bold>
           Environment Variables
@@ -383,14 +397,16 @@ export function BenchmarkRunDetailScreen({
           Secrets Provided
         </Text>,
       );
-      Object.entries(r.secrets_provided).forEach(([envVar, secretName], idx) => {
-        lines.push(
-          <Text key={`secret-${idx}`} dimColor>
-            {" "}
-            {envVar} → {secretName}
-          </Text>,
-        );
-      });
+      Object.entries(r.secrets_provided).forEach(
+        ([envVar, secretName], idx) => {
+          lines.push(
+            <Text key={`secret-${idx}`} dimColor>
+              {" "}
+              {envVar} → {secretName}
+            </Text>,
+          );
+        },
+      );
       lines.push(<Text key="secrets-space"> </Text>);
     }
 

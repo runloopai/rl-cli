@@ -62,10 +62,13 @@ export const useBenchmarkJobStore = create<BenchmarkJobState>((set, get) => ({
   setBenchmarkJobs: (jobs) => set({ benchmarkJobs: jobs }),
   setBenchmarkJobsLoading: (loading) => set({ benchmarkJobsLoading: loading }),
   setBenchmarkJobsError: (error) => set({ benchmarkJobsError: error }),
-  setBenchmarkJobsTotalCount: (count) => set({ benchmarkJobsTotalCount: count }),
+  setBenchmarkJobsTotalCount: (count) =>
+    set({ benchmarkJobsTotalCount: count }),
   setBenchmarkJobsHasMore: (hasMore) => set({ benchmarkJobsHasMore: hasMore }),
-  setBenchmarkJobsCurrentPage: (page) => set({ benchmarkJobsCurrentPage: page }),
-  setSelectedBenchmarkJobIndex: (index) => set({ selectedBenchmarkJobIndex: index }),
+  setBenchmarkJobsCurrentPage: (page) =>
+    set({ benchmarkJobsCurrentPage: page }),
+  setSelectedBenchmarkJobIndex: (index) =>
+    set({ selectedBenchmarkJobIndex: index }),
 
   // Cache management
   cacheBenchmarkJobPage: (page, data) => {
@@ -79,7 +82,9 @@ export const useBenchmarkJobStore = create<BenchmarkJobState>((set, get) => ({
       }
     }
 
-    const plainData = data.map((d) => JSON.parse(JSON.stringify(d)) as BenchmarkJob);
+    const plainData = data.map(
+      (d) => JSON.parse(JSON.stringify(d)) as BenchmarkJob,
+    );
     cache.set(page, plainData);
     set({});
   },

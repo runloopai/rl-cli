@@ -52,11 +52,15 @@ export interface CreateBenchmarkJobOptions {
  * List benchmark jobs with pagination
  */
 export async function listBenchmarkJobs(
-  options: ListBenchmarkJobsOptions
+  options: ListBenchmarkJobsOptions,
 ): Promise<ListBenchmarkJobsResult> {
   const client = getClient();
 
-  const queryParams: { limit?: number; starting_after?: string; name?: string } = {
+  const queryParams: {
+    limit?: number;
+    starting_after?: string;
+    name?: string;
+  } = {
     limit: options.limit,
   };
 
@@ -68,7 +72,8 @@ export async function listBenchmarkJobs(
     queryParams.name = options.name;
   }
 
-  const page: BenchmarkJobListView = await client.benchmarkJobs.list(queryParams);
+  const page: BenchmarkJobListView =
+    await client.benchmarkJobs.list(queryParams);
   const jobs = page.jobs || [];
 
   return {
@@ -90,17 +95,18 @@ export async function getBenchmarkJob(id: string): Promise<BenchmarkJob> {
  * Create a benchmark job with benchmark definition spec
  */
 export async function createBenchmarkJob(
-  options: CreateBenchmarkJobOptions
+  options: CreateBenchmarkJobOptions,
 ): Promise<BenchmarkJob> {
   const client = getClient();
 
   // Build agent configs in API format
   const agentConfigs: BenchmarkJobCreateParams.BenchmarkDefinitionJobSpec["agent_configs"] =
     options.agentConfigs.map((agent) => {
-      const config: BenchmarkJobCreateParams.BenchmarkDefinitionJobSpec.AgentConfig = {
-        name: agent.name,
-        type: "job_agent" as const,
-      };
+      const config: BenchmarkJobCreateParams.BenchmarkDefinitionJobSpec.AgentConfig =
+        {
+          name: agent.name,
+          type: "job_agent" as const,
+        };
 
       if (agent.agentId) {
         config.agent_id = agent.agentId;
@@ -115,12 +121,17 @@ export async function createBenchmarkJob(
         config.kwargs = agent.kwargs;
       }
       if (
-        (agent.environmentVariables && Object.keys(agent.environmentVariables).length > 0) ||
+        (agent.environmentVariables &&
+          Object.keys(agent.environmentVariables).length > 0) ||
         (agent.secrets && Object.keys(agent.secrets).length > 0)
       ) {
         config.agent_environment = {};
-        if (agent.environmentVariables && Object.keys(agent.environmentVariables).length > 0) {
-          config.agent_environment.environment_variables = agent.environmentVariables;
+        if (
+          agent.environmentVariables &&
+          Object.keys(agent.environmentVariables).length > 0
+        ) {
+          config.agent_environment.environment_variables =
+            agent.environmentVariables;
         }
         if (agent.secrets && Object.keys(agent.secrets).length > 0) {
           config.agent_environment.secrets = agent.secrets;
@@ -140,13 +151,15 @@ export async function createBenchmarkJob(
       orchestratorConfig.n_attempts = options.orchestratorConfig.nAttempts;
     }
     if (options.orchestratorConfig.nConcurrentTrials !== undefined) {
-      orchestratorConfig.n_concurrent_trials = options.orchestratorConfig.nConcurrentTrials;
+      orchestratorConfig.n_concurrent_trials =
+        options.orchestratorConfig.nConcurrentTrials;
     }
     if (options.orchestratorConfig.quiet !== undefined) {
       orchestratorConfig.quiet = options.orchestratorConfig.quiet;
     }
     if (options.orchestratorConfig.timeoutMultiplier !== undefined) {
-      orchestratorConfig.timeout_multiplier = options.orchestratorConfig.timeoutMultiplier;
+      orchestratorConfig.timeout_multiplier =
+        options.orchestratorConfig.timeoutMultiplier;
     }
   }
 

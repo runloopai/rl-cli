@@ -6,10 +6,7 @@ import React from "react";
 import { Text } from "ink";
 import figures from "figures";
 import { useNavigation } from "../store/navigationStore.js";
-import {
-  useBenchmarkStore,
-  type Benchmark,
-} from "../store/benchmarkStore.js";
+import { useBenchmarkStore, type Benchmark } from "../store/benchmarkStore.js";
 import {
   ResourceDetailPage,
   formatTimestamp,
@@ -34,7 +31,8 @@ export function BenchmarkDetailScreen({
 
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
-  const [fetchedBenchmark, setFetchedBenchmark] = React.useState<Benchmark | null>(null);
+  const [fetchedBenchmark, setFetchedBenchmark] =
+    React.useState<Benchmark | null>(null);
 
   // Find benchmark in store first
   const benchmarkFromStore = benchmarks.find((b) => b.id === benchmarkId);
@@ -128,14 +126,14 @@ export function BenchmarkDetailScreen({
 
   // Basic details section
   const basicFields = [];
-  
+
   if ((benchmark as any).created_at) {
     basicFields.push({
       label: "Created",
       value: formatTimestamp((benchmark as any).created_at),
     });
   }
-  
+
   if ((benchmark as any).description) {
     basicFields.push({
       label: "Description",
@@ -153,11 +151,16 @@ export function BenchmarkDetailScreen({
   }
 
   // Metadata section
-  if ((benchmark as any).metadata && Object.keys((benchmark as any).metadata).length > 0) {
-    const metadataFields = Object.entries((benchmark as any).metadata).map(([key, value]) => ({
-      label: key,
-      value: value as string,
-    }));
+  if (
+    (benchmark as any).metadata &&
+    Object.keys((benchmark as any).metadata).length > 0
+  ) {
+    const metadataFields = Object.entries((benchmark as any).metadata).map(
+      ([key, value]) => ({
+        label: key,
+        value: value as string,
+      }),
+    );
 
     detailSections.push({
       title: "Metadata",

@@ -14,7 +14,9 @@ import { SuccessMessage } from "./SuccessMessage.js";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { NavigationTips } from "./NavigationTips.js";
 import { MetadataDisplay } from "./MetadataDisplay.js";
-import { ResourcePicker } from "./ResourcePicker.js";
+import { ResourcePicker, createTextColumn, Column } from "./ResourcePicker.js";
+import { formatTimeAgo } from "./ResourceListView.js";
+import { getStatusDisplay } from "./StatusBadge.js";
 import {
   FormTextInput,
   FormSelect,
@@ -116,17 +118,21 @@ export const DevboxCreatePage = ({
   const [creating, setCreating] = React.useState(false);
   const [result, setResult] = React.useState<DevboxView | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
-  
+
   // Source picker states (toggle between blueprint/snapshot)
-  const [sourceTypeToggle, setSourceTypeToggle] = React.useState<"blueprint" | "snapshot">(
-    initialSnapshotId ? "snapshot" : "blueprint"
-  );
+  const [sourceTypeToggle, setSourceTypeToggle] = React.useState<
+    "blueprint" | "snapshot"
+  >(initialSnapshotId ? "snapshot" : "blueprint");
   const [showBlueprintPicker, setShowBlueprintPicker] = React.useState(false);
   const [showSnapshotPicker, setShowSnapshotPicker] = React.useState(false);
-  const [showNetworkPolicyPicker, setShowNetworkPolicyPicker] = React.useState(false);
-  const [selectedBlueprintName, setSelectedBlueprintName] = React.useState<string>("");
-  const [selectedSnapshotName, setSelectedSnapshotName] = React.useState<string>("");
-  const [selectedNetworkPolicyName, setSelectedNetworkPolicyName] = React.useState<string>("");
+  const [showNetworkPolicyPicker, setShowNetworkPolicyPicker] =
+    React.useState(false);
+  const [selectedBlueprintName, setSelectedBlueprintName] =
+    React.useState<string>("");
+  const [selectedSnapshotName, setSelectedSnapshotName] =
+    React.useState<string>("");
+  const [selectedNetworkPolicyName, setSelectedNetworkPolicyName] =
+    React.useState<string>("");
 
   const baseFields: Array<{
     key: FormField;
@@ -282,7 +288,7 @@ export const DevboxCreatePage = ({
         // If something is already selected, open that type's picker to change it
         const hasBlueprint = !!(selectedBlueprintName || formData.blueprint_id);
         const hasSnapshot = !!(selectedSnapshotName || formData.snapshot_id);
-        
+
         if (hasBlueprint) {
           setShowBlueprintPicker(true);
         } else if (hasSnapshot) {
@@ -297,7 +303,7 @@ export const DevboxCreatePage = ({
         }
         return;
       }
-      
+
       // Delete key on source field to clear selection
       if (currentField === "source" && (input === "d" || key.delete)) {
         handleClearSource();
@@ -333,14 +339,24 @@ export const DevboxCreatePage = ({
         return;
       }
     },
-    { isActive: !inMetadataSection && !showBlueprintPicker && !showSnapshotPicker && !showNetworkPolicyPicker },
+    {
+      isActive:
+        !inMetadataSection &&
+        !showBlueprintPicker &&
+        !showSnapshotPicker &&
+        !showNetworkPolicyPicker,
+    },
   );
 
   // Handle blueprint selection
   const handleBlueprintSelect = React.useCallback((blueprints: Blueprint[]) => {
     if (blueprints.length > 0) {
       const blueprint = blueprints[0];
-      setFormData((prev) => ({ ...prev, blueprint_id: blueprint.id, snapshot_id: "" }));
+      setFormData((prev) => ({
+        ...prev,
+        blueprint_id: blueprint.id,
+        snapshot_id: "",
+      }));
       setSelectedBlueprintName(blueprint.name || blueprint.id);
       setSelectedSnapshotName("");
     }
@@ -351,7 +367,11 @@ export const DevboxCreatePage = ({
   const handleSnapshotSelect = React.useCallback((snapshots: Snapshot[]) => {
     if (snapshots.length > 0) {
       const snapshot = snapshots[0];
-      setFormData((prev) => ({ ...prev, snapshot_id: snapshot.id, blueprint_id: "" }));
+      setFormData((prev) => ({
+        ...prev,
+        snapshot_id: snapshot.id,
+        blueprint_id: "",
+      }));
       setSelectedSnapshotName(snapshot.name || snapshot.id);
       setSelectedBlueprintName("");
     }
@@ -359,14 +379,17 @@ export const DevboxCreatePage = ({
   }, []);
 
   // Handle network policy selection
-  const handleNetworkPolicySelect = React.useCallback((policies: NetworkPolicy[]) => {
-    if (policies.length > 0) {
-      const policy = policies[0];
-      setFormData((prev) => ({ ...prev, network_policy_id: policy.id }));
-      setSelectedNetworkPolicyName(policy.name || policy.id);
-    }
-    setShowNetworkPolicyPicker(false);
-  }, []);
+  const handleNetworkPolicySelect = React.useCallback(
+    (policies: NetworkPolicy[]) => {
+      if (policies.length > 0) {
+        const policy = policies[0];
+        setFormData((prev) => ({ ...prev, network_policy_id: policy.id }));
+        setSelectedNetworkPolicyName(policy.name || policy.id);
+      }
+      setShowNetworkPolicyPicker(false);
+    },
+    [],
+  );
 
   // Handle clearing source
   const handleClearSource = React.useCallback(() => {
@@ -646,6 +669,67 @@ export const DevboxCreatePage = ({
 
   // Blueprint picker screen
   if (showBlueprintPicker) {
+    const blueprintColumns: Column<Blueprint>[] = [
+      {
+        key: "statusIcon",
+        label: "",
+        width: 2,
+        render: (blueprint, _index, isSelected) => {
+          const statusDisplay = getStatusDisplay(blueprint.status || "");
+          return (
+            <Text
+              color={isSelected ? "white" : statusDisplay.color}
+              bold={true}
+              inverse={isSelected}
+              wrap="truncate"
+            >
+              {statusDisplay.icon}{" "}
+            </Text>
+          );
+        },
+      },
+      createTextColumn<Blueprint>(
+        "id",
+        "ID",
+        (blueprint) => blueprint.id,
+        { width: 25, color: colors.idColor },
+      ),
+      createTextColumn<Blueprint>(
+        "name",
+        "Name",
+        (blueprint) => blueprint.name || "",
+        { width: 30 },
+      ),
+      {
+        key: "status",
+        label: "Status",
+        width: 12,
+        render: (blueprint, _index, isSelected) => {
+          const statusDisplay = getStatusDisplay(blueprint.status || "");
+          const padded = statusDisplay.text.slice(0, 12).padEnd(12, " ");
+          return (
+            <Text
+              color={isSelected ? "white" : statusDisplay.color}
+              bold={true}
+              inverse={isSelected}
+              wrap="truncate"
+            >
+              {padded}
+            </Text>
+          );
+        },
+      },
+      createTextColumn<Blueprint>(
+        "created",
+        "Created",
+        (blueprint) => blueprint.create_time_ms ? formatTimeAgo(blueprint.create_time_ms) : "",
+        { width: 18, color: colors.textDim },
+      ),
+    ];
+
+    // Filter out failed blueprints
+    const failedStatuses = ["failure", "build_failed", "failed"];
+
     return (
       <ResourcePicker<Blueprint>
         config={{
@@ -656,17 +740,21 @@ export const DevboxCreatePage = ({
               startingAfter: params.startingAt,
               search: params.search,
             });
+            // Filter out failed blueprints
+            const validBlueprints = result.blueprints.filter(
+              (bp) => !failedStatuses.includes(bp.status || "")
+            );
             return {
-              items: result.blueprints,
+              items: validBlueprints,
               hasMore: result.hasMore,
-              totalCount: result.totalCount,
+              totalCount: validBlueprints.length,
             };
           },
           getItemId: (blueprint) => blueprint.id,
           getItemLabel: (blueprint) => blueprint.name || blueprint.id,
-          getItemStatus: (blueprint) => blueprint.status,
+          columns: blueprintColumns,
           mode: "single",
-          emptyMessage: "No blueprints found",
+          emptyMessage: "No blueprints found (failed blueprints are hidden)",
           searchPlaceholder: "Search blueprints...",
           breadcrumbItems: [
             { label: "Devboxes" },
@@ -683,6 +771,33 @@ export const DevboxCreatePage = ({
 
   // Snapshot picker screen
   if (showSnapshotPicker) {
+    const snapshotColumns: Column<Snapshot>[] = [
+      createTextColumn<Snapshot>(
+        "id",
+        "ID",
+        (snapshot) => snapshot.id,
+        { width: 25, color: colors.idColor },
+      ),
+      createTextColumn<Snapshot>(
+        "name",
+        "Name",
+        (snapshot) => snapshot.name || "",
+        { width: 30 },
+      ),
+      createTextColumn<Snapshot>(
+        "status",
+        "Status",
+        (snapshot) => snapshot.status || "",
+        { width: 12 },
+      ),
+      createTextColumn<Snapshot>(
+        "created",
+        "Created",
+        (snapshot) => snapshot.create_time_ms ? formatTimeAgo(snapshot.create_time_ms) : "",
+        { width: 18, color: colors.textDim },
+      ),
+    ];
+
     return (
       <ResourcePicker<Snapshot>
         config={{
@@ -700,7 +815,7 @@ export const DevboxCreatePage = ({
           },
           getItemId: (snapshot) => snapshot.id,
           getItemLabel: (snapshot) => snapshot.name || snapshot.id,
-          getItemStatus: (snapshot) => snapshot.status,
+          columns: snapshotColumns,
           mode: "single",
           emptyMessage: "No snapshots found",
           searchPlaceholder: "Search snapshots...",
@@ -719,6 +834,40 @@ export const DevboxCreatePage = ({
 
   // Network policy picker screen
   if (showNetworkPolicyPicker) {
+    // Helper to get egress type label
+    const getEgressLabel = (egress: NetworkPolicy["egress"]) => {
+      if (egress.allow_all) return "Allow All";
+      if (egress.allowed_hostnames?.length === 0) return "Deny All";
+      return `Custom (${egress.allowed_hostnames?.length || 0})`;
+    };
+
+    const networkPolicyColumns: Column<NetworkPolicy>[] = [
+      createTextColumn<NetworkPolicy>(
+        "id",
+        "ID",
+        (policy) => policy.id,
+        { width: 25, color: colors.idColor },
+      ),
+      createTextColumn<NetworkPolicy>(
+        "name",
+        "Name",
+        (policy) => policy.name || "",
+        { width: 25 },
+      ),
+      createTextColumn<NetworkPolicy>(
+        "egress",
+        "Egress",
+        (policy) => getEgressLabel(policy.egress),
+        { width: 15 },
+      ),
+      createTextColumn<NetworkPolicy>(
+        "created",
+        "Created",
+        (policy) => policy.create_time_ms ? formatTimeAgo(policy.create_time_ms) : "",
+        { width: 18, color: colors.textDim },
+      ),
+    ];
+
     return (
       <ResourcePicker<NetworkPolicy>
         config={{
@@ -737,6 +886,7 @@ export const DevboxCreatePage = ({
           },
           getItemId: (policy) => policy.id,
           getItemLabel: (policy) => policy.name || policy.id,
+          columns: networkPolicyColumns,
           mode: "single",
           emptyMessage: "No network policies found",
           searchPlaceholder: "Search network policies...",
@@ -748,7 +898,9 @@ export const DevboxCreatePage = ({
         }}
         onSelect={handleNetworkPolicySelect}
         onCancel={() => setShowNetworkPolicyPicker(false)}
-        initialSelected={formData.network_policy_id ? [formData.network_policy_id] : []}
+        initialSelected={
+          formData.network_policy_id ? [formData.network_policy_id] : []
+        }
       />
     );
   }
@@ -812,8 +964,10 @@ export const DevboxCreatePage = ({
 
           if (field.type === "source") {
             // Check if either blueprint or snapshot is selected
-            const selectedBlueprintValue = selectedBlueprintName || formData.blueprint_id;
-            const selectedSnapshotValue = selectedSnapshotName || formData.snapshot_id;
+            const selectedBlueprintValue =
+              selectedBlueprintName || formData.blueprint_id;
+            const selectedSnapshotValue =
+              selectedSnapshotName || formData.snapshot_id;
             const hasBlueprint = !!selectedBlueprintValue;
             const hasSnapshot = !!selectedSnapshotValue;
             const hasSelection = hasBlueprint || hasSnapshot;
@@ -821,7 +975,9 @@ export const DevboxCreatePage = ({
             // If something is selected, show it clearly with its type
             if (hasSelection) {
               const selectedType = hasBlueprint ? "Blueprint" : "Snapshot";
-              const selectedValue = hasBlueprint ? selectedBlueprintValue : selectedSnapshotValue;
+              const selectedValue = hasBlueprint
+                ? selectedBlueprintValue
+                : selectedSnapshotValue;
 
               return (
                 <Box key={field.key} marginBottom={0}>
@@ -832,7 +988,8 @@ export const DevboxCreatePage = ({
                   <Text color={colors.idColor}>{selectedValue}</Text>
                   {isActive && (
                     <Text color={colors.textDim} dimColor>
-                      {" "}[Enter to change, d to clear]
+                      {" "}
+                      [Enter to change, d to clear]
                     </Text>
                   )}
                 </Box>
@@ -850,24 +1007,34 @@ export const DevboxCreatePage = ({
                   {isActive ? figures.arrowLeft : ""}{" "}
                 </Text>
                 <Text
-                  color={sourceTypeToggle === "blueprint" ? colors.primary : colors.textDim}
+                  color={
+                    sourceTypeToggle === "blueprint"
+                      ? colors.primary
+                      : colors.textDim
+                  }
                   bold={sourceTypeToggle === "blueprint"}
                 >
                   Blueprint
                 </Text>
                 <Text color={colors.textDim}> / </Text>
                 <Text
-                  color={sourceTypeToggle === "snapshot" ? colors.primary : colors.textDim}
+                  color={
+                    sourceTypeToggle === "snapshot"
+                      ? colors.primary
+                      : colors.textDim
+                  }
                   bold={sourceTypeToggle === "snapshot"}
                 >
                   Snapshot
                 </Text>
                 <Text color={isActive ? colors.text : colors.textDim}>
-                  {" "}{isActive ? figures.arrowRight : ""}
+                  {" "}
+                  {isActive ? figures.arrowRight : ""}
                 </Text>
                 {isActive && (
                   <Text color={colors.textDim} dimColor>
-                    {" "}[Enter to select]
+                    {" "}
+                    [Enter to select]
                   </Text>
                 )}
               </Box>

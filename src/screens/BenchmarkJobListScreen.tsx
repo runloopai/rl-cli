@@ -24,7 +24,10 @@ import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../hooks/useCursorPagination.js";
 import { useListSearch } from "../hooks/useListSearch.js";
-import { listBenchmarkJobs, type BenchmarkJob } from "../services/benchmarkJobService.js";
+import {
+  listBenchmarkJobs,
+  type BenchmarkJob,
+} from "../services/benchmarkJobService.js";
 
 export function BenchmarkJobListScreen() {
   const { exit: inkExit } = useApp();
@@ -55,7 +58,8 @@ export function BenchmarkJobListScreen() {
   const scoreWidth = 8;
   const statsWidth = 14;
   const timeWidth = 14;
-  const baseWidth = fixedWidth + idWidth + statusWidth + scoreWidth + statsWidth + timeWidth;
+  const baseWidth =
+    fixedWidth + idWidth + statusWidth + scoreWidth + statsWidth + timeWidth;
   const remainingWidth = terminalWidth - baseWidth;
   const nameWidth = Math.min(60, Math.max(15, remainingWidth));
 
@@ -81,15 +85,24 @@ export function BenchmarkJobListScreen() {
       }
       return "-";
     }
-    const totalCompleted = job.benchmark_outcomes.reduce((acc, o) => acc + o.n_completed, 0);
-    const totalFailed = job.benchmark_outcomes.reduce((acc, o) => acc + o.n_failed, 0);
-    const totalTimeout = job.benchmark_outcomes.reduce((acc, o) => acc + o.n_timeout, 0);
-    
+    const totalCompleted = job.benchmark_outcomes.reduce(
+      (acc, o) => acc + o.n_completed,
+      0,
+    );
+    const totalFailed = job.benchmark_outcomes.reduce(
+      (acc, o) => acc + o.n_failed,
+      0,
+    );
+    const totalTimeout = job.benchmark_outcomes.reduce(
+      (acc, o) => acc + o.n_timeout,
+      0,
+    );
+
     const parts: string[] = [];
     if (totalCompleted > 0) parts.push(`${totalCompleted}✓`);
     if (totalFailed > 0) parts.push(`${totalFailed}✗`);
     if (totalTimeout > 0) parts.push(`${totalTimeout}⏱`);
-    
+
     return parts.length > 0 ? parts.join(" ") : "-";
   };
 
@@ -334,10 +347,7 @@ export function BenchmarkJobListScreen() {
     return (
       <>
         <Breadcrumb
-          items={[
-            { label: "Home" },
-            { label: "Benchmark Jobs", active: true },
-          ]}
+          items={[{ label: "Home" }, { label: "Benchmark Jobs", active: true }]}
         />
         <SpinnerComponent message="Loading benchmark jobs..." />
       </>
@@ -349,10 +359,7 @@ export function BenchmarkJobListScreen() {
     return (
       <>
         <Breadcrumb
-          items={[
-            { label: "Home" },
-            { label: "Benchmark Jobs", active: true },
-          ]}
+          items={[{ label: "Home" }, { label: "Benchmark Jobs", active: true }]}
         />
         <ErrorMessage message="Failed to list benchmark jobs" error={error} />
       </>
@@ -363,10 +370,7 @@ export function BenchmarkJobListScreen() {
   return (
     <>
       <Breadcrumb
-        items={[
-          { label: "Home" },
-          { label: "Benchmark Jobs", active: true },
-        ]}
+        items={[{ label: "Home" }, { label: "Benchmark Jobs", active: true }]}
       />
 
       {/* Search bar */}

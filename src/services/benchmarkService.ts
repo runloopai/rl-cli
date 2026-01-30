@@ -141,11 +141,15 @@ export async function getScenarioRun(id: string): Promise<ScenarioRun> {
  * List benchmark definitions with pagination
  */
 export async function listBenchmarks(
-  options: ListBenchmarksOptions
+  options: ListBenchmarksOptions,
 ): Promise<ListBenchmarksResult> {
   const client = getClient();
 
-  const queryParams: { limit?: number; starting_after?: string; search?: string } = {
+  const queryParams: {
+    limit?: number;
+    starting_after?: string;
+    search?: string;
+  } = {
     limit: options.limit,
   };
 
@@ -180,7 +184,7 @@ export async function getBenchmark(id: string): Promise<Benchmark> {
  */
 export async function createBenchmarkRun(
   benchmarkIds: string[],
-  options?: { name?: string; metadata?: Record<string, string> }
+  options?: { name?: string; metadata?: Record<string, string> },
 ): Promise<BenchmarkRun> {
   const client = getClient();
 

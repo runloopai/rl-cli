@@ -73,7 +73,7 @@ export function BenchmarkListScreen() {
         totalCount: result.totalCount,
       };
     },
-    [search.submittedSearchQuery]
+    [search.submittedSearchQuery],
   );
 
   // Use the shared pagination hook
@@ -113,7 +113,7 @@ export function BenchmarkListScreen() {
         icon: figures.play,
       },
     ],
-    []
+    [],
   );
 
   // Build columns
@@ -131,7 +131,7 @@ export function BenchmarkListScreen() {
         (benchmark: Benchmark) => benchmark.name || "",
         {
           width: nameWidth,
-        }
+        },
       ),
       createComponentColumn<Benchmark>(
         "status",
@@ -152,7 +152,7 @@ export function BenchmarkListScreen() {
             </Text>
           );
         },
-        { width: statusWidth }
+        { width: statusWidth },
       ),
       createTextColumn(
         "created",
@@ -166,10 +166,10 @@ export function BenchmarkListScreen() {
           color: colors.textDim,
           dimColor: false,
           bold: false,
-        }
+        },
       ),
     ],
-    [idWidth, nameWidth, statusWidth, timeWidth]
+    [idWidth, nameWidth, statusWidth, timeWidth],
   );
 
   // Handle Ctrl+C to exit

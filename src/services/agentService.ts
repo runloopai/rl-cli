@@ -24,7 +24,7 @@ export interface ListAgentsResult {
  * Can filter to only return public agents for benchmark jobs
  */
 export async function listAgents(
-  options: ListAgentsOptions
+  options: ListAgentsOptions,
 ): Promise<ListAgentsResult> {
   const client = getClient();
 
@@ -47,7 +47,7 @@ export async function listAgents(
 
   const page = await client.agents.list(queryParams);
   const agents: Agent[] = [];
-  
+
   // Collect agents from the cursor page
   for await (const agent of page) {
     agents.push(agent);
