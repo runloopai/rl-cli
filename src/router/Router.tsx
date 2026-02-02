@@ -73,8 +73,8 @@ function UnknownScreen({ screenName }: { screenName: string }) {
       </Box>
       <Box marginBottom={1}>
         <Text color={colors.textDim}>
-          You've navigated to an unknown page:{" "}
-          <Text color={colors.error}>"{screenName}"</Text>
+          {"You've navigated to an unknown page: "}
+          <Text color={colors.error}>{`"${screenName}"`}</Text>
         </Text>
       </Box>
       <Box>
