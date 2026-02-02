@@ -11,7 +11,12 @@ import { NavigationTips } from "./NavigationTips.js";
 import { SpinnerComponent } from "./Spinner.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { SearchBar } from "./SearchBar.js";
-import { Table, type Column, createTextColumn, createComponentColumn } from "./Table.js";
+import {
+  Table,
+  type Column,
+  createTextColumn,
+  createComponentColumn,
+} from "./Table.js";
 
 // Re-export Column helpers for convenience
 export type { Column };

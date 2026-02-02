@@ -688,12 +688,10 @@ export const DevboxCreatePage = ({
           );
         },
       },
-      createTextColumn<Blueprint>(
-        "id",
-        "ID",
-        (blueprint) => blueprint.id,
-        { width: 25, color: colors.idColor },
-      ),
+      createTextColumn<Blueprint>("id", "ID", (blueprint) => blueprint.id, {
+        width: 25,
+        color: colors.idColor,
+      }),
       createTextColumn<Blueprint>(
         "name",
         "Name",
@@ -722,7 +720,10 @@ export const DevboxCreatePage = ({
       createTextColumn<Blueprint>(
         "created",
         "Created",
-        (blueprint) => blueprint.create_time_ms ? formatTimeAgo(blueprint.create_time_ms) : "",
+        (blueprint) =>
+          blueprint.create_time_ms
+            ? formatTimeAgo(blueprint.create_time_ms)
+            : "",
         { width: 18, color: colors.textDim },
       ),
     ];
@@ -742,7 +743,7 @@ export const DevboxCreatePage = ({
             });
             // Filter out failed blueprints
             const validBlueprints = result.blueprints.filter(
-              (bp) => !failedStatuses.includes(bp.status || "")
+              (bp) => !failedStatuses.includes(bp.status || ""),
             );
             return {
               items: validBlueprints,
@@ -772,12 +773,10 @@ export const DevboxCreatePage = ({
   // Snapshot picker screen
   if (showSnapshotPicker) {
     const snapshotColumns: Column<Snapshot>[] = [
-      createTextColumn<Snapshot>(
-        "id",
-        "ID",
-        (snapshot) => snapshot.id,
-        { width: 25, color: colors.idColor },
-      ),
+      createTextColumn<Snapshot>("id", "ID", (snapshot) => snapshot.id, {
+        width: 25,
+        color: colors.idColor,
+      }),
       createTextColumn<Snapshot>(
         "name",
         "Name",
@@ -793,7 +792,8 @@ export const DevboxCreatePage = ({
       createTextColumn<Snapshot>(
         "created",
         "Created",
-        (snapshot) => snapshot.create_time_ms ? formatTimeAgo(snapshot.create_time_ms) : "",
+        (snapshot) =>
+          snapshot.create_time_ms ? formatTimeAgo(snapshot.create_time_ms) : "",
         { width: 18, color: colors.textDim },
       ),
     ];
@@ -842,12 +842,10 @@ export const DevboxCreatePage = ({
     };
 
     const networkPolicyColumns: Column<NetworkPolicy>[] = [
-      createTextColumn<NetworkPolicy>(
-        "id",
-        "ID",
-        (policy) => policy.id,
-        { width: 25, color: colors.idColor },
-      ),
+      createTextColumn<NetworkPolicy>("id", "ID", (policy) => policy.id, {
+        width: 25,
+        color: colors.idColor,
+      }),
       createTextColumn<NetworkPolicy>(
         "name",
         "Name",
@@ -863,7 +861,8 @@ export const DevboxCreatePage = ({
       createTextColumn<NetworkPolicy>(
         "created",
         "Created",
-        (policy) => policy.create_time_ms ? formatTimeAgo(policy.create_time_ms) : "",
+        (policy) =>
+          policy.create_time_ms ? formatTimeAgo(policy.create_time_ms) : "",
         { width: 18, color: colors.textDim },
       ),
     ];
