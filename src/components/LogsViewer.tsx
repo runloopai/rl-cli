@@ -137,7 +137,6 @@ export const LogsViewer = ({
   const sanitizeMessage = (message: string): string => {
     // Strip ANSI escape sequences (colors, cursor movement, etc.)
     const strippedAnsi = message.replace(
-       
       /\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g,
       "",
     );
@@ -149,7 +148,7 @@ export const LogsViewer = ({
         .replace(/\r/g, " ")
         .replace(/\t/g, " ")
         // Remove any other control characters (ASCII 0-31 except space)
-         
+
         .replace(/[\x00-\x1F]/g, "")
     );
   };
