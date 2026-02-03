@@ -6,7 +6,7 @@ on:
 
 jobs:
   pr-title-check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
       - uses: amannn/action-semantic-pull-request@v6
         env:
