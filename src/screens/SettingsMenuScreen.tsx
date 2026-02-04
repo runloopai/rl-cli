@@ -13,6 +13,9 @@ export function SettingsMenuScreen() {
       case "network-policies":
         navigate("network-policy-list");
         break;
+      case "gateway-configs":
+        navigate("gateway-config-list");
+        break;
       case "secrets":
         navigate("secret-list");
         break;
