@@ -58,7 +58,9 @@ export async function updateGatewayConfig(options: UpdateOptions) {
     }
 
     if (Object.keys(updateParams).length === 0) {
-      outputError("No update options provided. Use --name, --endpoint, --auth-type, --auth-key, or --description");
+      outputError(
+        "No update options provided. Use --name, --endpoint, --auth-type, --auth-key, or --description",
+      );
       return;
     }
 

@@ -769,9 +769,8 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: json)",
     )
     .action(async (options) => {
-      const { listGatewayConfigs } = await import(
-        "../commands/gateway-config/list.js"
-      );
+      const { listGatewayConfigs } =
+        await import("../commands/gateway-config/list.js");
       await listGatewayConfigs(options);
     });
 
@@ -784,16 +783,18 @@ export function createProgram(): Command {
       "--auth-type <type>",
       "Authentication type: bearer or header (required)",
     )
-    .option("--auth-key <key>", "Header key name (required for header auth type)")
+    .option(
+      "--auth-key <key>",
+      "Header key name (required for header auth type)",
+    )
     .option("--description <description>", "Description")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
     )
     .action(async (options) => {
-      const { createGatewayConfig } = await import(
-        "../commands/gateway-config/create.js"
-      );
+      const { createGatewayConfig } =
+        await import("../commands/gateway-config/create.js");
       await createGatewayConfig(options);
     });
 
@@ -805,9 +806,8 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: json)",
     )
     .action(async (id, options) => {
-      const { getGatewayConfig } = await import(
-        "../commands/gateway-config/get.js"
-      );
+      const { getGatewayConfig } =
+        await import("../commands/gateway-config/get.js");
       await getGatewayConfig({ id, ...options });
     });
 
@@ -817,16 +817,18 @@ export function createProgram(): Command {
     .option("--name <name>", "New name")
     .option("--endpoint <url>", "New endpoint URL")
     .option("--auth-type <type>", "New authentication type: bearer or header")
-    .option("--auth-key <key>", "New header key name (required for header auth type)")
+    .option(
+      "--auth-key <key>",
+      "New header key name (required for header auth type)",
+    )
     .option("--description <description>", "New description")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
     )
     .action(async (id, options) => {
-      const { updateGatewayConfig } = await import(
-        "../commands/gateway-config/update.js"
-      );
+      const { updateGatewayConfig } =
+        await import("../commands/gateway-config/update.js");
       await updateGatewayConfig({ id, ...options });
     });
 
@@ -839,9 +841,8 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: text)",
     )
     .action(async (id, options) => {
-      const { deleteGatewayConfig } = await import(
-        "../commands/gateway-config/delete.js"
-      );
+      const { deleteGatewayConfig } =
+        await import("../commands/gateway-config/delete.js");
       await deleteGatewayConfig(id, options);
     });
 

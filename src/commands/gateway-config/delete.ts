@@ -22,7 +22,10 @@ export async function deleteGatewayConfig(
     if (!options.output || options.output === "text") {
       console.log(id);
     } else {
-      output({ id, status: "deleted" }, { format: options.output, defaultFormat: "json" });
+      output(
+        { id, status: "deleted" },
+        { format: options.output, defaultFormat: "json" },
+      );
     }
   } catch (error) {
     outputError("Failed to delete gateway config", error);
