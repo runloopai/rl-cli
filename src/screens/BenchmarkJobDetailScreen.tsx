@@ -36,7 +36,9 @@ export function BenchmarkJobDetailScreen({
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
   const [fetchedJob, setFetchedJob] = React.useState<BenchmarkJob | null>(null);
-  const [runNames, setRunNames] = React.useState<Map<string, string>>(new Map());
+  const [runNames, setRunNames] = React.useState<Map<string, string>>(
+    new Map(),
+  );
 
   // Find job in store first
   const jobFromStore = benchmarkJobs.find((j) => j.id === benchmarkJobId);
@@ -99,7 +101,7 @@ export function BenchmarkJobDetailScreen({
         } catch {
           return { id: runId, name: runId };
         }
-      })
+      }),
     ).then((results) => {
       const namesMap = new Map<string, string>();
       results.forEach((result) => {
@@ -543,7 +545,8 @@ export function BenchmarkJobDetailScreen({
   if (job.benchmark_outcomes) {
     job.benchmark_outcomes.forEach((outcome) => {
       // Use fetched run name from state, fallback to run ID
-      const runName = runNames.get(outcome.benchmark_run_id) || outcome.benchmark_run_id;
+      const runName =
+        runNames.get(outcome.benchmark_run_id) || outcome.benchmark_run_id;
       benchmarkRunIds.push({
         id: outcome.benchmark_run_id,
         name: runName,
@@ -555,7 +558,8 @@ export function BenchmarkJobDetailScreen({
       // Avoid duplicates
       if (!benchmarkRunIds.find((r) => r.id === run.benchmark_run_id)) {
         // Use fetched run name from state, fallback to run ID
-        const runName = runNames.get(run.benchmark_run_id) || run.benchmark_run_id;
+        const runName =
+          runNames.get(run.benchmark_run_id) || run.benchmark_run_id;
         benchmarkRunIds.push({ id: run.benchmark_run_id, name: runName });
       }
     });

@@ -17,7 +17,10 @@ import {
   type DetailSection,
   type ResourceOperation,
 } from "../components/ResourceDetailPage.js";
-import { getBenchmarkRun, listScenarioRuns } from "../services/benchmarkService.js";
+import {
+  getBenchmarkRun,
+  listScenarioRuns,
+} from "../services/benchmarkService.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
@@ -189,7 +192,9 @@ export function BenchmarkRunDetailScreen({
   }
 
   // Helper to calculate overall run status based on scenarios
-  const calculateOverallStatus = (scenarios: ScenarioRun[]): {
+  const calculateOverallStatus = (
+    scenarios: ScenarioRun[],
+  ): {
     status: "failed" | "pass" | "in-progress" | "not-started";
     label: string;
     color: string;
@@ -206,7 +211,7 @@ export function BenchmarkRunDetailScreen({
 
     // Check for any failures or timeouts
     const hasFailed = scenarios.some(
-      (s) => s.state === "failed" || s.state === "timeout"
+      (s) => s.state === "failed" || s.state === "timeout",
     );
     if (hasFailed) {
       return {
@@ -219,7 +224,7 @@ export function BenchmarkRunDetailScreen({
 
     // Check if all are completed
     const allCompleted = scenarios.every(
-      (s) => s.state === "completed" || s.state === "scored"
+      (s) => s.state === "completed" || s.state === "scored",
     );
     if (allCompleted) {
       return {
@@ -232,7 +237,7 @@ export function BenchmarkRunDetailScreen({
 
     // Check if any are running
     const anyRunning = scenarios.some(
-      (s) => s.state === "running" || s.state === "scoring"
+      (s) => s.state === "running" || s.state === "scoring",
     );
     if (anyRunning) {
       return {
@@ -334,9 +339,14 @@ export function BenchmarkRunDetailScreen({
         dimColor: false,
         bold: false,
       }),
-      createTextColumn("name", "Name", (s: ScenarioRun) => s.name || "(unnamed)", {
-        width: 50,
-      }),
+      createTextColumn(
+        "name",
+        "Name",
+        (s: ScenarioRun) => s.name || "(unnamed)",
+        {
+          width: 50,
+        },
+      ),
       createComponentColumn<ScenarioRun>(
         "status",
         "Status",
