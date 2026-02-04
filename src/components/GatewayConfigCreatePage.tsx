@@ -59,7 +59,7 @@ export const GatewayConfigCreatePage = ({
   const isEditing = !!initialConfig?.id;
 
   const [currentField, setCurrentField] = React.useState<FormField>("create");
-  
+
   // Normalize auth type from API to match our options (lowercase)
   const normalizeAuthType = (type: string | undefined): AuthType => {
     const normalized = (type || "").toLowerCase();
@@ -68,7 +68,7 @@ export const GatewayConfigCreatePage = ({
     }
     return "bearer"; // default
   };
-  
+
   const [formData, setFormData] = React.useState<FormData>({
     name: initialConfig?.name || "",
     endpoint: initialConfig?.endpoint || "",
@@ -123,8 +123,8 @@ export const GatewayConfigCreatePage = ({
     formData.auth_type,
     authTypes,
     (value) => {
-      setFormData({ 
-        ...formData, 
+      setFormData({
+        ...formData,
         auth_type: value,
         // Clear auth_key if switching from header to bearer
         auth_key: value !== "header" ? "" : formData.auth_key,
@@ -193,10 +193,9 @@ export const GatewayConfigCreatePage = ({
       // Navigation (up/down arrows and tab/shift+tab)
       // Skip auth_key field if auth_type is not "header"
       const getNextField = (direction: "up" | "down"): FormField | null => {
-        let nextIndex = direction === "up" 
-          ? currentFieldIndex - 1 
-          : currentFieldIndex + 1;
-        
+        let nextIndex =
+          direction === "up" ? currentFieldIndex - 1 : currentFieldIndex + 1;
+
         while (nextIndex >= 0 && nextIndex < fields.length) {
           const nextField = fields[nextIndex].key;
           // Skip auth_key if auth_type is not header
@@ -426,8 +425,7 @@ export const GatewayConfigCreatePage = ({
                     ...formData,
                     [field.key]: newValue,
                     // Clear auth_key if switching from header to bearer
-                    auth_key:
-                      newValue !== "header" ? "" : formData.auth_key,
+                    auth_key: newValue !== "header" ? "" : formData.auth_key,
                   })
                 }
                 isActive={isActive}

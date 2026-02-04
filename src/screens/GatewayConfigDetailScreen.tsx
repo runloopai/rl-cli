@@ -34,7 +34,9 @@ interface GatewayConfigDetailScreenProps {
 /**
  * Get a display label for the auth mechanism type
  */
-function getAuthTypeLabel(authMechanism: GatewayConfig["auth_mechanism"]): string {
+function getAuthTypeLabel(
+  authMechanism: GatewayConfig["auth_mechanism"],
+): string {
   if (authMechanism.type === "bearer") {
     return "Bearer Token";
   }
@@ -48,9 +50,7 @@ export function GatewayConfigDetailScreen({
   gatewayConfigId,
 }: GatewayConfigDetailScreenProps) {
   const { goBack } = useNavigation();
-  const gatewayConfigs = useGatewayConfigStore(
-    (state) => state.gatewayConfigs,
-  );
+  const gatewayConfigs = useGatewayConfigStore((state) => state.gatewayConfigs);
 
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);

@@ -48,7 +48,9 @@ const DEFAULT_PAGE_SIZE = 10;
 /**
  * Get a display label for the auth mechanism type
  */
-function getAuthTypeLabel(authMechanism: GatewayConfigListItem["auth_mechanism"]): string {
+function getAuthTypeLabel(
+  authMechanism: GatewayConfigListItem["auth_mechanism"],
+): string {
   if (authMechanism.type === "bearer") {
     return "Bearer";
   }
@@ -261,7 +263,8 @@ const ListGatewayConfigsUI = ({
       createTextColumn(
         "auth",
         "Auth",
-        (config: GatewayConfigListItem) => getAuthTypeLabel(config.auth_mechanism),
+        (config: GatewayConfigListItem) =>
+          getAuthTypeLabel(config.auth_mechanism),
         {
           width: authWidth,
           color: colors.info,
@@ -282,14 +285,7 @@ const ListGatewayConfigsUI = ({
         },
       ),
     ],
-    [
-      idWidth,
-      nameWidth,
-      endpointWidth,
-      authWidth,
-      timeWidth,
-      showEndpoint,
-    ],
+    [idWidth, nameWidth, endpointWidth, authWidth, timeWidth, showEndpoint],
   );
 
   // Handle Ctrl+C to exit

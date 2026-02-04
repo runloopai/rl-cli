@@ -214,7 +214,14 @@ export const DevboxCreatePage = ({
   const remainingFields: Array<{
     key: FormField;
     label: string;
-    type: "text" | "select" | "metadata" | "action" | "picker" | "source" | "gateways";
+    type:
+      | "text"
+      | "select"
+      | "metadata"
+      | "action"
+      | "picker"
+      | "source"
+      | "gateways";
     placeholder?: string;
   }> = [
     {
@@ -443,20 +450,17 @@ export const DevboxCreatePage = ({
   );
 
   // Handle gateway config selection
-  const handleGatewaySelect = React.useCallback(
-    (configs: GatewayConfig[]) => {
-      if (configs.length > 0) {
-        const config = configs[0];
-        setPendingGateway({ id: config.id, name: config.name || config.id });
-        setShowGatewayPicker(false);
-        // Now show secret picker
-        setShowSecretPicker(true);
-      } else {
-        setShowGatewayPicker(false);
-      }
-    },
-    [],
-  );
+  const handleGatewaySelect = React.useCallback((configs: GatewayConfig[]) => {
+    if (configs.length > 0) {
+      const config = configs[0];
+      setPendingGateway({ id: config.id, name: config.name || config.id });
+      setShowGatewayPicker(false);
+      // Now show secret picker
+      setShowSecretPicker(true);
+    } else {
+      setShowGatewayPicker(false);
+    }
+  }, []);
 
   // Handle secret selection for gateway
   const handleSecretSelect = React.useCallback(
@@ -752,7 +756,8 @@ export const DevboxCreatePage = ({
 
       // Add gateway specifications
       if (formData.gateways.length > 0) {
-        const gateways: Record<string, { gateway: string; secret: string }> = {};
+        const gateways: Record<string, { gateway: string; secret: string }> =
+          {};
         for (const gw of formData.gateways) {
           gateways[gw.envPrefix] = {
             gateway: gw.gateway,
@@ -1171,11 +1176,13 @@ export const DevboxCreatePage = ({
               limit: params.limit,
             });
             return {
-              items: (page.secrets || []).map((s: { id: string; name: string; create_time_ms?: number }) => ({
-                id: s.id,
-                name: s.name,
-                create_time_ms: s.create_time_ms,
-              })),
+              items: (page.secrets || []).map(
+                (s: { id: string; name: string; create_time_ms?: number }) => ({
+                  id: s.id,
+                  name: s.name,
+                  create_time_ms: s.create_time_ms,
+                }),
+              ),
               hasMore: false, // Secrets API doesn't support pagination
               totalCount: page.total_count || 0,
             };
@@ -1601,7 +1608,8 @@ export const DevboxCreatePage = ({
                     <Box marginLeft={2} flexDirection="column">
                       {formData.gateways.map((gw, idx) => (
                         <Text key={idx} color={colors.textDim} dimColor>
-                          {figures.pointer} {gw.envPrefix}: {gw.gatewayName} → {gw.secretName}
+                          {figures.pointer} {gw.envPrefix}: {gw.gatewayName} →{" "}
+                          {gw.secretName}
                         </Text>
                       ))}
                     </Box>
@@ -1641,7 +1649,9 @@ export const DevboxCreatePage = ({
                       Adding New Gateway
                     </Text>
                     <Box>
-                      <Text color={colors.primary}>Env Prefix (e.g., GWS_ANTHROPIC): </Text>
+                      <Text color={colors.primary}>
+                        Env Prefix (e.g., GWS_ANTHROPIC):{" "}
+                      </Text>
                       <TextInput
                         value={gatewayEnvPrefix || ""}
                         onChange={setGatewayEnvPrefix}
@@ -1666,7 +1676,9 @@ export const DevboxCreatePage = ({
                             : colors.textDim
                         }
                       >
-                        {selectedGatewayIndex === 0 ? figures.pointer : " "}{" "}
+                        {selectedGatewayIndex === 0
+                          ? figures.pointer
+                          : " "}{" "}
                       </Text>
                       <Text
                         color={
@@ -1691,18 +1703,23 @@ export const DevboxCreatePage = ({
                             <Box key={gw.envPrefix}>
                               <Text
                                 color={
-                                  isGatewaySelected ? colors.primary : colors.textDim
+                                  isGatewaySelected
+                                    ? colors.primary
+                                    : colors.textDim
                                 }
                               >
                                 {isGatewaySelected ? figures.pointer : " "}{" "}
                               </Text>
                               <Text
                                 color={
-                                  isGatewaySelected ? colors.primary : colors.textDim
+                                  isGatewaySelected
+                                    ? colors.primary
+                                    : colors.textDim
                                 }
                                 bold={isGatewaySelected}
                               >
-                                {gw.envPrefix}: {gw.gatewayName} → {gw.secretName}
+                                {gw.envPrefix}: {gw.gatewayName} →{" "}
+                                {gw.secretName}
                               </Text>
                             </Box>
                           );
