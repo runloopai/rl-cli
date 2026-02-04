@@ -4,12 +4,24 @@
 import { create } from "zustand";
 import type { BenchmarkRunView } from "@runloop/api-client/resources/benchmark-runs";
 import type { ScenarioRunView } from "@runloop/api-client/resources/scenarios/scenarios";
+import type { BenchmarkView } from "@runloop/api-client/resources/benchmarks";
 
 // Re-export SDK types for compatibility
 export type BenchmarkRun = BenchmarkRunView;
 export type ScenarioRun = ScenarioRunView;
+export type Benchmark = BenchmarkView;
 
 interface BenchmarkState {
+  // Benchmarks (definitions)
+  benchmarks: Benchmark[];
+  benchmarksLoading: boolean;
+  benchmarksError: Error | null;
+  benchmarksTotalCount: number;
+  benchmarksHasMore: boolean;
+  benchmarksCurrentPage: number;
+  selectedBenchmarkIndex: number;
+  selectedBenchmarkIds: Set<string>;
+
   // Benchmark runs
   benchmarkRuns: BenchmarkRun[];
   benchmarkRunsLoading: boolean;
@@ -34,8 +46,21 @@ interface BenchmarkState {
   selectedScenarioRunIndex: number;
 
   // Caching
+  benchmarkPageCache: Map<number, Benchmark[]>;
   benchmarkRunPageCache: Map<number, BenchmarkRun[]>;
   scenarioRunPageCache: Map<number, ScenarioRun[]>;
+
+  // Benchmark (definition) Actions
+  setBenchmarks: (benchmarks: Benchmark[]) => void;
+  setBenchmarksLoading: (loading: boolean) => void;
+  setBenchmarksError: (error: Error | null) => void;
+  setBenchmarksTotalCount: (count: number) => void;
+  setBenchmarksHasMore: (hasMore: boolean) => void;
+  setBenchmarksCurrentPage: (page: number) => void;
+  setSelectedBenchmarkIndex: (index: number) => void;
+  setSelectedBenchmarkIds: (ids: Set<string>) => void;
+  toggleBenchmarkSelection: (id: string) => void;
+  clearBenchmarkSelection: () => void;
 
   // Benchmark Run Actions
   setBenchmarkRuns: (runs: BenchmarkRun[]) => void;
@@ -57,6 +82,8 @@ interface BenchmarkState {
   setBenchmarkRunIdFilter: (id?: string) => void;
 
   // Cache management
+  cacheBenchmarkPage: (page: number, data: Benchmark[]) => void;
+  getCachedBenchmarkPage: (page: number) => Benchmark[] | undefined;
   cacheBenchmarkRunPage: (page: number, data: BenchmarkRun[]) => void;
   getCachedBenchmarkRunPage: (page: number) => BenchmarkRun[] | undefined;
   cacheScenarioRunPage: (page: number, data: ScenarioRun[]) => void;
@@ -65,6 +92,7 @@ interface BenchmarkState {
   clearAll: () => void;
 
   // Selectors
+  getSelectedBenchmark: () => Benchmark | undefined;
   getSelectedBenchmarkRun: () => BenchmarkRun | undefined;
   getSelectedScenarioRun: () => ScenarioRun | undefined;
 }
@@ -72,6 +100,16 @@ interface BenchmarkState {
 const MAX_CACHE_SIZE = 10;
 
 export const useBenchmarkStore = create<BenchmarkState>((set, get) => ({
+  // Initial benchmark (definition) state
+  benchmarks: [],
+  benchmarksLoading: false,
+  benchmarksError: null,
+  benchmarksTotalCount: 0,
+  benchmarksHasMore: false,
+  benchmarksCurrentPage: 0,
+  selectedBenchmarkIndex: 0,
+  selectedBenchmarkIds: new Set<string>(),
+
   // Initial benchmark run state
   benchmarkRuns: [],
   benchmarkRunsLoading: false,
@@ -96,8 +134,30 @@ export const useBenchmarkStore = create<BenchmarkState>((set, get) => ({
   selectedScenarioRunIndex: 0,
 
   // Caches
+  benchmarkPageCache: new Map(),
   benchmarkRunPageCache: new Map(),
   scenarioRunPageCache: new Map(),
+
+  // Benchmark (definition) Actions
+  setBenchmarks: (benchmarks) => set({ benchmarks }),
+  setBenchmarksLoading: (loading) => set({ benchmarksLoading: loading }),
+  setBenchmarksError: (error) => set({ benchmarksError: error }),
+  setBenchmarksTotalCount: (count) => set({ benchmarksTotalCount: count }),
+  setBenchmarksHasMore: (hasMore) => set({ benchmarksHasMore: hasMore }),
+  setBenchmarksCurrentPage: (page) => set({ benchmarksCurrentPage: page }),
+  setSelectedBenchmarkIndex: (index) => set({ selectedBenchmarkIndex: index }),
+  setSelectedBenchmarkIds: (ids) => set({ selectedBenchmarkIds: ids }),
+  toggleBenchmarkSelection: (id) => {
+    const state = get();
+    const next = new Set(state.selectedBenchmarkIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    set({ selectedBenchmarkIds: next });
+  },
+  clearBenchmarkSelection: () => set({ selectedBenchmarkIds: new Set() }),
 
   // Benchmark Run Actions
   setBenchmarkRuns: (runs) => set({ benchmarkRuns: runs }),
@@ -123,6 +183,28 @@ export const useBenchmarkStore = create<BenchmarkState>((set, get) => ({
   setBenchmarkRunIdFilter: (id) => set({ benchmarkRunIdFilter: id }),
 
   // Cache management
+  cacheBenchmarkPage: (page, data) => {
+    const state = get();
+    const cache = state.benchmarkPageCache;
+
+    if (cache.size >= MAX_CACHE_SIZE) {
+      const oldestKey = cache.keys().next().value;
+      if (oldestKey !== undefined) {
+        cache.delete(oldestKey);
+      }
+    }
+
+    const plainData = data.map(
+      (d) => JSON.parse(JSON.stringify(d)) as Benchmark,
+    );
+    cache.set(page, plainData);
+    set({});
+  },
+
+  getCachedBenchmarkPage: (page) => {
+    return get().benchmarkPageCache.get(page);
+  },
+
   cacheBenchmarkRunPage: (page, data) => {
     const state = get();
     const cache = state.benchmarkRunPageCache;
@@ -169,10 +251,12 @@ export const useBenchmarkStore = create<BenchmarkState>((set, get) => ({
 
   clearCache: () => {
     const state = get();
+    state.benchmarkPageCache.clear();
     state.benchmarkRunPageCache.clear();
     state.scenarioRunPageCache.clear();
 
     set({
+      benchmarkPageCache: new Map(),
       benchmarkRunPageCache: new Map(),
       scenarioRunPageCache: new Map(),
     });
@@ -180,10 +264,19 @@ export const useBenchmarkStore = create<BenchmarkState>((set, get) => ({
 
   clearAll: () => {
     const state = get();
+    state.benchmarkPageCache.clear();
     state.benchmarkRunPageCache.clear();
     state.scenarioRunPageCache.clear();
 
     set({
+      benchmarks: [],
+      benchmarksLoading: false,
+      benchmarksError: null,
+      benchmarksTotalCount: 0,
+      benchmarksHasMore: false,
+      benchmarksCurrentPage: 0,
+      selectedBenchmarkIndex: 0,
+      selectedBenchmarkIds: new Set(),
       benchmarkRuns: [],
       benchmarkRunsLoading: false,
       benchmarkRunsError: null,
@@ -199,9 +292,15 @@ export const useBenchmarkStore = create<BenchmarkState>((set, get) => ({
       benchmarkRunIdFilter: undefined,
       selectedBenchmarkRunIndex: 0,
       selectedScenarioRunIndex: 0,
+      benchmarkPageCache: new Map(),
       benchmarkRunPageCache: new Map(),
       scenarioRunPageCache: new Map(),
     });
+  },
+
+  getSelectedBenchmark: () => {
+    const state = get();
+    return state.benchmarks[state.selectedBenchmarkIndex];
   },
 
   getSelectedBenchmarkRun: () => {

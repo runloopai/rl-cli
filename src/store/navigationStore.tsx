@@ -23,10 +23,15 @@ export type ScreenName =
   | "object-list"
   | "object-detail"
   | "ssh-session"
+  | "benchmark-list"
+  | "benchmark-detail"
   | "benchmark-run-list"
   | "benchmark-run-detail"
   | "scenario-run-list"
-  | "scenario-run-detail";
+  | "scenario-run-detail"
+  | "benchmark-job-list"
+  | "benchmark-job-detail"
+  | "benchmark-job-create";
 
 export interface RouteParams {
   devboxId?: string;
@@ -51,8 +56,11 @@ export interface RouteParams {
   executionId?: string;
   execCommand?: string;
   // Benchmark params
+  benchmarkId?: string;
   benchmarkRunId?: string;
   scenarioRunId?: string;
+  benchmarkJobId?: string;
+  initialBenchmarkIds?: string;
   [key: string]: string | ScreenName | RouteParams | undefined;
 }
 

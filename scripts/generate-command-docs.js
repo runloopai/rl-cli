@@ -11,7 +11,7 @@ const rootDir = join(__dirname, "..");
 const readmePath = join(rootDir, "README.md");
 
 // Default docs path - can be overridden via DOCS_PATH env var or --docs-path argument
-const defaultDocsPath = join(rootDir, "..", "docs", "docs", "tools", "cli.mdx");
+const defaultDocsPath = join(rootDir, "..", "docs", "docs", "tools", "rl-cli.mdx");
 
 /**
  * Generates markdown documentation for the command structure from Commander
@@ -120,7 +120,7 @@ function generateCommandStructure(program) {
 }
 
 /**
- * Generates a detailed command reference for external docs (cli.mdx)
+ * Generates a detailed command reference for external docs (rl-cli.mdx)
  * Uses Mintlify components for better presentation
  */
 function generateDetailedCommandDocs(program) {
@@ -286,7 +286,7 @@ function updateReadme(newCommandStructure) {
 }
 
 /**
- * Generates the full cli.mdx content
+ * Generates the full rl-cli.mdx content
  */
 function generateCliMdx(program) {
   const commandDocs = generateDetailedCommandDocs(program);
@@ -508,7 +508,7 @@ The Runloop CLI is open-source. We welcome contributions!
 }
 
 /**
- * Updates the external docs cli.mdx file
+ * Updates the external docs rl-cli.mdx file
  */
 function updateDocsMdx(program, docsPath) {
   if (!existsSync(docsPath)) {
@@ -547,9 +547,9 @@ function parseArgs() {
 Usage: generate-command-docs.js [options]
 
 Options:
-  --docs-path <path>  Path to cli.mdx file (default: ../docs/docs/tools/cli.mdx)
+  --docs-path <path>  Path to rl-cli.mdx file (default: ../docs/docs/tools/rl-cli.mdx)
   --skip-readme       Skip updating README.md
-  --skip-docs         Skip updating cli.mdx
+  --skip-docs         Skip updating rl-cli.mdx
   --help, -h          Show this help message
 
 Environment Variables:

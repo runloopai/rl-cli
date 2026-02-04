@@ -236,19 +236,16 @@ export const StreamingLogsViewer = ({
   // Helper to sanitize log message
   const sanitizeMessage = (message: string): string => {
     const strippedAnsi = message.replace(
-      // eslint-disable-next-line no-control-regex
       /\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g,
       "",
     );
-    return (
-      strippedAnsi
-        .replace(/\r\n/g, " ")
-        .replace(/\n/g, " ")
-        .replace(/\r/g, " ")
-        .replace(/\t/g, " ")
-        // eslint-disable-next-line no-control-regex
-        .replace(/[\x00-\x1F]/g, "")
-    );
+    return strippedAnsi
+      .replace(/\r\n/g, " ")
+      .replace(/\n/g, " ")
+      .replace(/\r/g, " ")
+      .replace(/\t/g, " ")
+
+      .replace(/[\x00-\x1F]/g, "");
   };
 
   // Calculate visible logs

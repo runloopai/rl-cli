@@ -123,37 +123,44 @@ export function BenchmarkRunDetailScreen({
     );
   }
 
+  // Helper to format duration
+  const formatDuration = (ms: number): string => {
+    if (ms < 1000) return `${ms}ms`;
+    const seconds = Math.floor(ms / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours}h ${remainingMinutes}m`;
+  };
+
   // Build detail sections
   const detailSections: DetailSection[] = [];
 
   // Basic details section
   const basicFields = [];
-  if (run.start_time_ms) {
-    basicFields.push({
-      label: "Started",
-      value: formatTimestamp(run.start_time_ms),
-    });
-  }
-  const endTimeMs =
-    run.start_time_ms && run.duration_ms
-      ? run.start_time_ms + run.duration_ms
-      : undefined;
-  if (endTimeMs) {
-    basicFields.push({
-      label: "Ended",
-      value: formatTimestamp(endTimeMs),
-    });
-  }
   if (run.benchmark_id) {
     basicFields.push({
       label: "Benchmark ID",
       value: <Text color={colors.idColor}>{run.benchmark_id}</Text>,
     });
   }
+  if (run.purpose) {
+    basicFields.push({
+      label: "Purpose",
+      value: run.purpose,
+    });
+  }
   if (run.score !== undefined && run.score !== null) {
     basicFields.push({
       label: "Score",
-      value: <Text color={colors.info}>{run.score}</Text>,
+      value: (
+        <Text color={colors.success} bold>
+          {run.score.toFixed(2)}
+        </Text>
+      ),
     });
   }
 
@@ -163,6 +170,77 @@ export function BenchmarkRunDetailScreen({
       icon: figures.squareSmallFilled,
       color: colors.warning,
       fields: basicFields,
+    });
+  }
+
+  // Timing section
+  const timingFields = [];
+  if (run.start_time_ms) {
+    timingFields.push({
+      label: "Started",
+      value: formatTimestamp(run.start_time_ms),
+    });
+  }
+  const endTimeMs =
+    run.start_time_ms && run.duration_ms
+      ? run.start_time_ms + run.duration_ms
+      : undefined;
+  if (endTimeMs) {
+    timingFields.push({
+      label: "Ended",
+      value: formatTimestamp(endTimeMs),
+    });
+  }
+  if (run.duration_ms) {
+    timingFields.push({
+      label: "Duration",
+      value: <Text color={colors.info}>{formatDuration(run.duration_ms)}</Text>,
+    });
+  }
+
+  if (timingFields.length > 0) {
+    detailSections.push({
+      title: "Timing",
+      icon: figures.play,
+      color: colors.info,
+      fields: timingFields,
+    });
+  }
+
+  // Environment Variables section
+  if (
+    run.environment_variables &&
+    Object.keys(run.environment_variables).length > 0
+  ) {
+    const envFields = Object.entries(run.environment_variables).map(
+      ([key, value]) => ({
+        label: key,
+        value: <Text color={colors.secondary}>{value}</Text>,
+      }),
+    );
+
+    detailSections.push({
+      title: "Environment Variables",
+      icon: figures.info,
+      color: colors.success,
+      fields: envFields,
+    });
+  }
+
+  // Secrets Provided section (show keys only, not values)
+  if (run.secrets_provided && Object.keys(run.secrets_provided).length > 0) {
+    const secretFields = Object.entries(run.secrets_provided).map(
+      ([envVar, secretName]) => ({
+        label: envVar,
+        value: <Text color={colors.warning}>{secretName} (secret)</Text>,
+      }),
+    );
+
+    detailSections.push({
+      title: "Secrets Provided",
+      icon: figures.warning,
+      color: colors.warning,
+      fields: secretFields,
     });
   }
 
@@ -237,9 +315,33 @@ export function BenchmarkRunDetailScreen({
         </Text>,
       );
     }
+    if (r.purpose) {
+      lines.push(
+        <Text key="core-purpose" dimColor>
+          {" "}
+          Purpose: {r.purpose}
+        </Text>,
+      );
+    }
+    if (r.score !== undefined && r.score !== null) {
+      lines.push(
+        <Text key="core-score" color={colors.success}>
+          {" "}
+          Score: {r.score.toFixed(2)}
+        </Text>,
+      );
+    }
+    lines.push(<Text key="core-space"> </Text>);
+
+    // Timing
+    lines.push(
+      <Text key="timing-title" color={colors.info} bold>
+        Timing
+      </Text>,
+    );
     if (r.start_time_ms) {
       lines.push(
-        <Text key="core-created" dimColor>
+        <Text key="timing-started" dimColor>
           {" "}
           Started: {new Date(r.start_time_ms).toLocaleString()}
         </Text>,
@@ -251,26 +353,67 @@ export function BenchmarkRunDetailScreen({
         : undefined;
     if (detailEndTimeMs) {
       lines.push(
-        <Text key="core-ended" dimColor>
+        <Text key="timing-ended" dimColor>
           {" "}
           Ended: {new Date(detailEndTimeMs).toLocaleString()}
         </Text>,
       );
     }
-    if (r.score !== undefined && r.score !== null) {
+    if (r.duration_ms) {
       lines.push(
-        <Text key="core-score" dimColor>
+        <Text key="timing-duration" dimColor>
           {" "}
-          Score: {r.score}
+          Duration: {formatDuration(r.duration_ms)}
         </Text>,
       );
     }
-    lines.push(<Text key="core-space"> </Text>);
+    lines.push(<Text key="timing-space"> </Text>);
+
+    // Environment Variables
+    if (
+      r.environment_variables &&
+      Object.keys(r.environment_variables).length > 0
+    ) {
+      lines.push(
+        <Text key="env-title" color={colors.success} bold>
+          Environment Variables
+        </Text>,
+      );
+      Object.entries(r.environment_variables).forEach(([key, value], idx) => {
+        lines.push(
+          <Text key={`env-${idx}`} dimColor>
+            {" "}
+            {key}: {value}
+          </Text>,
+        );
+      });
+      lines.push(<Text key="env-space"> </Text>);
+    }
+
+    // Secrets Provided
+    if (r.secrets_provided && Object.keys(r.secrets_provided).length > 0) {
+      lines.push(
+        <Text key="secrets-title" color={colors.warning} bold>
+          Secrets Provided
+        </Text>,
+      );
+      Object.entries(r.secrets_provided).forEach(
+        ([envVar, secretName], idx) => {
+          lines.push(
+            <Text key={`secret-${idx}`} dimColor>
+              {" "}
+              {envVar} → {secretName}
+            </Text>,
+          );
+        },
+      );
+      lines.push(<Text key="secrets-space"> </Text>);
+    }
 
     // Metadata
     if (r.metadata && Object.keys(r.metadata).length > 0) {
       lines.push(
-        <Text key="meta-title" color={colors.warning} bold>
+        <Text key="meta-title" color={colors.secondary} bold>
           Metadata
         </Text>,
       );

@@ -1,5 +1,5 @@
 /**
- * BenchmarkRunListScreen - List view for benchmark runs
+ * BenchmarkListScreen - List view for benchmark definitions
  */
 import React from "react";
 import { Box, Text, useInput, useApp } from "ink";
@@ -24,10 +24,10 @@ import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../hooks/useCursorPagination.js";
 import { useListSearch } from "../hooks/useListSearch.js";
-import { listBenchmarkRuns } from "../services/benchmarkService.js";
-import type { BenchmarkRun } from "../store/benchmarkStore.js";
+import { listBenchmarks } from "../services/benchmarkService.js";
+import type { Benchmark } from "../store/benchmarkStore.js";
 
-export function BenchmarkRunListScreen() {
+export function BenchmarkListScreen() {
   const { exit: inkExit } = useApp();
   const { navigate, goBack } = useNavigation();
   const [selectedIndex, setSelectedIndex] = React.useState(0);
@@ -61,23 +61,24 @@ export function BenchmarkRunListScreen() {
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
     async (params: { limit: number; startingAt?: string }) => {
-      const result = await listBenchmarkRuns({
+      const result = await listBenchmarks({
         limit: params.limit,
         startingAfter: params.startingAt,
+        search: search.submittedSearchQuery || undefined,
       });
 
       return {
-        items: result.benchmarkRuns,
+        items: result.benchmarks,
         hasMore: result.hasMore,
         totalCount: result.totalCount,
       };
     },
-    [],
+    [search.submittedSearchQuery],
   );
 
   // Use the shared pagination hook
   const {
-    items: benchmarkRuns,
+    items: benchmarks,
     loading,
     navigating,
     error,
@@ -87,17 +88,16 @@ export function BenchmarkRunListScreen() {
     totalCount,
     nextPage,
     prevPage,
-    refresh,
   } = useCursorPagination({
     fetchPage,
     pageSize: PAGE_SIZE,
-    getItemId: (run: BenchmarkRun) => run.id,
+    getItemId: (benchmark: Benchmark) => benchmark.id,
     pollInterval: 5000,
     pollingEnabled: !showPopup && !search.searchMode,
-    deps: [PAGE_SIZE],
+    deps: [PAGE_SIZE, search.submittedSearchQuery],
   });
 
-  // Operations for benchmark runs
+  // Operations for benchmarks
   const operations: Operation[] = React.useMemo(
     () => [
       {
@@ -107,14 +107,8 @@ export function BenchmarkRunListScreen() {
         icon: figures.pointer,
       },
       {
-        key: "view_scenarios",
-        label: "View Scenario Runs",
-        color: colors.info,
-        icon: figures.arrowRight,
-      },
-      {
         key: "create_job",
-        label: "Create Job",
+        label: "Create Benchmark Job",
         color: colors.success,
         icon: figures.play,
       },
@@ -125,20 +119,26 @@ export function BenchmarkRunListScreen() {
   // Build columns
   const columns = React.useMemo(
     () => [
-      createTextColumn("id", "ID", (run: BenchmarkRun) => run.id, {
+      createTextColumn("id", "ID", (benchmark: Benchmark) => benchmark.id, {
         width: idWidth + 1,
         color: colors.idColor,
         dimColor: false,
         bold: false,
       }),
-      createTextColumn("name", "Name", (run: BenchmarkRun) => run.name || "", {
-        width: nameWidth,
-      }),
-      createComponentColumn<BenchmarkRun>(
+      createTextColumn(
+        "name",
+        "Name",
+        (benchmark: Benchmark) => benchmark.name || "",
+        {
+          width: nameWidth,
+        },
+      ),
+      createComponentColumn<Benchmark>(
         "status",
         "Status",
-        (run, _index, isSelected) => {
-          const statusDisplay = getStatusDisplay(run.state);
+        (benchmark, _index, isSelected) => {
+          const status = (benchmark as any).status || "active";
+          const statusDisplay = getStatusDisplay(status);
           const text = statusDisplay.text
             .slice(0, statusWidth)
             .padEnd(statusWidth, " ");
@@ -157,8 +157,10 @@ export function BenchmarkRunListScreen() {
       createTextColumn(
         "created",
         "Created",
-        (run: BenchmarkRun) =>
-          run.start_time_ms ? formatTimeAgo(run.start_time_ms) : "",
+        (benchmark: Benchmark) =>
+          (benchmark as any).created_at
+            ? formatTimeAgo((benchmark as any).created_at)
+            : "",
         {
           width: timeWidth,
           color: colors.textDim,
@@ -175,17 +177,17 @@ export function BenchmarkRunListScreen() {
 
   // Ensure selected index is within bounds
   React.useEffect(() => {
-    if (benchmarkRuns.length > 0 && selectedIndex >= benchmarkRuns.length) {
-      setSelectedIndex(Math.max(0, benchmarkRuns.length - 1));
+    if (benchmarks.length > 0 && selectedIndex >= benchmarks.length) {
+      setSelectedIndex(Math.max(0, benchmarks.length - 1));
     }
-  }, [benchmarkRuns.length, selectedIndex]);
+  }, [benchmarks.length, selectedIndex]);
 
-  const selectedRun = benchmarkRuns[selectedIndex];
+  const selectedBenchmark = benchmarks[selectedIndex];
 
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + benchmarkRuns.length;
+  const endIndex = startIndex + benchmarks.length;
 
   useInput((input, key) => {
     // Handle search mode input
@@ -207,29 +209,24 @@ export function BenchmarkRunListScreen() {
         const operationKey = operations[selectedOperation].key;
 
         if (operationKey === "view_details") {
-          navigate("benchmark-run-detail", {
-            benchmarkRunId: selectedRun.id,
-          });
-        } else if (operationKey === "view_scenarios") {
-          navigate("scenario-run-list", {
-            benchmarkRunId: selectedRun.id,
+          navigate("benchmark-detail", {
+            benchmarkId: selectedBenchmark.id,
           });
         } else if (operationKey === "create_job") {
-          navigate("benchmark-job-create");
+          navigate("benchmark-job-create", {
+            initialBenchmarkIds: selectedBenchmark.id,
+          });
         }
-      } else if (input === "v" && selectedRun) {
+      } else if (input === "v" && selectedBenchmark) {
         setShowPopup(false);
-        navigate("benchmark-run-detail", {
-          benchmarkRunId: selectedRun.id,
+        navigate("benchmark-detail", {
+          benchmarkId: selectedBenchmark.id,
         });
-      } else if (input === "s" && selectedRun) {
+      } else if (input === "c" && selectedBenchmark) {
         setShowPopup(false);
-        navigate("scenario-run-list", {
-          benchmarkRunId: selectedRun.id,
+        navigate("benchmark-job-create", {
+          initialBenchmarkIds: selectedBenchmark.id,
         });
-      } else if (input === "j") {
-        setShowPopup(false);
-        navigate("benchmark-job-create");
       } else if (key.escape || input === "q") {
         setShowPopup(false);
         setSelectedOperation(0);
@@ -237,12 +234,12 @@ export function BenchmarkRunListScreen() {
       return;
     }
 
-    const pageRuns = benchmarkRuns.length;
+    const pageBenchmarks = benchmarks.length;
 
     // Handle list view navigation
     if (key.upArrow && selectedIndex > 0) {
       setSelectedIndex(selectedIndex - 1);
-    } else if (key.downArrow && selectedIndex < pageRuns - 1) {
+    } else if (key.downArrow && selectedIndex < pageBenchmarks - 1) {
       setSelectedIndex(selectedIndex + 1);
     } else if (
       (input === "n" || key.rightArrow) &&
@@ -260,16 +257,18 @@ export function BenchmarkRunListScreen() {
     ) {
       prevPage();
       setSelectedIndex(0);
-    } else if (key.return && selectedRun) {
-      navigate("benchmark-run-detail", {
-        benchmarkRunId: selectedRun.id,
+    } else if (key.return && selectedBenchmark) {
+      navigate("benchmark-detail", {
+        benchmarkId: selectedBenchmark.id,
       });
-    } else if (input === "a" && selectedRun) {
+    } else if (input === "a" && selectedBenchmark) {
       setShowPopup(true);
       setSelectedOperation(0);
-    } else if (input === "j") {
-      // Quick shortcut to create a new job
-      navigate("benchmark-job-create");
+    } else if (input === "c" && selectedBenchmark) {
+      // Quick shortcut to create a job
+      navigate("benchmark-job-create", {
+        initialBenchmarkIds: selectedBenchmark.id,
+      });
     } else if (input === "/") {
       search.enterSearchMode();
     } else if (key.escape) {
@@ -281,17 +280,17 @@ export function BenchmarkRunListScreen() {
   });
 
   // Loading state
-  if (loading && benchmarkRuns.length === 0) {
+  if (loading && benchmarks.length === 0) {
     return (
       <>
         <Breadcrumb
           items={[
             { label: "Home" },
             { label: "Benchmarks" },
-            { label: "Benchmark Runs", active: true },
+            { label: "Benchmark Definitions", active: true },
           ]}
         />
-        <SpinnerComponent message="Loading benchmark runs..." />
+        <SpinnerComponent message="Loading benchmarks..." />
       </>
     );
   }
@@ -304,10 +303,10 @@ export function BenchmarkRunListScreen() {
           items={[
             { label: "Home" },
             { label: "Benchmarks" },
-            { label: "Benchmark Runs", active: true },
+            { label: "Benchmark Definitions", active: true },
           ]}
         />
-        <ErrorMessage message="Failed to list benchmark runs" error={error} />
+        <ErrorMessage message="Failed to list benchmarks" error={error} />
       </>
     );
   }
@@ -319,7 +318,7 @@ export function BenchmarkRunListScreen() {
         items={[
           { label: "Home" },
           { label: "Benchmarks" },
-          { label: "Benchmark Runs", active: true },
+          { label: "Benchmark Definitions", active: true },
         ]}
       />
 
@@ -331,20 +330,20 @@ export function BenchmarkRunListScreen() {
         resultCount={totalCount}
         onSearchChange={search.setSearchQuery}
         onSearchSubmit={search.submitSearch}
-        placeholder="Search benchmark runs..."
+        placeholder="Search benchmarks..."
       />
 
       {/* Table */}
       {!showPopup && (
         <Table
-          data={benchmarkRuns}
-          keyExtractor={(run: BenchmarkRun) => run.id}
+          data={benchmarks}
+          keyExtractor={(benchmark: Benchmark) => benchmark.id}
           selectedIndex={selectedIndex}
-          title={`benchmark_runs[${totalCount}]`}
+          title={`benchmarks[${totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
-              {figures.info} No benchmark runs found
+              {figures.info} No benchmarks found
             </Text>
           }
         />
@@ -388,10 +387,10 @@ export function BenchmarkRunListScreen() {
       )}
 
       {/* Actions Popup */}
-      {showPopup && selectedRun && (
+      {showPopup && selectedBenchmark && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            devbox={selectedRun}
+            devbox={selectedBenchmark}
             operations={operations.map((op) => ({
               key: op.key,
               label: op.label,
@@ -400,11 +399,9 @@ export function BenchmarkRunListScreen() {
               shortcut:
                 op.key === "view_details"
                   ? "v"
-                  : op.key === "view_scenarios"
+                  : op.key === "create_job"
                     ? "s"
-                    : op.key === "create_job"
-                      ? "j"
-                      : "",
+                    : "",
             }))}
             selectedOperation={selectedOperation}
             onClose={() => setShowPopup(false)}
@@ -422,7 +419,7 @@ export function BenchmarkRunListScreen() {
             condition: hasMore || hasPrev,
           },
           { key: "Enter", label: "Details" },
-          { key: "j", label: "New Job" },
+          { key: "c", label: "Create Job" },
           { key: "a", label: "Actions" },
           { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },

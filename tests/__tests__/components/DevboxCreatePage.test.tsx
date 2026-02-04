@@ -68,8 +68,9 @@ describe('DevboxCreatePage', () => {
     );
     
     const frame = lastFrame() || '';
-    expect(frame).toContain('Blueprint ID');
-    expect(frame).toContain('Snapshot ID');
+    expect(frame).toContain('Source (optional)');
+    expect(frame).toContain('Blueprint');
+    expect(frame).toContain('Snapshot');
     expect(frame).toContain('Metadata');
   });
 
