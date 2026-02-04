@@ -155,8 +155,8 @@ export function BenchmarkJobListScreen() {
         icon: figures.pointer,
       },
       {
-        key: "create_new",
-        label: "Create New Job",
+        key: "clone_job",
+        label: "Clone Job",
         color: colors.success,
         icon: figures.play,
       },
@@ -281,17 +281,154 @@ export function BenchmarkJobListScreen() {
           navigate("benchmark-job-detail", {
             benchmarkJobId: selectedJob.id,
           });
-        } else if (operationKey === "create_new") {
-          navigate("benchmark-job-create");
+        } else if (operationKey === "clone_job" && selectedJob) {
+          // Pass job data for cloning
+          const cloneParams: any = {
+            cloneFromJobId: selectedJob.id,
+            cloneJobName: selectedJob.name,
+          };
+
+          // Determine source type and extract IDs
+          if (selectedJob.job_spec) {
+            const spec = selectedJob.job_spec as any;
+
+            // Check if it's a scenarios spec (has scenario_ids array)
+            if (spec.scenario_ids && Array.isArray(spec.scenario_ids)) {
+              cloneParams.cloneSourceType = "scenarios";
+              cloneParams.initialScenarioIds = spec.scenario_ids.join(",");
+            }
+            // Check if it's a benchmark spec (has benchmark_id)
+            else if (spec.benchmark_id) {
+              cloneParams.cloneSourceType = "benchmark";
+              cloneParams.initialBenchmarkIds = spec.benchmark_id;
+            }
+            // Fallback: check job_source
+            else if (selectedJob.job_source) {
+              const source = selectedJob.job_source as any;
+              if (source.scenario_ids && Array.isArray(source.scenario_ids)) {
+                cloneParams.cloneSourceType = "scenarios";
+                cloneParams.initialScenarioIds = source.scenario_ids.join(",");
+              } else if (source.benchmark_id) {
+                cloneParams.cloneSourceType = "benchmark";
+                cloneParams.initialBenchmarkIds = source.benchmark_id;
+              }
+            }
+          }
+
+          // Extract agent configs - both full configs and legacy fields
+          if (selectedJob.job_spec?.agent_configs) {
+            const agentConfigs = selectedJob.job_spec.agent_configs.map(
+              (a: any) => ({
+                agentId: a.agent_id,
+                name: a.name,
+                modelName: a.model_name,
+                timeoutSeconds: a.timeout_seconds,
+                kwargs: a.kwargs,
+                environmentVariables:
+                  a.agent_environment?.environment_variables,
+                secrets: a.agent_environment?.secrets,
+              }),
+            );
+            cloneParams.cloneAgentConfigs = JSON.stringify(agentConfigs);
+
+            // Also extract legacy fields for form initialization
+            cloneParams.cloneAgentIds = selectedJob.job_spec.agent_configs
+              .map((a: any) => a.agent_id)
+              .join(",");
+            cloneParams.cloneAgentNames = selectedJob.job_spec.agent_configs
+              .map((a: any) => a.name)
+              .join(",");
+          }
+
+          // Extract orchestrator config
+          if (selectedJob.job_spec?.orchestrator_config) {
+            const orch = selectedJob.job_spec.orchestrator_config;
+            cloneParams.cloneOrchestratorConfig = JSON.stringify({
+              nAttempts: orch.n_attempts,
+              nConcurrentTrials: orch.n_concurrent_trials,
+              quiet: orch.quiet,
+              timeoutMultiplier: orch.timeout_multiplier,
+            });
+          }
+
+          navigate("benchmark-job-create", cloneParams);
         }
       } else if (input === "v" && selectedJob) {
         setShowPopup(false);
         navigate("benchmark-job-detail", {
           benchmarkJobId: selectedJob.id,
         });
-      } else if (input === "n") {
+      } else if (input === "n" && selectedJob) {
         setShowPopup(false);
-        navigate("benchmark-job-create");
+        // Clone the selected job
+        const cloneParams: any = {
+          cloneFromJobId: selectedJob.id,
+          cloneJobName: selectedJob.name,
+        };
+
+        // Determine source type and extract IDs
+        if (selectedJob.job_spec) {
+          const spec = selectedJob.job_spec as any;
+
+          // Check if it's a scenarios spec (has scenario_ids array)
+          if (spec.scenario_ids && Array.isArray(spec.scenario_ids)) {
+            cloneParams.cloneSourceType = "scenarios";
+            cloneParams.initialScenarioIds = spec.scenario_ids.join(",");
+          }
+          // Check if it's a benchmark spec (has benchmark_id)
+          else if (spec.benchmark_id) {
+            cloneParams.cloneSourceType = "benchmark";
+            cloneParams.initialBenchmarkIds = spec.benchmark_id;
+          }
+          // Fallback: check job_source
+          else if (selectedJob.job_source) {
+            const source = selectedJob.job_source as any;
+            if (source.scenario_ids && Array.isArray(source.scenario_ids)) {
+              cloneParams.cloneSourceType = "scenarios";
+              cloneParams.initialScenarioIds = source.scenario_ids.join(",");
+            } else if (source.benchmark_id) {
+              cloneParams.cloneSourceType = "benchmark";
+              cloneParams.initialBenchmarkIds = source.benchmark_id;
+            }
+          }
+        }
+
+        // Extract agent configs - both full configs and legacy fields
+        if (selectedJob.job_spec?.agent_configs) {
+          const agentConfigs = selectedJob.job_spec.agent_configs.map(
+            (a: any) => ({
+              agentId: a.agent_id,
+              name: a.name,
+              modelName: a.model_name,
+              timeoutSeconds: a.timeout_seconds,
+              kwargs: a.kwargs,
+              environmentVariables: a.agent_environment?.environment_variables,
+              secrets: a.agent_environment?.secrets,
+            }),
+          );
+          cloneParams.cloneAgentConfigs = JSON.stringify(agentConfigs);
+
+          // Also extract legacy fields for form initialization
+          cloneParams.cloneAgentIds = selectedJob.job_spec.agent_configs
+            .map((a: any) => a.agent_id)
+            .join(",");
+          cloneParams.cloneAgentNames = selectedJob.job_spec.agent_configs
+            .map((a: any) => a.name)
+            .join(",");
+        }
+
+        // Extract orchestrator config
+        if (selectedJob.job_spec?.orchestrator_config) {
+          const orch = selectedJob.job_spec.orchestrator_config;
+          cloneParams.cloneOrchestratorConfig = JSON.stringify({
+            nAttempts: orch.n_attempts,
+            nConcurrentTrials: orch.n_concurrent_trials,
+            quiet: orch.quiet,
+            timeoutMultiplier: orch.timeout_multiplier,
+          });
+        }
+
+        navigate("benchmark-job-create", cloneParams);
       } else if (key.escape || input === "q") {
         setShowPopup(false);
         setSelectedOperation(0);
@@ -329,9 +466,80 @@ export function BenchmarkJobListScreen() {
     } else if (input === "a" && selectedJob) {
       setShowPopup(true);
       setSelectedOperation(0);
-    } else if (input === "c") {
-      // Quick shortcut to create a new job
-      navigate("benchmark-job-create");
+    } else if (input === "3") {
+      // Quick shortcut to clone the selected job, or create a new job if none selected
+      if (selectedJob) {
+        const cloneParams: any = {
+          cloneFromJobId: selectedJob.id,
+          cloneJobName: selectedJob.name,
+        };
+
+        // Determine source type and extract IDs
+        if (selectedJob.job_spec) {
+          const spec = selectedJob.job_spec as any;
+
+          // Check if it's a scenarios spec (has scenario_ids array)
+          if (spec.scenario_ids && Array.isArray(spec.scenario_ids)) {
+            cloneParams.cloneSourceType = "scenarios";
+            cloneParams.initialScenarioIds = spec.scenario_ids.join(",");
+          }
+          // Check if it's a benchmark spec (has benchmark_id)
+          else if (spec.benchmark_id) {
+            cloneParams.cloneSourceType = "benchmark";
+            cloneParams.initialBenchmarkIds = spec.benchmark_id;
+          }
+          // Fallback: check job_source
+          else if (selectedJob.job_source) {
+            const source = selectedJob.job_source as any;
+            if (source.scenario_ids && Array.isArray(source.scenario_ids)) {
+              cloneParams.cloneSourceType = "scenarios";
+              cloneParams.initialScenarioIds = source.scenario_ids.join(",");
+            } else if (source.benchmark_id) {
+              cloneParams.cloneSourceType = "benchmark";
+              cloneParams.initialBenchmarkIds = source.benchmark_id;
+            }
+          }
+        }
+
+        // Extract agent configs - both full configs and legacy fields
+        if (selectedJob.job_spec?.agent_configs) {
+          const agentConfigs = selectedJob.job_spec.agent_configs.map(
+            (a: any) => ({
+              agentId: a.agent_id,
+              name: a.name,
+              modelName: a.model_name,
+              timeoutSeconds: a.timeout_seconds,
+              kwargs: a.kwargs,
+              environmentVariables: a.agent_environment?.environment_variables,
+              secrets: a.agent_environment?.secrets,
+            }),
+          );
+          cloneParams.cloneAgentConfigs = JSON.stringify(agentConfigs);
+
+          // Also extract legacy fields for form initialization
+          cloneParams.cloneAgentIds = selectedJob.job_spec.agent_configs
+            .map((a: any) => a.agent_id)
+            .join(",");
+          cloneParams.cloneAgentNames = selectedJob.job_spec.agent_configs
+            .map((a: any) => a.name)
+            .join(",");
+        }
+
+        // Extract orchestrator config
+        if (selectedJob.job_spec?.orchestrator_config) {
+          const orch = selectedJob.job_spec.orchestrator_config;
+          cloneParams.cloneOrchestratorConfig = JSON.stringify({
+            nAttempts: orch.n_attempts,
+            nConcurrentTrials: orch.n_concurrent_trials,
+            quiet: orch.quiet,
+            timeoutMultiplier: orch.timeout_multiplier,
+          });
+        }
+
+        navigate("benchmark-job-create", cloneParams);
+      } else {
+        navigate("benchmark-job-create");
+      }
     } else if (input === "/") {
       search.enterSearchMode();
     } else if (key.escape) {
@@ -450,7 +658,7 @@ export function BenchmarkJobListScreen() {
               shortcut:
                 op.key === "view_details"
                   ? "v"
-                  : op.key === "create_new"
+                  : op.key === "clone_job"
                     ? "n"
                     : "",
             }))}
@@ -470,7 +678,7 @@ export function BenchmarkJobListScreen() {
             condition: hasMore || hasPrev,
           },
           { key: "Enter", label: "Details" },
-          { key: "c", label: "New Job" },
+          { key: "3", label: "Clone" },
           { key: "a", label: "Actions" },
           { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },

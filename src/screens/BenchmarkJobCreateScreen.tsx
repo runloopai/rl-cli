@@ -15,17 +15,25 @@ import { NavigationTips } from "../components/NavigationTips.js";
 import { ResourcePicker } from "../components/ResourcePicker.js";
 import { colors } from "../utils/theme.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
-import { listBenchmarks } from "../services/benchmarkService.js";
+import { listBenchmarks, getBenchmark } from "../services/benchmarkService.js";
+import {
+  listScenarios,
+  getScenario,
+  type Scenario,
+} from "../services/scenarioService.js";
 import { listAgents, type Agent } from "../services/agentService.js";
 import {
   createBenchmarkJob,
   type BenchmarkJob,
   type AgentConfig,
+  type OrchestratorConfig,
 } from "../services/benchmarkJobService.js";
 import type { Benchmark } from "../store/benchmarkStore.js";
 
 type FormField =
+  | "source_type"
   | "benchmark"
+  | "scenarios"
   | "agents"
   | "name"
   | "agent_timeout"
@@ -33,8 +41,11 @@ type FormField =
   | "create";
 
 interface FormData {
+  sourceType: "benchmark" | "scenarios";
   benchmarkId: string;
   benchmarkName: string;
+  scenarioIds: string[];
+  scenarioNames: string[];
   agentIds: string[];
   agentNames: string[];
   name: string;
@@ -45,6 +56,7 @@ interface FormData {
 type ScreenState =
   | "form"
   | "picking_benchmark"
+  | "picking_scenarios"
   | "picking_agents"
   | "creating"
   | "success"
@@ -52,6 +64,17 @@ type ScreenState =
 
 interface BenchmarkJobCreateScreenProps {
   initialBenchmarkIds?: string;
+  initialScenarioIds?: string;
+  cloneFromJobId?: string;
+  cloneJobName?: string;
+  cloneSourceType?: "benchmark" | "scenarios";
+  cloneAgentConfigs?: string; // JSON serialized AgentConfig[]
+  cloneOrchestratorConfig?: string; // JSON serialized OrchestratorConfig
+  // Legacy props for backward compatibility
+  cloneAgentIds?: string;
+  cloneAgentNames?: string;
+  cloneAgentTimeout?: string;
+  cloneConcurrentTrials?: string;
 }
 
 /**
@@ -122,49 +145,127 @@ function SuccessScreen({
 
 export function BenchmarkJobCreateScreen({
   initialBenchmarkIds,
+  initialScenarioIds,
+  cloneFromJobId,
+  cloneJobName,
+  cloneSourceType,
+  cloneAgentConfigs,
+  cloneOrchestratorConfig,
+  cloneAgentIds,
+  cloneAgentNames,
+  cloneAgentTimeout,
+  cloneConcurrentTrials,
 }: BenchmarkJobCreateScreenProps) {
   const { navigate, goBack } = useNavigation();
 
+  // Determine initial source type and field
+  const initialSourceType: "benchmark" | "scenarios" =
+    cloneSourceType || (initialScenarioIds ? "scenarios" : "benchmark");
+
+  const initialField: FormField =
+    initialBenchmarkIds || initialScenarioIds ? "agents" : "source_type";
+
   const [screenState, setScreenState] = React.useState<ScreenState>("form");
   const [currentField, setCurrentField] =
-    React.useState<FormField>("benchmark");
+    React.useState<FormField>(initialField);
+
   const [formData, setFormData] = React.useState<FormData>({
+    sourceType: initialSourceType,
     benchmarkId: initialBenchmarkIds || "",
     benchmarkName: "",
-    agentIds: [],
-    agentNames: [],
-    name: "",
-    agentTimeout: "",
-    concurrentTrials: "1",
+    scenarioIds: initialScenarioIds ? initialScenarioIds.split(",") : [],
+    scenarioNames: [],
+    agentIds: cloneAgentIds ? cloneAgentIds.split(",") : [],
+    agentNames: cloneAgentNames ? cloneAgentNames.split(",") : [],
+    name: cloneJobName ? `${cloneJobName} (clone)` : "",
+    agentTimeout: cloneAgentTimeout || "",
+    concurrentTrials: cloneConcurrentTrials || "1",
   });
+
   const [createdJob, setCreatedJob] = React.useState<BenchmarkJob | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
 
   // Handle Ctrl+C to exit
   useExitOnCtrlC();
 
-  // Field definitions
+  // Fetch benchmark name if we have an ID (from clone or initial selection)
+  React.useEffect(() => {
+    if (initialBenchmarkIds && !formData.benchmarkName) {
+      getBenchmark(initialBenchmarkIds)
+        .then((benchmark) => {
+          setFormData((prev) => ({
+            ...prev,
+            benchmarkName: benchmark.name || benchmark.id,
+          }));
+        })
+        .catch((err) => {
+          // Silently fail - user can re-select if needed
+          console.error("Failed to fetch benchmark name:", err);
+        });
+    }
+  }, [initialBenchmarkIds, formData.benchmarkName]);
+
+  // Fetch scenario names if we have IDs (from clone or initial selection)
+  React.useEffect(() => {
+    if (
+      initialScenarioIds &&
+      formData.scenarioIds.length > 0 &&
+      formData.scenarioNames.length === 0
+    ) {
+      // Fetch all scenarios to get their names
+      Promise.all(
+        formData.scenarioIds.map((id) =>
+          getScenario(id).catch((err) => {
+            console.error(`Failed to fetch scenario ${id}:`, err);
+            return { id, name: id } as Scenario;
+          }),
+        ),
+      ).then((scenarios) => {
+        setFormData((prev) => ({
+          ...prev,
+          scenarioNames: scenarios.map((s) => s.name || s.id),
+        }));
+      });
+    }
+  }, [initialScenarioIds, formData.scenarioIds, formData.scenarioNames]);
+
+  // Field definitions - conditionally include benchmark or scenarios based on source type
   const fields: Array<{
     key: FormField;
     label: string;
-    type: "text" | "picker" | "action";
+    type: "text" | "picker" | "action" | "toggle";
     placeholder?: string;
     required?: boolean;
     description?: string;
   }> = [
     {
-      key: "benchmark",
-      label: "Benchmark",
-      type: "picker",
+      key: "source_type",
+      label: "Source Type",
+      type: "toggle",
       required: true,
-      description: "Select a benchmark definition to run",
+      description: "Choose between benchmark or scenarios",
     },
+    formData.sourceType === "benchmark"
+      ? {
+          key: "benchmark",
+          label: "Benchmark",
+          type: "picker" as const,
+          required: true,
+          description: "Select a benchmark definition to run",
+        }
+      : {
+          key: "scenarios",
+          label: "Scenarios",
+          type: "picker" as const,
+          required: true,
+          description: "Select one or more scenario definitions to run",
+        },
     {
       key: "agents",
       label: "Agents",
       type: "picker",
       required: true,
-      description: "Select one or more agents to run the benchmark",
+      description: "Select one or more agents to run",
     },
     {
       key: "name",
@@ -200,7 +301,10 @@ export function BenchmarkJobCreateScreen({
 
   // Check if form is valid
   const isFormValid =
-    formData.benchmarkId !== "" && formData.agentIds.length > 0;
+    ((formData.sourceType === "benchmark" && formData.benchmarkId !== "") ||
+      (formData.sourceType === "scenarios" &&
+        formData.scenarioIds.length > 0)) &&
+    formData.agentIds.length > 0;
 
   // Memoize the fetchBenchmarksPage function
   const fetchBenchmarksPage = React.useCallback(
@@ -245,6 +349,23 @@ export function BenchmarkJobCreateScreen({
     [],
   );
 
+  // Memoize the fetchScenariosPage function
+  const fetchScenariosPage = React.useCallback(
+    async (params: { limit: number; startingAt?: string; search?: string }) => {
+      const result = await listScenarios({
+        limit: params.limit,
+        startingAfter: params.startingAt,
+        search: params.search,
+      });
+      return {
+        items: result.scenarios,
+        hasMore: result.hasMore,
+        totalCount: result.totalCount,
+      };
+    },
+    [],
+  );
+
   // Memoize benchmark picker config (single-select)
   const benchmarkPickerConfig = React.useMemo(
     () => ({
@@ -266,6 +387,30 @@ export function BenchmarkJobCreateScreen({
       ],
     }),
     [fetchBenchmarksPage],
+  );
+
+  // Memoize scenario picker config (multi-select)
+  const scenarioPickerConfig = React.useMemo(
+    () => ({
+      title: "Select Scenarios",
+      fetchPage: fetchScenariosPage,
+      getItemId: (scenario: Scenario) => scenario.id,
+      getItemLabel: (scenario: Scenario) => scenario.name || scenario.id,
+      getItemStatus: (scenario: Scenario) =>
+        scenario.is_public ? "public" : "private",
+      mode: "multi" as const,
+      minSelection: 1,
+      emptyMessage: "No scenarios found",
+      searchPlaceholder: "Search scenarios...",
+      breadcrumbItems: [
+        { label: "Home" },
+        { label: "Benchmarks" },
+        { label: "Jobs" },
+        { label: "Create" },
+        { label: "Select Scenarios", active: true },
+      ],
+    }),
+    [fetchScenariosPage],
   );
 
   // Memoize agent picker config (multi-select)
@@ -304,6 +449,16 @@ export function BenchmarkJobCreateScreen({
     setScreenState("form");
   }, []);
 
+  // Handle scenario selection (multi)
+  const handleScenarioSelect = React.useCallback((items: Scenario[]) => {
+    setFormData((prev) => ({
+      ...prev,
+      scenarioIds: items.map((s) => s.id),
+      scenarioNames: items.map((s) => s.name || s.id),
+    }));
+    setScreenState("form");
+  }, []);
+
   // Handle agent selection (multi)
   const handleAgentSelect = React.useCallback((items: Agent[]) => {
     setFormData((prev) => ({
@@ -322,9 +477,14 @@ export function BenchmarkJobCreateScreen({
     setError(null);
 
     try {
-      // Build agent configs for each selected agent
-      const agentConfigs: AgentConfig[] = formData.agentIds.map(
-        (agentId, index) => {
+      // Use cloned agent configs if available, otherwise build from form
+      let agentConfigs: AgentConfig[];
+      if (cloneAgentConfigs) {
+        // Use the full cloned configs
+        agentConfigs = JSON.parse(cloneAgentConfigs);
+      } else {
+        // Build agent configs from form data (backward compatibility)
+        agentConfigs = formData.agentIds.map((agentId, index) => {
           const config: AgentConfig = {
             name: formData.agentNames[index],
             agentId: agentId,
@@ -338,18 +498,31 @@ export function BenchmarkJobCreateScreen({
           }
 
           return config;
-        },
-      );
+        });
+      }
+
+      // Use cloned orchestrator config if available, otherwise build from form
+      let orchestratorConfig: OrchestratorConfig | undefined;
+      if (cloneOrchestratorConfig) {
+        orchestratorConfig = JSON.parse(cloneOrchestratorConfig);
+      } else if (formData.concurrentTrials) {
+        orchestratorConfig = {
+          nConcurrentTrials: parseInt(formData.concurrentTrials, 10) || 1,
+        };
+      }
 
       const job = await createBenchmarkJob({
         name: formData.name || undefined,
-        benchmarkId: formData.benchmarkId,
+        benchmarkId:
+          formData.sourceType === "benchmark"
+            ? formData.benchmarkId
+            : undefined,
+        scenarioIds:
+          formData.sourceType === "scenarios"
+            ? formData.scenarioIds
+            : undefined,
         agentConfigs,
-        orchestratorConfig: formData.concurrentTrials
-          ? {
-              nConcurrentTrials: parseInt(formData.concurrentTrials, 10) || 1,
-            }
-          : undefined,
+        orchestratorConfig,
       });
 
       setCreatedJob(job);
@@ -358,11 +531,27 @@ export function BenchmarkJobCreateScreen({
       setError(err as Error);
       setScreenState("error");
     }
-  }, [formData, isFormValid]);
+  }, [formData, isFormValid, cloneAgentConfigs, cloneOrchestratorConfig]);
 
   // Handle input
   useInput((input, key) => {
     if (screenState !== "form") return;
+
+    // Handle source type toggle with left/right arrows
+    if (currentField === "source_type" && (key.leftArrow || key.rightArrow)) {
+      setFormData((prev) => ({
+        ...prev,
+        sourceType: prev.sourceType === "benchmark" ? "scenarios" : "benchmark",
+        // Clear the other source when switching
+        benchmarkId: prev.sourceType === "scenarios" ? "" : prev.benchmarkId,
+        benchmarkName:
+          prev.sourceType === "scenarios" ? "" : prev.benchmarkName,
+        scenarioIds: prev.sourceType === "benchmark" ? [] : prev.scenarioIds,
+        scenarioNames:
+          prev.sourceType === "benchmark" ? [] : prev.scenarioNames,
+      }));
+      return;
+    }
 
     // Navigate between fields
     if (key.upArrow && currentFieldIndex > 0) {
@@ -374,6 +563,11 @@ export function BenchmarkJobCreateScreen({
     } else if (key.return) {
       if (currentFieldDef?.type === "picker" && currentField === "benchmark") {
         setScreenState("picking_benchmark");
+      } else if (
+        currentFieldDef?.type === "picker" &&
+        currentField === "scenarios"
+      ) {
+        setScreenState("picking_scenarios");
       } else if (
         currentFieldDef?.type === "picker" &&
         currentField === "agents"
@@ -399,6 +593,18 @@ export function BenchmarkJobCreateScreen({
         onSelect={handleBenchmarkSelect}
         onCancel={() => setScreenState("form")}
         initialSelected={formData.benchmarkId ? [formData.benchmarkId] : []}
+      />
+    );
+  }
+
+  // Show scenario picker (multi-select)
+  if (screenState === "picking_scenarios") {
+    return (
+      <ResourcePicker<Scenario>
+        config={scenarioPickerConfig}
+        onSelect={handleScenarioSelect}
+        onCancel={() => setScreenState("form")}
+        initialSelected={formData.scenarioIds}
       />
     );
   }
@@ -481,8 +687,21 @@ export function BenchmarkJobCreateScreen({
   // Helper to get display value for a field
   const getFieldValue = (fieldKey: FormField): string => {
     switch (fieldKey) {
+      case "source_type":
+        return formData.sourceType === "benchmark" ? "Benchmark" : "Scenarios";
       case "benchmark":
         return formData.benchmarkName;
+      case "scenarios":
+        // Show count based on IDs even if names aren't loaded yet
+        if (formData.scenarioIds.length === 0) return "";
+        if (formData.scenarioIds.length === 1) {
+          return formData.scenarioNames[0] || formData.scenarioIds[0];
+        }
+        // If we have names, show the first name + count, otherwise show count
+        if (formData.scenarioNames.length > 0) {
+          return `${formData.scenarioNames.length} scenarios selected`;
+        }
+        return `${formData.scenarioIds.length} scenarios selected`;
       case "agents":
         if (formData.agentNames.length === 0) return "";
         if (formData.agentNames.length === 1) return formData.agentNames[0];
@@ -499,6 +718,8 @@ export function BenchmarkJobCreateScreen({
   };
 
   // Main form view
+  const isCloning = !!cloneFromJobId;
+
   return (
     <>
       <Breadcrumb
@@ -506,14 +727,15 @@ export function BenchmarkJobCreateScreen({
           { label: "Home" },
           { label: "Benchmarks" },
           { label: "Jobs" },
-          { label: "Create", active: true },
+          { label: isCloning ? "Clone Job" : "Create", active: true },
         ]}
       />
 
       <Box flexDirection="column" paddingX={1}>
         <Box marginBottom={1}>
           <Text color={colors.primary} bold>
-            {figures.pointer} Create Benchmark Job
+            {figures.pointer}{" "}
+            {isCloning ? "Clone Benchmark Job" : "Create Benchmark Job"}
           </Text>
         </Box>
 
@@ -529,7 +751,44 @@ export function BenchmarkJobCreateScreen({
                 </Text>
               </Box>
 
-              {field.type === "action" ? (
+              {field.type === "toggle" ? (
+                <Box>
+                  <Text color={colors.textDim} dimColor>
+                    {field.label}
+                    {field.required && <Text color={colors.error}>*</Text>}
+                    :{" "}
+                  </Text>
+                  {/* Toggle between Benchmark and Scenarios */}
+                  <Text color={isSelected ? colors.text : colors.textDim}>
+                    {isSelected ? figures.arrowLeft : ""}{" "}
+                  </Text>
+                  <Text
+                    color={
+                      formData.sourceType === "benchmark"
+                        ? colors.primary
+                        : colors.textDim
+                    }
+                    bold={formData.sourceType === "benchmark"}
+                  >
+                    Benchmark
+                  </Text>
+                  <Text color={colors.textDim}> / </Text>
+                  <Text
+                    color={
+                      formData.sourceType === "scenarios"
+                        ? colors.primary
+                        : colors.textDim
+                    }
+                    bold={formData.sourceType === "scenarios"}
+                  >
+                    Scenarios
+                  </Text>
+                  <Text color={isSelected ? colors.text : colors.textDim}>
+                    {" "}
+                    {isSelected ? figures.arrowRight : ""}
+                  </Text>
+                </Box>
+              ) : field.type === "action" ? (
                 <Box>
                   <Text
                     color={isFormValid ? colors.success : colors.textDim}
@@ -538,7 +797,7 @@ export function BenchmarkJobCreateScreen({
                   >
                     {" "}
                     {figures.play} {field.label}{" "}
-                    {!isFormValid && "(select benchmark and agents)"}
+                    {!isFormValid && "(select benchmark/scenarios and agents)"}
                   </Text>
                 </Box>
               ) : field.type === "picker" ? (

@@ -6,7 +6,7 @@
 
 A **TUI + CLI** for the [Runloop.ai](https://runloop.ai) platform. Use it as an **interactive TUI** (Terminal User Interface) with rich UI components, or as a **traditional CLI** for scripting and automation.
 
-📖 **[Full Documentation](https://docs.runloop.ai/docs/tools/cli)**
+📖 **[Full Documentation](https://docs.runloop.ai/docs/tools/rl-cli)**
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/runloopai/rl-cli/main/misc/demo.gif" alt="Runloop CLI Demo" width="800">
