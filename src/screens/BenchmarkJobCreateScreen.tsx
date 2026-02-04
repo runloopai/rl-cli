@@ -160,14 +160,14 @@ export function BenchmarkJobCreateScreen({
 
   // Determine initial source type and field
   const initialSourceType: "benchmark" | "scenarios" =
-    cloneSourceType ||
-    (initialScenarioIds ? "scenarios" : "benchmark");
+    cloneSourceType || (initialScenarioIds ? "scenarios" : "benchmark");
 
   const initialField: FormField =
     initialBenchmarkIds || initialScenarioIds ? "agents" : "source_type";
 
   const [screenState, setScreenState] = React.useState<ScreenState>("form");
-  const [currentField, setCurrentField] = React.useState<FormField>(initialField);
+  const [currentField, setCurrentField] =
+    React.useState<FormField>(initialField);
 
   const [formData, setFormData] = React.useState<FormData>({
     sourceType: initialSourceType,
@@ -218,8 +218,8 @@ export function BenchmarkJobCreateScreen({
           getScenario(id).catch((err) => {
             console.error(`Failed to fetch scenario ${id}:`, err);
             return { id, name: id } as Scenario;
-          })
-        )
+          }),
+        ),
       ).then((scenarios) => {
         setFormData((prev) => ({
           ...prev,
@@ -302,7 +302,8 @@ export function BenchmarkJobCreateScreen({
   // Check if form is valid
   const isFormValid =
     ((formData.sourceType === "benchmark" && formData.benchmarkId !== "") ||
-      (formData.sourceType === "scenarios" && formData.scenarioIds.length > 0)) &&
+      (formData.sourceType === "scenarios" &&
+        formData.scenarioIds.length > 0)) &&
     formData.agentIds.length > 0;
 
   // Memoize the fetchBenchmarksPage function
@@ -395,7 +396,8 @@ export function BenchmarkJobCreateScreen({
       fetchPage: fetchScenariosPage,
       getItemId: (scenario: Scenario) => scenario.id,
       getItemLabel: (scenario: Scenario) => scenario.name || scenario.id,
-      getItemStatus: (scenario: Scenario) => (scenario.is_public ? "public" : "private"),
+      getItemStatus: (scenario: Scenario) =>
+        scenario.is_public ? "public" : "private",
       mode: "multi" as const,
       minSelection: 1,
       emptyMessage: "No scenarios found",
@@ -511,8 +513,14 @@ export function BenchmarkJobCreateScreen({
 
       const job = await createBenchmarkJob({
         name: formData.name || undefined,
-        benchmarkId: formData.sourceType === "benchmark" ? formData.benchmarkId : undefined,
-        scenarioIds: formData.sourceType === "scenarios" ? formData.scenarioIds : undefined,
+        benchmarkId:
+          formData.sourceType === "benchmark"
+            ? formData.benchmarkId
+            : undefined,
+        scenarioIds:
+          formData.sourceType === "scenarios"
+            ? formData.scenarioIds
+            : undefined,
         agentConfigs,
         orchestratorConfig,
       });
@@ -536,9 +544,11 @@ export function BenchmarkJobCreateScreen({
         sourceType: prev.sourceType === "benchmark" ? "scenarios" : "benchmark",
         // Clear the other source when switching
         benchmarkId: prev.sourceType === "scenarios" ? "" : prev.benchmarkId,
-        benchmarkName: prev.sourceType === "scenarios" ? "" : prev.benchmarkName,
+        benchmarkName:
+          prev.sourceType === "scenarios" ? "" : prev.benchmarkName,
         scenarioIds: prev.sourceType === "benchmark" ? [] : prev.scenarioIds,
-        scenarioNames: prev.sourceType === "benchmark" ? [] : prev.scenarioNames,
+        scenarioNames:
+          prev.sourceType === "benchmark" ? [] : prev.scenarioNames,
       }));
       return;
     }
@@ -553,7 +563,10 @@ export function BenchmarkJobCreateScreen({
     } else if (key.return) {
       if (currentFieldDef?.type === "picker" && currentField === "benchmark") {
         setScreenState("picking_benchmark");
-      } else if (currentFieldDef?.type === "picker" && currentField === "scenarios") {
+      } else if (
+        currentFieldDef?.type === "picker" &&
+        currentField === "scenarios"
+      ) {
         setScreenState("picking_scenarios");
       } else if (
         currentFieldDef?.type === "picker" &&
@@ -721,7 +734,8 @@ export function BenchmarkJobCreateScreen({
       <Box flexDirection="column" paddingX={1}>
         <Box marginBottom={1}>
           <Text color={colors.primary} bold>
-            {figures.pointer} {isCloning ? "Clone Benchmark Job" : "Create Benchmark Job"}
+            {figures.pointer}{" "}
+            {isCloning ? "Clone Benchmark Job" : "Create Benchmark Job"}
           </Text>
         </Box>
 
