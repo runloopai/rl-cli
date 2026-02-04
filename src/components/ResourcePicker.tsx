@@ -328,7 +328,27 @@ export function ResourcePicker<T>({
           keyExtractor={config.getItemId}
           selectedIndex={selectedIndex}
           title={`${config.title.toLowerCase()}[${totalCount}]${config.mode === "multi" ? ` (${selectedIds.size} selected)` : ""}`}
-          columns={config.columns}
+          columns={
+            config.mode === "multi"
+              ? [
+                  // Prepend checkbox column for multi-select mode
+                  createComponentColumn<T>(
+                    "_selection",
+                    "",
+                    (row) => {
+                      const isChecked = selectedIds.has(config.getItemId(row));
+                      return (
+                        <Text color={isChecked ? colors.success : colors.textDim}>
+                          {isChecked ? figures.checkboxOn : figures.checkboxOff}{" "}
+                        </Text>
+                      );
+                    },
+                    { width: 3 },
+                  ),
+                  ...config.columns,
+                ]
+              : config.columns
+          }
           emptyState={
             <Text color={colors.textDim}>
               {figures.info} {config.emptyMessage || "No items found"}
@@ -356,6 +376,7 @@ export function ResourcePicker<T>({
               const id = config.getItemId(item);
               const label = config.getItemLabel(item);
               const status = config.getItemStatus?.(item);
+              const isChecked = selectedIds.has(id);
 
               return (
                 <Box key={id}>
@@ -363,6 +384,12 @@ export function ResourcePicker<T>({
                     {isHighlighted ? figures.pointer : " "}
                   </Text>
                   <Text> </Text>
+                  {/* Show checkbox for multi-select mode */}
+                  {config.mode === "multi" && (
+                    <Text color={isChecked ? colors.success : colors.textDim}>
+                      {isChecked ? figures.checkboxOn : figures.checkboxOff}{" "}
+                    </Text>
+                  )}
                   <Text
                     color={colors.text}
                     bold={isHighlighted}
