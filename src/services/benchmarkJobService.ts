@@ -43,7 +43,8 @@ export interface OrchestratorConfig {
 
 export interface CreateBenchmarkJobOptions {
   name?: string;
-  benchmarkId: string;
+  benchmarkId?: string;
+  scenarioIds?: string[];
   agentConfigs: AgentConfig[];
   orchestratorConfig?: OrchestratorConfig;
 }
@@ -92,59 +93,64 @@ export async function getBenchmarkJob(id: string): Promise<BenchmarkJob> {
 }
 
 /**
- * Create a benchmark job with benchmark definition spec
+ * Create a benchmark job with either benchmark definition spec or scenario definition spec
  */
 export async function createBenchmarkJob(
   options: CreateBenchmarkJobOptions,
 ): Promise<BenchmarkJob> {
   const client = getClient();
 
+  // Validate that either benchmarkId or scenarioIds is provided
+  if (!options.benchmarkId && !options.scenarioIds) {
+    throw new Error("Either benchmarkId or scenarioIds must be provided");
+  }
+  if (options.benchmarkId && options.scenarioIds) {
+    throw new Error("Cannot specify both benchmarkId and scenarioIds");
+  }
+
   // Build agent configs in API format
-  const agentConfigs: BenchmarkJobCreateParams.BenchmarkDefinitionJobSpec["agent_configs"] =
-    options.agentConfigs.map((agent) => {
-      const config: BenchmarkJobCreateParams.BenchmarkDefinitionJobSpec.AgentConfig =
-        {
-          name: agent.name,
-          type: "job_agent" as const,
-        };
+  // Use the same agent config type for both spec types
+  const agentConfigs: Array<any> = options.agentConfigs.map((agent) => {
+    const config: any = {
+      name: agent.name,
+      type: "job_agent" as const,
+    };
 
-      if (agent.agentId) {
-        config.agent_id = agent.agentId;
-      }
-      if (agent.modelName) {
-        config.model_name = agent.modelName;
-      }
-      if (agent.timeoutSeconds) {
-        config.timeout_seconds = agent.timeoutSeconds;
-      }
-      if (agent.kwargs && Object.keys(agent.kwargs).length > 0) {
-        config.kwargs = agent.kwargs;
-      }
+    if (agent.agentId) {
+      config.agent_id = agent.agentId;
+    }
+    if (agent.modelName) {
+      config.model_name = agent.modelName;
+    }
+    if (agent.timeoutSeconds) {
+      config.timeout_seconds = agent.timeoutSeconds;
+    }
+    if (agent.kwargs && Object.keys(agent.kwargs).length > 0) {
+      config.kwargs = agent.kwargs;
+    }
+    if (
+      (agent.environmentVariables &&
+        Object.keys(agent.environmentVariables).length > 0) ||
+      (agent.secrets && Object.keys(agent.secrets).length > 0)
+    ) {
+      config.agent_environment = {};
       if (
-        (agent.environmentVariables &&
-          Object.keys(agent.environmentVariables).length > 0) ||
-        (agent.secrets && Object.keys(agent.secrets).length > 0)
+        agent.environmentVariables &&
+        Object.keys(agent.environmentVariables).length > 0
       ) {
-        config.agent_environment = {};
-        if (
-          agent.environmentVariables &&
-          Object.keys(agent.environmentVariables).length > 0
-        ) {
-          config.agent_environment.environment_variables =
-            agent.environmentVariables;
-        }
-        if (agent.secrets && Object.keys(agent.secrets).length > 0) {
-          config.agent_environment.secrets = agent.secrets;
-        }
+        config.agent_environment.environment_variables =
+          agent.environmentVariables;
       }
+      if (agent.secrets && Object.keys(agent.secrets).length > 0) {
+        config.agent_environment.secrets = agent.secrets;
+      }
+    }
 
-      return config;
-    });
+    return config;
+  });
 
   // Build orchestrator config if provided
-  let orchestratorConfig:
-    | BenchmarkJobCreateParams.BenchmarkDefinitionJobSpec["orchestrator_config"]
-    | undefined;
+  let orchestratorConfig: any;
   if (options.orchestratorConfig) {
     orchestratorConfig = {};
     if (options.orchestratorConfig.nAttempts !== undefined) {
@@ -163,14 +169,27 @@ export async function createBenchmarkJob(
     }
   }
 
-  const createParams: BenchmarkJobCreateParams = {
-    name: options.name,
-    spec: {
+  // Build the appropriate spec based on what's provided
+  let spec: BenchmarkJobCreateParams["spec"];
+  if (options.benchmarkId) {
+    spec = {
       type: "benchmark" as const,
       benchmark_id: options.benchmarkId,
       agent_configs: agentConfigs,
       orchestrator_config: orchestratorConfig,
-    },
+    };
+  } else if (options.scenarioIds) {
+    spec = {
+      type: "scenarios" as const,
+      scenario_ids: options.scenarioIds,
+      agent_configs: agentConfigs,
+      orchestrator_config: orchestratorConfig,
+    };
+  }
+
+  const createParams: BenchmarkJobCreateParams = {
+    name: options.name,
+    spec,
   };
 
   return client.benchmarkJobs.create(createParams);
