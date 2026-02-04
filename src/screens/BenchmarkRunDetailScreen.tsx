@@ -3,12 +3,13 @@
  * Uses the generic ResourceDetailPage component
  */
 import React from "react";
-import { Text } from "ink";
+import { Box, Text } from "ink";
 import figures from "figures";
 import { useNavigation } from "../store/navigationStore.js";
 import {
   useBenchmarkStore,
   type BenchmarkRun,
+  type ScenarioRun,
 } from "../store/benchmarkStore.js";
 import {
   ResourceDetailPage,
@@ -16,10 +17,16 @@ import {
   type DetailSection,
   type ResourceOperation,
 } from "../components/ResourceDetailPage.js";
-import { getBenchmarkRun } from "../services/benchmarkService.js";
+import { getBenchmarkRun, listScenarioRuns } from "../services/benchmarkService.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
+import { getStatusDisplay, StatusBadge } from "../components/StatusBadge.js";
+import {
+  Table,
+  createTextColumn,
+  createComponentColumn,
+} from "../components/Table.js";
 import { colors } from "../utils/theme.js";
 
 interface BenchmarkRunDetailScreenProps {
@@ -35,6 +42,8 @@ export function BenchmarkRunDetailScreen({
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
   const [fetchedRun, setFetchedRun] = React.useState<BenchmarkRun | null>(null);
+  const [scenarioRuns, setScenarioRuns] = React.useState<ScenarioRun[]>([]);
+  const [scenarioRunsLoading, setScenarioRunsLoading] = React.useState(false);
 
   // Find run in store first
   const runFromStore = benchmarkRuns.find((r) => r.id === benchmarkRunId);
@@ -42,6 +51,19 @@ export function BenchmarkRunDetailScreen({
   // Polling function
   const pollRun = React.useCallback(async () => {
     if (!benchmarkRunId) return null as unknown as BenchmarkRun;
+
+    // Also refresh scenario runs when polling
+    listScenarioRuns({
+      limit: 10,
+      benchmarkRunId,
+    })
+      .then((result) => {
+        setScenarioRuns(result.scenarioRuns);
+      })
+      .catch(() => {
+        // Silently fail for scenario runs
+      });
+
     return getBenchmarkRun(benchmarkRunId);
   }, [benchmarkRunId]);
 
@@ -63,8 +85,51 @@ export function BenchmarkRunDetailScreen({
     }
   }, [benchmarkRunId, loading, fetchedRun]);
 
+  // Fetch scenario runs for this benchmark run
+  React.useEffect(() => {
+    if (benchmarkRunId && !scenarioRunsLoading && scenarioRuns.length === 0) {
+      setScenarioRunsLoading(true);
+
+      listScenarioRuns({
+        limit: 10, // Show up to 10 scenarios
+        benchmarkRunId,
+      })
+        .then((result) => {
+          setScenarioRuns(result.scenarioRuns);
+          setScenarioRunsLoading(false);
+        })
+        .catch(() => {
+          // Silently fail for scenario runs - not critical
+          setScenarioRunsLoading(false);
+        });
+    }
+  }, [benchmarkRunId, scenarioRunsLoading, scenarioRuns.length]);
+
   // Use fetched run for full details, fall back to store for basic display
   const run = fetchedRun || runFromStore;
+
+  // Auto-refresh scenario runs every 5 seconds if benchmark run is running
+  React.useEffect(() => {
+    if (!benchmarkRunId || !run) return;
+
+    // Only refresh if run is still running
+    if (run.state !== "running") return;
+
+    const interval = setInterval(() => {
+      listScenarioRuns({
+        limit: 10,
+        benchmarkRunId,
+      })
+        .then((result) => {
+          setScenarioRuns(result.scenarioRuns);
+        })
+        .catch(() => {
+          // Silently fail
+        });
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [benchmarkRunId, run]);
 
   // Show loading state
   if (!run && benchmarkRunId && !error) {
@@ -123,6 +188,70 @@ export function BenchmarkRunDetailScreen({
     );
   }
 
+  // Helper to calculate overall run status based on scenarios
+  const calculateOverallStatus = (scenarios: ScenarioRun[]): {
+    status: "failed" | "pass" | "in-progress" | "not-started";
+    label: string;
+    color: string;
+    icon: string;
+  } => {
+    if (scenarios.length === 0) {
+      return {
+        status: "not-started",
+        label: "Not Started",
+        color: colors.textDim,
+        icon: figures.circle,
+      };
+    }
+
+    // Check for any failures or timeouts
+    const hasFailed = scenarios.some(
+      (s) => s.state === "failed" || s.state === "timeout"
+    );
+    if (hasFailed) {
+      return {
+        status: "failed",
+        label: "Failed",
+        color: colors.error,
+        icon: figures.cross,
+      };
+    }
+
+    // Check if all are completed
+    const allCompleted = scenarios.every(
+      (s) => s.state === "completed" || s.state === "scored"
+    );
+    if (allCompleted) {
+      return {
+        status: "pass",
+        label: "Complete",
+        color: colors.success,
+        icon: figures.tick,
+      };
+    }
+
+    // Check if any are running
+    const anyRunning = scenarios.some(
+      (s) => s.state === "running" || s.state === "scoring"
+    );
+    if (anyRunning) {
+      return {
+        status: "in-progress",
+        label: "In Progress",
+        color: colors.warning,
+        icon: figures.circleFilled,
+      };
+    }
+
+    // Default to not started
+    return {
+      status: "not-started",
+      label: "Not Started",
+      color: colors.textDim,
+      icon: figures.circle,
+    };
+  };
+
   // Helper to format duration
   const formatDuration = (ms: number): string => {
     if (ms < 1000) return `${ms}ms`;
@@ -173,6 +302,95 @@ export function BenchmarkRunDetailScreen({
     });
   }
 
+  // Overall Status Section
+  const overallStatus = calculateOverallStatus(scenarioRuns);
+  detailSections.push({
+    title: "Overall Status",
+    icon: overallStatus.icon,
+    color: overallStatus.color,
+    fields: [
+      {
+        label: "Status",
+        value: (
+          <Text color={overallStatus.color} bold>
+            {overallStatus.label}
+          </Text>
+        ),
+      },
+      {
+        label: "Scenarios",
+        value: `${scenarioRuns.length} scenario${scenarioRuns.length !== 1 ? "s" : ""}`,
+      },
+    ],
+  });
+
+  // Scenario Runs Section
+  if (scenarioRuns.length > 0) {
+    // Define columns for scenario table
+    const scenarioColumns = [
+      createTextColumn("id", "ID", (s: ScenarioRun) => s.id, {
+        width: 26,
+        color: colors.idColor,
+        dimColor: false,
+        bold: false,
+      }),
+      createTextColumn("name", "Name", (s: ScenarioRun) => s.name || "(unnamed)", {
+        width: 50,
+      }),
+      createComponentColumn<ScenarioRun>(
+        "status",
+        "Status",
+        (s, _index, isSelected) => {
+          const statusDisplay = getStatusDisplay(s.state);
+          const text = statusDisplay.text.slice(0, 12).padEnd(12, " ");
+          return (
+            <Text
+              color={isSelected ? colors.text : statusDisplay.color}
+              bold={isSelected}
+              inverse={isSelected}
+            >
+              {text}
+            </Text>
+          );
+        },
+        { width: 12 },
+      ),
+      createTextColumn(
+        "score",
+        "Score",
+        (s: ScenarioRun) => {
+          const score = s.scoring_contract_result?.score;
+          return score !== undefined ? String(score) : "";
+        },
+        {
+          width: 10,
+          color: colors.info,
+        },
+      ),
+    ];
+
+    detailSections.push({
+      title: "Scenario Runs",
+      icon: figures.pointer,
+      color: colors.info,
+      fields: [
+        {
+          label: "",
+          value: (
+            <Box paddingTop={1}>
+              <Table
+                data={scenarioRuns}
+                columns={scenarioColumns}
+                selectedIndex={-1}
+                keyExtractor={(s) => s.id}
+              />
+            </Box>
+          ),
+        },
+      ],
+    });
+  }
+
   // Timing section
   const timingFields = [];
   if (run.start_time_ms) {
@@ -204,26 +422,6 @@ export function BenchmarkRunDetailScreen({
       icon: figures.play,
       color: colors.info,
       fields: timingFields,
-    });
-  }
-
-  // Environment Variables section
-  if (
-    run.environment_variables &&
-    Object.keys(run.environment_variables).length > 0
-  ) {
-    const envFields = Object.entries(run.environment_variables).map(
-      ([key, value]) => ({
-        label: key,
-        value: <Text color={colors.secondary}>{value}</Text>,
-      }),
-    );
-
-    detailSections.push({
-      title: "Environment Variables",
-      icon: figures.info,
-      color: colors.success,
-      fields: envFields,
     });
   }
 
@@ -368,27 +566,6 @@ export function BenchmarkRunDetailScreen({
       );
     }
     lines.push(<Text key="timing-space"> </Text>);
-
-    // Environment Variables
-    if (
-      r.environment_variables &&
-      Object.keys(r.environment_variables).length > 0
-    ) {
-      lines.push(
-        <Text key="env-title" color={colors.success} bold>
-          Environment Variables
-        </Text>,
-      );
-      Object.entries(r.environment_variables).forEach(([key, value], idx) => {
-        lines.push(
-          <Text key={`env-${idx}`} dimColor>
-            {" "}
-            {key}: {value}
-          </Text>,
-        );
-      });
-      lines.push(<Text key="env-space"> </Text>);
-    }
 
     // Secrets Provided
     if (r.secrets_provided && Object.keys(r.secrets_provided).length > 0) {

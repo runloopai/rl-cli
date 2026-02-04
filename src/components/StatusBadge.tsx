@@ -133,8 +133,8 @@ export const getStatusDisplay = (status: string): StatusDisplay => {
       return {
         icon: figures.tick,
         color: colors.success,
-        text: "COMPLETED ",
-        label: "Completed",
+        text: "COMPLETE  ",
+        label: "Complete",
       };
     case "canceled":
       return {
