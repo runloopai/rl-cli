@@ -338,8 +338,12 @@ export function ResourcePicker<T>({
                     (row) => {
                       const isChecked = selectedIds.has(config.getItemId(row));
                       return (
-                        <Text color={isChecked ? colors.success : colors.textDim}>
-                          {isChecked ? figures.checkboxOn : figures.checkboxOff}{" "}
+                        <Text
+                          color={isChecked ? colors.success : colors.textDim}
+                        >
+                          {isChecked
+                            ? figures.checkboxOn
+                            : figures.checkboxOff}{" "}
                         </Text>
                       );
                     },
@@ -387,7 +391,9 @@ export function ResourcePicker<T>({
                   {/* Show checkbox for multi-select mode */}
                   {config.mode === "multi" && (
                     <Text color={isChecked ? colors.success : colors.textDim}>
-                      {isChecked ? figures.checkboxOn : figures.checkboxOff}{" "}
+                      {isChecked
+                        ? figures.checkboxOn
+                        : figures.checkboxOff}{" "}
                     </Text>
                   )}
                   <Text
