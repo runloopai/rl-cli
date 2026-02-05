@@ -564,7 +564,13 @@ export function BlueprintDetailScreen({
       onOperation={handleOperation}
       onBack={goBack}
       buildDetailLines={buildDetailLines}
-      pollResource={blueprint.status === "building" ? pollBlueprint : undefined}
+      pollResource={
+        blueprint.status === "queued" ||
+        blueprint.status === "provisioning" ||
+        blueprint.status === "building"
+          ? pollBlueprint
+          : undefined
+      }
     />
   );
 }
