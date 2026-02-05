@@ -23,6 +23,7 @@ interface CreateOptions {
   root?: boolean;
   user?: string;
   networkPolicy?: string;
+  tunnel?: string;
   output?: string;
 }
 
@@ -99,6 +100,13 @@ export async function createDevbox(options: CreateOptions = {}) {
       );
     }
 
+    // Validate tunnel option
+    if (options.tunnel && !["open", "authenticated"].includes(options.tunnel)) {
+      outputError(
+        "Invalid tunnel mode. Must be either 'open' or 'authenticated'",
+      );
+    }
+
     // Build launch parameters
     const launchParameters: Record<string, unknown> = {};
     if (options.resources) {
@@ -171,6 +179,13 @@ export async function createDevbox(options: CreateOptions = {}) {
     // Handle secrets
     if (options.secrets && options.secrets.length > 0) {
       createRequest.secrets = parseSecrets(options.secrets);
+    }
+
+    // Handle tunnel configuration
+    if (options.tunnel) {
+      createRequest.tunnel = {
+        auth_mode: options.tunnel,
+      };
     }
 
     if (Object.keys(launchParameters).length > 0) {
