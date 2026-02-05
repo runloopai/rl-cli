@@ -60,6 +60,10 @@ export function createProgram(): Command {
     .option("--user <user:uid>", "Run as this user (format: username:uid)")
     .option("--network-policy <id>", "Network policy ID to apply")
     .option(
+      "--tunnel <mode>",
+      "Tunnel authentication mode (open, authenticated)",
+    )
+    .option(
       "--gateways <gateways...>",
       "Gateway configurations (format: ENV_PREFIX=gateway_id_or_name,secret_id_or_name)",
     )
