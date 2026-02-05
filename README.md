@@ -152,6 +152,16 @@ rli secret update <name>                 # Update a secret value (value from std
 rli secret delete <name>                 # Delete a secret
 ```
 
+### Gateway-config Commands (alias: `gwc`)
+
+```bash
+rli gateway-config list                  # List gateway configurations
+rli gateway-config create                # Create a new gateway configuration
+rli gateway-config get <id>              # Get gateway configuration details
+rli gateway-config update <id>           # Update a gateway configuration
+rli gateway-config delete <id>           # Delete a gateway configuration
+```
+
 ### Mcp Commands
 
 ```bash
