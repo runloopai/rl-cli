@@ -10,6 +10,7 @@ import { useDevboxStore } from "../store/devboxStore.js";
 import { useBlueprintStore } from "../store/blueprintStore.js";
 import { useSnapshotStore } from "../store/snapshotStore.js";
 import { useNetworkPolicyStore } from "../store/networkPolicyStore.js";
+import { useGatewayConfigStore } from "../store/gatewayConfigStore.js";
 import { useObjectStore } from "../store/objectStore.js";
 import { useBenchmarkStore } from "../store/benchmarkStore.js";
 import { useBenchmarkJobStore } from "../store/benchmarkJobStore.js";
@@ -34,6 +35,9 @@ const KNOWN_SCREENS: Set<ScreenName> = new Set([
   "network-policy-list",
   "network-policy-detail",
   "network-policy-create",
+  "gateway-config-list",
+  "gateway-config-detail",
+  "gateway-config-create",
   "secret-list",
   "secret-detail",
   "secret-create",
@@ -105,6 +109,8 @@ import { SnapshotDetailScreen } from "../screens/SnapshotDetailScreen.js";
 import { NetworkPolicyListScreen } from "../screens/NetworkPolicyListScreen.js";
 import { NetworkPolicyDetailScreen } from "../screens/NetworkPolicyDetailScreen.js";
 import { NetworkPolicyCreateScreen } from "../screens/NetworkPolicyCreateScreen.js";
+import { GatewayConfigListScreen } from "../screens/GatewayConfigListScreen.js";
+import { GatewayConfigDetailScreen } from "../screens/GatewayConfigDetailScreen.js";
 import { SettingsMenuScreen } from "../screens/SettingsMenuScreen.js";
 import { SecretListScreen } from "../screens/SecretListScreen.js";
 import { SecretDetailScreen } from "../screens/SecretDetailScreen.js";
@@ -173,6 +179,14 @@ export function Router() {
         case "network-policy-create":
           if (!currentScreen.startsWith("network-policy")) {
             useNetworkPolicyStore.getState().clearAll();
+          }
+          break;
+
+        case "gateway-config-list":
+        case "gateway-config-detail":
+        case "gateway-config-create":
+          if (!currentScreen.startsWith("gateway-config")) {
+            useGatewayConfigStore.getState().clearAll();
           }
           break;
 
@@ -261,6 +275,12 @@ export function Router() {
       )}
       {currentScreen === "network-policy-create" && (
         <NetworkPolicyCreateScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "gateway-config-list" && (
+        <GatewayConfigListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "gateway-config-detail" && (
+        <GatewayConfigDetailScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "secret-list" && (
         <SecretListScreen key={currentScreen} {...params} />
