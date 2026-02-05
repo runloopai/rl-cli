@@ -92,13 +92,6 @@ export const DevboxDetailPage = ({
       shortcut: "s",
     },
     {
-      key: "tunnel",
-      label: "Open Tunnel",
-      color: colors.secondary,
-      icon: figures.pointerSmall,
-      shortcut: "t",
-    },
-    {
       key: "suspend",
       label: "Suspend Devbox",
       color: colors.warning,
@@ -262,6 +255,25 @@ export const DevboxDetailPage = ({
       detailFields.push({
         label: "Network Policy",
         value: <Text color={colors.info}>{lp.network_policy_id}</Text>,
+      });
+    }
+
+    // Tunnel URL
+    if (devbox.tunnel && devbox.tunnel.tunnel_key) {
+      const tunnelKey = devbox.tunnel.tunnel_key;
+      const authMode = devbox.tunnel.auth_mode;
+      const tunnelUrl = `https://{port}-${tunnelKey}.tunnel.runloop.ai`;
+
+      detailFields.push({
+        label: "Tunnel URL",
+        value: (
+          <>
+            <Text color={colors.success}>{tunnelUrl}</Text>
+            {authMode === "authenticated" && (
+              <Text color={colors.warning}> (authenticated)</Text>
+            )}
+          </>
+        ),
       });
     }
 
@@ -518,6 +530,46 @@ export const DevboxDetailPage = ({
         }
       }
       lines.push(<Text key="launch-space"> </Text>);
+    }
+
+    // Tunnel Information
+    if (devbox.tunnel && devbox.tunnel.tunnel_key) {
+      lines.push(
+        <Text key="tunnel-title" color={colors.warning} bold>
+          Tunnel
+        </Text>,
+      );
+      lines.push(
+        <Text key="tunnel-key" dimColor>
+          {" "}
+          Tunnel Key: {devbox.tunnel.tunnel_key}
+        </Text>,
+      );
+      lines.push(
+        <Text key="tunnel-auth" dimColor>
+          {" "}
+          Auth Mode: {devbox.tunnel.auth_mode}
+        </Text>,
+      );
+
+      const tunnelUrl = `https://{port}-${devbox.tunnel.tunnel_key}.tunnel.runloop.ai`;
+      lines.push(
+        <Text key="tunnel-url" color={colors.success}>
+          {" "}
+          Tunnel URL: {tunnelUrl}
+        </Text>,
+      );
+
+      if (devbox.tunnel.auth_token) {
+        lines.push(
+          <Text key="tunnel-token" color={colors.warning}>
+            {" "}
+            Auth Token: {devbox.tunnel.auth_token}
+          </Text>,
+        );
+      }
+
+      lines.push(<Text key="tunnel-space"> </Text>);
     }
 
     // Source
