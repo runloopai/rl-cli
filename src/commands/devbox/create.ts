@@ -24,6 +24,7 @@ interface CreateOptions {
   user?: string;
   networkPolicy?: string;
   tunnel?: string;
+  gateways?: string[];
   output?: string;
 }
 
@@ -70,6 +71,45 @@ function parseCodeMounts(codeMounts: string[]): unknown[] {
       throw new Error(`Invalid code mount JSON: ${mount}`);
     }
   });
+}
+
+// Parse gateways from ENV_PREFIX=gateway,secret format
+function parseGateways(
+  gateways: string[],
+): Record<string, { gateway: string; secret: string }> {
+  const result: Record<string, { gateway: string; secret: string }> = {};
+  for (const gateway of gateways) {
+    const eqIndex = gateway.indexOf("=");
+    if (eqIndex === -1) {
+      throw new Error(
+        `Invalid gateway format: ${gateway}. Expected ENV_PREFIX=gateway_id_or_name,secret_id_or_name`,
+      );
+    }
+    const envPrefix = gateway.substring(0, eqIndex);
+    const valueStr = gateway.substring(eqIndex + 1);
+
+    // Split by comma to get gateway and secret
+    const commaIndex = valueStr.indexOf(",");
+    if (commaIndex === -1) {
+      throw new Error(
+        `Invalid gateway format: ${gateway}. Expected ENV_PREFIX=gateway_id_or_name,secret_id_or_name`,
+      );
+    }
+    const gatewayIdOrName = valueStr.substring(0, commaIndex);
+    const secretIdOrName = valueStr.substring(commaIndex + 1);
+
+    if (!envPrefix || !gatewayIdOrName || !secretIdOrName) {
+      throw new Error(
+        `Invalid gateway format: ${gateway}. Expected ENV_PREFIX=gateway_id_or_name,secret_id_or_name`,
+      );
+    }
+
+    result[envPrefix] = {
+      gateway: gatewayIdOrName,
+      secret: secretIdOrName,
+    };
+  }
+  return result;
 }
 
 export async function createDevbox(options: CreateOptions = {}) {
@@ -186,6 +226,11 @@ export async function createDevbox(options: CreateOptions = {}) {
       createRequest.tunnel = {
         auth_mode: options.tunnel,
       };
+    }
+
+    // Handle gateways
+    if (options.gateways && options.gateways.length > 0) {
+      createRequest.gateways = parseGateways(options.gateways);
     }
 
     if (Object.keys(launchParameters).length > 0) {

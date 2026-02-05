@@ -23,6 +23,13 @@ const settingsMenuItems: SettingsMenuItem[] = [
     color: colors.info,
   },
   {
+    key: "gateway-configs",
+    label: "Gateway Configs",
+    description: "Configure API credential proxying",
+    icon: "⬡",
+    color: colors.success,
+  },
+  {
     key: "secrets",
     label: "Secrets",
     description: "Manage sensitive values and credentials",
@@ -86,7 +93,9 @@ export const SettingsMenu = ({ onSelect, onBack }: SettingsMenuProps) => {
       onBack();
     } else if (input === "n" || input === "1") {
       onSelect("network-policies");
-    } else if (input === "s" || input === "2") {
+    } else if (input === "g" || input === "2") {
+      onSelect("gateway-configs");
+    } else if (input === "s" || input === "3") {
       onSelect("secrets");
     } else if (input === "q") {
       exit();
@@ -146,7 +155,7 @@ export const SettingsMenu = ({ onSelect, onBack }: SettingsMenuProps) => {
         showArrows
         paddingX={2}
         tips={[
-          { key: "1-2", label: "Quick select" },
+          { key: "1-3", label: "Quick select" },
           { key: "Enter", label: "Select" },
           { key: "Esc", label: "Back" },
           { key: "q", label: "Quit" },

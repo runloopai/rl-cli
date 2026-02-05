@@ -17,6 +17,9 @@ export type ScreenName =
   | "network-policy-list"
   | "network-policy-detail"
   | "network-policy-create"
+  | "gateway-config-list"
+  | "gateway-config-detail"
+  | "gateway-config-create"
   | "secret-list"
   | "secret-detail"
   | "secret-create"
@@ -39,6 +42,7 @@ export interface RouteParams {
   blueprintName?: string;
   snapshotId?: string;
   networkPolicyId?: string;
+  gatewayConfigId?: string;
   secretId?: string;
   objectId?: string;
   operation?: string;
