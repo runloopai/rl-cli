@@ -59,7 +59,10 @@ export function createProgram(): Command {
     .option("--root", "Run as root")
     .option("--user <user:uid>", "Run as this user (format: username:uid)")
     .option("--network-policy <id>", "Network policy ID to apply")
-    .option("--tunnel <mode>", "Tunnel authentication mode (open, authenticated)")
+    .option(
+      "--tunnel <mode>",
+      "Tunnel authentication mode (open, authenticated)",
+    )
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
