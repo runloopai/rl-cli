@@ -19,11 +19,25 @@ interface BenchmarkMenuItem {
 
 const benchmarkMenuItems: BenchmarkMenuItem[] = [
   {
+    key: "benchmarks",
+    label: "Benchmarks",
+    description: "View benchmark definitions",
+    icon: "◉",
+    color: colors.primary,
+  },
+  {
     key: "benchmark-runs",
     label: "Benchmark Runs",
     description: "View and manage benchmark executions",
     icon: "▶",
     color: colors.success,
+  },
+  {
+    key: "benchmark-jobs",
+    label: "Benchmark Jobs",
+    description: "Run and manage benchmark jobs",
+    icon: "▣",
+    color: colors.warning,
   },
   {
     key: "scenario-runs",
@@ -87,9 +101,13 @@ export const BenchmarkMenu = ({ onSelect, onBack }: BenchmarkMenuProps) => {
       onSelect(benchmarkMenuItems[selectedIndex].key);
     } else if (key.escape) {
       onBack();
-    } else if (input === "b" || input === "1") {
+    } else if (input === "1") {
+      onSelect("benchmarks");
+    } else if (input === "2") {
       onSelect("benchmark-runs");
-    } else if (input === "s" || input === "2") {
+    } else if (input === "3") {
+      onSelect("benchmark-jobs");
+    } else if (input === "4") {
       onSelect("scenario-runs");
     } else if (input === "q") {
       exit();
@@ -149,7 +167,7 @@ export const BenchmarkMenu = ({ onSelect, onBack }: BenchmarkMenuProps) => {
         showArrows
         paddingX={2}
         tips={[
-          { key: "1-2", label: "Quick select" },
+          { key: "1-4", label: "Quick select" },
           { key: "Enter", label: "Select" },
           { key: "Esc", label: "Back" },
           { key: "q", label: "Quit" },

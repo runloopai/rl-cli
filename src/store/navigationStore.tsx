@@ -17,16 +17,24 @@ export type ScreenName =
   | "network-policy-list"
   | "network-policy-detail"
   | "network-policy-create"
+  | "gateway-config-list"
+  | "gateway-config-detail"
+  | "gateway-config-create"
   | "secret-list"
   | "secret-detail"
   | "secret-create"
   | "object-list"
   | "object-detail"
   | "ssh-session"
+  | "benchmark-list"
+  | "benchmark-detail"
   | "benchmark-run-list"
   | "benchmark-run-detail"
   | "scenario-run-list"
-  | "scenario-run-detail";
+  | "scenario-run-detail"
+  | "benchmark-job-list"
+  | "benchmark-job-detail"
+  | "benchmark-job-create";
 
 export interface RouteParams {
   devboxId?: string;
@@ -34,6 +42,7 @@ export interface RouteParams {
   blueprintName?: string;
   snapshotId?: string;
   networkPolicyId?: string;
+  gatewayConfigId?: string;
   secretId?: string;
   objectId?: string;
   operation?: string;
@@ -51,8 +60,11 @@ export interface RouteParams {
   executionId?: string;
   execCommand?: string;
   // Benchmark params
+  benchmarkId?: string;
   benchmarkRunId?: string;
   scenarioRunId?: string;
+  benchmarkJobId?: string;
+  initialBenchmarkIds?: string;
   [key: string]: string | ScreenName | RouteParams | undefined;
 }
 

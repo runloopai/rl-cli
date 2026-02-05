@@ -15,8 +15,8 @@ importers:
         specifier: ^1.25.3
         version: 1.25.3(hono@4.11.7)(zod@4.3.6)
       '@runloop/api-client':
-        specifier: 1.3.0
-        version: 1.3.0
+        specifier: 1.6.0
+        version: 1.6.0
       '@types/express':
         specifier: ^5.0.6
         version: 5.0.6
@@ -682,8 +682,8 @@ packages:
       '@cfworker/json-schema':
         optional: true
 
-  '@runloop/api-client@1.3.0':
-    resolution: {integrity: sha512-RXKtWy7pUWj29TgxXwihO3Xc5rywqgDH1ecXv8/3UgruQIQD/VfcnUbAgJcGFYaYtuBkDeJ+8kTPW0JfVUVk7Q==}
+  '@runloop/api-client@1.6.0':
+    resolution: {integrity: sha512-zoOfR45kImlBi/2vp56d/rrkXtxu24CoC36lTc6xLJx69LWJapg9gfCmrdhnCfgkOGhnu9BLx3P4fcuw8Egl2w==}
 
   '@sinclair/typebox@0.27.8':
     resolution: {integrity: sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==}
@@ -3806,7 +3806,7 @@ snapshots:
       - hono
       - supports-color
 
-  '@runloop/api-client@1.3.0':
+  '@runloop/api-client@1.6.0':
     dependencies:
       '@types/node': 18.19.130
       '@types/node-fetch': 2.6.13

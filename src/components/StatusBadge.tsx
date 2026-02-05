@@ -105,6 +105,13 @@ export const getStatusDisplay = (status: string): StatusDisplay => {
       };
 
     // === BUILD STATES (for blueprints) ===
+    case "queued":
+      return {
+        icon: figures.ellipsis,
+        color: colors.warning,
+        text: "QUEUED    ",
+        label: "Queued",
+      };
     case "ready":
       return {
         icon: figures.tick,
@@ -133,8 +140,8 @@ export const getStatusDisplay = (status: string): StatusDisplay => {
       return {
         icon: figures.tick,
         color: colors.success,
-        text: "COMPLETED ",
-        label: "Completed",
+        text: "COMPLETE  ",
+        label: "Complete",
       };
     case "canceled":
       return {

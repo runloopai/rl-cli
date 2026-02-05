@@ -6,7 +6,7 @@
 
 A **TUI + CLI** for the [Runloop.ai](https://runloop.ai) platform. Use it as an **interactive TUI** (Terminal User Interface) with rich UI components, or as a **traditional CLI** for scripting and automation.
 
-📖 **[Full Documentation](https://docs.runloop.ai/docs/tools/cli)**
+📖 **[Full Documentation](https://docs.runloop.ai/docs/tools/rl-cli)**
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/runloopai/rl-cli/main/misc/demo.gif" alt="Runloop CLI Demo" width="800">
@@ -150,6 +150,16 @@ rli secret list                          # List all secrets
 rli secret get <name>                    # Get secret metadata by name
 rli secret update <name>                 # Update a secret value (value from std...
 rli secret delete <name>                 # Delete a secret
+```
+
+### Gateway-config Commands (alias: `gwc`)
+
+```bash
+rli gateway-config list                  # List gateway configurations
+rli gateway-config create                # Create a new gateway configuration
+rli gateway-config get <id>              # Get gateway configuration details
+rli gateway-config update <id>           # Update a gateway configuration
+rli gateway-config delete <id>           # Delete a gateway configuration
 ```
 
 ### Mcp Commands

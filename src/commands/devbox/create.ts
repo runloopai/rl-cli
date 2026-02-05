@@ -23,6 +23,8 @@ interface CreateOptions {
   root?: boolean;
   user?: string;
   networkPolicy?: string;
+  tunnel?: string;
+  gateways?: string[];
   output?: string;
 }
 
@@ -71,6 +73,45 @@ function parseCodeMounts(codeMounts: string[]): unknown[] {
   });
 }
 
+// Parse gateways from ENV_PREFIX=gateway,secret format
+function parseGateways(
+  gateways: string[],
+): Record<string, { gateway: string; secret: string }> {
+  const result: Record<string, { gateway: string; secret: string }> = {};
+  for (const gateway of gateways) {
+    const eqIndex = gateway.indexOf("=");
+    if (eqIndex === -1) {
+      throw new Error(
+        `Invalid gateway format: ${gateway}. Expected ENV_PREFIX=gateway_id_or_name,secret_id_or_name`,
+      );
+    }
+    const envPrefix = gateway.substring(0, eqIndex);
+    const valueStr = gateway.substring(eqIndex + 1);
+
+    // Split by comma to get gateway and secret
+    const commaIndex = valueStr.indexOf(",");
+    if (commaIndex === -1) {
+      throw new Error(
+        `Invalid gateway format: ${gateway}. Expected ENV_PREFIX=gateway_id_or_name,secret_id_or_name`,
+      );
+    }
+    const gatewayIdOrName = valueStr.substring(0, commaIndex);
+    const secretIdOrName = valueStr.substring(commaIndex + 1);
+
+    if (!envPrefix || !gatewayIdOrName || !secretIdOrName) {
+      throw new Error(
+        `Invalid gateway format: ${gateway}. Expected ENV_PREFIX=gateway_id_or_name,secret_id_or_name`,
+      );
+    }
+
+    result[envPrefix] = {
+      gateway: gatewayIdOrName,
+      secret: secretIdOrName,
+    };
+  }
+  return result;
+}
+
 export async function createDevbox(options: CreateOptions = {}) {
   try {
     const client = getClient();
@@ -96,6 +137,13 @@ export async function createDevbox(options: CreateOptions = {}) {
     ) {
       outputError(
         "Both --idle-time and --idle-action must be specified together",
+      );
+    }
+
+    // Validate tunnel option
+    if (options.tunnel && !["open", "authenticated"].includes(options.tunnel)) {
+      outputError(
+        "Invalid tunnel mode. Must be either 'open' or 'authenticated'",
       );
     }
 
@@ -171,6 +219,18 @@ export async function createDevbox(options: CreateOptions = {}) {
     // Handle secrets
     if (options.secrets && options.secrets.length > 0) {
       createRequest.secrets = parseSecrets(options.secrets);
+    }
+
+    // Handle tunnel configuration
+    if (options.tunnel) {
+      createRequest.tunnel = {
+        auth_mode: options.tunnel,
+      };
+    }
+
+    // Handle gateways
+    if (options.gateways && options.gateways.length > 0) {
+      createRequest.gateways = parseGateways(options.gateways);
     }
 
     if (Object.keys(launchParameters).length > 0) {

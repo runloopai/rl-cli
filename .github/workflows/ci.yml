@@ -9,7 +9,7 @@ on:
 
 jobs:
   format:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     # Run from pull_request for non-release-please branches, or pull_request_target for release-please branches only
     if: (github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch'
     steps:
@@ -37,7 +37,7 @@ jobs:
         run: pnpm run format:check
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     # Run from pull_request for non-release-please branches, or pull_request_target for release-please branches only
     if: (github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch'
     steps:
@@ -65,7 +65,7 @@ jobs:
         run: pnpm run lint
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     # Run from pull_request for non-release-please branches, or pull_request_target for release-please branches only
     if: (github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch'
     steps:
@@ -93,7 +93,7 @@ jobs:
         run: pnpm run build
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     needs: build
     # Run from pull_request for non-release-please branches, or pull_request_target for release-please branches only
     if: (github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch'
@@ -130,7 +130,7 @@ jobs:
           retention-days: 7
 
   ready-to-merge:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     needs: [format, lint, build, test]
     # Run from pull_request for non-release-please branches, or pull_request_target for release-please branches only
     if: always() && ((github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch')

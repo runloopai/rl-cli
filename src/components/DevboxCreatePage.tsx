@@ -14,6 +14,9 @@ import { SuccessMessage } from "./SuccessMessage.js";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { NavigationTips } from "./NavigationTips.js";
 import { MetadataDisplay } from "./MetadataDisplay.js";
+import { ResourcePicker, createTextColumn, Column } from "./ResourcePicker.js";
+import { formatTimeAgo } from "./ResourceListView.js";
+import { getStatusDisplay } from "./StatusBadge.js";
 import {
   FormTextInput,
   FormSelect,
@@ -22,6 +25,21 @@ import {
 } from "./form/index.js";
 import { colors } from "../utils/theme.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
+import { listBlueprints } from "../services/blueprintService.js";
+import { listSnapshots } from "../services/snapshotService.js";
+import { listNetworkPolicies } from "../services/networkPolicyService.js";
+import { listGatewayConfigs } from "../services/gatewayConfigService.js";
+import type { Blueprint } from "../store/blueprintStore.js";
+import type { Snapshot } from "../store/snapshotStore.js";
+import type { NetworkPolicy } from "../store/networkPolicyStore.js";
+import type { GatewayConfig } from "../store/gatewayConfigStore.js";
+
+// Secret list interface for the picker
+interface SecretListItem {
+  id: string;
+  name: string;
+  create_time_ms?: number;
+}
 
 interface DevboxCreatePageProps {
   onBack: () => void;
@@ -40,9 +58,21 @@ type FormField =
   | "custom_disk"
   | "keep_alive"
   | "metadata"
-  | "blueprint_id"
-  | "snapshot_id"
-  | "network_policy_id";
+  | "source"
+  | "network_policy_id"
+  | "gateways";
+
+// Gateway configuration for devbox
+interface GatewaySpec {
+  envPrefix: string;
+  gateway: string; // gateway config ID or name
+  gatewayName: string; // display name
+  secret: string; // secret ID or name
+  secretName: string; // display name
+}
+
+const sourceTypes = ["blueprint", "snapshot"] as const;
+type SourceTypeToggle = (typeof sourceTypes)[number];
 
 interface FormData {
   name: string;
@@ -64,6 +94,7 @@ interface FormData {
   blueprint_id: string;
   snapshot_id: string;
   network_policy_id: string;
+  gateways: GatewaySpec[];
 }
 
 const architectures = ["arm64", "x86_64"] as const;
@@ -96,6 +127,7 @@ export const DevboxCreatePage = ({
     blueprint_id: initialBlueprintId || "",
     snapshot_id: initialSnapshotId || "",
     network_policy_id: "",
+    gateways: [],
   });
   const [metadataKey, setMetadataKey] = React.useState("");
   const [metadataValue, setMetadataValue] = React.useState("");
@@ -108,10 +140,39 @@ export const DevboxCreatePage = ({
   const [result, setResult] = React.useState<DevboxView | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
 
+  // Source picker states (toggle between blueprint/snapshot)
+  const [sourceTypeToggle, setSourceTypeToggle] = React.useState<
+    "blueprint" | "snapshot"
+  >(initialSnapshotId ? "snapshot" : "blueprint");
+  const [showBlueprintPicker, setShowBlueprintPicker] = React.useState(false);
+  const [showSnapshotPicker, setShowSnapshotPicker] = React.useState(false);
+  const [showNetworkPolicyPicker, setShowNetworkPolicyPicker] =
+    React.useState(false);
+  const [selectedBlueprintName, setSelectedBlueprintName] =
+    React.useState<string>("");
+  const [selectedSnapshotName, setSelectedSnapshotName] =
+    React.useState<string>("");
+  const [selectedNetworkPolicyName, setSelectedNetworkPolicyName] =
+    React.useState<string>("");
+
+  // Gateway picker states
+  const [showGatewayPicker, setShowGatewayPicker] = React.useState(false);
+  const [showSecretPicker, setShowSecretPicker] = React.useState(false);
+  const [inGatewaySection, setInGatewaySection] = React.useState(false);
+  const [gatewayEnvPrefix, setGatewayEnvPrefix] = React.useState("");
+  const [gatewayInputMode, setGatewayInputMode] = React.useState<
+    "envPrefix" | "gateway" | "secret" | null
+  >(null);
+  const [selectedGatewayIndex, setSelectedGatewayIndex] = React.useState(0);
+  const [pendingGateway, setPendingGateway] = React.useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
   const baseFields: Array<{
     key: FormField;
     label: string;
-    type: "text" | "select" | "metadata" | "action";
+    type: "text" | "select" | "metadata" | "action" | "picker" | "source";
     placeholder?: string;
   }> = [
     { key: "create", label: "Devbox Create", type: "action" },
@@ -124,7 +185,7 @@ export const DevboxCreatePage = ({
   const customFields: Array<{
     key: FormField;
     label: string;
-    type: "text" | "select" | "metadata" | "action";
+    type: "text" | "select" | "metadata" | "action" | "picker" | "source";
     placeholder?: string;
   }> =
     formData.resource_size === "CUSTOM_SIZE"
@@ -153,7 +214,14 @@ export const DevboxCreatePage = ({
   const remainingFields: Array<{
     key: FormField;
     label: string;
-    type: "text" | "select" | "metadata" | "action";
+    type:
+      | "text"
+      | "select"
+      | "metadata"
+      | "action"
+      | "picker"
+      | "source"
+      | "gateways";
     placeholder?: string;
   }> = [
     {
@@ -163,22 +231,22 @@ export const DevboxCreatePage = ({
       placeholder: "3600",
     },
     {
-      key: "blueprint_id",
-      label: "Blueprint ID (optional)",
-      type: "text",
-      placeholder: "bpt_xxx",
-    },
-    {
-      key: "snapshot_id",
-      label: "Snapshot ID (optional)",
-      type: "text",
-      placeholder: "snp_xxx",
+      key: "source",
+      label: "Source (optional)",
+      type: "source",
+      placeholder: "Select Blueprint or Snapshot...",
     },
     {
       key: "network_policy_id",
-      label: "Network Policy ID (optional)",
-      type: "text",
-      placeholder: "np_xxx",
+      label: "Network Policy (optional)",
+      type: "picker",
+      placeholder: "Select a network policy...",
+    },
+    {
+      key: "gateways",
+      label: "Gateways (optional)",
+      type: "gateways",
+      placeholder: "Configure API credential proxying...",
     },
     { key: "metadata", label: "Metadata (optional)", type: "metadata" },
   ];
@@ -203,6 +271,13 @@ export const DevboxCreatePage = ({
     resourceSizes,
     (value) => setFormData({ ...formData, resource_size: value }),
     currentField === "resource_size",
+  );
+
+  const handleSourceTypeNav = useFormSelectNavigation(
+    sourceTypeToggle,
+    sourceTypes,
+    (value) => setSourceTypeToggle(value),
+    currentField === "source",
   );
 
   // Main form input handler - active when not in metadata section
@@ -256,6 +331,44 @@ export const DevboxCreatePage = ({
         return;
       }
 
+      // Enter key on gateways field to enter gateway section
+      if (currentField === "gateways" && key.return) {
+        setInGatewaySection(true);
+        setSelectedGatewayIndex(0);
+        return;
+      }
+
+      // Enter key on source field to open the appropriate picker
+      if (currentField === "source" && key.return) {
+        // If something is already selected, open that type's picker to change it
+        const hasBlueprint = !!(selectedBlueprintName || formData.blueprint_id);
+        const hasSnapshot = !!(selectedSnapshotName || formData.snapshot_id);
+
+        if (hasBlueprint) {
+          setShowBlueprintPicker(true);
+        } else if (hasSnapshot) {
+          setShowSnapshotPicker(true);
+        } else {
+          // Nothing selected, use the toggle value
+          if (sourceTypeToggle === "blueprint") {
+            setShowBlueprintPicker(true);
+          } else {
+            setShowSnapshotPicker(true);
+          }
+        }
+        return;
+      }
+
+      // Delete key on source field to clear selection
+      if (currentField === "source" && (input === "d" || key.delete)) {
+        handleClearSource();
+        return;
+      }
+      if (currentField === "network_policy_id" && key.return) {
+        setShowNetworkPolicyPicker(true);
+        return;
+      }
+
       // Handle Enter on any field to submit
       if (key.return) {
         handleCreate();
@@ -265,6 +378,7 @@ export const DevboxCreatePage = ({
       // Handle select field navigation using shared hooks
       if (handleArchitectureNav(input, key)) return;
       if (handleResourceSizeNav(input, key)) return;
+      if (handleSourceTypeNav(input, key)) return;
 
       // Navigation (up/down arrows and tab/shift+tab)
       if ((key.upArrow || (key.tab && key.shift)) && currentFieldIndex > 0) {
@@ -280,8 +394,106 @@ export const DevboxCreatePage = ({
         return;
       }
     },
-    { isActive: !inMetadataSection },
+    {
+      isActive:
+        !inMetadataSection &&
+        !inGatewaySection &&
+        !showBlueprintPicker &&
+        !showSnapshotPicker &&
+        !showNetworkPolicyPicker &&
+        !showGatewayPicker &&
+        !showSecretPicker,
+    },
   );
+
+  // Handle blueprint selection
+  const handleBlueprintSelect = React.useCallback((blueprints: Blueprint[]) => {
+    if (blueprints.length > 0) {
+      const blueprint = blueprints[0];
+      setFormData((prev) => ({
+        ...prev,
+        blueprint_id: blueprint.id,
+        snapshot_id: "",
+      }));
+      setSelectedBlueprintName(blueprint.name || blueprint.id);
+      setSelectedSnapshotName("");
+    }
+    setShowBlueprintPicker(false);
+  }, []);
+
+  // Handle snapshot selection
+  const handleSnapshotSelect = React.useCallback((snapshots: Snapshot[]) => {
+    if (snapshots.length > 0) {
+      const snapshot = snapshots[0];
+      setFormData((prev) => ({
+        ...prev,
+        snapshot_id: snapshot.id,
+        blueprint_id: "",
+      }));
+      setSelectedSnapshotName(snapshot.name || snapshot.id);
+      setSelectedBlueprintName("");
+    }
+    setShowSnapshotPicker(false);
+  }, []);
+
+  // Handle network policy selection
+  const handleNetworkPolicySelect = React.useCallback(
+    (policies: NetworkPolicy[]) => {
+      if (policies.length > 0) {
+        const policy = policies[0];
+        setFormData((prev) => ({ ...prev, network_policy_id: policy.id }));
+        setSelectedNetworkPolicyName(policy.name || policy.id);
+      }
+      setShowNetworkPolicyPicker(false);
+    },
+    [],
+  );
+
+  // Handle gateway config selection
+  const handleGatewaySelect = React.useCallback((configs: GatewayConfig[]) => {
+    if (configs.length > 0) {
+      const config = configs[0];
+      setPendingGateway({ id: config.id, name: config.name || config.id });
+      setShowGatewayPicker(false);
+      // Now show secret picker
+      setShowSecretPicker(true);
+    } else {
+      setShowGatewayPicker(false);
+    }
+  }, []);
+
+  // Handle secret selection for gateway
+  const handleSecretSelect = React.useCallback(
+    (secrets: SecretListItem[]) => {
+      if (secrets.length > 0 && pendingGateway && gatewayEnvPrefix) {
+        const secret = secrets[0];
+        const newGateway: GatewaySpec = {
+          envPrefix: gatewayEnvPrefix,
+          gateway: pendingGateway.id,
+          gatewayName: pendingGateway.name,
+          secret: secret.id,
+          secretName: secret.name || secret.id,
+        };
+        setFormData((prev) => ({
+          ...prev,
+          gateways: [...prev.gateways, newGateway],
+        }));
+      }
+      setShowSecretPicker(false);
+      setPendingGateway(null);
+      setGatewayEnvPrefix("");
+      setGatewayInputMode(null);
+      setSelectedGatewayIndex(0);
+    },
+    [pendingGateway, gatewayEnvPrefix],
+  );
+
+  // Handle clearing source
+  const handleClearSource = React.useCallback(() => {
+    setFormData((prev) => ({ ...prev, blueprint_id: "", snapshot_id: "" }));
+    setSelectedBlueprintName("");
+    setSelectedSnapshotName("");
+  }, []);
 
   // Metadata section input handler - active when in metadata section
   useInput(
@@ -371,6 +583,68 @@ export const DevboxCreatePage = ({
       }
     },
     { isActive: inMetadataSection },
+  );
+
+  // Gateway section input handler - active when in gateway section
+  useInput(
+    (input, key) => {
+      const gatewayCount = formData.gateways.length;
+      const maxIndex = gatewayCount + 1; // Add new + existing items + Done
+
+      // Handle input mode (typing env prefix)
+      if (gatewayInputMode === "envPrefix") {
+        if (key.return && gatewayEnvPrefix.trim()) {
+          // Open gateway picker
+          setGatewayInputMode(null);
+          setShowGatewayPicker(true);
+          return;
+        } else if (key.escape) {
+          setGatewayEnvPrefix("");
+          setGatewayInputMode(null);
+          return;
+        }
+        return;
+      }
+
+      // Navigation mode in gateway section
+      if (key.upArrow && selectedGatewayIndex > 0) {
+        setSelectedGatewayIndex(selectedGatewayIndex - 1);
+      } else if (key.downArrow && selectedGatewayIndex < maxIndex) {
+        setSelectedGatewayIndex(selectedGatewayIndex + 1);
+      } else if (key.return) {
+        if (selectedGatewayIndex === 0) {
+          // Add new gateway - start with env prefix input
+          setGatewayEnvPrefix("");
+          setGatewayInputMode("envPrefix");
+        } else if (selectedGatewayIndex === maxIndex) {
+          // Done
+          setInGatewaySection(false);
+          setSelectedGatewayIndex(0);
+          setGatewayEnvPrefix("");
+          setGatewayInputMode(null);
+        }
+      } else if (
+        (input === "d" || key.delete) &&
+        selectedGatewayIndex >= 1 &&
+        selectedGatewayIndex <= gatewayCount
+      ) {
+        // Delete gateway at index
+        const indexToDelete = selectedGatewayIndex - 1;
+        const newGateways = [...formData.gateways];
+        newGateways.splice(indexToDelete, 1);
+        setFormData({ ...formData, gateways: newGateways });
+        const newLength = newGateways.length;
+        if (selectedGatewayIndex > newLength) {
+          setSelectedGatewayIndex(Math.max(0, newLength));
+        }
+      } else if (key.escape || input === "q") {
+        setInGatewaySection(false);
+        setSelectedGatewayIndex(0);
+        setGatewayEnvPrefix("");
+        setGatewayInputMode(null);
+      }
+    },
+    { isActive: inGatewaySection && !showGatewayPicker && !showSecretPicker },
   );
 
   // Validate custom resource configuration
@@ -480,6 +754,19 @@ export const DevboxCreatePage = ({
         createParams.launch_parameters = launchParameters;
       }
 
+      // Add gateway specifications
+      if (formData.gateways.length > 0) {
+        const gateways: Record<string, { gateway: string; secret: string }> =
+          {};
+        for (const gw of formData.gateways) {
+          gateways[gw.envPrefix] = {
+            gateway: gw.gateway,
+            secret: gw.secret,
+          };
+        }
+        createParams.gateways = gateways;
+      }
+
       const devbox = await client.devboxes.create(createParams);
       setResult(devbox);
     } catch (err) {
@@ -552,6 +839,379 @@ export const DevboxCreatePage = ({
     );
   }
 
+  // Blueprint picker screen
+  if (showBlueprintPicker) {
+    const blueprintColumns: Column<Blueprint>[] = [
+      {
+        key: "statusIcon",
+        label: "",
+        width: 2,
+        render: (blueprint, _index, isSelected) => {
+          const statusDisplay = getStatusDisplay(blueprint.status || "");
+          return (
+            <Text
+              color={isSelected ? "white" : statusDisplay.color}
+              bold={true}
+              inverse={isSelected}
+              wrap="truncate"
+            >
+              {statusDisplay.icon}{" "}
+            </Text>
+          );
+        },
+      },
+      createTextColumn<Blueprint>("id", "ID", (blueprint) => blueprint.id, {
+        width: 25,
+        color: colors.idColor,
+      }),
+      createTextColumn<Blueprint>(
+        "name",
+        "Name",
+        (blueprint) => blueprint.name || "",
+        { width: 30 },
+      ),
+      {
+        key: "status",
+        label: "Status",
+        width: 12,
+        render: (blueprint, _index, isSelected) => {
+          const statusDisplay = getStatusDisplay(blueprint.status || "");
+          const padded = statusDisplay.text.slice(0, 12).padEnd(12, " ");
+          return (
+            <Text
+              color={isSelected ? "white" : statusDisplay.color}
+              bold={true}
+              inverse={isSelected}
+              wrap="truncate"
+            >
+              {padded}
+            </Text>
+          );
+        },
+      },
+      createTextColumn<Blueprint>(
+        "created",
+        "Created",
+        (blueprint) =>
+          blueprint.create_time_ms
+            ? formatTimeAgo(blueprint.create_time_ms)
+            : "",
+        { width: 18, color: colors.textDim },
+      ),
+    ];
+
+    // Filter out failed blueprints
+    const failedStatuses = ["failure", "build_failed", "failed"];
+
+    return (
+      <ResourcePicker<Blueprint>
+        config={{
+          title: "Select Blueprint",
+          fetchPage: async (params) => {
+            const result = await listBlueprints({
+              limit: params.limit,
+              startingAfter: params.startingAt,
+              search: params.search,
+            });
+            // Filter out failed blueprints
+            const validBlueprints = result.blueprints.filter(
+              (bp) => !failedStatuses.includes(bp.status || ""),
+            );
+            return {
+              items: validBlueprints,
+              hasMore: result.hasMore,
+              totalCount: validBlueprints.length,
+            };
+          },
+          getItemId: (blueprint) => blueprint.id,
+          getItemLabel: (blueprint) => blueprint.name || blueprint.id,
+          columns: blueprintColumns,
+          mode: "single",
+          emptyMessage: "No blueprints found (failed blueprints are hidden)",
+          searchPlaceholder: "Search blueprints...",
+          breadcrumbItems: [
+            { label: "Devboxes" },
+            { label: "Create" },
+            { label: "Select Blueprint", active: true },
+          ],
+        }}
+        onSelect={handleBlueprintSelect}
+        onCancel={() => setShowBlueprintPicker(false)}
+        initialSelected={formData.blueprint_id ? [formData.blueprint_id] : []}
+      />
+    );
+  }
+
+  // Snapshot picker screen
+  if (showSnapshotPicker) {
+    const snapshotColumns: Column<Snapshot>[] = [
+      createTextColumn<Snapshot>("id", "ID", (snapshot) => snapshot.id, {
+        width: 25,
+        color: colors.idColor,
+      }),
+      createTextColumn<Snapshot>(
+        "name",
+        "Name",
+        (snapshot) => snapshot.name || "",
+        { width: 30 },
+      ),
+      createTextColumn<Snapshot>(
+        "status",
+        "Status",
+        (snapshot) => snapshot.status || "",
+        { width: 12 },
+      ),
+      createTextColumn<Snapshot>(
+        "created",
+        "Created",
+        (snapshot) =>
+          snapshot.create_time_ms ? formatTimeAgo(snapshot.create_time_ms) : "",
+        { width: 18, color: colors.textDim },
+      ),
+    ];
+
+    return (
+      <ResourcePicker<Snapshot>
+        config={{
+          title: "Select Snapshot",
+          fetchPage: async (params) => {
+            const result = await listSnapshots({
+              limit: params.limit,
+              startingAfter: params.startingAt,
+            });
+            return {
+              items: result.snapshots,
+              hasMore: result.hasMore,
+              totalCount: result.totalCount,
+            };
+          },
+          getItemId: (snapshot) => snapshot.id,
+          getItemLabel: (snapshot) => snapshot.name || snapshot.id,
+          columns: snapshotColumns,
+          mode: "single",
+          emptyMessage: "No snapshots found",
+          searchPlaceholder: "Search snapshots...",
+          breadcrumbItems: [
+            { label: "Devboxes" },
+            { label: "Create" },
+            { label: "Select Snapshot", active: true },
+          ],
+        }}
+        onSelect={handleSnapshotSelect}
+        onCancel={() => setShowSnapshotPicker(false)}
+        initialSelected={formData.snapshot_id ? [formData.snapshot_id] : []}
+      />
+    );
+  }
+
+  // Network policy picker screen
+  if (showNetworkPolicyPicker) {
+    // Helper to get egress type label
+    const getEgressLabel = (egress: NetworkPolicy["egress"]) => {
+      if (egress.allow_all) return "Allow All";
+      if (egress.allowed_hostnames?.length === 0) return "Deny All";
+      return `Custom (${egress.allowed_hostnames?.length || 0})`;
+    };
+
+    const networkPolicyColumns: Column<NetworkPolicy>[] = [
+      createTextColumn<NetworkPolicy>("id", "ID", (policy) => policy.id, {
+        width: 25,
+        color: colors.idColor,
+      }),
+      createTextColumn<NetworkPolicy>(
+        "name",
+        "Name",
+        (policy) => policy.name || "",
+        { width: 25 },
+      ),
+      createTextColumn<NetworkPolicy>(
+        "egress",
+        "Egress",
+        (policy) => getEgressLabel(policy.egress),
+        { width: 15 },
+      ),
+      createTextColumn<NetworkPolicy>(
+        "created",
+        "Created",
+        (policy) =>
+          policy.create_time_ms ? formatTimeAgo(policy.create_time_ms) : "",
+        { width: 18, color: colors.textDim },
+      ),
+    ];
+
+    return (
+      <ResourcePicker<NetworkPolicy>
+        config={{
+          title: "Select Network Policy",
+          fetchPage: async (params) => {
+            const result = await listNetworkPolicies({
+              limit: params.limit,
+              startingAfter: params.startingAt,
+              search: params.search,
+            });
+            return {
+              items: result.networkPolicies,
+              hasMore: result.hasMore,
+              totalCount: result.totalCount,
+            };
+          },
+          getItemId: (policy) => policy.id,
+          getItemLabel: (policy) => policy.name || policy.id,
+          columns: networkPolicyColumns,
+          mode: "single",
+          emptyMessage: "No network policies found",
+          searchPlaceholder: "Search network policies...",
+          breadcrumbItems: [
+            { label: "Devboxes" },
+            { label: "Create" },
+            { label: "Select Network Policy", active: true },
+          ],
+        }}
+        onSelect={handleNetworkPolicySelect}
+        onCancel={() => setShowNetworkPolicyPicker(false)}
+        initialSelected={
+          formData.network_policy_id ? [formData.network_policy_id] : []
+        }
+      />
+    );
+  }
+
+  // Gateway config picker screen
+  if (showGatewayPicker) {
+    const gatewayColumns: Column<GatewayConfig>[] = [
+      createTextColumn<GatewayConfig>("id", "ID", (config) => config.id, {
+        width: 25,
+        color: colors.idColor,
+      }),
+      createTextColumn<GatewayConfig>(
+        "name",
+        "Name",
+        (config) => config.name || "",
+        { width: 25 },
+      ),
+      createTextColumn<GatewayConfig>(
+        "endpoint",
+        "Endpoint",
+        (config) => config.endpoint || "",
+        { width: 30, color: colors.textDim },
+      ),
+      createTextColumn<GatewayConfig>(
+        "created",
+        "Created",
+        (config) =>
+          config.create_time_ms ? formatTimeAgo(config.create_time_ms) : "",
+        { width: 18, color: colors.textDim },
+      ),
+    ];
+
+    return (
+      <ResourcePicker<GatewayConfig>
+        config={{
+          title: "Select Gateway Config",
+          fetchPage: async (params) => {
+            const result = await listGatewayConfigs({
+              limit: params.limit,
+              startingAfter: params.startingAt,
+              search: params.search,
+            });
+            return {
+              items: result.gatewayConfigs,
+              hasMore: result.hasMore,
+              totalCount: result.totalCount,
+            };
+          },
+          getItemId: (config) => config.id,
+          getItemLabel: (config) => config.name || config.id,
+          columns: gatewayColumns,
+          mode: "single",
+          emptyMessage: "No gateway configs found",
+          searchPlaceholder: "Search gateway configs...",
+          breadcrumbItems: [
+            { label: "Devboxes" },
+            { label: "Create" },
+            { label: `Gateway: ${gatewayEnvPrefix}`, active: true },
+          ],
+        }}
+        onSelect={handleGatewaySelect}
+        onCancel={() => {
+          setShowGatewayPicker(false);
+          setGatewayEnvPrefix("");
+          setGatewayInputMode(null);
+        }}
+        initialSelected={[]}
+      />
+    );
+  }
+
+  // Secret picker screen (for gateway)
+  if (showSecretPicker) {
+    const secretColumns: Column<SecretListItem>[] = [
+      createTextColumn<SecretListItem>("id", "ID", (secret) => secret.id, {
+        width: 25,
+        color: colors.idColor,
+      }),
+      createTextColumn<SecretListItem>(
+        "name",
+        "Name",
+        (secret) => secret.name || "",
+        { width: 30 },
+      ),
+      createTextColumn<SecretListItem>(
+        "created",
+        "Created",
+        (secret) =>
+          secret.create_time_ms ? formatTimeAgo(secret.create_time_ms) : "",
+        { width: 18, color: colors.textDim },
+      ),
+    ];
+
+    return (
+      <ResourcePicker<SecretListItem>
+        config={{
+          title: "Select Secret for Gateway",
+          fetchPage: async (params) => {
+            const client = getClient();
+            // Secrets API doesn't support cursor pagination, just limit
+            const page = await client.secrets.list({
+              limit: params.limit,
+            });
+            return {
+              items: (page.secrets || []).map(
+                (s: { id: string; name: string; create_time_ms?: number }) => ({
+                  id: s.id,
+                  name: s.name,
+                  create_time_ms: s.create_time_ms,
+                }),
+              ),
+              hasMore: false, // Secrets API doesn't support pagination
+              totalCount: page.total_count || 0,
+            };
+          },
+          getItemId: (secret) => secret.id,
+          getItemLabel: (secret) => secret.name || secret.id,
+          columns: secretColumns,
+          mode: "single",
+          emptyMessage: "No secrets found",
+          searchPlaceholder: "Search secrets...",
+          breadcrumbItems: [
+            { label: "Devboxes" },
+            { label: "Create" },
+            { label: `Gateway: ${gatewayEnvPrefix}` },
+            { label: "Select Secret", active: true },
+          ],
+        }}
+        onSelect={handleSecretSelect}
+        onCancel={() => {
+          setShowSecretPicker(false);
+          setPendingGateway(null);
+          setGatewayEnvPrefix("");
+          setGatewayInputMode(null);
+        }}
+        initialSelected={[]}
+      />
+    );
+  }
+
   // Form screen
   return (
     <>
@@ -606,6 +1266,114 @@ export const DevboxCreatePage = ({
                 }
                 isActive={isActive}
               />
+            );
+          }
+
+          if (field.type === "source") {
+            // Check if either blueprint or snapshot is selected
+            const selectedBlueprintValue =
+              selectedBlueprintName || formData.blueprint_id;
+            const selectedSnapshotValue =
+              selectedSnapshotName || formData.snapshot_id;
+            const hasBlueprint = !!selectedBlueprintValue;
+            const hasSnapshot = !!selectedSnapshotValue;
+            const hasSelection = hasBlueprint || hasSnapshot;
+
+            // If something is selected, show it clearly with its type
+            if (hasSelection) {
+              const selectedType = hasBlueprint ? "Blueprint" : "Snapshot";
+              const selectedValue = hasBlueprint
+                ? selectedBlueprintValue
+                : selectedSnapshotValue;
+
+              return (
+                <Box key={field.key} marginBottom={0}>
+                  <Text color={isActive ? colors.primary : colors.textDim}>
+                    {isActive ? figures.pointer : " "} {field.label}:{" "}
+                  </Text>
+                  <Text color={colors.success}>{selectedType}: </Text>
+                  <Text color={colors.idColor}>{selectedValue}</Text>
+                  {isActive && (
+                    <Text color={colors.textDim} dimColor>
+                      {" "}
+                      [Enter to change, d to clear]
+                    </Text>
+                  )}
+                </Box>
+              );
+            }
+
+            // Nothing selected - show toggle to choose type
+            return (
+              <Box key={field.key} marginBottom={0}>
+                <Text color={isActive ? colors.primary : colors.textDim}>
+                  {isActive ? figures.pointer : " "} {field.label}:{" "}
+                </Text>
+                {/* Toggle between Blueprint and Snapshot */}
+                <Text color={isActive ? colors.text : colors.textDim}>
+                  {isActive ? figures.arrowLeft : ""}{" "}
+                </Text>
+                <Text
+                  color={
+                    sourceTypeToggle === "blueprint"
+                      ? colors.primary
+                      : colors.textDim
+                  }
+                  bold={sourceTypeToggle === "blueprint"}
+                >
+                  Blueprint
+                </Text>
+                <Text color={colors.textDim}> / </Text>
+                <Text
+                  color={
+                    sourceTypeToggle === "snapshot"
+                      ? colors.primary
+                      : colors.textDim
+                  }
+                  bold={sourceTypeToggle === "snapshot"}
+                >
+                  Snapshot
+                </Text>
+                <Text color={isActive ? colors.text : colors.textDim}>
+                  {" "}
+                  {isActive ? figures.arrowRight : ""}
+                </Text>
+                {isActive && (
+                  <Text color={colors.textDim} dimColor>
+                    {" "}
+                    [Enter to select]
+                  </Text>
+                )}
+              </Box>
+            );
+          }
+
+          if (field.type === "picker") {
+            const value = fieldData as string;
+            const displayName =
+              field.key === "network_policy_id"
+                ? selectedNetworkPolicyName || value
+                : value;
+
+            return (
+              <Box key={field.key} marginBottom={0}>
+                <Text color={isActive ? colors.primary : colors.textDim}>
+                  {isActive ? figures.pointer : " "} {field.label}:{" "}
+                </Text>
+                {displayName ? (
+                  <Text color={colors.idColor}>{displayName}</Text>
+                ) : (
+                  <Text color={colors.textDim} dimColor>
+                    {field.placeholder || "(none)"}
+                  </Text>
+                )}
+                {isActive && (
+                  <Text color={colors.textDim} dimColor>
+                    {" "}
+                    [Enter to {displayName ? "change" : "select"}]
+                  </Text>
+                )}
+              </Box>
             );
           }
 
@@ -817,6 +1585,192 @@ export const DevboxCreatePage = ({
             );
           }
 
+          if (field.type === "gateways") {
+            if (!inGatewaySection) {
+              // Collapsed view
+              return (
+                <Box key={field.key} flexDirection="column" marginBottom={0}>
+                  <Box>
+                    <Text color={isActive ? colors.primary : colors.textDim}>
+                      {isActive ? figures.pointer : " "} {field.label}:{" "}
+                    </Text>
+                    <Text color={colors.text}>
+                      {formData.gateways.length} gateway(s)
+                    </Text>
+                    {isActive && (
+                      <Text color={colors.textDim} dimColor>
+                        {" "}
+                        [Enter to manage]
+                      </Text>
+                    )}
+                  </Box>
+                  {formData.gateways.length > 0 && (
+                    <Box marginLeft={2} flexDirection="column">
+                      {formData.gateways.map((gw, idx) => (
+                        <Text key={idx} color={colors.textDim} dimColor>
+                          {figures.pointer} {gw.envPrefix}: {gw.gatewayName} →{" "}
+                          {gw.secretName}
+                        </Text>
+                      ))}
+                    </Box>
+                  )}
+                </Box>
+              );
+            }
+
+            // Expanded gateway section view
+            const gatewayCount = formData.gateways.length;
+            const maxGatewayIndex = gatewayCount + 1;
+
+            return (
+              <Box
+                key={field.key}
+                flexDirection="column"
+                borderStyle="round"
+                borderColor={colors.primary}
+                paddingX={1}
+                paddingY={1}
+                marginBottom={1}
+              >
+                <Text color={colors.primary} bold>
+                  {figures.hamburger} Manage Gateway Configurations
+                </Text>
+
+                {/* Input form - shown when adding */}
+                {gatewayInputMode === "envPrefix" && (
+                  <Box
+                    flexDirection="column"
+                    marginTop={1}
+                    borderStyle="single"
+                    borderColor={colors.success}
+                    paddingX={1}
+                  >
+                    <Text color={colors.success} bold>
+                      Adding New Gateway
+                    </Text>
+                    <Box>
+                      <Text color={colors.primary}>
+                        Env Prefix (e.g., GWS_ANTHROPIC):{" "}
+                      </Text>
+                      <TextInput
+                        value={gatewayEnvPrefix || ""}
+                        onChange={setGatewayEnvPrefix}
+                        placeholder="GWS_ANTHROPIC"
+                      />
+                    </Box>
+                    <Text color={colors.textDim} dimColor>
+                      Press Enter to select gateway config
+                    </Text>
+                  </Box>
+                )}
+
+                {/* Navigation menu - shown when not in input mode */}
+                {!gatewayInputMode && (
+                  <>
+                    {/* Add new option */}
+                    <Box marginTop={1}>
+                      <Text
+                        color={
+                          selectedGatewayIndex === 0
+                            ? colors.primary
+                            : colors.textDim
+                        }
+                      >
+                        {selectedGatewayIndex === 0
+                          ? figures.pointer
+                          : " "}{" "}
+                      </Text>
+                      <Text
+                        color={
+                          selectedGatewayIndex === 0
+                            ? colors.success
+                            : colors.textDim
+                        }
+                        bold={selectedGatewayIndex === 0}
+                      >
+                        + Add new gateway
+                      </Text>
+                    </Box>
+
+                    {/* Existing items */}
+                    {gatewayCount > 0 && (
+                      <Box flexDirection="column" marginTop={1}>
+                        {formData.gateways.map((gw, index) => {
+                          const itemIndex = index + 1;
+                          const isGatewaySelected =
+                            selectedGatewayIndex === itemIndex;
+                          return (
+                            <Box key={gw.envPrefix}>
+                              <Text
+                                color={
+                                  isGatewaySelected
+                                    ? colors.primary
+                                    : colors.textDim
+                                }
+                              >
+                                {isGatewaySelected ? figures.pointer : " "}{" "}
+                              </Text>
+                              <Text
+                                color={
+                                  isGatewaySelected
+                                    ? colors.primary
+                                    : colors.textDim
+                                }
+                                bold={isGatewaySelected}
+                              >
+                                {gw.envPrefix}: {gw.gatewayName} →{" "}
+                                {gw.secretName}
+                              </Text>
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    )}
+
+                    {/* Done option */}
+                    <Box marginTop={1}>
+                      <Text
+                        color={
+                          selectedGatewayIndex === maxGatewayIndex
+                            ? colors.primary
+                            : colors.textDim
+                        }
+                      >
+                        {selectedGatewayIndex === maxGatewayIndex
+                          ? figures.pointer
+                          : " "}{" "}
+                      </Text>
+                      <Text
+                        color={
+                          selectedGatewayIndex === maxGatewayIndex
+                            ? colors.success
+                            : colors.textDim
+                        }
+                        bold={selectedGatewayIndex === maxGatewayIndex}
+                      >
+                        {figures.tick} Done
+                      </Text>
+                    </Box>
+                  </>
+                )}
+
+                {/* Help text */}
+                <Box
+                  marginTop={1}
+                  borderStyle="single"
+                  borderColor={colors.border}
+                  paddingX={1}
+                >
+                  <Text color={colors.textDim} dimColor>
+                    {gatewayInputMode
+                      ? `[Enter] Select gateway • [esc] Cancel`
+                      : `${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedGatewayIndex === 0 ? "Add" : selectedGatewayIndex === maxGatewayIndex ? "Done" : "Select"} • [d] Delete • [esc] Back`}
+                  </Text>
+                </Box>
+              </Box>
+            );
+          }
+
           return null;
         })}
       </Box>
@@ -840,7 +1794,7 @@ export const DevboxCreatePage = ({
           </Box>
         )}
 
-      {!inMetadataSection && (
+      {!inMetadataSection && !inGatewaySection && (
         <NavigationTips
           showArrows
           tips={[

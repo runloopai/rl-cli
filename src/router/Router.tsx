@@ -3,15 +3,96 @@
  * Replaces conditional rendering pattern from menu.tsx
  */
 import React from "react";
+import { Box, Text, useInput } from "ink";
+import figures from "figures";
 import { useNavigation } from "../store/navigationStore.js";
 import { useDevboxStore } from "../store/devboxStore.js";
 import { useBlueprintStore } from "../store/blueprintStore.js";
 import { useSnapshotStore } from "../store/snapshotStore.js";
 import { useNetworkPolicyStore } from "../store/networkPolicyStore.js";
+import { useGatewayConfigStore } from "../store/gatewayConfigStore.js";
 import { useObjectStore } from "../store/objectStore.js";
 import { useBenchmarkStore } from "../store/benchmarkStore.js";
+import { useBenchmarkJobStore } from "../store/benchmarkJobStore.js";
 import { ErrorBoundary } from "../components/ErrorBoundary.js";
+import { colors } from "../utils/theme.js";
 import type { ScreenName } from "../router/types.js";
+
+// List of all known screens
+const KNOWN_SCREENS: Set<ScreenName> = new Set([
+  "menu",
+  "settings-menu",
+  "devbox-list",
+  "devbox-detail",
+  "devbox-actions",
+  "devbox-exec",
+  "devbox-create",
+  "blueprint-list",
+  "blueprint-detail",
+  "blueprint-logs",
+  "snapshot-list",
+  "snapshot-detail",
+  "network-policy-list",
+  "network-policy-detail",
+  "network-policy-create",
+  "gateway-config-list",
+  "gateway-config-detail",
+  "gateway-config-create",
+  "secret-list",
+  "secret-detail",
+  "secret-create",
+  "object-list",
+  "object-detail",
+  "ssh-session",
+  "benchmark-menu",
+  "benchmark-list",
+  "benchmark-detail",
+  "benchmark-run-list",
+  "benchmark-run-detail",
+  "scenario-run-list",
+  "scenario-run-detail",
+  "benchmark-job-list",
+  "benchmark-job-detail",
+  "benchmark-job-create",
+]);
+
+/**
+ * Fallback screen for unknown routes
+ */
+function UnknownScreen({ screenName }: { screenName: string }) {
+  const { navigate } = useNavigation();
+
+  useInput((input, key) => {
+    if (key.return) {
+      navigate("menu");
+    }
+  });
+
+  return (
+    <Box flexDirection="column" padding={1}>
+      <Box marginBottom={1}>
+        <Text color={colors.warning} bold>
+          {figures.warning} Unknown Page
+        </Text>
+      </Box>
+      <Box marginBottom={1}>
+        <Text color={colors.textDim}>
+          {"You've navigated to an unknown page: "}
+          <Text color={colors.error}>{`"${screenName}"`}</Text>
+        </Text>
+      </Box>
+      <Box>
+        <Text color={colors.textDim}>
+          Press{" "}
+          <Text color={colors.primary} bold>
+            Enter
+          </Text>{" "}
+          to return to the main menu
+        </Text>
+      </Box>
+    </Box>
+  );
+}
 
 // Import screen components
 import { MenuScreen } from "../screens/MenuScreen.js";
@@ -28,6 +109,8 @@ import { SnapshotDetailScreen } from "../screens/SnapshotDetailScreen.js";
 import { NetworkPolicyListScreen } from "../screens/NetworkPolicyListScreen.js";
 import { NetworkPolicyDetailScreen } from "../screens/NetworkPolicyDetailScreen.js";
 import { NetworkPolicyCreateScreen } from "../screens/NetworkPolicyCreateScreen.js";
+import { GatewayConfigListScreen } from "../screens/GatewayConfigListScreen.js";
+import { GatewayConfigDetailScreen } from "../screens/GatewayConfigDetailScreen.js";
 import { SettingsMenuScreen } from "../screens/SettingsMenuScreen.js";
 import { SecretListScreen } from "../screens/SecretListScreen.js";
 import { SecretDetailScreen } from "../screens/SecretDetailScreen.js";
@@ -36,10 +119,15 @@ import { ObjectListScreen } from "../screens/ObjectListScreen.js";
 import { ObjectDetailScreen } from "../screens/ObjectDetailScreen.js";
 import { SSHSessionScreen } from "../screens/SSHSessionScreen.js";
 import { BenchmarkMenuScreen } from "../screens/BenchmarkMenuScreen.js";
+import { BenchmarkListScreen } from "../screens/BenchmarkListScreen.js";
+import { BenchmarkDetailScreen } from "../screens/BenchmarkDetailScreen.js";
 import { BenchmarkRunListScreen } from "../screens/BenchmarkRunListScreen.js";
 import { BenchmarkRunDetailScreen } from "../screens/BenchmarkRunDetailScreen.js";
 import { ScenarioRunListScreen } from "../screens/ScenarioRunListScreen.js";
 import { ScenarioRunDetailScreen } from "../screens/ScenarioRunDetailScreen.js";
+import { BenchmarkJobListScreen } from "../screens/BenchmarkJobListScreen.js";
+import { BenchmarkJobDetailScreen } from "../screens/BenchmarkJobDetailScreen.js";
+import { BenchmarkJobCreateScreen } from "../screens/BenchmarkJobCreateScreen.js";
 
 /**
  * Router component that renders the current screen
@@ -94,6 +182,14 @@ export function Router() {
           }
           break;
 
+        case "gateway-config-list":
+        case "gateway-config-detail":
+        case "gateway-config-create":
+          if (!currentScreen.startsWith("gateway-config")) {
+            useGatewayConfigStore.getState().clearAll();
+          }
+          break;
+
         case "object-list":
         case "object-detail":
           if (!currentScreen.startsWith("object")) {
@@ -102,6 +198,8 @@ export function Router() {
           break;
 
         case "benchmark-menu":
+        case "benchmark-list":
+        case "benchmark-detail":
         case "benchmark-run-list":
         case "benchmark-run-detail":
         case "scenario-run-list":
@@ -111,6 +209,14 @@ export function Router() {
             !currentScreen.startsWith("scenario")
           ) {
             useBenchmarkStore.getState().clearAll();
+          }
+          break;
+
+        case "benchmark-job-list":
+        case "benchmark-job-detail":
+        case "benchmark-job-create":
+          if (!currentScreen.startsWith("benchmark-job")) {
+            useBenchmarkJobStore.getState().clearAll();
           }
           break;
       }
@@ -170,6 +276,12 @@ export function Router() {
       {currentScreen === "network-policy-create" && (
         <NetworkPolicyCreateScreen key={currentScreen} {...params} />
       )}
+      {currentScreen === "gateway-config-list" && (
+        <GatewayConfigListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "gateway-config-detail" && (
+        <GatewayConfigDetailScreen key={currentScreen} {...params} />
+      )}
       {currentScreen === "secret-list" && (
         <SecretListScreen key={currentScreen} {...params} />
       )}
@@ -191,6 +303,12 @@ export function Router() {
       {currentScreen === "benchmark-menu" && (
         <BenchmarkMenuScreen key={currentScreen} {...params} />
       )}
+      {currentScreen === "benchmark-list" && (
+        <BenchmarkListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "benchmark-detail" && (
+        <BenchmarkDetailScreen key={currentScreen} {...params} />
+      )}
       {currentScreen === "benchmark-run-list" && (
         <BenchmarkRunListScreen key={currentScreen} {...params} />
       )}
@@ -202,6 +320,18 @@ export function Router() {
       )}
       {currentScreen === "scenario-run-detail" && (
         <ScenarioRunDetailScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "benchmark-job-list" && (
+        <BenchmarkJobListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "benchmark-job-detail" && (
+        <BenchmarkJobDetailScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "benchmark-job-create" && (
+        <BenchmarkJobCreateScreen key={currentScreen} {...params} />
+      )}
+      {!KNOWN_SCREENS.has(currentScreen) && (
+        <UnknownScreen key={currentScreen} screenName={currentScreen} />
       )}
     </ErrorBoundary>
   );
