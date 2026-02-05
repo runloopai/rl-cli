@@ -17,6 +17,7 @@ import {
   type ResourceOperation,
 } from "../components/ResourceDetailPage.js";
 import { getBenchmarkJob } from "../services/benchmarkJobService.js";
+import { getBenchmarkRun } from "../services/benchmarkService.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
@@ -35,6 +36,9 @@ export function BenchmarkJobDetailScreen({
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
   const [fetchedJob, setFetchedJob] = React.useState<BenchmarkJob | null>(null);
+  const [runNames, setRunNames] = React.useState<Map<string, string>>(
+    new Map(),
+  );
 
   // Find job in store first
   const jobFromStore = benchmarkJobs.find((j) => j.id === benchmarkJobId);
@@ -65,6 +69,47 @@ export function BenchmarkJobDetailScreen({
 
   // Use fetched job for full details, fall back to store for basic display
   const job = fetchedJob || jobFromStore;
+
+  // Fetch run names when job is loaded
+  React.useEffect(() => {
+    if (!job) return;
+
+    const runIds: string[] = [];
+
+    // Collect run IDs from outcomes
+    if (job.benchmark_outcomes) {
+      job.benchmark_outcomes.forEach((outcome) => {
+        runIds.push(outcome.benchmark_run_id);
+      });
+    }
+
+    // Collect run IDs from in-progress runs
+    if (job.in_progress_runs) {
+      job.in_progress_runs.forEach((run) => {
+        if (!runIds.includes(run.benchmark_run_id)) {
+          runIds.push(run.benchmark_run_id);
+        }
+      });
+    }
+
+    // Fetch run details for each run ID
+    Promise.all(
+      runIds.map(async (runId) => {
+        try {
+          const run = await getBenchmarkRun(runId);
+          return { id: runId, name: run.name || runId };
+        } catch {
+          return { id: runId, name: runId };
+        }
+      }),
+    ).then((results) => {
+      const namesMap = new Map<string, string>();
+      results.forEach((result) => {
+        namesMap.set(result.id, result.name);
+      });
+      setRunNames(namesMap);
+    });
+  }, [job]);
 
   // Show loading state
   if (!job && benchmarkJobId && !error) {
@@ -496,24 +541,26 @@ export function BenchmarkJobDetailScreen({
   }
 
   // Collect benchmark run IDs for operations
-  const benchmarkRunIds: { id: string; agentName: string }[] = [];
+  const benchmarkRunIds: { id: string; name: string }[] = [];
   if (job.benchmark_outcomes) {
     job.benchmark_outcomes.forEach((outcome) => {
+      // Use fetched run name from state, fallback to run ID
+      const runName =
+        runNames.get(outcome.benchmark_run_id) || outcome.benchmark_run_id;
       benchmarkRunIds.push({
         id: outcome.benchmark_run_id,
-        agentName: outcome.agent_name,
+        name: runName,
       });
     });
   }
   if (job.in_progress_runs) {
     job.in_progress_runs.forEach((run) => {
-      let agentName = "Unknown Agent";
-      if (run.agent_config && "name" in run.agent_config) {
-        agentName = (run.agent_config as any).name;
-      }
       // Avoid duplicates
       if (!benchmarkRunIds.find((r) => r.id === run.benchmark_run_id)) {
-        benchmarkRunIds.push({ id: run.benchmark_run_id, agentName });
+        // Use fetched run name from state, fallback to run ID
+        const runName =
+          runNames.get(run.benchmark_run_id) || run.benchmark_run_id;
+        benchmarkRunIds.push({ id: run.benchmark_run_id, name: runName });
       }
     });
   }
@@ -525,7 +572,7 @@ export function BenchmarkJobDetailScreen({
   benchmarkRunIds.slice(0, 9).forEach((run, idx) => {
     operations.push({
       key: `view-run-${idx}`,
-      label: `View Run: ${run.agentName}`,
+      label: `View Run: ${run.name}`,
       color: colors.info,
       icon: figures.arrowRight,
       shortcut: String(idx + 1),
