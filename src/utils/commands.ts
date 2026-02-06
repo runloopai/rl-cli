@@ -16,7 +16,9 @@ export function createProgram(): Command {
   program
     .name("rli")
     .description("Beautiful CLI for Runloop devbox management")
-    .version(VERSION);
+    .version(VERSION)
+    .showHelpAfterError()
+    .showSuggestionAfterError();
 
   // Devbox commands
   const devbox = program
@@ -195,16 +197,26 @@ export function createProgram(): Command {
     });
 
   devbox
-    .command("scp <id> <src> <dst>")
-    .description("Copy files to/from a devbox using scp")
+    .command("scp <src> <dst>")
+    .description(
+      "Copy files to/from a devbox using scp. Use the devbox ID (dbx_*) as a hostname in src or dst.\n\n" +
+        "  Examples:\n" +
+        "    $ rli devbox scp dbx_abc123:/home/user/file.txt ./file.txt       # download from devbox\n" +
+        "    $ rli devbox scp ./file.txt dbx_abc123:/home/user/file.txt       # upload to devbox\n" +
+        "    $ rli devbox scp root@dbx_abc123:/etc/hosts ./hosts              # with explicit user\n" +
+        "    $ rli devbox scp dbx_src:/data/file.txt dbx_dst:/data/file.txt   # devbox to devbox\n\n" +
+        "  If no user is specified, the devbox's configured user is used.\n" +
+        "  Paths without a dbx_ hostname are treated as local.\n" +
+        "  Devbox-to-devbox transfers route through your local machine via scp -3.",
+    )
     .option("--scp-options <options>", "Additional scp options (quoted)")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
     )
-    .action(async (id, src, dst, options) => {
+    .action(async (src, dst, options) => {
       const { scpFiles } = await import("../commands/devbox/scp.js");
-      await scpFiles(id, { src, dst, ...options });
+      await scpFiles(src, dst, options);
     });
 
   devbox
@@ -384,6 +396,27 @@ export function createProgram(): Command {
     .action(async (id, options) => {
       const { getSnapshot } = await import("../commands/snapshot/get.js");
       await getSnapshot({ id, ...options });
+    });
+
+  snapshot
+    .command("prune")
+    .description(
+      "Delete old snapshots for a devbox, keeping only recent ready ones",
+    )
+    .requiredOption(
+      "--source <devbox-id>",
+      "Source devbox ID to prune snapshots for",
+    )
+    .option("--dry-run", "Show what would be deleted without actually deleting")
+    .option("-y, --yes", "Skip confirmation prompt")
+    .option("--keep <n>", "Number of ready snapshots to keep", "1")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (options) => {
+      const { pruneSnapshots } = await import("../commands/snapshot/prune.js");
+      await pruneSnapshots(options.source, options);
     });
 
   snapshot
