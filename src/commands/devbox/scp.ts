@@ -196,11 +196,7 @@ export function generateSCPConfig(
     .join("\n\n");
 }
 
-export async function scpFiles(
-  src: string,
-  dst: string,
-  options: SCPOptions,
-) {
+export async function scpFiles(src: string, dst: string, options: SCPOptions) {
   try {
     // Check if SSH tools are available
     const sshToolsAvailable = await checkSSHTools();
@@ -259,9 +255,7 @@ export async function scpFiles(
       }
     } else {
       // Single remote — one side is local
-      const devboxId = parsedSrc.isRemote
-        ? parsedSrc.host!
-        : parsedDst.host!;
+      const devboxId = parsedSrc.isRemote ? parsedSrc.host! : parsedDst.host!;
       const remote = await resolveRemote(devboxId);
 
       scpCommand = buildSCPCommand({
