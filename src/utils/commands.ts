@@ -399,8 +399,7 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: text)",
     )
     .action(async (devboxId, options) => {
-      const { pruneSnapshots } =
-        await import("../commands/snapshot/prune.js");
+      const { pruneSnapshots } = await import("../commands/snapshot/prune.js");
       await pruneSnapshots(devboxId, options);
     });
 
