@@ -387,6 +387,24 @@ export function createProgram(): Command {
     });
 
   snapshot
+    .command("prune <devbox-id>")
+    .description(
+      "Delete old snapshots for a devbox, keeping only recent ready ones",
+    )
+    .option("--dry-run", "Show what would be deleted without actually deleting")
+    .option("-y, --yes", "Skip confirmation prompt")
+    .option("--keep <n>", "Number of ready snapshots to keep", "1")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (devboxId, options) => {
+      const { pruneSnapshots } =
+        await import("../commands/snapshot/prune.js");
+      await pruneSnapshots(devboxId, options);
+    });
+
+  snapshot
     .command("status <snapshot-id>")
     .description("Get snapshot operation status")
     .option(
