@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.9.0](https://github.com/runloopai/rl-cli/compare/v1.8.0...v1.9.0) (2026-02-06)
+
+
+### Features
+
+* add benchmark job to cli [beta]  ([#88](https://github.com/runloopai/rl-cli/issues/88)) ([f8759c2](https://github.com/runloopai/rl-cli/commit/f8759c2d67283730369cc110fab46b098513ca1d))
+* add gatway support to rli ([#101](https://github.com/runloopai/rl-cli/issues/101)) ([441e888](https://github.com/runloopai/rl-cli/commit/441e8887e69ddee64bd49d09e5062b366600dff3))
+* **devbox:** add tunnel to devbox create ([#99](https://github.com/runloopai/rl-cli/issues/99)) ([a3c1b7a](https://github.com/runloopai/rl-cli/commit/a3c1b7a3f9013970273c2724fa8b38e32062bf8f))
+
+
+### Bug Fixes
+
+* **benchmark:** scenario status in run view and some additional tweaks ([#98](https://github.com/runloopai/rl-cli/issues/98)) ([ca77634](https://github.com/runloopai/rl-cli/commit/ca77634bbfbb6b94326be76193a9a1de51017eeb))
+* **blueprint:** handled blueprint queued state ([#100](https://github.com/runloopai/rl-cli/issues/100)) ([a77e558](https://github.com/runloopai/rl-cli/commit/a77e558dfd51164e3ebe1df0abb9c0a0d273aab9))
+* **secret:** obscure secret value entry within tui ([#86](https://github.com/runloopai/rl-cli/issues/86)) ([8697e5c](https://github.com/runloopai/rl-cli/commit/8697e5c94d6f24af00c02e2f9a09af32c3c3b35a))
+* upgrades a dependency with an override ([#94](https://github.com/runloopai/rl-cli/issues/94)) ([c7f9398](https://github.com/runloopai/rl-cli/commit/c7f93983c1b944aa30b50922707a03b762430668))
+
 ## [1.8.0](https://github.com/runloopai/rl-cli/compare/v1.7.1...v1.8.0) (2026-01-28)
 
 
