@@ -109,6 +109,7 @@ rli snapshot list                        # List all snapshots
 rli snapshot create <devbox-id>          # Create a snapshot of a devbox
 rli snapshot delete <id>                 # Delete a snapshot
 rli snapshot get <id>                    # Get snapshot details
+rli snapshot prune <devbox-id>           # Delete old snapshots for a devbox, ke...
 rli snapshot status <snapshot-id>        # Get snapshot operation status
 ```
 
