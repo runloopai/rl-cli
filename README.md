@@ -92,7 +92,7 @@ rli devbox suspend <id>                  # Suspend a devbox
 rli devbox resume <id>                   # Resume a suspended devbox
 rli devbox shutdown <id>                 # Shutdown a devbox
 rli devbox ssh <id>                      # SSH into a devbox
-rli devbox scp <id> <src> <dst>          # Copy files to/from a devbox using scp
+rli devbox scp <src> <dst>               # Copy files to/from a devbox using scp...
 rli devbox rsync <id> <src> <dst>        # Sync files to/from a devbox using rsync
 rli devbox tunnel <id> <ports>           # Create a port-forwarding tunnel to a ...
 rli devbox read <id>                     # Read a file from a devbox using the API
