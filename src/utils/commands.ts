@@ -469,6 +469,20 @@ export function createProgram(): Command {
     });
 
   blueprint
+    .command("delete <id>")
+    .description("Delete a blueprint by ID")
+    .alias("rm")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (id, options) => {
+      const { deleteBlueprint } =
+        await import("../commands/blueprint/delete.js");
+      await deleteBlueprint(id, options);
+    });
+
+  blueprint
     .command("prune <name>")
     .description(
       "Delete old blueprint builds, keeping only recent successful ones",
