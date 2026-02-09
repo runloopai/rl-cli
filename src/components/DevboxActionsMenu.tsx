@@ -194,32 +194,48 @@ export const DevboxActionsMenu = ({
   ];
 
   // Filter operations based on devbox status
+  const hasTunnel = !!(devbox?.tunnel && devbox.tunnel.tunnel_key);
   const operations = devbox
-    ? allOperations.filter((op) => {
-        const status = devbox.status;
+    ? allOperations
+        .filter((op) => {
+          const status = devbox.status;
 
-        // When suspended: logs and resume
-        if (status === "suspended") {
-          return op.key === "resume" || op.key === "logs";
-        }
+          // When suspended: logs and resume
+          if (status === "suspended") {
+            return op.key === "resume" || op.key === "logs";
+          }
 
-        // When not running (shutdown, failure, etc): only logs
-        if (
-          status !== "running" &&
-          status !== "provisioning" &&
-          status !== "initializing"
-        ) {
-          return op.key === "logs";
-        }
+          // When not running (shutdown, failure, etc): only logs
+          if (
+            status !== "running" &&
+            status !== "provisioning" &&
+            status !== "initializing"
+          ) {
+            return op.key === "logs";
+          }
 
-        // When running: everything except resume
-        if (status === "running") {
-          return op.key !== "resume";
-        }
+          // When running: everything except resume
+          if (status === "running") {
+            return op.key !== "resume";
+          }
 
-        // Default for transitional states (provisioning, initializing)
-        return op.key === "logs" || op.key === "delete";
-      })
+          // Default for transitional states (provisioning, initializing)
+          return op.key === "logs" || op.key === "delete";
+        })
+        .map((op) => {
+          // Dynamic tunnel label based on whether tunnel is active
+          if (op.key === "tunnel") {
+            return hasTunnel
+              ? {
+                  ...op,
+                  label: "Tunnel (Active)",
+                  color: colors.success,
+                  icon: figures.tick,
+                }
+              : op;
+          }
+          return op;
+        })
     : allOperations;
 
   // Auto-execute operations that don't need input (except delete which needs confirmation)

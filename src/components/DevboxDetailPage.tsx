@@ -92,6 +92,13 @@ export const DevboxDetailPage = ({
       shortcut: "s",
     },
     {
+      key: "tunnel",
+      label: "Open Tunnel",
+      color: colors.secondary,
+      icon: figures.pointerSmall,
+      shortcut: "t",
+    },
+    {
       key: "suspend",
       label: "Suspend Devbox",
       color: colors.warning,
@@ -116,31 +123,48 @@ export const DevboxDetailPage = ({
 
   // Filter operations based on devbox status
   const getFilteredOperations = (devbox: Devbox): ResourceOperation[] => {
-    return allOperations.filter((op) => {
-      const status = devbox.status;
+    const hasTunnel = !!(devbox.tunnel && devbox.tunnel.tunnel_key);
 
-      // When suspended: logs and resume
-      if (status === "suspended") {
-        return op.key === "resume" || op.key === "logs";
-      }
+    return allOperations
+      .filter((op) => {
+        const status = devbox.status;
 
-      // When not running (shutdown, failure, etc): only logs
-      if (
-        status !== "running" &&
-        status !== "provisioning" &&
-        status !== "initializing"
-      ) {
-        return op.key === "logs";
-      }
+        // When suspended: logs and resume
+        if (status === "suspended") {
+          return op.key === "resume" || op.key === "logs";
+        }
 
-      // When running: everything except resume
-      if (status === "running") {
-        return op.key !== "resume";
-      }
+        // When not running (shutdown, failure, etc): only logs
+        if (
+          status !== "running" &&
+          status !== "provisioning" &&
+          status !== "initializing"
+        ) {
+          return op.key === "logs";
+        }
 
-      // Default for transitional states (provisioning, initializing)
-      return op.key === "logs" || op.key === "delete";
-    });
+        // When running: everything except resume
+        if (status === "running") {
+          return op.key !== "resume";
+        }
+
+        // Default for transitional states (provisioning, initializing)
+        return op.key === "logs" || op.key === "delete";
+      })
+      .map((op) => {
+        // Dynamic tunnel label based on whether tunnel is active
+        if (op.key === "tunnel") {
+          return hasTunnel
+            ? {
+                ...op,
+                label: "Tunnel (Active)",
+                color: colors.success,
+                icon: figures.tick,
+              }
+            : op;
+        }
+        return op;
+      });
   };
 
   // Build detail sections for the devbox
@@ -258,21 +282,34 @@ export const DevboxDetailPage = ({
       });
     }
 
-    // Tunnel URL
+    // Tunnel status - always show when running
     if (devbox.tunnel && devbox.tunnel.tunnel_key) {
       const tunnelKey = devbox.tunnel.tunnel_key;
       const authMode = devbox.tunnel.auth_mode;
       const tunnelUrl = `https://{port}-${tunnelKey}.tunnel.runloop.ai`;
 
       detailFields.push({
-        label: "Tunnel URL",
+        label: "Tunnel",
         value: (
           <>
+            <Text color={colors.success} bold>
+              {figures.tick} Active
+            </Text>
+            <Text color={colors.textDim}> • </Text>
             <Text color={colors.success}>{tunnelUrl}</Text>
             {authMode === "authenticated" && (
               <Text color={colors.warning}> (authenticated)</Text>
             )}
           </>
+        ),
+      });
+    } else if (devbox.status === "running") {
+      detailFields.push({
+        label: "Tunnel",
+        value: (
+          <Text color={colors.textDim} dimColor>
+            {figures.cross} Off
+          </Text>
         ),
       });
     }

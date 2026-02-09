@@ -423,28 +423,46 @@ const ListDevboxesUI = ({
   const endIndex = startIndex + devboxes.length;
 
   // Filter operations based on devbox status
+  const hasTunnel = !!(
+    selectedDevbox?.tunnel && selectedDevbox.tunnel.tunnel_key
+  );
   const operations = selectedDevbox
-    ? allOperations.filter((op) => {
-        const devboxStatus = selectedDevbox.status;
+    ? allOperations
+        .filter((op) => {
+          const devboxStatus = selectedDevbox.status;
 
-        if (devboxStatus === "suspended") {
-          return op.key === "resume" || op.key === "logs";
-        }
+          if (devboxStatus === "suspended") {
+            return op.key === "resume" || op.key === "logs";
+          }
 
-        if (
-          devboxStatus !== "running" &&
-          devboxStatus !== "provisioning" &&
-          devboxStatus !== "initializing"
-        ) {
-          return op.key === "logs";
-        }
+          if (
+            devboxStatus !== "running" &&
+            devboxStatus !== "provisioning" &&
+            devboxStatus !== "initializing"
+          ) {
+            return op.key === "logs";
+          }
 
-        if (devboxStatus === "running") {
-          return op.key !== "resume";
-        }
+          if (devboxStatus === "running") {
+            return op.key !== "resume";
+          }
 
-        return op.key === "logs" || op.key === "delete";
-      })
+          return op.key === "logs" || op.key === "delete";
+        })
+        .map((op) => {
+          // Dynamic tunnel label based on whether tunnel is active
+          if (op.key === "tunnel") {
+            return hasTunnel
+              ? {
+                  ...op,
+                  label: "Tunnel (Active)",
+                  color: colors.success,
+                  icon: figures.tick,
+                }
+              : op;
+          }
+          return op;
+        })
     : allOperations;
 
   useInput((input, key) => {
