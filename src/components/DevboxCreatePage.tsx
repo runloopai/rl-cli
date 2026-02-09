@@ -1106,6 +1106,7 @@ export const DevboxCreatePage = ({
 
     return (
       <ResourcePicker<GatewayConfig>
+        key="gateway-config-picker"
         config={{
           title: "Select Gateway Config",
           fetchPage: async (params) => {
@@ -1167,6 +1168,7 @@ export const DevboxCreatePage = ({
 
     return (
       <ResourcePicker<SecretListItem>
+        key="secret-picker"
         config={{
           title: "Select Secret for Gateway",
           fetchPage: async (params) => {
