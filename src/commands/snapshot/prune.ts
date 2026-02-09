@@ -257,8 +257,8 @@ export async function pruneSnapshots(
     const autoConfirm = options.yes || false;
     const keepCount = parseInt(options.keep || "1", 10);
 
-    if (isNaN(keepCount) || keepCount < 1) {
-      outputError("--keep must be a positive integer");
+    if (isNaN(keepCount) || keepCount < 0) {
+      outputError("--keep must be a non-negative integer");
     }
 
     // Fetch all snapshots for the given devbox
