@@ -9,10 +9,7 @@ interface DeleteOptions {
   output?: string;
 }
 
-export async function deleteBlueprint(
-  id: string,
-  options: DeleteOptions = {},
-) {
+export async function deleteBlueprint(id: string, options: DeleteOptions = {}) {
   try {
     const client = getClient();
 
