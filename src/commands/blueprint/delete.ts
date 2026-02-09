@@ -1,6 +1,5 @@
 /**
  * Delete blueprint command
- * Supports both blueprint ID (bpt_...) and name
  */
 
 import { getClient } from "../../utils/client.js";
@@ -11,41 +10,20 @@ interface DeleteOptions {
 }
 
 export async function deleteBlueprint(
-  nameOrId: string,
+  id: string,
   options: DeleteOptions = {},
 ) {
   try {
     const client = getClient();
 
-    let blueprintId = nameOrId;
-
-    // If it's not an ID, resolve by name
-    if (!nameOrId.startsWith("bpt_")) {
-      const result = await client.blueprints.list({ name: nameOrId });
-      const blueprints = result.blueprints || [];
-
-      if (blueprints.length === 0) {
-        outputError(
-          `Blueprint not found: ${nameOrId}`,
-          new Error("Blueprint not found"),
-        );
-        return;
-      }
-
-      // Use exact match if available, otherwise first result
-      const blueprint =
-        blueprints.find((b) => b.name === nameOrId) || blueprints[0];
-      blueprintId = blueprint.id;
-    }
-
-    await client.blueprints.delete(blueprintId);
+    await client.blueprints.delete(id);
 
     // Default: just output the ID for easy scripting
     if (!options.output || options.output === "text") {
-      console.log(blueprintId);
+      console.log(id);
     } else {
       output(
-        { id: blueprintId, status: "deleted" },
+        { id, status: "deleted" },
         { format: options.output, defaultFormat: "json" },
       );
     }

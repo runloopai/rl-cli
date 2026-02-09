@@ -469,8 +469,8 @@ export function createProgram(): Command {
     });
 
   blueprint
-    .command("delete <name-or-id>")
-    .description("Delete a blueprint by name or ID (IDs start with bpt_)")
+    .command("delete <id>")
+    .description("Delete a blueprint by ID")
     .alias("rm")
     .option(
       "-o, --output [format]",
