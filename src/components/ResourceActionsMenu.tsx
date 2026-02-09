@@ -6,6 +6,7 @@ import { Breadcrumb } from "./Breadcrumb.js";
 import { NavigationTips } from "./NavigationTips.js";
 import { ActionsPopup } from "./ActionsPopup.js";
 import { DevboxActionsMenu } from "./DevboxActionsMenu.js";
+import type { Devbox } from "../store/devboxStore.js";
 
 type OperationDef = {
   key: string;
@@ -27,8 +28,9 @@ interface BaseProps {
   skipOperationsMenu?: boolean;
 }
 
-type DevboxMenuProps = BaseProps & {
+type DevboxMenuProps = Omit<BaseProps, "resource"> & {
   resourceType: "devbox";
+  resource: Devbox;
 };
 
 type BlueprintMenuProps = BaseProps & {

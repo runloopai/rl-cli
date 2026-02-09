@@ -23,6 +23,7 @@ import {
   createSSHKey,
 } from "../services/devboxService.js";
 import { StreamingLogsViewer } from "./StreamingLogsViewer.js";
+import { DevboxView } from "@runloop/api-client/resources/devboxes.mjs";
 
 type Operation =
   | "exec"
@@ -37,7 +38,7 @@ type Operation =
   | null;
 
 interface DevboxActionsMenuProps {
-  devbox: any;
+  devbox: DevboxView;
   onBack: () => void;
   breadcrumbItems?: Array<{ label: string; active?: boolean }>;
   initialOperation?: string; // Operation to execute immediately
