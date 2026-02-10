@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Text, useInput, useApp } from "ink";
 import figures from "figures";
 import type { DiskSnapshotsCursorIDPage } from "@runloop/api-client/pagination";
+import type { DevboxSnapshotView } from "@runloop/api-client/resources/devboxes/devboxes";
 import { getClient } from "../../utils/client.js";
 import { Header } from "../../components/Header.js";
 import { SpinnerComponent } from "../../components/Spinner.js";
@@ -696,10 +697,19 @@ export async function listSnapshots(options: ListOptions) {
     // Fetch snapshots
     const page = (await client.devboxes.listDiskSnapshots(
       queryParams,
-    )) as DiskSnapshotsCursorIDPage<{ id: string }>;
+    )) as DiskSnapshotsCursorIDPage<DevboxSnapshotView>;
 
-    // Extract snapshots array
-    const snapshots = page.snapshots || [];
+    // Extract snapshots array and strip to plain objects to avoid
+    // camelCase aliases added by the API client library
+    const snapshots = (page.snapshots || []).map((s) => ({
+      id: s.id,
+      name: s.name ?? undefined,
+      create_time_ms: s.create_time_ms,
+      metadata: s.metadata,
+      source_devbox_id: s.source_devbox_id,
+      source_blueprint_id: s.source_blueprint_id ?? undefined,
+      commit_message: s.commit_message ?? undefined,
+    }));
 
     output(snapshots, { format: options.output, defaultFormat: "json" });
   } catch (error) {
