@@ -4,6 +4,10 @@
 import React from 'react';
 import { render } from 'ink-testing-library';
 import { DevboxDetailPage } from '../../../src/components/DevboxDetailPage.js';
+import { NavigationProvider } from '../../../src/store/navigationStore.js';
+
+const renderWithNav = (ui: React.ReactElement) =>
+  render(<NavigationProvider>{ui}</NavigationProvider>);
 
 describe('DevboxDetailPage', () => {
   const mockDevbox = {
@@ -19,7 +23,7 @@ describe('DevboxDetailPage', () => {
   };
 
   it('renders without crashing', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithNav(
       <DevboxDetailPage
         devbox={mockDevbox}
         onBack={() => {}}
@@ -29,7 +33,7 @@ describe('DevboxDetailPage', () => {
   });
 
   it('displays devbox name', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithNav(
       <DevboxDetailPage
         devbox={mockDevbox}
         onBack={() => {}}
@@ -39,7 +43,7 @@ describe('DevboxDetailPage', () => {
   });
 
   it('displays devbox id', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithNav(
       <DevboxDetailPage
         devbox={mockDevbox}
         onBack={() => {}}
@@ -49,7 +53,7 @@ describe('DevboxDetailPage', () => {
   });
 
   it('shows status badge', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithNav(
       <DevboxDetailPage
         devbox={mockDevbox}
         onBack={() => {}}
@@ -59,7 +63,7 @@ describe('DevboxDetailPage', () => {
   });
 
   it('shows Actions section', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithNav(
       <DevboxDetailPage
         devbox={mockDevbox}
         onBack={() => {}}
@@ -69,7 +73,7 @@ describe('DevboxDetailPage', () => {
   });
 
   it('shows available operations', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithNav(
       <DevboxDetailPage
         devbox={mockDevbox}
         onBack={() => {}}
@@ -82,7 +86,7 @@ describe('DevboxDetailPage', () => {
   });
 
   it('shows navigation help', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithNav(
       <DevboxDetailPage
         devbox={mockDevbox}
         onBack={() => {}}
@@ -96,7 +100,7 @@ describe('DevboxDetailPage', () => {
   });
 
   it('displays resource information', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithNav(
       <DevboxDetailPage
         devbox={mockDevbox}
         onBack={() => {}}
@@ -110,7 +114,7 @@ describe('DevboxDetailPage', () => {
   });
 
   it('displays capabilities', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithNav(
       <DevboxDetailPage
         devbox={mockDevbox}
         onBack={() => {}}
