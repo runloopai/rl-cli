@@ -225,14 +225,27 @@ export const DevboxDetailPage = ({
     }
 
     // Source
-    if (devbox.blueprint_id || devbox.snapshot_id) {
+    if (devbox.blueprint_id) {
       detailFields.push({
         label: "Source",
-        value: (
-          <Text color={colors.success}>
-            {devbox.blueprint_id || devbox.snapshot_id}
-          </Text>
-        ),
+        value: <Text color={colors.success}>{devbox.blueprint_id}</Text>,
+        action: {
+          type: "navigate" as const,
+          screen: "blueprint-detail" as const,
+          params: { blueprintId: devbox.blueprint_id },
+          hint: "View Blueprint",
+        },
+      });
+    } else if (devbox.snapshot_id) {
+      detailFields.push({
+        label: "Source",
+        value: <Text color={colors.success}>{devbox.snapshot_id}</Text>,
+        action: {
+          type: "navigate" as const,
+          screen: "snapshot-detail" as const,
+          params: { snapshotId: devbox.snapshot_id },
+          hint: "View Snapshot",
+        },
       });
     }
 
@@ -241,6 +254,12 @@ export const DevboxDetailPage = ({
       detailFields.push({
         label: "Network Policy",
         value: <Text color={colors.info}>{lp.network_policy_id}</Text>,
+        action: {
+          type: "navigate" as const,
+          screen: "network-policy-detail" as const,
+          params: { networkPolicyId: lp.network_policy_id },
+          hint: "View Policy",
+        },
       });
     }
 

@@ -126,6 +126,12 @@ export function SnapshotDetailScreen({
     basicFields.push({
       label: "Source Devbox",
       value: <Text color={colors.idColor}>{snapshot.devbox_id}</Text>,
+      action: {
+        type: "navigate" as const,
+        screen: "devbox-detail" as const,
+        params: { devboxId: snapshot.devbox_id },
+        hint: "View Devbox",
+      },
     });
   }
   if (snapshot.disk_size_bytes) {

@@ -279,6 +279,12 @@ export function BenchmarkRunDetailScreen({
     basicFields.push({
       label: "Benchmark ID",
       value: <Text color={colors.idColor}>{run.benchmark_id}</Text>,
+      action: {
+        type: "navigate" as const,
+        screen: "benchmark-detail" as const,
+        params: { benchmarkId: run.benchmark_id },
+        hint: "View Benchmark",
+      },
     });
   }
   if (run.purpose) {
@@ -441,6 +447,12 @@ export function BenchmarkRunDetailScreen({
       ([envVar, secretName]) => ({
         label: envVar,
         value: <Text color={colors.warning}>{secretName} (secret)</Text>,
+        action: {
+          type: "navigate" as const,
+          screen: "secret-detail" as const,
+          params: { secretId: secretName },
+          hint: "View Secret",
+        },
       }),
     );
 

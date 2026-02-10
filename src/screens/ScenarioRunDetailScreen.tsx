@@ -152,6 +152,12 @@ export function ScenarioRunDetailScreen({
     basicFields.push({
       label: "Benchmark Run ID",
       value: <Text color={colors.idColor}>{run.benchmark_run_id}</Text>,
+      action: {
+        type: "navigate" as const,
+        screen: "benchmark-run-detail" as const,
+        params: { benchmarkRunId: run.benchmark_run_id },
+        hint: "View Run",
+      },
     });
   }
 

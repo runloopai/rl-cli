@@ -102,3 +102,36 @@ export function formatTimeAgoRich(timestampMs: number): string {
   // More than 7 days - just date + time
   return `${dateStr} ${time}`;
 }
+
+/**
+ * Format a timestamp as "locale string (relative ago)".
+ * Example: "1/15/2025, 3:30:00 PM (2h ago)"
+ *
+ * Returns undefined if timestamp is falsy.
+ */
+export function formatTimestamp(
+  timestamp: number | undefined,
+): string | undefined {
+  if (!timestamp) return undefined;
+  const formatted = new Date(timestamp).toLocaleString();
+  const ago = formatTimeAgo(timestamp);
+  return `${formatted} (${ago})`;
+}
+
+/**
+ * Format a time range as "start → end" or "start (relative ago)" if no end.
+ *
+ * Returns undefined if createTime is falsy.
+ */
+export function formatTimeRange(
+  createTime: number | undefined,
+  endTime: number | undefined,
+): string | undefined {
+  if (!createTime) return undefined;
+  const start = new Date(createTime).toLocaleString();
+  if (endTime) {
+    const end = new Date(endTime).toLocaleString();
+    return `${start} → ${end}`;
+  }
+  return `${start} (${formatTimeAgo(createTime)})`;
+}
