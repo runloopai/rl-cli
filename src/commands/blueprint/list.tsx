@@ -24,6 +24,7 @@ import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
 import { useListSearch } from "../../hooks/useListSearch.js";
+import { openInBrowser } from "../../utils/browser.js";
 import {
   useInputHandler,
   type InputMode,
@@ -502,24 +503,10 @@ const ListBlueprintsUI = ({
     }
   }, [search, onBack, onExit, inkExit]);
 
-  const openInBrowser = React.useCallback(() => {
+  const handleOpenInBrowser = React.useCallback(() => {
     const bp = blueprints[selectedIndex];
     if (!bp) return;
-    const url = getBlueprintUrl(bp.id);
-    const doOpen = async () => {
-      const { exec } = await import("child_process");
-      const platform = process.platform;
-      let openCommand: string;
-      if (platform === "darwin") {
-        openCommand = `open "${url}"`;
-      } else if (platform === "win32") {
-        openCommand = `start "${url}"`;
-      } else {
-        openCommand = `xdg-open "${url}"`;
-      }
-      exec(openCommand);
-    };
-    doOpen();
+    openInBrowser(getBlueprintUrl(bp.id));
   }, [blueprints, selectedIndex]);
 
   // --- Declarative input modes ---
@@ -664,7 +651,7 @@ const ListBlueprintsUI = ({
               executeOperation(selectedBlueprintItem, "view_logs");
             }
           },
-          o: openInBrowser,
+          o: handleOpenInBrowser,
           "/": () => search.enterSearchMode(),
           escape: handleListEscape,
         },
@@ -690,7 +677,7 @@ const ListBlueprintsUI = ({
       blueprints.length,
       goToNextPage,
       goToPrevPage,
-      openInBrowser,
+      handleOpenInBrowser,
       handleListEscape,
     ],
   );

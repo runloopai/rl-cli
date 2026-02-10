@@ -5,9 +5,9 @@
 import React from "react";
 import { Box, Text } from "ink";
 import figures from "figures";
-import { Header } from "./Header.js";
 import { StatusBadge } from "./StatusBadge.js";
 import { Breadcrumb } from "./Breadcrumb.js";
+import { DetailedInfoView } from "./DetailedInfoView.js";
 import { NavigationTips } from "./NavigationTips.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
@@ -17,111 +17,30 @@ import {
   scrollBindings,
   type InputMode,
 } from "../hooks/useInputHandler.js";
-import { formatTimeAgo } from "../utils/time.js";
+import { useNavigation } from "../store/navigationStore.js";
+import { openInBrowser as openUrlInBrowser } from "../utils/browser.js";
+import { copyToClipboard } from "../utils/clipboard.js";
 import {
-  useNavigation,
-  type ScreenName,
-  type RouteParams,
-} from "../store/navigationStore.js";
+  collectActionableFields,
+  type DetailFieldAction,
+  type ResourceDetailPageProps,
+} from "./resourceDetailTypes.js";
 
-// Types for configurable detail sections
-export interface DetailFieldAction {
-  /** Type of action */
-  type: "navigate" | "callback";
-  /** For navigate: screen name to navigate to */
-  screen?: ScreenName;
-  /** For navigate: params to pass */
-  params?: RouteParams;
-  /** For callback: custom function to execute */
-  handler?: () => void;
-  /** Hint text shown next to field, e.g. "View Blueprint" */
-  hint?: string;
-}
-
-export interface DetailField {
-  label: string;
-  value: string | React.ReactNode | undefined | null;
-  color?: string;
-  /** Optional action to trigger when this field is selected and Enter is pressed */
-  action?: DetailFieldAction;
-}
-
-export interface DetailSection {
-  title: string;
-  icon?: string;
-  color?: string;
-  fields: DetailField[];
-}
-
-export interface ResourceOperation {
-  key: string;
-  label: string;
-  color: string;
-  icon: string;
-  shortcut: string;
-}
-
-export interface ResourceDetailPageProps<T> {
-  /** The resource being displayed */
-  resource: T;
-  /** Resource type name for breadcrumbs (e.g., "Blueprints", "Snapshots") */
-  resourceType: string;
-  /** Get display name for the resource */
-  getDisplayName: (resource: T) => string;
-  /** Get resource ID */
-  getId: (resource: T) => string;
-  /** Get resource status */
-  getStatus: (resource: T) => string;
-  /** Optional: Get URL to open in browser */
-  getUrl?: (resource: T) => string;
-  /** Breadcrumb items before the resource name */
-  breadcrumbPrefix?: Array<{ label: string; active?: boolean }>;
-  /** Detail sections to display in main view */
-  detailSections: DetailSection[];
-  /** Available operations/actions */
-  operations: ResourceOperation[];
-  /** Callback when operation is selected */
-  onOperation: (operation: string, resource: T) => void;
-  /** Callback to go back */
-  onBack: () => void;
-  /** Optional: Build detailed info lines for full details view */
-  buildDetailLines?: (resource: T) => React.ReactElement[];
-  /** Optional: Additional content to render after details section */
-  additionalContent?: React.ReactNode;
-  /** Optional: Polling function to refresh resource data */
-  pollResource?: () => Promise<T>;
-  /** Polling interval in ms (default: 3000) */
-  pollInterval?: number;
-}
+// Re-export all types so existing consumers don't need to change their imports
+export type {
+  DetailFieldAction,
+  DetailField,
+  DetailSection,
+  ResourceOperation,
+  ResourceDetailPageProps,
+} from "./resourceDetailTypes.js";
+export { collectActionableFields } from "./resourceDetailTypes.js";
 
 // Truncate long strings to prevent layout issues
 const truncateString = (str: string, maxLength: number): string => {
   if (str.length <= maxLength) return str;
   return str.substring(0, maxLength - 3) + "...";
 };
-
-// Helper to collect actionable fields with their flat index
-interface ActionableFieldRef {
-  sectionIndex: number;
-  fieldIndex: number;
-  action: DetailFieldAction;
-}
-
-function collectActionableFields(
-  sections: DetailSection[],
-): ActionableFieldRef[] {
-  const refs: ActionableFieldRef[] = [];
-  sections.forEach((section, sectionIndex) => {
-    section.fields
-      .filter((field) => field.value !== undefined && field.value !== null)
-      .forEach((field, fieldIndex) => {
-        if (field.action) {
-          refs.push({ sectionIndex, fieldIndex, action: field.action });
-        }
-      });
-  });
-  return refs;
-}
 
 export function ResourceDetailPage<T>({
   resource: initialResource,
@@ -155,43 +74,11 @@ export function ResourceDetailPage<T>({
   const [currentResource, setCurrentResource] = React.useState(initialResource);
   const [copyStatus, setCopyStatus] = React.useState<string | null>(null);
 
-  // Copy to clipboard helper
-  const copyToClipboard = React.useCallback(async (text: string) => {
-    const { spawn } = await import("child_process");
-    const platform = process.platform;
-
-    let command: string;
-    let args: string[];
-
-    if (platform === "darwin") {
-      command = "pbcopy";
-      args = [];
-    } else if (platform === "win32") {
-      command = "clip";
-      args = [];
-    } else {
-      command = "xclip";
-      args = ["-selection", "clipboard"];
-    }
-
-    const proc = spawn(command, args);
-    proc.stdin.write(text);
-    proc.stdin.end();
-
-    proc.on("exit", (code) => {
-      if (code === 0) {
-        setCopyStatus("Copied ID to clipboard!");
-        setTimeout(() => setCopyStatus(null), 2000);
-      } else {
-        setCopyStatus("Failed to copy");
-        setTimeout(() => setCopyStatus(null), 2000);
-      }
-    });
-
-    proc.on("error", () => {
-      setCopyStatus("Copy not supported");
-      setTimeout(() => setCopyStatus(null), 2000);
-    });
+  // Copy to clipboard with status feedback
+  const handleCopy = React.useCallback(async (text: string) => {
+    const status = await copyToClipboard(text);
+    setCopyStatus(status);
+    setTimeout(() => setCopyStatus(null), 2000);
   }, []);
 
   const [showDetailedInfo, setShowDetailedInfo] = React.useState(false);
@@ -263,23 +150,9 @@ export function ResourceDetailPage<T>({
   const isOnLink = selectedIndex < actionableFields.length;
   const operationIndex = selectedIndex - actionableFields.length;
 
-  const openInBrowser = React.useCallback(() => {
+  const handleOpenInBrowser = React.useCallback(() => {
     if (!getUrl) return;
-    const url = getUrl(currentResource);
-    const openBrowser = async () => {
-      const { exec } = await import("child_process");
-      const platform = process.platform;
-      let openCommand: string;
-      if (platform === "darwin") {
-        openCommand = `open "${url}"`;
-      } else if (platform === "win32") {
-        openCommand = `start "${url}"`;
-      } else {
-        openCommand = `xdg-open "${url}"`;
-      }
-      exec(openCommand);
-    };
-    openBrowser();
+    openUrlInBrowser(getUrl(currentResource));
   }, [getUrl, currentResource]);
 
   const exitDetailedInfo = React.useCallback(() => {
@@ -327,7 +200,7 @@ export function ResourceDetailPage<T>({
         bindings: {
           q: onBack,
           escape: onBack,
-          c: () => copyToClipboard(getId(currentResource)),
+          c: () => handleCopy(getId(currentResource)),
           ...(buildDetailLines
             ? {
                 i: () => {
@@ -344,7 +217,7 @@ export function ResourceDetailPage<T>({
               setSelectedIndex(selectedIndex + 1);
           },
           enter: handleEnter,
-          ...(getUrl ? { o: openInBrowser } : {}),
+          ...(getUrl ? { o: handleOpenInBrowser } : {}),
         },
         onUnmatched: (input) => {
           // Operation shortcuts work from anywhere
@@ -369,7 +242,7 @@ export function ResourceDetailPage<T>({
       totalSelectableItems,
       handleEnter,
       getUrl,
-      openInBrowser,
+      handleOpenInBrowser,
       operations,
       actionableFields,
       onOperation,
@@ -381,63 +254,17 @@ export function ResourceDetailPage<T>({
 
   // Detailed info mode - full screen
   if (showDetailedInfo && buildDetailLines) {
-    const detailLines = buildDetailLines(currentResource);
-    const viewportHeight = detailViewport.viewportHeight;
-    const maxScroll = Math.max(0, detailLines.length - viewportHeight);
-    const actualScroll = Math.min(detailScroll, maxScroll);
-    const visibleLines = detailLines.slice(
-      actualScroll,
-      actualScroll + viewportHeight,
-    );
-    const hasMore = actualScroll + viewportHeight < detailLines.length;
-    const hasLess = actualScroll > 0;
-
     return (
-      <>
-        <Breadcrumb
-          items={[
-            ...breadcrumbPrefix,
-            { label: resourceType },
-            { label: displayName },
-            { label: "Full Details", active: true },
-          ]}
-        />
-        <Header title={`${displayName} - Complete Information`} />
-        <Box flexDirection="column" marginBottom={1}>
-          <Box marginBottom={1}>
-            <StatusBadge status={status} />
-            <Text> </Text>
-            <Text color={colors.idColor}>{resourceId}</Text>
-          </Box>
-        </Box>
-
-        <Box
-          flexDirection="column"
-          marginTop={1}
-          marginBottom={1}
-          borderStyle="round"
-          borderColor={colors.border}
-          paddingX={2}
-          paddingY={1}
-        >
-          <Box flexDirection="column">{visibleLines}</Box>
-        </Box>
-
-        <Box marginTop={1}>
-          <Text color={colors.textDim} dimColor>
-            {figures.arrowUp}
-            {figures.arrowDown} Scroll • Line {actualScroll + 1}-
-            {Math.min(actualScroll + viewportHeight, detailLines.length)} of{" "}
-            {detailLines.length}
-          </Text>
-          {hasLess && <Text color={colors.primary}> {figures.arrowUp}</Text>}
-          {hasMore && <Text color={colors.primary}> {figures.arrowDown}</Text>}
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            • [q or esc] Back to Details
-          </Text>
-        </Box>
-      </>
+      <DetailedInfoView
+        detailLines={buildDetailLines(currentResource)}
+        scrollOffset={detailScroll}
+        viewportHeight={detailViewport.viewportHeight}
+        displayName={displayName}
+        resourceId={resourceId}
+        status={status}
+        resourceType={resourceType}
+        breadcrumbPrefix={breadcrumbPrefix}
+      />
     );
   }
 
@@ -598,26 +425,5 @@ export function ResourceDetailPage<T>({
   );
 }
 
-// Helper to format timestamp as "time (ago)"
-export function formatTimestamp(
-  timestamp: number | undefined,
-): string | undefined {
-  if (!timestamp) return undefined;
-  const formatted = new Date(timestamp).toLocaleString();
-  const ago = formatTimeAgo(timestamp);
-  return `${formatted} (${ago})`;
-}
-
-// Helper to format create time with arrow to end time
-export function formatTimeRange(
-  createTime: number | undefined,
-  endTime: number | undefined,
-): string | undefined {
-  if (!createTime) return undefined;
-  const start = new Date(createTime).toLocaleString();
-  if (endTime) {
-    const end = new Date(endTime).toLocaleString();
-    return `${start} → ${end}`;
-  }
-  return `${start} (${formatTimeAgo(createTime)})`;
-}
+// Re-export format helpers from utils/time for backward compatibility
+export { formatTimestamp, formatTimeRange } from "../utils/time.js";

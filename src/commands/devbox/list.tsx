@@ -22,6 +22,7 @@ import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
 import { useListSearch } from "../../hooks/useListSearch.js";
+import { openInBrowser } from "../../utils/browser.js";
 import {
   useInputHandler,
   type InputMode,
@@ -467,23 +468,9 @@ const ListDevboxesUI = ({
     }
   }, [search, onBack, onExit, inkExit]);
 
-  const openInBrowser = React.useCallback(() => {
+  const handleOpenInBrowser = React.useCallback(() => {
     if (!selectedDevbox) return;
-    const url = getDevboxUrl(selectedDevbox.id);
-    const doOpen = async () => {
-      const { exec } = await import("child_process");
-      const platform = process.platform;
-      let openCommand: string;
-      if (platform === "darwin") {
-        openCommand = `open "${url}"`;
-      } else if (platform === "win32") {
-        openCommand = `start "${url}"`;
-      } else {
-        openCommand = `xdg-open "${url}"`;
-      }
-      exec(openCommand);
-    };
-    doOpen();
+    openInBrowser(getDevboxUrl(selectedDevbox.id));
   }, [selectedDevbox]);
 
   const goToNextPage = React.useCallback(() => {
@@ -575,7 +562,7 @@ const ListDevboxesUI = ({
             setSelectedOperation(0);
           },
           c: () => setShowCreate(true),
-          o: openInBrowser,
+          o: handleOpenInBrowser,
           "/": () => search.enterSearchMode(),
           escape: handleListEscape,
         },
@@ -596,7 +583,7 @@ const ListDevboxesUI = ({
       goToPrevPage,
       onNavigateToDetail,
       selectedDevbox,
-      openInBrowser,
+      handleOpenInBrowser,
       handleListEscape,
     ],
   );
