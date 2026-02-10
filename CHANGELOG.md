@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.9.0](https://github.com/runloopai/rl-cli/compare/v1.8.0...v1.9.0) (2026-02-10)
+
+
+### Features
+
+* add benchmark job to cli [beta]  ([#88](https://github.com/runloopai/rl-cli/issues/88)) ([f8759c2](https://github.com/runloopai/rl-cli/commit/f8759c2d67283730369cc110fab46b098513ca1d))
+* add gatway support to rli ([#101](https://github.com/runloopai/rl-cli/issues/101)) ([441e888](https://github.com/runloopai/rl-cli/commit/441e8887e69ddee64bd49d09e5062b366600dff3))
+* adding links to detail pages IE: allowing you to view the source of a devbox ([#112](https://github.com/runloopai/rl-cli/issues/112)) ([62fa6dc](https://github.com/runloopai/rl-cli/commit/62fa6dccfe28d9c8c730817a9b1530d7065b605b))
+* **devbox:** add tunnel to devbox create ([#99](https://github.com/runloopai/rl-cli/issues/99)) ([a3c1b7a](https://github.com/runloopai/rl-cli/commit/a3c1b7a3f9013970273c2724fa8b38e32062bf8f))
+* **snapshot:** snapshot prune command ([#104](https://github.com/runloopai/rl-cli/issues/104)) ([b3479fe](https://github.com/runloopai/rl-cli/commit/b3479febb985f89ca1fdbdd672facb46e3af75be))
+
+
+### Bug Fixes
+
+* **benchmark:** scenario status in run view and some additional tweaks ([#98](https://github.com/runloopai/rl-cli/issues/98)) ([ca77634](https://github.com/runloopai/rl-cli/commit/ca77634bbfbb6b94326be76193a9a1de51017eeb))
+* **blueprint:** adding delete ([#111](https://github.com/runloopai/rl-cli/issues/111)) ([0658932](https://github.com/runloopai/rl-cli/commit/0658932a340b4c6268bf74ea6afca51276c130d8))
+* **blueprint:** handled blueprint queued state ([#100](https://github.com/runloopai/rl-cli/issues/100)) ([a77e558](https://github.com/runloopai/rl-cli/commit/a77e558dfd51164e3ebe1df0abb9c0a0d273aab9))
+* **devbox:** gateway config create bug ([#110](https://github.com/runloopai/rl-cli/issues/110)) ([6e7e8c4](https://github.com/runloopai/rl-cli/commit/6e7e8c4f7a23b3e5192330ec02bfda529f17b836))
+* **secret:** obscure secret value entry within tui ([#86](https://github.com/runloopai/rl-cli/issues/86)) ([8697e5c](https://github.com/runloopai/rl-cli/commit/8697e5c94d6f24af00c02e2f9a09af32c3c3b35a))
+* upgrades a dependency with an override ([#94](https://github.com/runloopai/rl-cli/issues/94)) ([c7f9398](https://github.com/runloopai/rl-cli/commit/c7f93983c1b944aa30b50922707a03b762430668))
+
 ## [1.8.0](https://github.com/runloopai/rl-cli/compare/v1.7.1...v1.8.0) (2026-01-28)
 
 
