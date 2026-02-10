@@ -170,4 +170,3 @@ export function scrollBindings(
     pageUp: () => setScroll(Math.max(0, getScroll() - 10)),
   };
 }
-
