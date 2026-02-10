@@ -67,6 +67,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@js-temporal/polyfill": "^0.5.1",
     "@modelcontextprotocol/sdk": "^1.25.3",
     "@runloop/api-client": "1.6.0",
     "@types/express": "^5.0.6",

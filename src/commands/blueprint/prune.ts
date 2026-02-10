@@ -5,6 +5,7 @@
 import * as readline from "readline";
 import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
+import { formatRelativeTime } from "../../utils/time.js";
 import type { Blueprint } from "../../store/blueprintStore.js";
 
 interface PruneBlueprintsOptions {
@@ -86,28 +87,6 @@ function categorizeBlueprints(blueprints: Blueprint[], keepCount: number) {
   };
 }
 
-/**
- * Format a timestamp for display
- */
-function formatTimestamp(createTimeMs?: number): string {
-  if (!createTimeMs) {
-    return "unknown time";
-  }
-
-  const now = Date.now();
-  const diffMs = now - createTimeMs;
-  const diffMinutes = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMinutes < 60) {
-    return `${diffMinutes} minute${diffMinutes !== 1 ? "s" : ""} ago`;
-  } else if (diffHours < 24) {
-    return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
-  } else {
-    return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
-  }
-}
 
 /**
  * Display a summary of what will be kept and deleted
@@ -140,7 +119,7 @@ function displaySummary(
   } else {
     for (const blueprint of result.toKeep) {
       console.log(
-        `  ✓ ${blueprint.id} - Created ${formatTimestamp(blueprint.create_time_ms)}`,
+        `  ✓ ${blueprint.id} - Created ${formatRelativeTime(blueprint.create_time_ms)}`,
       );
     }
   }
@@ -158,7 +137,7 @@ function displaySummary(
       const statusLabel =
         blueprint.status === "build_complete" ? "successful" : "failed";
       console.log(
-        `  ${icon} ${blueprint.id} - Created ${formatTimestamp(blueprint.create_time_ms)} (${statusLabel})`,
+        `  ${icon} ${blueprint.id} - Created ${formatRelativeTime(blueprint.create_time_ms)} (${statusLabel})`,
       );
     }
   }
@@ -178,7 +157,7 @@ function displayDeletedBlueprints(deleted: Blueprint[]) {
     const statusLabel =
       blueprint.status === "build_complete" ? "successful" : "failed";
     console.log(
-      `  ${icon} ${blueprint.id} - Created ${formatTimestamp(blueprint.create_time_ms)} (${statusLabel})`,
+      `  ${icon} ${blueprint.id} - Created ${formatRelativeTime(blueprint.create_time_ms)} (${statusLabel})`,
     );
   }
 }

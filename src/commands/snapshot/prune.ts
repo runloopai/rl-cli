@@ -5,6 +5,7 @@
 import * as readline from "readline";
 import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
+import { formatRelativeTime } from "../../utils/time.js";
 
 interface SnapshotItem {
   id: string;
@@ -33,7 +34,26 @@ interface PruneResult {
 }
 
 /**
+ * Query the async status for a snapshot and return a normalized status string.
+ * Maps API statuses: "complete" → "ready", others passed through.
+ */
+async function querySnapshotStatus(
+  snapshotId: string,
+): Promise<string> {
+  const client = getClient();
+  try {
+    const statusResponse =
+      await client.devboxes.diskSnapshots.queryStatus(snapshotId);
+    const operationStatus = statusResponse.status;
+    return operationStatus === "complete" ? "ready" : operationStatus;
+  } catch {
+    return "unknown";
+  }
+}
+
+/**
  * Fetch all snapshots for a given source devbox (handles pagination)
+ * and enrich each snapshot with its async operation status.
  */
 async function fetchAllSnapshotsForDevbox(
   devboxId: string,
@@ -72,7 +92,15 @@ async function fetchAllSnapshotsForDevbox(
     }
   }
 
-  return allSnapshots;
+  // The listDiskSnapshots endpoint does not include status — query it for each snapshot
+  const enriched = await Promise.all(
+    allSnapshots.map(async (snapshot) => ({
+      ...snapshot,
+      status: await querySnapshotStatus(snapshot.id),
+    })),
+  );
+
+  return enriched;
 }
 
 /**
@@ -100,28 +128,6 @@ function categorizeSnapshots(snapshots: SnapshotItem[], keepCount: number) {
   };
 }
 
-/**
- * Format a timestamp for display
- */
-function formatTimestamp(createTimeMs?: number): string {
-  if (!createTimeMs) {
-    return "unknown time";
-  }
-
-  const now = Date.now();
-  const diffMs = now - createTimeMs;
-  const diffMinutes = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMinutes < 60) {
-    return `${diffMinutes} minute${diffMinutes !== 1 ? "s" : ""} ago`;
-  } else if (diffHours < 24) {
-    return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
-  } else {
-    return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
-  }
-}
 
 /**
  * Display a summary of what will be kept and deleted
@@ -155,7 +161,7 @@ function displaySummary(
     for (const snapshot of result.toKeep) {
       const label = snapshot.name ? ` "${snapshot.name}"` : "";
       console.log(
-        `  ✓ ${snapshot.id}${label} - Created ${formatTimestamp(snapshot.create_time_ms)}`,
+        `  ✓ ${snapshot.id}${label} - Created ${formatRelativeTime(snapshot.create_time_ms)}`,
       );
     }
   }
@@ -173,7 +179,7 @@ function displaySummary(
         snapshot.status === "ready" ? "ready" : snapshot.status || "unknown";
       const label = snapshot.name ? ` "${snapshot.name}"` : "";
       console.log(
-        `  ${icon} ${snapshot.id}${label} - Created ${formatTimestamp(snapshot.create_time_ms)} (${statusLabel})`,
+        `  ${icon} ${snapshot.id}${label} - Created ${formatRelativeTime(snapshot.create_time_ms)} (${statusLabel})`,
       );
     }
   }
@@ -194,7 +200,7 @@ function displayDeletedSnapshots(deleted: SnapshotItem[]) {
       snapshot.status === "ready" ? "ready" : snapshot.status || "unknown";
     const label = snapshot.name ? ` "${snapshot.name}"` : "";
     console.log(
-      `  ${icon} ${snapshot.id}${label} - Created ${formatTimestamp(snapshot.create_time_ms)} (${statusLabel})`,
+      `  ${icon} ${snapshot.id}${label} - Created ${formatRelativeTime(snapshot.create_time_ms)} (${statusLabel})`,
     );
   }
 }
@@ -253,8 +259,8 @@ export async function pruneSnapshots(
 ) {
   try {
     // Parse and validate options
-    const isDryRun = options.dryRun || false;
-    const autoConfirm = options.yes || false;
+    const isDryRun = !!options.dryRun;
+    const autoConfirm = !!options.yes;
     const keepCount = parseInt(options.keep || "1", 10);
 
     if (isNaN(keepCount) || keepCount < 0) {
