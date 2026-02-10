@@ -3,7 +3,7 @@
  * Can be used for devboxes, blueprints, snapshots, etc.
  */
 import React from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text } from "ink";
 import figures from "figures";
 import { Header } from "./Header.js";
 import { StatusBadge } from "./StatusBadge.js";
@@ -12,6 +12,11 @@ import { NavigationTips } from "./NavigationTips.js";
 import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
+import {
+  useInputHandler,
+  scrollBindings,
+  type InputMode,
+} from "../hooks/useInputHandler.js";
 import { formatTimeAgo } from "../utils/time.js";
 import {
   useNavigation,
@@ -204,6 +209,14 @@ export function ResourceDetailPage<T>({
     actionableFields.length,
   );
 
+  // Clamp selectedIndex when the number of selectable items shrinks
+  // (e.g. operations list changes due to a status change from polling)
+  React.useEffect(() => {
+    if (totalSelectableItems > 0 && selectedIndex >= totalSelectableItems) {
+      setSelectedIndex(totalSelectableItems - 1);
+    }
+  }, [totalSelectableItems, selectedIndex]);
+
   // Background polling for resource details
   React.useEffect(() => {
     if (!pollResource || showDetailedInfo) return;
@@ -250,87 +263,124 @@ export function ResourceDetailPage<T>({
   const isOnLink = selectedIndex < actionableFields.length;
   const operationIndex = selectedIndex - actionableFields.length;
 
-  useInput((input, key) => {
-    if (!isMounted.current) return;
-
-    // Handle detailed info mode
-    if (showDetailedInfo) {
-      if (input === "q" || key.escape) {
-        setShowDetailedInfo(false);
-        setDetailScroll(0);
-      } else if (input === "j" || input === "s" || key.downArrow) {
-        setDetailScroll(detailScroll + 1);
-      } else if (input === "k" || input === "w" || key.upArrow) {
-        setDetailScroll(Math.max(0, detailScroll - 1));
-      } else if (key.pageDown) {
-        setDetailScroll(detailScroll + 10);
-      } else if (key.pageUp) {
-        setDetailScroll(Math.max(0, detailScroll - 10));
-      }
-      return;
-    }
-
-    // Main view input handling
-    if (input === "q" || key.escape) {
-      onBack();
-    } else if (input === "c" && !key.ctrl) {
-      copyToClipboard(getId(currentResource));
-    } else if (input === "i" && buildDetailLines) {
-      setShowDetailedInfo(true);
-      setDetailScroll(0);
-    } else if (key.upArrow) {
-      if (selectedIndex > 0) {
-        setSelectedIndex(selectedIndex - 1);
-      }
-    } else if (key.downArrow) {
-      if (selectedIndex < totalSelectableItems - 1) {
-        setSelectedIndex(selectedIndex + 1);
-      }
-    } else if (key.return) {
-      if (isOnLink) {
-        // Execute the actionable field's action
-        const ref = actionableFields[selectedIndex];
-        if (ref) {
-          executeFieldAction(ref.action);
-        }
+  const openInBrowser = React.useCallback(() => {
+    if (!getUrl) return;
+    const url = getUrl(currentResource);
+    const openBrowser = async () => {
+      const { exec } = await import("child_process");
+      const platform = process.platform;
+      let openCommand: string;
+      if (platform === "darwin") {
+        openCommand = `open "${url}"`;
+      } else if (platform === "win32") {
+        openCommand = `start "${url}"`;
       } else {
-        // Execute the operation
-        const op = operations[operationIndex];
-        if (op) {
-          onOperation(op.key, currentResource);
-        }
+        openCommand = `xdg-open "${url}"`;
       }
-    } else if (input) {
-      // Operation shortcuts still work from anywhere
-      const matchedOpIndex = operations.findIndex(
-        (op) => op.shortcut === input,
-      );
-      if (matchedOpIndex !== -1) {
-        setSelectedIndex(actionableFields.length + matchedOpIndex);
-        onOperation(operations[matchedOpIndex].key, currentResource);
+      exec(openCommand);
+    };
+    openBrowser();
+  }, [getUrl, currentResource]);
+
+  const exitDetailedInfo = React.useCallback(() => {
+    setShowDetailedInfo(false);
+    setDetailScroll(0);
+  }, []);
+
+  const handleEnter = React.useCallback(() => {
+    if (isOnLink) {
+      const ref = actionableFields[selectedIndex];
+      if (ref) {
+        executeFieldAction(ref.action);
+      }
+    } else {
+      const op = operations[operationIndex];
+      if (op) {
+        onOperation(op.key, currentResource);
       }
     }
+  }, [
+    isOnLink,
+    actionableFields,
+    selectedIndex,
+    operationIndex,
+    operations,
+    currentResource,
+    executeFieldAction,
+    onOperation,
+  ]);
 
-    if (input === "o" && getUrl) {
-      const url = getUrl(currentResource);
-      const openBrowser = async () => {
-        const { exec } = await import("child_process");
-        const platform = process.platform;
+  const inputModes: InputMode[] = React.useMemo(
+    () => [
+      {
+        name: "detailedInfo",
+        active: () => showDetailedInfo,
+        bindings: {
+          ...scrollBindings(
+            () => detailScroll,
+            setDetailScroll,
+          ),
+          q: exitDetailedInfo,
+          escape: exitDetailedInfo,
+        },
+      },
+      {
+        name: "mainView",
+        active: () => true,
+        bindings: {
+          q: onBack,
+          escape: onBack,
+          c: () => copyToClipboard(getId(currentResource)),
+          ...(buildDetailLines
+            ? {
+                i: () => {
+                  setShowDetailedInfo(true);
+                  setDetailScroll(0);
+                },
+              }
+            : {}),
+          up: () => {
+            if (selectedIndex > 0) setSelectedIndex(selectedIndex - 1);
+          },
+          down: () => {
+            if (selectedIndex < totalSelectableItems - 1)
+              setSelectedIndex(selectedIndex + 1);
+          },
+          enter: handleEnter,
+          ...(getUrl ? { o: openInBrowser } : {}),
+        },
+        onUnmatched: (input) => {
+          // Operation shortcuts work from anywhere
+          const matchedOpIndex = operations.findIndex(
+            (op) => op.shortcut === input,
+          );
+          if (matchedOpIndex !== -1) {
+            setSelectedIndex(actionableFields.length + matchedOpIndex);
+            onOperation(operations[matchedOpIndex].key, currentResource);
+          }
+        },
+      },
+    ],
+    [
+      showDetailedInfo,
+      detailScroll,
+      exitDetailedInfo,
+      onBack,
+      currentResource,
+      buildDetailLines,
+      selectedIndex,
+      totalSelectableItems,
+      handleEnter,
+      getUrl,
+      openInBrowser,
+      operations,
+      actionableFields,
+      onOperation,
+      getId,
+    ],
+  );
 
-        let openCommand: string;
-        if (platform === "darwin") {
-          openCommand = `open "${url}"`;
-        } else if (platform === "win32") {
-          openCommand = `start "${url}"`;
-        } else {
-          openCommand = `xdg-open "${url}"`;
-        }
-
-        exec(openCommand);
-      };
-      openBrowser();
-    }
-  });
+  useInputHandler(inputModes, { isActive: isMounted.current });
 
   // Detailed info mode - full screen
   if (showDetailedInfo && buildDetailLines) {

@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text, useInput, useApp } from "ink";
+import { Box, Text, useApp } from "ink";
 import figures from "figures";
 import type { DevboxesCursorIDPage } from "@runloop/api-client/pagination";
 import { getClient } from "../../utils/client.js";
@@ -22,6 +22,10 @@ import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
 import { useListSearch } from "../../hooks/useListSearch.js";
+import {
+  useInputHandler,
+  type InputMode,
+} from "../../hooks/useInputHandler.js";
 import { colors } from "../../utils/theme.js";
 import { useDevboxStore, type Devbox } from "../../store/devboxStore.js";
 
@@ -447,122 +451,157 @@ const ListDevboxesUI = ({
       })
     : allOperations;
 
-  useInput((input, key) => {
-    const pageDevboxes = devboxes.length;
+  const closePopup = React.useCallback(() => {
+    setShowPopup(false);
+    setSelectedOperation(0);
+  }, []);
 
-    // Skip input handling when in search mode - let TextInput handle it
-    if (search.searchMode) {
-      if (key.escape) {
-        search.cancelSearch();
+  const handleListEscape = React.useCallback(() => {
+    if (search.handleEscape()) return;
+    if (onBack) {
+      onBack();
+    } else if (onExit) {
+      onExit();
+    } else {
+      inkExit();
+    }
+  }, [search, onBack, onExit, inkExit]);
+
+  const openInBrowser = React.useCallback(() => {
+    if (!selectedDevbox) return;
+    const url = getDevboxUrl(selectedDevbox.id);
+    const doOpen = async () => {
+      const { exec } = await import("child_process");
+      const platform = process.platform;
+      let openCommand: string;
+      if (platform === "darwin") {
+        openCommand = `open "${url}"`;
+      } else if (platform === "win32") {
+        openCommand = `start "${url}"`;
+      } else {
+        openCommand = `xdg-open "${url}"`;
       }
-      return;
-    }
+      exec(openCommand);
+    };
+    doOpen();
+  }, [selectedDevbox]);
 
-    // Skip input handling when in details view
-    if (showDetails) {
-      return;
-    }
-
-    // Skip input handling when in create view
-    if (showCreate) {
-      return;
-    }
-
-    // Skip input handling when in actions view
-    if (showActions) {
-      return;
-    }
-
-    // Handle popup navigation
-    if (showPopup) {
-      if (key.escape || input === "q") {
-        setShowPopup(false);
-        setSelectedOperation(0);
-      } else if (key.upArrow && selectedOperation > 0) {
-        setSelectedOperation(selectedOperation - 1);
-      } else if (key.downArrow && selectedOperation < operations.length - 1) {
-        setSelectedOperation(selectedOperation + 1);
-      } else if (key.return) {
-        setShowPopup(false);
-        setShowActions(true);
-      } else if (input) {
-        const matchedOpIndex = operations.findIndex(
-          (op) => op.shortcut === input,
-        );
-        if (matchedOpIndex !== -1) {
-          setSelectedOperation(matchedOpIndex);
-          setShowPopup(false);
-          setShowActions(true);
-        }
-      }
-      return;
-    }
-
-    // Handle list view
-    if (key.upArrow && selectedIndex > 0) {
-      setSelectedIndex(selectedIndex - 1);
-    } else if (key.downArrow && selectedIndex < pageDevboxes - 1) {
-      setSelectedIndex(selectedIndex + 1);
-    } else if (
-      (input === "n" || key.rightArrow) &&
-      !loading &&
-      !navigating &&
-      hasMore
-    ) {
+  const goToNextPage = React.useCallback(() => {
+    if (!loading && !navigating && hasMore) {
       nextPage();
       setSelectedIndex(0);
-    } else if (
-      (input === "p" || key.leftArrow) &&
-      !loading &&
-      !navigating &&
-      hasPrev
-    ) {
+    }
+  }, [loading, navigating, hasMore, nextPage]);
+
+  const goToPrevPage = React.useCallback(() => {
+    if (!loading && !navigating && hasPrev) {
       prevPage();
       setSelectedIndex(0);
-    } else if (key.return) {
-      if (onNavigateToDetail && selectedDevbox) {
-        onNavigateToDetail(selectedDevbox.id);
-      } else {
-        setShowDetails(true);
-      }
-    } else if (input === "a") {
-      setShowPopup(true);
-      setSelectedOperation(0);
-    } else if (input === "c") {
-      setShowCreate(true);
-    } else if (input === "o" && selectedDevbox) {
-      const url = getDevboxUrl(selectedDevbox.id);
-      const openBrowser = async () => {
-        const { exec } = await import("child_process");
-        const platform = process.platform;
-
-        let openCommand: string;
-        if (platform === "darwin") {
-          openCommand = `open "${url}"`;
-        } else if (platform === "win32") {
-          openCommand = `start "${url}"`;
-        } else {
-          openCommand = `xdg-open "${url}"`;
-        }
-
-        exec(openCommand);
-      };
-      openBrowser();
-    } else if (input === "/") {
-      search.enterSearchMode();
-    } else if (key.escape) {
-      if (search.handleEscape()) {
-        return;
-      }
-      if (onBack) {
-        onBack();
-      } else if (onExit) {
-        onExit();
-      } else {
-        inkExit();
-      }
     }
-  });
+  }, [loading, navigating, hasPrev, prevPage]);
+
+  const inputModes: InputMode[] = React.useMemo(
+    () => [
+      // Search mode: only escape to cancel, swallow everything else
+      {
+        name: "search",
+        active: () => search.searchMode,
+        bindings: {
+          escape: () => search.cancelSearch(),
+        },
+        captureAll: true,
+      },
+      // Subview guards: swallow all input when a child view is active
+      {
+        name: "subviews",
+        active: () => showDetails || showCreate || showActions,
+        bindings: {},
+        captureAll: true,
+      },
+      // Popup navigation
+      {
+        name: "popup",
+        active: () => showPopup,
+        bindings: {
+          escape: closePopup,
+          q: closePopup,
+          up: () => {
+            if (selectedOperation > 0)
+              setSelectedOperation(selectedOperation - 1);
+          },
+          down: () => {
+            if (selectedOperation < operations.length - 1)
+              setSelectedOperation(selectedOperation + 1);
+          },
+          enter: () => {
+            setShowPopup(false);
+            setShowActions(true);
+          },
+        },
+        onUnmatched: (input) => {
+          const idx = operations.findIndex((op) => op.shortcut === input);
+          if (idx !== -1) {
+            setSelectedOperation(idx);
+            setShowPopup(false);
+            setShowActions(true);
+          }
+        },
+      },
+      // List navigation (default mode)
+      {
+        name: "list",
+        active: () => true,
+        bindings: {
+          up: () => {
+            if (selectedIndex > 0) setSelectedIndex(selectedIndex - 1);
+          },
+          down: () => {
+            if (selectedIndex < devboxes.length - 1)
+              setSelectedIndex(selectedIndex + 1);
+          },
+          n: goToNextPage,
+          right: goToNextPage,
+          p: goToPrevPage,
+          left: goToPrevPage,
+          enter: () => {
+            if (onNavigateToDetail && selectedDevbox) {
+              onNavigateToDetail(selectedDevbox.id);
+            } else {
+              setShowDetails(true);
+            }
+          },
+          a: () => {
+            setShowPopup(true);
+            setSelectedOperation(0);
+          },
+          c: () => setShowCreate(true),
+          o: openInBrowser,
+          "/": () => search.enterSearchMode(),
+          escape: handleListEscape,
+        },
+      },
+    ],
+    [
+      search,
+      showDetails,
+      showCreate,
+      showActions,
+      showPopup,
+      closePopup,
+      selectedOperation,
+      operations,
+      selectedIndex,
+      devboxes.length,
+      goToNextPage,
+      goToPrevPage,
+      onNavigateToDetail,
+      selectedDevbox,
+      openInBrowser,
+      handleListEscape,
+    ],
+  );
+
+  useInputHandler(inputModes);
 
   // Create view
   if (showCreate) {
