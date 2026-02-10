@@ -463,7 +463,8 @@ export function ResourceDetailPage<T>({
                       color={isFieldSelected ? colors.primary : colors.textDim}
                       bold={isFieldSelected}
                     >
-                      {field.label}{field.label ? " " : ""}
+                      {field.label}
+                      {field.label ? " " : ""}
                     </Text>
                     {typeof field.value === "string" ? (
                       <Text

@@ -228,11 +228,7 @@ export const DevboxDetailPage = ({
     if (devbox.blueprint_id) {
       detailFields.push({
         label: "Source",
-        value: (
-          <Text color={colors.success}>
-            {devbox.blueprint_id}
-          </Text>
-        ),
+        value: <Text color={colors.success}>{devbox.blueprint_id}</Text>,
         action: {
           type: "navigate" as const,
           screen: "blueprint-detail" as const,
@@ -243,11 +239,7 @@ export const DevboxDetailPage = ({
     } else if (devbox.snapshot_id) {
       detailFields.push({
         label: "Source",
-        value: (
-          <Text color={colors.success}>
-            {devbox.snapshot_id}
-          </Text>
-        ),
+        value: <Text color={colors.success}>{devbox.snapshot_id}</Text>,
         action: {
           type: "navigate" as const,
           screen: "snapshot-detail" as const,
