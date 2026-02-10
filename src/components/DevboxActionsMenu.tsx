@@ -10,6 +10,8 @@ import { Breadcrumb } from "./Breadcrumb.js";
 import { NavigationTips } from "./NavigationTips.js";
 import { ConfirmationPrompt } from "./ConfirmationPrompt.js";
 import { colors } from "../utils/theme.js";
+import { openInBrowser } from "../utils/browser.js";
+import { copyToClipboard } from "../utils/clipboard.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useNavigation } from "../store/navigationStore.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
@@ -476,30 +478,9 @@ export const DevboxActionsMenu = ({
         // Open tunnel URL in browser
         const tunnelUrl = (operationResult as any).__tunnelUrl;
         if (tunnelUrl) {
-          const openBrowser = async () => {
-            const { exec } = await import("child_process");
-            const platform = process.platform;
-
-            let openCommand: string;
-            if (platform === "darwin") {
-              openCommand = `open "${tunnelUrl}"`;
-            } else if (platform === "win32") {
-              openCommand = `start "${tunnelUrl}"`;
-            } else {
-              openCommand = `xdg-open "${tunnelUrl}"`;
-            }
-
-            exec(openCommand, (error) => {
-              if (error) {
-                setCopyStatus("Could not open browser");
-                setTimeout(() => setCopyStatus(null), 2000);
-              } else {
-                setCopyStatus("Opened in browser!");
-                setTimeout(() => setCopyStatus(null), 2000);
-              }
-            });
-          };
-          openBrowser();
+          openInBrowser(tunnelUrl);
+          setCopyStatus("Opened in browser!");
+          setTimeout(() => setCopyStatus(null), 2000);
         }
       } else if (
         (key.upArrow || input === "k") &&
@@ -563,45 +544,10 @@ export const DevboxActionsMenu = ({
           ((operationResult as any).stdout || "") +
           ((operationResult as any).stderr || "");
 
-        const copyToClipboard = async (text: string) => {
-          const { spawn } = await import("child_process");
-          const platform = process.platform;
-
-          let command: string;
-          let args: string[];
-
-          if (platform === "darwin") {
-            command = "pbcopy";
-            args = [];
-          } else if (platform === "win32") {
-            command = "clip";
-            args = [];
-          } else {
-            command = "xclip";
-            args = ["-selection", "clipboard"];
-          }
-
-          const proc = spawn(command, args);
-          proc.stdin.write(text);
-          proc.stdin.end();
-
-          proc.on("exit", (code) => {
-            if (code === 0) {
-              setCopyStatus("Copied to clipboard!");
-              setTimeout(() => setCopyStatus(null), 2000);
-            } else {
-              setCopyStatus("Failed to copy");
-              setTimeout(() => setCopyStatus(null), 2000);
-            }
-          });
-
-          proc.on("error", () => {
-            setCopyStatus("Copy not supported");
-            setTimeout(() => setCopyStatus(null), 2000);
-          });
-        };
-
-        copyToClipboard(output);
+        copyToClipboard(output).then((status) => {
+          setCopyStatus(status);
+          setTimeout(() => setCopyStatus(null), 2000);
+        });
       }
       return;
     }

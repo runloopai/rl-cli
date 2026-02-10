@@ -31,7 +31,7 @@ export async function copyToClipboard(text: string): Promise<string> {
 
     proc.on("exit", (code) => {
       if (code === 0) {
-        resolve("Copied ID to clipboard!");
+        resolve("Copied to clipboard!");
       } else {
         resolve("Failed to copy");
       }

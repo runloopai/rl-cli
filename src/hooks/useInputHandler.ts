@@ -171,16 +171,3 @@ export function scrollBindings(
   };
 }
 
-/**
- * Common up/down list navigation bindings.
- */
-export function listNavBindings(
-  getIndex: () => number,
-  setIndex: (value: number) => void,
-  getLength: () => number,
-): Partial<Record<KeyName, () => void>> {
-  return {
-    up: () => setIndex(Math.max(0, getIndex() - 1)),
-    down: () => setIndex(Math.min(getLength() - 1, getIndex() + 1)),
-  };
-}

@@ -7,6 +7,7 @@ import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
 import { processUtils } from "../../utils/processUtils.js";
 import { getSSHKey, getProxyCommand, checkSSHTools } from "../../utils/ssh.js";
+import { openInBrowser } from "../../utils/browser.js";
 
 interface TunnelOptions {
   ports: string;
@@ -83,25 +84,9 @@ export async function createTunnel(devboxId: string, options: TunnelOptions) {
     // Open browser if --open flag is set
     if (options.open) {
       // Small delay to let the tunnel establish
-      setTimeout(async () => {
-        const { exec } = await import("child_process");
-        const platform = process.platform;
-
-        let openCommand: string;
-        if (platform === "darwin") {
-          openCommand = `open "${tunnelUrl}"`;
-        } else if (platform === "win32") {
-          openCommand = `start "${tunnelUrl}"`;
-        } else {
-          openCommand = `xdg-open "${tunnelUrl}"`;
-        }
-
-        exec(openCommand, (error) => {
-          if (error) {
-            console.log(`\nCould not open browser: ${error.message}`);
-          }
-        });
-      }, 1000);
+      setTimeout(() => {
+        openInBrowser(tunnelUrl);
+      }, 1000); // TODO: Not going to need this soon with tunnels v2
     }
 
     tunnelProcess.on("close", (code) => {
