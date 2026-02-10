@@ -46,9 +46,7 @@ export function formatTimeAgo(timestampMs: number): string {
  *
  * Used for CLI text output (e.g. prune commands).
  */
-export function formatRelativeTime(
-  timestampMs: number | undefined,
-): string {
+export function formatRelativeTime(timestampMs: number | undefined): string {
   if (!timestampMs) return "unknown time";
 
   const seconds = getElapsedSeconds(timestampMs);

@@ -37,9 +37,7 @@ interface PruneResult {
  * Query the async status for a snapshot and return a normalized status string.
  * Maps API statuses: "complete" → "ready", others passed through.
  */
-async function querySnapshotStatus(
-  snapshotId: string,
-): Promise<string> {
+async function querySnapshotStatus(snapshotId: string): Promise<string> {
   const client = getClient();
   try {
     const statusResponse =
@@ -127,7 +125,6 @@ function categorizeSnapshots(snapshots: SnapshotItem[], keepCount: number) {
     failed,
   };
 }
-
 
 /**
  * Display a summary of what will be kept and deleted

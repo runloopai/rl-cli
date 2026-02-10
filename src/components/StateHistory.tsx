@@ -45,7 +45,6 @@ const formatShutdownReason = (reason: string): string => {
   }
 };
 
-
 // Format duration in a succinct way
 const formatDuration = (milliseconds: number): string => {
   const seconds = Math.floor(milliseconds / 1000);

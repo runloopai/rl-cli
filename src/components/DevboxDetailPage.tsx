@@ -23,7 +23,6 @@ interface DevboxDetailPageProps {
   onBack: () => void;
 }
 
-
 export const DevboxDetailPage = ({
   devbox: initialDevbox,
   onBack,

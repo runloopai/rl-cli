@@ -87,7 +87,6 @@ function categorizeBlueprints(blueprints: Blueprint[], keepCount: number) {
   };
 }
 
-
 /**
  * Display a summary of what will be kept and deleted
  */

@@ -69,7 +69,6 @@ export interface ResourceDetailPageProps<T> {
   pollInterval?: number;
 }
 
-
 // Truncate long strings to prevent layout issues
 const truncateString = (str: string, maxLength: number): string => {
   if (str.length <= maxLength) return str;
