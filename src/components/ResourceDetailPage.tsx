@@ -316,10 +316,7 @@ export function ResourceDetailPage<T>({
         name: "detailedInfo",
         active: () => showDetailedInfo,
         bindings: {
-          ...scrollBindings(
-            () => detailScroll,
-            setDetailScroll,
-          ),
+          ...scrollBindings(() => detailScroll, setDetailScroll),
           q: exitDetailedInfo,
           escape: exitDetailedInfo,
         },
