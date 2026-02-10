@@ -13,12 +13,32 @@ import { colors } from "../utils/theme.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { formatTimeAgo } from "../utils/time.js";
+import {
+  useNavigation,
+  type ScreenName,
+  type RouteParams,
+} from "../store/navigationStore.js";
 
 // Types for configurable detail sections
+export interface DetailFieldAction {
+  /** Type of action */
+  type: "navigate" | "callback";
+  /** For navigate: screen name to navigate to */
+  screen?: ScreenName;
+  /** For navigate: params to pass */
+  params?: RouteParams;
+  /** For callback: custom function to execute */
+  handler?: () => void;
+  /** Hint text shown next to field, e.g. "View Blueprint" */
+  hint?: string;
+}
+
 export interface DetailField {
   label: string;
   value: string | React.ReactNode | undefined | null;
   color?: string;
+  /** Optional action to trigger when this field is selected and Enter is pressed */
+  action?: DetailFieldAction;
 }
 
 export interface DetailSection {
@@ -75,6 +95,29 @@ const truncateString = (str: string, maxLength: number): string => {
   return str.substring(0, maxLength - 3) + "...";
 };
 
+// Helper to collect actionable fields with their flat index
+interface ActionableFieldRef {
+  sectionIndex: number;
+  fieldIndex: number;
+  action: DetailFieldAction;
+}
+
+function collectActionableFields(
+  sections: DetailSection[],
+): ActionableFieldRef[] {
+  const refs: ActionableFieldRef[] = [];
+  sections.forEach((section, sectionIndex) => {
+    section.fields
+      .filter((field) => field.value !== undefined && field.value !== null)
+      .forEach((field, fieldIndex) => {
+        if (field.action) {
+          refs.push({ sectionIndex, fieldIndex, action: field.action });
+        }
+      });
+  });
+  return refs;
+}
+
 export function ResourceDetailPage<T>({
   resource: initialResource,
   resourceType,
@@ -93,6 +136,7 @@ export function ResourceDetailPage<T>({
   pollInterval = 3000,
 }: ResourceDetailPageProps<T>) {
   const isMounted = React.useRef(true);
+  const { navigate } = useNavigation();
 
   // Track mounted state
   React.useEffect(() => {
@@ -147,7 +191,18 @@ export function ResourceDetailPage<T>({
 
   const [showDetailedInfo, setShowDetailedInfo] = React.useState(false);
   const [detailScroll, setDetailScroll] = React.useState(0);
-  const [selectedOperation, setSelectedOperation] = React.useState(0);
+
+  // Unified selectable items: actionable detail fields followed by operations.
+  // Arrow keys move through the entire list seamlessly.
+  const actionableFields = React.useMemo(
+    () => collectActionableFields(detailSections),
+    [detailSections],
+  );
+  const totalSelectableItems = actionableFields.length + operations.length;
+  // Default selection is the first operation (skip links)
+  const [selectedIndex, setSelectedIndex] = React.useState(
+    actionableFields.length,
+  );
 
   // Background polling for resource details
   React.useEffect(() => {
@@ -176,8 +231,24 @@ export function ResourceDetailPage<T>({
   const resourceId = getId(currentResource);
   const status = getStatus(currentResource);
 
+  // Execute a field action
+  const executeFieldAction = React.useCallback(
+    (action: DetailFieldAction) => {
+      if (action.type === "navigate" && action.screen) {
+        navigate(action.screen, action.params || {});
+      } else if (action.type === "callback" && action.handler) {
+        action.handler();
+      }
+    },
+    [navigate],
+  );
+
   // Handle Ctrl+C to exit
   useExitOnCtrlC();
+
+  // Helper: is the current selection on a link or an operation?
+  const isOnLink = selectedIndex < actionableFields.length;
+  const operationIndex = selectedIndex - actionableFields.length;
 
   useInput((input, key) => {
     if (!isMounted.current) return;
@@ -203,27 +274,39 @@ export function ResourceDetailPage<T>({
     if (input === "q" || key.escape) {
       onBack();
     } else if (input === "c" && !key.ctrl) {
-      // Copy resource ID to clipboard (ignore if Ctrl+C for quit)
       copyToClipboard(getId(currentResource));
     } else if (input === "i" && buildDetailLines) {
       setShowDetailedInfo(true);
       setDetailScroll(0);
-    } else if (key.upArrow && selectedOperation > 0) {
-      setSelectedOperation(selectedOperation - 1);
-    } else if (key.downArrow && selectedOperation < operations.length - 1) {
-      setSelectedOperation(selectedOperation + 1);
+    } else if (key.upArrow) {
+      if (selectedIndex > 0) {
+        setSelectedIndex(selectedIndex - 1);
+      }
+    } else if (key.downArrow) {
+      if (selectedIndex < totalSelectableItems - 1) {
+        setSelectedIndex(selectedIndex + 1);
+      }
     } else if (key.return) {
-      const op = operations[selectedOperation];
-      if (op) {
-        onOperation(op.key, currentResource);
+      if (isOnLink) {
+        // Execute the actionable field's action
+        const ref = actionableFields[selectedIndex];
+        if (ref) {
+          executeFieldAction(ref.action);
+        }
+      } else {
+        // Execute the operation
+        const op = operations[operationIndex];
+        if (op) {
+          onOperation(op.key, currentResource);
+        }
       }
     } else if (input) {
-      // Check if input matches any operation shortcut
+      // Operation shortcuts still work from anywhere
       const matchedOpIndex = operations.findIndex(
         (op) => op.shortcut === input,
       );
       if (matchedOpIndex !== -1) {
-        setSelectedOperation(matchedOpIndex);
+        setSelectedIndex(actionableFields.length + matchedOpIndex);
         onOperation(operations[matchedOpIndex].key, currentResource);
       }
     }
@@ -352,18 +435,60 @@ export function ResourceDetailPage<T>({
               .filter(
                 (field) => field.value !== undefined && field.value !== null,
               )
-              .map((field, fieldIndex) => (
-                <Box key={fieldIndex}>
-                  <Text color={colors.textDim}>{field.label} </Text>
-                  {typeof field.value === "string" ? (
-                    <Text color={field.color} dimColor={!field.color}>
-                      {field.value}
+              .map((field, fieldIndex) => {
+                // Check if this field is an actionable field and whether it's selected
+                const isActionable = !!field.action;
+                const actionableIdx = isActionable
+                  ? actionableFields.findIndex(
+                      (ref) =>
+                        ref.sectionIndex === sectionIndex &&
+                        ref.fieldIndex === fieldIndex,
+                    )
+                  : -1;
+                const isFieldSelected =
+                  isActionable && actionableIdx === selectedIndex;
+
+                return (
+                  <Box key={fieldIndex}>
+                    {isActionable ? (
+                      <Text
+                        color={
+                          isFieldSelected ? colors.primary : colors.textDim
+                        }
+                      >
+                        {isFieldSelected ? figures.pointer : " "}{" "}
+                      </Text>
+                    ) : null}
+                    <Text
+                      color={isFieldSelected ? colors.primary : colors.textDim}
+                      bold={isFieldSelected}
+                    >
+                      {field.label}{field.label ? " " : ""}
                     </Text>
-                  ) : (
-                    field.value
-                  )}
-                </Box>
-              ))}
+                    {typeof field.value === "string" ? (
+                      <Text
+                        color={
+                          isFieldSelected
+                            ? colors.primary
+                            : field.color || undefined
+                        }
+                        dimColor={!isFieldSelected && !field.color}
+                        bold={isFieldSelected}
+                      >
+                        {field.value}
+                      </Text>
+                    ) : (
+                      field.value
+                    )}
+                    {isFieldSelected && field.action?.hint && (
+                      <Text color={colors.textDim} dimColor>
+                        {" "}
+                        [Enter: {field.action.hint}]
+                      </Text>
+                    )}
+                  </Box>
+                );
+              })}
           </Box>
         </Box>
       ))}
@@ -379,7 +504,8 @@ export function ResourceDetailPage<T>({
           </Text>
           <Box flexDirection="column" paddingLeft={2}>
             {operations.map((op, index) => {
-              const isSelected = index === selectedOperation;
+              const isSelected =
+                index + actionableFields.length === selectedIndex;
               return (
                 <Box key={op.key}>
                   <Text color={isSelected ? colors.primary : colors.textDim}>
@@ -413,7 +539,7 @@ export function ResourceDetailPage<T>({
       <NavigationTips
         showArrows
         tips={[
-          { key: "Enter", label: "Execute" },
+          { key: "Enter", label: isOnLink ? "Open Link" : "Execute" },
           { key: "c", label: "Copy ID" },
           { key: "i", label: "Full Details", condition: !!buildDetailLines },
           { key: "o", label: "Browser", condition: !!getUrl },
