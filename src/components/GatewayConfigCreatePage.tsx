@@ -88,13 +88,13 @@ export const GatewayConfigCreatePage = ({
   }> = [
     {
       key: "create",
-      label: isEditing ? "Update Gateway Config" : "Create Gateway Config",
+      label: isEditing ? "Update AI Gateway" : "Create AI Gateway",
       type: "action",
     },
-    { key: "name", label: "Name", type: "text", placeholder: "my-gateway" },
+    { key: "name", label: "Name (required)", type: "text", placeholder: "my-gateway" },
     {
       key: "endpoint",
-      label: "Endpoint URL",
+      label: "Endpoint URL (required)",
       type: "text",
       placeholder: "https://api.example.com",
     },
@@ -292,12 +292,12 @@ export const GatewayConfigCreatePage = ({
       <>
         <Breadcrumb
           items={[
-            { label: "Gateway Configs" },
+            { label: "AI Gateways" },
             { label: isEditing ? "Update" : "Create", active: true },
           ]}
         />
         <SuccessMessage
-          message={`Gateway config ${isEditing ? "updated" : "created"} successfully!`}
+          message={`AI gateway ${isEditing ? "updated" : "created"} successfully!`}
         />
         <Box marginLeft={2} flexDirection="column" marginTop={1}>
           <Box>
@@ -330,12 +330,12 @@ export const GatewayConfigCreatePage = ({
       <>
         <Breadcrumb
           items={[
-            { label: "Gateway Configs" },
+            { label: "AI Gateways" },
             { label: isEditing ? "Update" : "Create", active: true },
           ]}
         />
         <ErrorMessage
-          message={`Failed to ${isEditing ? "update" : "create"} gateway config`}
+          message={`Failed to ${isEditing ? "update" : "create"} AI gateway`}
           error={error}
         />
         <NavigationTips
@@ -354,12 +354,12 @@ export const GatewayConfigCreatePage = ({
       <>
         <Breadcrumb
           items={[
-            { label: "Gateway Configs" },
+            { label: "AI Gateways" },
             { label: isEditing ? "Update" : "Create", active: true },
           ]}
         />
         <SpinnerComponent
-          message={`${isEditing ? "Updating" : "Creating"} gateway config...`}
+          message={`${isEditing ? "Updating" : "Creating"} AI gateway...`}
         />
       </>
     );
@@ -370,7 +370,7 @@ export const GatewayConfigCreatePage = ({
     <>
       <Breadcrumb
         items={[
-          { label: "Gateway Configs" },
+          { label: "AI Gateways" },
           { label: isEditing ? "Update" : "Create", active: true },
         ]}
       />

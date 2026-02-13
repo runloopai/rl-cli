@@ -9,8 +9,8 @@ interface UpdateOptions {
   id: string;
   name?: string;
   endpoint?: string;
-  authType?: string;
-  authKey?: string;
+  bearerAuth?: boolean;
+  headerAuth?: string;
   description?: string;
   output?: string;
 }
@@ -32,34 +32,27 @@ export async function updateGatewayConfig(options: UpdateOptions) {
       updateParams.description = options.description;
     }
 
-    // Handle auth mechanism update
-    if (options.authType) {
-      const authType = options.authType.toLowerCase();
-      if (authType !== "bearer" && authType !== "header") {
-        outputError("Invalid auth type. Must be 'bearer' or 'header'");
-        return;
-      }
-
-      const authMechanism: { type: string; key?: string } = {
-        type: authType,
-      };
-      if (authType === "header") {
-        if (!options.authKey) {
-          outputError("--auth-key is required when auth-type is 'header'");
-          return;
-        }
-        authMechanism.key = options.authKey;
-      }
-      updateParams.auth_mechanism = authMechanism;
-    } else if (options.authKey) {
-      // If only auth key is provided without auth type, we need the type
-      outputError("--auth-type is required when updating --auth-key");
+    // Validate that at most one auth type is specified
+    if (options.bearerAuth && options.headerAuth) {
+      outputError(
+        "Cannot specify both --bearer-auth and --header-auth. Choose one.",
+      );
       return;
+    }
+
+    // Handle auth mechanism update
+    if (options.bearerAuth) {
+      updateParams.auth_mechanism = { type: "bearer" };
+    } else if (options.headerAuth) {
+      updateParams.auth_mechanism = {
+        type: "header",
+        key: options.headerAuth,
+      };
     }
 
     if (Object.keys(updateParams).length === 0) {
       outputError(
-        "No update options provided. Use --name, --endpoint, --auth-type, --auth-key, or --description",
+        "No update options provided. Use --name, --endpoint, --bearer-auth, --header-auth, or --description",
       );
       return;
     }

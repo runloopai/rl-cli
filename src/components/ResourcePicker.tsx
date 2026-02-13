@@ -74,6 +74,12 @@ export interface ResourcePickerConfig<T> {
 
   /** Breadcrumb items */
   breadcrumbItems?: BreadcrumbItem[];
+
+  /** Callback to create a new resource (shows [c] Create new tip) */
+  onCreateNew?: () => void;
+
+  /** Label for the create new action (default: "Create new") */
+  createNewLabel?: string;
 }
 
 export interface ResourcePickerProps<T> {
@@ -263,6 +269,8 @@ export function ResourcePicker<T>({
         // Enter confirms in multi mode
         handleConfirm();
       }
+    } else if (input === "c" && config.onCreateNew) {
+      config.onCreateNew();
     } else if (input === "/") {
       search.enterSearchMode();
     } else if (key.escape) {
@@ -356,6 +364,7 @@ export function ResourcePicker<T>({
           emptyState={
             <Text color={colors.textDim}>
               {figures.info} {config.emptyMessage || "No items found"}
+              {config.onCreateNew ? " Press [c] to create one." : ""}
             </Text>
           }
         />
@@ -372,6 +381,7 @@ export function ResourcePicker<T>({
             <Box paddingY={1}>
               <Text color={colors.textDim}>
                 {figures.info} {config.emptyMessage || "No items found"}
+                {config.onCreateNew ? " Press [c] to create one." : ""}
               </Text>
             </Box>
           ) : (
@@ -470,6 +480,9 @@ export function ResourcePicker<T>({
             label: config.mode === "single" ? "Select" : "Confirm",
             condition: canConfirm,
           },
+          ...(config.onCreateNew
+            ? [{ key: "c", label: config.createNewLabel || "Create new" }]
+            : []),
           { key: "/", label: "Search" },
           { key: "Esc", label: "Cancel" },
         ]}

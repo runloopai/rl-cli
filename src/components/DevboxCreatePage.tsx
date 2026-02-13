@@ -33,6 +33,7 @@ import type { Blueprint } from "../store/blueprintStore.js";
 import type { Snapshot } from "../store/snapshotStore.js";
 import type { NetworkPolicy } from "../store/networkPolicyStore.js";
 import type { GatewayConfig } from "../store/gatewayConfigStore.js";
+import { SecretCreatePage } from "./SecretCreatePage.js";
 
 // Secret list interface for the picker
 interface SecretListItem {
@@ -168,6 +169,8 @@ export const DevboxCreatePage = ({
     id: string;
     name: string;
   } | null>(null);
+  const [showInlineSecretCreate, setShowInlineSecretCreate] =
+    React.useState(false);
 
   const baseFields: Array<{
     key: FormField;
@@ -244,7 +247,7 @@ export const DevboxCreatePage = ({
     },
     {
       key: "gateways",
-      label: "Gateways (optional)",
+      label: "AI Gateways (optional)",
       type: "gateways",
       placeholder: "Configure API credential proxying...",
     },
@@ -402,7 +405,8 @@ export const DevboxCreatePage = ({
         !showSnapshotPicker &&
         !showNetworkPolicyPicker &&
         !showGatewayPicker &&
-        !showSecretPicker,
+        !showSecretPicker &&
+        !showInlineSecretCreate,
     },
   );
 
@@ -644,7 +648,7 @@ export const DevboxCreatePage = ({
         setGatewayInputMode(null);
       }
     },
-    { isActive: inGatewaySection && !showGatewayPicker && !showSecretPicker },
+    { isActive: inGatewaySection && !showGatewayPicker && !showSecretPicker && !showInlineSecretCreate },
   );
 
   // Validate custom resource configuration
@@ -1108,7 +1112,7 @@ export const DevboxCreatePage = ({
       <ResourcePicker<GatewayConfig>
         key="gateway-config-picker"
         config={{
-          title: "Select Gateway Config",
+          title: "Select AI Gateway",
           fetchPage: async (params) => {
             const result = await listGatewayConfigs({
               limit: params.limit,
@@ -1140,6 +1144,41 @@ export const DevboxCreatePage = ({
           setGatewayInputMode(null);
         }}
         initialSelected={[]}
+      />
+    );
+  }
+
+  // Inline secret creation screen (from gateway flow)
+  if (showInlineSecretCreate) {
+    return (
+      <SecretCreatePage
+        onBack={() => {
+          setShowInlineSecretCreate(false);
+          // Return to secret picker
+          setShowSecretPicker(true);
+        }}
+        onCreate={(secret) => {
+          setShowInlineSecretCreate(false);
+          // Auto-select the newly created secret and complete the gateway flow
+          if (pendingGateway && gatewayEnvPrefix) {
+            const newGateway: GatewaySpec = {
+              envPrefix: gatewayEnvPrefix,
+              gateway: pendingGateway.id,
+              gatewayName: pendingGateway.name,
+              secret: secret.id,
+              secretName: secret.name || secret.id,
+            };
+            setFormData((prev) => ({
+              ...prev,
+              gateways: [...prev.gateways, newGateway],
+            }));
+          }
+          setShowSecretPicker(false);
+          setPendingGateway(null);
+          setGatewayEnvPrefix("");
+          setGatewayInputMode(null);
+          setSelectedGatewayIndex(0);
+        }}
       />
     );
   }
@@ -1201,6 +1240,11 @@ export const DevboxCreatePage = ({
             { label: `Gateway: ${gatewayEnvPrefix}` },
             { label: "Select Secret", active: true },
           ],
+          onCreateNew: () => {
+            setShowSecretPicker(false);
+            setShowInlineSecretCreate(true);
+          },
+          createNewLabel: "Create secret",
         }}
         onSelect={handleSecretSelect}
         onCancel={() => {
@@ -1610,8 +1654,7 @@ export const DevboxCreatePage = ({
                     <Box marginLeft={2} flexDirection="column">
                       {formData.gateways.map((gw, idx) => (
                         <Text key={idx} color={colors.textDim} dimColor>
-                          {figures.pointer} {gw.envPrefix}: {gw.gatewayName} →{" "}
-                          {gw.secretName}
+                          {figures.pointer} ENV: {gw.envPrefix} | Config: {gw.gatewayName} | Secret: {gw.secretName}
                         </Text>
                       ))}
                     </Box>
@@ -1635,7 +1678,7 @@ export const DevboxCreatePage = ({
                 marginBottom={1}
               >
                 <Text color={colors.primary} bold>
-                  {figures.hamburger} Manage Gateway Configurations
+                  {figures.hamburger} Manage AI Gateways
                 </Text>
 
                 {/* Input form - shown when adding */}
@@ -1648,11 +1691,11 @@ export const DevboxCreatePage = ({
                     paddingX={1}
                   >
                     <Text color={colors.success} bold>
-                      Adding New Gateway
+                      Adding New AI Gateway
                     </Text>
                     <Box>
                       <Text color={colors.primary}>
-                        Env Prefix (e.g., GWS_ANTHROPIC):{" "}
+                        Gateway Secret ENV Name (e.g., GWS_ANTHROPIC):{" "}
                       </Text>
                       <TextInput
                         value={gatewayEnvPrefix || ""}
@@ -1661,7 +1704,7 @@ export const DevboxCreatePage = ({
                       />
                     </Box>
                     <Text color={colors.textDim} dimColor>
-                      Press Enter to select gateway config
+                      Press Enter to select AI gateway config
                     </Text>
                   </Box>
                 )}
@@ -1690,7 +1733,7 @@ export const DevboxCreatePage = ({
                         }
                         bold={selectedGatewayIndex === 0}
                       >
-                        + Add new gateway
+                        + Add new AI gateway
                       </Text>
                     </Box>
 
@@ -1702,27 +1745,36 @@ export const DevboxCreatePage = ({
                           const isGatewaySelected =
                             selectedGatewayIndex === itemIndex;
                           return (
-                            <Box key={gw.envPrefix}>
-                              <Text
-                                color={
-                                  isGatewaySelected
-                                    ? colors.primary
-                                    : colors.textDim
-                                }
-                              >
-                                {isGatewaySelected ? figures.pointer : " "}{" "}
-                              </Text>
-                              <Text
-                                color={
-                                  isGatewaySelected
-                                    ? colors.primary
-                                    : colors.textDim
-                                }
-                                bold={isGatewaySelected}
-                              >
-                                {gw.envPrefix}: {gw.gatewayName} →{" "}
-                                {gw.secretName}
-                              </Text>
+                            <Box key={gw.envPrefix} flexDirection="column">
+                              <Box>
+                                <Text
+                                  color={
+                                    isGatewaySelected
+                                      ? colors.primary
+                                      : colors.textDim
+                                  }
+                                >
+                                  {isGatewaySelected ? figures.pointer : " "}{" "}
+                                </Text>
+                                <Text
+                                  color={
+                                    isGatewaySelected
+                                      ? colors.primary
+                                      : colors.textDim
+                                  }
+                                  bold={isGatewaySelected}
+                                >
+                                  ENV: {gw.envPrefix}
+                                </Text>
+                              </Box>
+                              <Box marginLeft={3} flexDirection="column">
+                                <Text color={colors.textDim} dimColor>
+                                  AI Gateway: {gw.gatewayName} ({gw.gateway})
+                                </Text>
+                                <Text color={colors.textDim} dimColor>
+                                  Secret: {gw.secretName} ({gw.secret})
+                                </Text>
+                              </Box>
                             </Box>
                           );
                         })}
