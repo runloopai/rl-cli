@@ -473,7 +473,11 @@ export const DevboxCreatePage = ({
     if (configs.length > 0) {
       const config = configs[0];
       const configName = config.name || config.id;
-      setPendingGateway({ id: config.id, name: configName, endpoint: config.endpoint || "" });
+      setPendingGateway({
+        id: config.id,
+        name: configName,
+        endpoint: config.endpoint || "",
+      });
       // Auto-fill ENV name from config name (uppercase, underscores, no GWS_ prefix)
       const autoEnvName = configName
         .toUpperCase()
@@ -1191,7 +1195,11 @@ export const DevboxCreatePage = ({
           setShowInlineGatewayConfigCreate(false);
           // Auto-select the newly created gateway config
           const configName = config.name || config.id;
-          setPendingGateway({ id: config.id, name: configName, endpoint: config.endpoint || "" });
+          setPendingGateway({
+            id: config.id,
+            name: configName,
+            endpoint: config.endpoint || "",
+          });
           const autoEnvName = configName
             .toUpperCase()
             .replace(/[^A-Z0-9]+/g, "_")
@@ -1809,7 +1817,8 @@ export const DevboxCreatePage = ({
                       {formData.gateways.map((gw, idx) => (
                         <Text key={idx} color={colors.textDim} dimColor>
                           {figures.pointer} ENV: {gw.envPrefix} | Config:{" "}
-                          {gw.gatewayName} ({gw.gatewayEndpoint}) | Secret: {gw.secretName}
+                          {gw.gatewayName} ({gw.gatewayEndpoint}) | Secret:{" "}
+                          {gw.secretName}
                         </Text>
                       ))}
                     </Box>
@@ -2054,8 +2063,8 @@ export const DevboxCreatePage = ({
                               </Box>
                               <Box marginLeft={3} flexDirection="column">
                                 <Text color={colors.textDim} dimColor>
-                                  Gateway Config: {gw.gatewayName} (
-                                  {gw.gateway})
+                                  Gateway Config: {gw.gatewayName} ({gw.gateway}
+                                  )
                                 </Text>
                                 <Text color={colors.textDim} dimColor>
                                   Endpoint: {gw.gatewayEndpoint}
