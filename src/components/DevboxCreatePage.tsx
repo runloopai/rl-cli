@@ -648,7 +648,13 @@ export const DevboxCreatePage = ({
         setGatewayInputMode(null);
       }
     },
-    { isActive: inGatewaySection && !showGatewayPicker && !showSecretPicker && !showInlineSecretCreate },
+    {
+      isActive:
+        inGatewaySection &&
+        !showGatewayPicker &&
+        !showSecretPicker &&
+        !showInlineSecretCreate,
+    },
   );
 
   // Validate custom resource configuration
@@ -1654,7 +1660,8 @@ export const DevboxCreatePage = ({
                     <Box marginLeft={2} flexDirection="column">
                       {formData.gateways.map((gw, idx) => (
                         <Text key={idx} color={colors.textDim} dimColor>
-                          {figures.pointer} ENV: {gw.envPrefix} | Config: {gw.gatewayName} | Secret: {gw.secretName}
+                          {figures.pointer} ENV: {gw.envPrefix} | Config:{" "}
+                          {gw.gatewayName} | Secret: {gw.secretName}
                         </Text>
                       ))}
                     </Box>
@@ -1754,7 +1761,9 @@ export const DevboxCreatePage = ({
                                       : colors.textDim
                                   }
                                 >
-                                  {isGatewaySelected ? figures.pointer : " "}{" "}
+                                  {isGatewaySelected
+                                    ? figures.pointer
+                                    : " "}{" "}
                                 </Text>
                                 <Text
                                   color={

@@ -91,7 +91,12 @@ export const GatewayConfigCreatePage = ({
       label: isEditing ? "Update AI Gateway" : "Create AI Gateway",
       type: "action",
     },
-    { key: "name", label: "Name (required)", type: "text", placeholder: "my-gateway" },
+    {
+      key: "name",
+      label: "Name (required)",
+      type: "text",
+      placeholder: "my-gateway",
+    },
     {
       key: "endpoint",
       label: "Endpoint URL (required)",

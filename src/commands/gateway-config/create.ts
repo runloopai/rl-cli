@@ -27,8 +27,7 @@ export async function createGatewayConfig(options: CreateOptions) {
     }
 
     // Default to bearer if neither is specified
-    const authType =
-      options.headerAuth ? "header" : "bearer";
+    const authType = options.headerAuth ? "header" : "bearer";
 
     // Build auth mechanism
     const authMechanism: { type: string; key?: string } = {
