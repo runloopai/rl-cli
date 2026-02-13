@@ -80,7 +80,7 @@ export function parseSCPPath(input: string): ParsedSCPPath {
 /**
  * Resolve a devbox ID to its SSH info and default user.
  */
-async function resolveRemote(devboxId: string): Promise<ResolvedRemote> {
+export async function resolveRemote(devboxId: string): Promise<ResolvedRemote> {
   const client = getClient();
   const devbox = await client.devboxes.retrieve(devboxId);
   const defaultUser =
@@ -254,7 +254,9 @@ export async function scpFiles(src: string, dst: string, options: SCPOptions) {
         const [cmd, ...args] = scpCommand;
         await execFileAsync(cmd, args);
       } finally {
-        // Clean up temp config
+        // Clean up the temp SSH config file.
+        // Note: SSH key files in ~/.runloop/ssh_keys/ are intentionally kept —
+        // they're shared across rli commands (ssh, scp, etc.).
         await unlink(configPath).catch(() => {});
       }
     } else {
