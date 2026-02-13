@@ -399,6 +399,23 @@ export function createProgram(): Command {
     });
 
   snapshot
+    .command("prune <devbox-id>")
+    .description(
+      "Delete old snapshots for a devbox, keeping only recent ready ones",
+    )
+    .option("--dry-run", "Show what would be deleted without actually deleting")
+    .option("-y, --yes", "Skip confirmation prompt")
+    .option("--keep <n>", "Number of ready snapshots to keep", "1")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (devboxId, options) => {
+      const { pruneSnapshots } = await import("../commands/snapshot/prune.js");
+      await pruneSnapshots(devboxId, options);
+    });
+
+  snapshot
     .command("status <snapshot-id>")
     .description("Get snapshot operation status")
     .option(
@@ -478,6 +495,20 @@ export function createProgram(): Command {
       const { getBlueprintLogs } =
         await import("../commands/blueprint/logs.js");
       await getBlueprintLogs({ id, ...options });
+    });
+
+  blueprint
+    .command("delete <id>")
+    .description("Delete a blueprint by ID")
+    .alias("rm")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (id, options) => {
+      const { deleteBlueprint } =
+        await import("../commands/blueprint/delete.js");
+      await deleteBlueprint(id, options);
     });
 
   blueprint
@@ -795,13 +826,10 @@ export function createProgram(): Command {
     .description("Create a new gateway configuration")
     .requiredOption("--name <name>", "Gateway config name (required)")
     .requiredOption("--endpoint <url>", "Target endpoint URL (required)")
-    .requiredOption(
-      "--auth-type <type>",
-      "Authentication type: bearer or header (required)",
-    )
+    .option("--bearer-auth", "Use Bearer token authentication (default)")
     .option(
-      "--auth-key <key>",
-      "Header key name (required for header auth type)",
+      "--header-auth <header>",
+      "Use custom header authentication (specify header key name)",
     )
     .option("--description <description>", "Description")
     .option(
@@ -832,10 +860,10 @@ export function createProgram(): Command {
     .description("Update a gateway configuration")
     .option("--name <name>", "New name")
     .option("--endpoint <url>", "New endpoint URL")
-    .option("--auth-type <type>", "New authentication type: bearer or header")
+    .option("--bearer-auth", "Use Bearer token authentication")
     .option(
-      "--auth-key <key>",
-      "New header key name (required for header auth type)",
+      "--header-auth <header>",
+      "Use custom header authentication (specify header key name)",
     )
     .option("--description <description>", "New description")
     .option(

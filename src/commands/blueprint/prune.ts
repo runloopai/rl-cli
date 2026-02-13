@@ -5,6 +5,7 @@
 import * as readline from "readline";
 import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
+import { formatRelativeTime } from "../../utils/time.js";
 import type { Blueprint } from "../../store/blueprintStore.js";
 
 interface PruneBlueprintsOptions {
@@ -75,6 +76,7 @@ function categorizeBlueprints(blueprints: Blueprint[], keepCount: number) {
   successful.sort((a, b) => (b.create_time_ms || 0) - (a.create_time_ms || 0));
 
   // Determine what to keep and delete
+  // keepCount of 0 means delete all (including successful builds)
   const toKeep = successful.slice(0, keepCount);
   const toDelete = [...successful.slice(keepCount), ...failed];
 
@@ -84,29 +86,6 @@ function categorizeBlueprints(blueprints: Blueprint[], keepCount: number) {
     successful,
     failed,
   };
-}
-
-/**
- * Format a timestamp for display
- */
-function formatTimestamp(createTimeMs?: number): string {
-  if (!createTimeMs) {
-    return "unknown time";
-  }
-
-  const now = Date.now();
-  const diffMs = now - createTimeMs;
-  const diffMinutes = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMinutes < 60) {
-    return `${diffMinutes} minute${diffMinutes !== 1 ? "s" : ""} ago`;
-  } else if (diffHours < 24) {
-    return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
-  } else {
-    return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
-  }
 }
 
 /**
@@ -136,11 +115,15 @@ function displaySummary(
   // Show what will be kept
   console.log(`\nKeeping (${result.toKeep.length} most recent successful):`);
   if (result.toKeep.length === 0) {
-    console.log("  (none - no successful builds found)");
+    if (result.successful.length === 0) {
+      console.log("  (none - no successful builds found)");
+    } else {
+      console.log("  (none)");
+    }
   } else {
     for (const blueprint of result.toKeep) {
       console.log(
-        `  ✓ ${blueprint.id} - Created ${formatTimestamp(blueprint.create_time_ms)}`,
+        `  ✓ ${blueprint.id} - Created ${formatRelativeTime(blueprint.create_time_ms)}`,
       );
     }
   }
@@ -158,7 +141,7 @@ function displaySummary(
       const statusLabel =
         blueprint.status === "build_complete" ? "successful" : "failed";
       console.log(
-        `  ${icon} ${blueprint.id} - Created ${formatTimestamp(blueprint.create_time_ms)} (${statusLabel})`,
+        `  ${icon} ${blueprint.id} - Created ${formatRelativeTime(blueprint.create_time_ms)} (${statusLabel})`,
       );
     }
   }
@@ -178,7 +161,7 @@ function displayDeletedBlueprints(deleted: Blueprint[]) {
     const statusLabel =
       blueprint.status === "build_complete" ? "successful" : "failed";
     console.log(
-      `  ${icon} ${blueprint.id} - Created ${formatTimestamp(blueprint.create_time_ms)} (${statusLabel})`,
+      `  ${icon} ${blueprint.id} - Created ${formatRelativeTime(blueprint.create_time_ms)} (${statusLabel})`,
     );
   }
 }
@@ -241,8 +224,8 @@ export async function pruneBlueprints(
     const autoConfirm = options.yes || false;
     const keepCount = parseInt(options.keep || "1", 10);
 
-    if (isNaN(keepCount) || keepCount < 1) {
-      outputError("--keep must be a positive integer");
+    if (isNaN(keepCount) || keepCount < 0) {
+      outputError("--keep must be a non-negative integer");
     }
 
     // Fetch all blueprints with the given name

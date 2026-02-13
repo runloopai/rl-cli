@@ -8,6 +8,7 @@ import figures from "figures";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { NavigationTips } from "./NavigationTips.js";
 import { colors } from "../utils/theme.js";
+import { copyToClipboard } from "../utils/clipboard.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { parseAnyLogEntry, type AnyLog } from "../utils/logFormatter.js";
@@ -184,45 +185,10 @@ export const StreamingLogsViewer = ({
         })
         .join("\n");
 
-      const copyToClipboard = async (text: string) => {
-        const { spawn } = await import("child_process");
-        const platform = process.platform;
-
-        let command: string;
-        let args: string[];
-
-        if (platform === "darwin") {
-          command = "pbcopy";
-          args = [];
-        } else if (platform === "win32") {
-          command = "clip";
-          args = [];
-        } else {
-          command = "xclip";
-          args = ["-selection", "clipboard"];
-        }
-
-        const proc = spawn(command, args);
-        proc.stdin.write(text);
-        proc.stdin.end();
-
-        proc.on("exit", (code) => {
-          if (code === 0) {
-            setCopyStatus("Copied!");
-            setTimeout(() => setCopyStatus(null), 2000);
-          } else {
-            setCopyStatus("Failed");
-            setTimeout(() => setCopyStatus(null), 2000);
-          }
-        });
-
-        proc.on("error", () => {
-          setCopyStatus("Not supported");
-          setTimeout(() => setCopyStatus(null), 2000);
-        });
-      };
-
-      copyToClipboard(logsText);
+      copyToClipboard(logsText).then((status) => {
+        setCopyStatus(status);
+        setTimeout(() => setCopyStatus(null), 2000);
+      });
     } else if (input === "q" || key.escape || key.return) {
       onBack();
     }

@@ -447,6 +447,16 @@ export function BenchmarkJobDetailScreen({
       return {
         label: run.agentName,
         value: <Text>{parts}</Text>,
+        ...(run.benchmarkRunId
+          ? {
+              action: {
+                type: "navigate" as const,
+                screen: "benchmark-run-detail" as const,
+                params: { benchmarkRunId: run.benchmarkRunId },
+                hint: "View Run",
+              },
+            }
+          : {}),
       };
     });
 
@@ -527,6 +537,12 @@ export function BenchmarkJobDetailScreen({
       sourceFields.push({
         label: "Benchmark ID",
         value: <Text color={colors.idColor}>{source.benchmark_id}</Text>,
+        action: {
+          type: "navigate" as const,
+          screen: "benchmark-detail" as const,
+          params: { benchmarkId: source.benchmark_id as string },
+          hint: "View Benchmark",
+        },
       });
     }
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text, useInput, useApp } from "ink";
+import { Box, Text, useApp } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
 import type { BlueprintsCursorIDPage } from "@runloop/api-client/pagination";
@@ -24,6 +24,11 @@ import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
 import { useListSearch } from "../../hooks/useListSearch.js";
+import { openInBrowser } from "../../utils/browser.js";
+import {
+  useInputHandler,
+  type InputMode,
+} from "../../hooks/useInputHandler.js";
 import { useNavigation } from "../../store/navigationStore.js";
 import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
 
@@ -426,194 +431,258 @@ const ListBlueprintsUI = ({
       })
     : allOperations;
 
-  // Handle input for all views
-  useInput((input, key) => {
-    // Handle search mode input
-    if (search.searchMode) {
-      if (key.escape) {
-        search.cancelSearch();
-      }
-      return;
-    }
+  // --- Callbacks for input modes ---
 
-    // Handle operation input mode
-    if (executingOperation && !operationResult && !operationError) {
-      // Allow escape/q to cancel any operation, even during loading
-      if (input === "q" || key.escape) {
-        setExecutingOperation(null);
-        setOperationInput("");
-        setOperationLoading(false);
-        return;
-      }
+  const cancelOperation = React.useCallback(() => {
+    setExecutingOperation(null);
+    setOperationInput("");
+    setOperationLoading(false);
+  }, []);
 
-      const currentOp = allOperations.find(
-        (op) => op.key === executingOperation,
-      );
-      if (currentOp?.needsInput) {
-        if (key.return) {
-          executeOperation();
-        }
-      }
-      return;
-    }
+  const dismissResult = React.useCallback(() => {
+    setOperationResult(null);
+    setOperationError(null);
+    setExecutingOperation(null);
+    setOperationInput("");
+  }, []);
 
-    // Handle operation result display
-    if (operationResult || operationError) {
-      if (input === "q" || key.escape || key.return) {
-        setOperationResult(null);
-        setOperationError(null);
-        setExecutingOperation(null);
-        setOperationInput("");
-      }
-      return;
-    }
+  const closePopup = React.useCallback(() => {
+    setShowPopup(false);
+    setSelectedOperation(0);
+  }, []);
 
-    // Handle create devbox view
-    if (showCreateDevbox) {
-      return;
-    }
+  const executePopupSelection = React.useCallback(() => {
+    setShowPopup(false);
+    const operationKey = allOperations[selectedOperation].key;
 
-    // Handle actions popup overlay
-    if (showPopup) {
-      if (key.upArrow && selectedOperation > 0) {
-        setSelectedOperation(selectedOperation - 1);
-      } else if (
-        key.downArrow &&
-        selectedOperation < allOperations.length - 1
-      ) {
-        setSelectedOperation(selectedOperation + 1);
-      } else if (key.return) {
-        setShowPopup(false);
-        const operationKey = allOperations[selectedOperation].key;
-
-        if (operationKey === "view_details") {
-          navigate("blueprint-detail", {
-            blueprintId: selectedBlueprintItem.id,
-          });
-        } else if (operationKey === "create_devbox") {
-          setSelectedBlueprint(selectedBlueprintItem);
-          setShowCreateDevbox(true);
-        } else if (operationKey === "delete") {
-          // Show delete confirmation
-          setSelectedBlueprint(selectedBlueprintItem);
-          setShowDeleteConfirm(true);
-        } else {
-          setSelectedBlueprint(selectedBlueprintItem);
-          setExecutingOperation(operationKey as OperationType);
-          executeOperation(
-            selectedBlueprintItem,
-            operationKey as OperationType,
-          );
-        }
-      } else if (input === "v" && selectedBlueprintItem) {
-        // View details hotkey
-        setShowPopup(false);
-        navigate("blueprint-detail", {
-          blueprintId: selectedBlueprintItem.id,
-        });
-      } else if (key.escape || input === "q") {
-        setShowPopup(false);
-        setSelectedOperation(0);
-      } else if (input === "c") {
-        if (
-          selectedBlueprintItem &&
-          (selectedBlueprintItem.status === "build_complete" ||
-            selectedBlueprintItem.status === "building_complete")
-        ) {
-          setShowPopup(false);
-          setSelectedBlueprint(selectedBlueprintItem);
-          setShowCreateDevbox(true);
-        }
-      } else if (input === "d") {
-        const deleteIndex = allOperations.findIndex(
-          (op) => op.key === "delete",
-        );
-        if (deleteIndex >= 0) {
-          // Show delete confirmation
-          setShowPopup(false);
-          setSelectedBlueprint(selectedBlueprintItem);
-          setShowDeleteConfirm(true);
-        }
-      } else if (input === "l") {
-        const logsIndex = allOperations.findIndex(
-          (op) => op.key === "view_logs",
-        );
-        if (logsIndex >= 0) {
-          setShowPopup(false);
-          setSelectedBlueprint(selectedBlueprintItem);
-          setExecutingOperation("view_logs");
-          executeOperation(selectedBlueprintItem, "view_logs");
-        }
-      }
-      return;
-    }
-
-    // Handle list navigation
-    const pageBlueprints = blueprints.length;
-
-    if (key.upArrow && selectedIndex > 0) {
-      setSelectedIndex(selectedIndex - 1);
-    } else if (key.downArrow && selectedIndex < pageBlueprints - 1) {
-      setSelectedIndex(selectedIndex + 1);
-    } else if (
-      (input === "n" || key.rightArrow) &&
-      !loading &&
-      !navigating &&
-      hasMore
-    ) {
-      nextPage();
-      setSelectedIndex(0);
-    } else if (
-      (input === "p" || key.leftArrow) &&
-      !loading &&
-      !navigating &&
-      hasPrev
-    ) {
-      prevPage();
-      setSelectedIndex(0);
-    } else if (key.return && selectedBlueprintItem) {
-      // Enter key navigates to detail view
+    if (operationKey === "view_details") {
       navigate("blueprint-detail", {
         blueprintId: selectedBlueprintItem.id,
       });
-    } else if (input === "a") {
-      setShowPopup(true);
-      setSelectedOperation(0);
-    } else if (input === "l" && selectedBlueprintItem) {
+    } else if (operationKey === "create_devbox") {
       setSelectedBlueprint(selectedBlueprintItem);
-      setExecutingOperation("view_logs");
-      executeOperation(selectedBlueprintItem, "view_logs");
-    } else if (input === "o" && blueprints[selectedIndex]) {
-      const url = getBlueprintUrl(blueprints[selectedIndex].id);
-      const openBrowser = async () => {
-        const { exec } = await import("child_process");
-        const platform = process.platform;
-        let openCommand: string;
-        if (platform === "darwin") {
-          openCommand = `open "${url}"`;
-        } else if (platform === "win32") {
-          openCommand = `start "${url}"`;
-        } else {
-          openCommand = `xdg-open "${url}"`;
-        }
-        exec(openCommand);
-      };
-      openBrowser();
-    } else if (input === "/") {
-      search.enterSearchMode();
-    } else if (key.escape) {
-      if (search.handleEscape()) {
-        return;
-      }
-      if (onBack) {
-        onBack();
-      } else if (onExit) {
-        onExit();
-      } else {
-        inkExit();
-      }
+      setShowCreateDevbox(true);
+    } else if (operationKey === "delete") {
+      setSelectedBlueprint(selectedBlueprintItem);
+      setShowDeleteConfirm(true);
+    } else {
+      setSelectedBlueprint(selectedBlueprintItem);
+      setExecutingOperation(operationKey as OperationType);
+      executeOperation(selectedBlueprintItem, operationKey as OperationType);
     }
-  });
+  }, [
+    allOperations,
+    selectedOperation,
+    selectedBlueprintItem,
+    navigate,
+    executeOperation,
+  ]);
+
+  const goToNextPage = React.useCallback(() => {
+    if (!loading && !navigating && hasMore) {
+      nextPage();
+      setSelectedIndex(0);
+    }
+  }, [loading, navigating, hasMore, nextPage]);
+
+  const goToPrevPage = React.useCallback(() => {
+    if (!loading && !navigating && hasPrev) {
+      prevPage();
+      setSelectedIndex(0);
+    }
+  }, [loading, navigating, hasPrev, prevPage]);
+
+  const handleListEscape = React.useCallback(() => {
+    if (search.handleEscape()) return;
+    if (onBack) {
+      onBack();
+    } else if (onExit) {
+      onExit();
+    } else {
+      inkExit();
+    }
+  }, [search, onBack, onExit, inkExit]);
+
+  const handleOpenInBrowser = React.useCallback(() => {
+    const bp = blueprints[selectedIndex];
+    if (!bp) return;
+    openInBrowser(getBlueprintUrl(bp.id));
+  }, [blueprints, selectedIndex]);
+
+  // --- Declarative input modes ---
+
+  const inputModes: InputMode[] = React.useMemo(
+    () => [
+      // Search mode: only escape to cancel, swallow everything else
+      {
+        name: "search",
+        active: () => search.searchMode,
+        bindings: {
+          escape: () => search.cancelSearch(),
+        },
+        captureAll: true,
+      },
+      // Operation input mode: escape/q to cancel, enter to submit
+      {
+        name: "operationInput",
+        active: () =>
+          !!executingOperation && !operationResult && !operationError,
+        bindings: {
+          q: cancelOperation,
+          escape: cancelOperation,
+          enter: () => {
+            const currentOp = allOperations.find(
+              (op) => op.key === executingOperation,
+            );
+            if (currentOp?.needsInput) {
+              executeOperation();
+            }
+          },
+        },
+        captureAll: true,
+      },
+      // Operation result display: any dismiss key
+      {
+        name: "operationResult",
+        active: () => !!operationResult || !!operationError,
+        bindings: {
+          q: dismissResult,
+          escape: dismissResult,
+          enter: dismissResult,
+        },
+        captureAll: true,
+      },
+      // Create devbox subview: swallow all input
+      {
+        name: "createDevbox",
+        active: () => showCreateDevbox,
+        bindings: {},
+        captureAll: true,
+      },
+      // Actions popup overlay
+      {
+        name: "popup",
+        active: () => showPopup,
+        bindings: {
+          up: () => {
+            if (selectedOperation > 0)
+              setSelectedOperation(selectedOperation - 1);
+          },
+          down: () => {
+            if (selectedOperation < allOperations.length - 1)
+              setSelectedOperation(selectedOperation + 1);
+          },
+          enter: executePopupSelection,
+          escape: closePopup,
+          q: closePopup,
+          v: () => {
+            if (selectedBlueprintItem) {
+              setShowPopup(false);
+              navigate("blueprint-detail", {
+                blueprintId: selectedBlueprintItem.id,
+              });
+            }
+          },
+          c: () => {
+            if (
+              selectedBlueprintItem &&
+              (selectedBlueprintItem.status === "build_complete" ||
+                selectedBlueprintItem.status === "building_complete")
+            ) {
+              setShowPopup(false);
+              setSelectedBlueprint(selectedBlueprintItem);
+              setShowCreateDevbox(true);
+            }
+          },
+          d: () => {
+            const deleteIndex = allOperations.findIndex(
+              (op) => op.key === "delete",
+            );
+            if (deleteIndex >= 0) {
+              setShowPopup(false);
+              setSelectedBlueprint(selectedBlueprintItem);
+              setShowDeleteConfirm(true);
+            }
+          },
+          l: () => {
+            const logsIndex = allOperations.findIndex(
+              (op) => op.key === "view_logs",
+            );
+            if (logsIndex >= 0) {
+              setShowPopup(false);
+              setSelectedBlueprint(selectedBlueprintItem);
+              setExecutingOperation("view_logs");
+              executeOperation(selectedBlueprintItem, "view_logs");
+            }
+          },
+        },
+      },
+      // List navigation (default mode)
+      {
+        name: "list",
+        active: () => true,
+        bindings: {
+          up: () => {
+            if (selectedIndex > 0) setSelectedIndex(selectedIndex - 1);
+          },
+          down: () => {
+            if (selectedIndex < blueprints.length - 1)
+              setSelectedIndex(selectedIndex + 1);
+          },
+          n: goToNextPage,
+          right: goToNextPage,
+          p: goToPrevPage,
+          left: goToPrevPage,
+          enter: () => {
+            if (selectedBlueprintItem) {
+              navigate("blueprint-detail", {
+                blueprintId: selectedBlueprintItem.id,
+              });
+            }
+          },
+          a: () => {
+            setShowPopup(true);
+            setSelectedOperation(0);
+          },
+          l: () => {
+            if (selectedBlueprintItem) {
+              setSelectedBlueprint(selectedBlueprintItem);
+              setExecutingOperation("view_logs");
+              executeOperation(selectedBlueprintItem, "view_logs");
+            }
+          },
+          o: handleOpenInBrowser,
+          "/": () => search.enterSearchMode(),
+          escape: handleListEscape,
+        },
+      },
+    ],
+    [
+      search,
+      executingOperation,
+      operationResult,
+      operationError,
+      cancelOperation,
+      allOperations,
+      executeOperation,
+      dismissResult,
+      showCreateDevbox,
+      showPopup,
+      selectedOperation,
+      executePopupSelection,
+      closePopup,
+      selectedBlueprintItem,
+      navigate,
+      selectedIndex,
+      blueprints.length,
+      goToNextPage,
+      goToPrevPage,
+      handleOpenInBrowser,
+      handleListEscape,
+    ],
+  );
+
+  useInputHandler(inputModes);
 
   // Delete confirmation
   if (showDeleteConfirm && selectedBlueprint) {

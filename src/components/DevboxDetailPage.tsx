@@ -15,34 +15,13 @@ import {
 import { getDevboxUrl } from "../utils/url.js";
 import { colors } from "../utils/theme.js";
 import { getDevbox } from "../services/devboxService.js";
+import { formatTimeAgo } from "../utils/time.js";
 import type { Devbox } from "../store/devboxStore.js";
 
 interface DevboxDetailPageProps {
   devbox: Devbox;
   onBack: () => void;
 }
-
-// Format time ago in a succinct way
-const formatTimeAgo = (timestamp: number): string => {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
-
-  if (seconds < 60) return `${seconds}s ago`;
-
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
-
-  const years = Math.floor(months / 12);
-  return `${years}y ago`;
-};
 
 export const DevboxDetailPage = ({
   devbox: initialDevbox,
@@ -246,14 +225,27 @@ export const DevboxDetailPage = ({
     }
 
     // Source
-    if (devbox.blueprint_id || devbox.snapshot_id) {
+    if (devbox.blueprint_id) {
       detailFields.push({
         label: "Source",
-        value: (
-          <Text color={colors.success}>
-            {devbox.blueprint_id || devbox.snapshot_id}
-          </Text>
-        ),
+        value: <Text color={colors.success}>{devbox.blueprint_id}</Text>,
+        action: {
+          type: "navigate" as const,
+          screen: "blueprint-detail" as const,
+          params: { blueprintId: devbox.blueprint_id },
+          hint: "View Blueprint",
+        },
+      });
+    } else if (devbox.snapshot_id) {
+      detailFields.push({
+        label: "Source",
+        value: <Text color={colors.success}>{devbox.snapshot_id}</Text>,
+        action: {
+          type: "navigate" as const,
+          screen: "snapshot-detail" as const,
+          params: { snapshotId: devbox.snapshot_id },
+          hint: "View Snapshot",
+        },
       });
     }
 
@@ -262,6 +254,12 @@ export const DevboxDetailPage = ({
       detailFields.push({
         label: "Network Policy",
         value: <Text color={colors.info}>{lp.network_policy_id}</Text>,
+        action: {
+          type: "navigate" as const,
+          screen: "network-policy-detail" as const,
+          params: { networkPolicyId: lp.network_policy_id },
+          hint: "View Policy",
+        },
       });
     }
 

@@ -16,6 +16,7 @@ import {
 } from "./form/index.js";
 import { colors } from "../utils/theme.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
+import { validateGatewayConfig } from "../utils/gatewayConfigValidation.js";
 
 interface GatewayConfigCreatePageProps {
   onBack: () => void;
@@ -88,13 +89,20 @@ export const GatewayConfigCreatePage = ({
   }> = [
     {
       key: "create",
-      label: isEditing ? "Update Gateway Config" : "Create Gateway Config",
+      label: isEditing
+        ? "Update AI Gateway Config"
+        : "Create AI Gateway Config",
       type: "action",
     },
-    { key: "name", label: "Name", type: "text", placeholder: "my-gateway" },
+    {
+      key: "name",
+      label: "Name (required)",
+      type: "text",
+      placeholder: "my-gateway",
+    },
     {
       key: "endpoint",
-      label: "Endpoint URL",
+      label: "Endpoint URL (required)",
       type: "text",
       placeholder: "https://api.example.com",
     },
@@ -231,19 +239,23 @@ export const GatewayConfigCreatePage = ({
   );
 
   const handleCreate = async () => {
-    // Validate required fields
-    if (!formData.name.trim()) {
-      setError(new Error("Name is required"));
+    // Validate using shared validation
+    const validation = validateGatewayConfig(
+      {
+        name: formData.name,
+        endpoint: formData.endpoint,
+        authType: formData.auth_type,
+        authKey: formData.auth_key,
+      },
+      { requireName: true, requireEndpoint: true },
+    );
+
+    if (!validation.valid) {
+      setError(new Error(validation.errors.join("\n")));
       return;
     }
-    if (!formData.endpoint.trim()) {
-      setError(new Error("Endpoint URL is required"));
-      return;
-    }
-    if (formData.auth_type === "header" && !formData.auth_key.trim()) {
-      setError(new Error("Auth header key is required for header auth type"));
-      return;
-    }
+
+    const { sanitized } = validation;
 
     setCreating(true);
     setError(null);
@@ -252,10 +264,10 @@ export const GatewayConfigCreatePage = ({
       const client = getClient();
 
       const authMechanism: { type: string; key?: string } = {
-        type: formData.auth_type,
+        type: sanitized!.authType!,
       };
-      if (formData.auth_type === "header" && formData.auth_key.trim()) {
-        authMechanism.key = formData.auth_key.trim();
+      if (sanitized!.authType === "header" && sanitized!.authKey) {
+        authMechanism.key = sanitized!.authKey;
       }
 
       let config: GatewayConfigView;
@@ -263,16 +275,16 @@ export const GatewayConfigCreatePage = ({
       if (isEditing && initialConfig?.id) {
         // Update existing config
         config = await client.gatewayConfigs.update(initialConfig.id, {
-          name: formData.name.trim(),
-          endpoint: formData.endpoint.trim(),
+          name: sanitized!.name!,
+          endpoint: sanitized!.endpoint!,
           auth_mechanism: authMechanism,
           description: formData.description.trim() || undefined,
         });
       } else {
         // Create new config
         config = await client.gatewayConfigs.create({
-          name: formData.name.trim(),
-          endpoint: formData.endpoint.trim(),
+          name: sanitized!.name!,
+          endpoint: sanitized!.endpoint!,
           auth_mechanism: authMechanism,
           description: formData.description.trim() || undefined,
         });
@@ -292,12 +304,12 @@ export const GatewayConfigCreatePage = ({
       <>
         <Breadcrumb
           items={[
-            { label: "Gateway Configs" },
+            { label: "AI Gateway Configs" },
             { label: isEditing ? "Update" : "Create", active: true },
           ]}
         />
         <SuccessMessage
-          message={`Gateway config ${isEditing ? "updated" : "created"} successfully!`}
+          message={`AI gateway config ${isEditing ? "updated" : "created"} successfully!`}
         />
         <Box marginLeft={2} flexDirection="column" marginTop={1}>
           <Box>
@@ -330,12 +342,12 @@ export const GatewayConfigCreatePage = ({
       <>
         <Breadcrumb
           items={[
-            { label: "Gateway Configs" },
+            { label: "AI Gateway Configs" },
             { label: isEditing ? "Update" : "Create", active: true },
           ]}
         />
         <ErrorMessage
-          message={`Failed to ${isEditing ? "update" : "create"} gateway config`}
+          message={`Failed to ${isEditing ? "update" : "create"} AI gateway config`}
           error={error}
         />
         <NavigationTips
@@ -354,12 +366,12 @@ export const GatewayConfigCreatePage = ({
       <>
         <Breadcrumb
           items={[
-            { label: "Gateway Configs" },
+            { label: "AI Gateway Configs" },
             { label: isEditing ? "Update" : "Create", active: true },
           ]}
         />
         <SpinnerComponent
-          message={`${isEditing ? "Updating" : "Creating"} gateway config...`}
+          message={`${isEditing ? "Updating" : "Creating"} AI gateway config...`}
         />
       </>
     );
@@ -370,7 +382,7 @@ export const GatewayConfigCreatePage = ({
     <>
       <Breadcrumb
         items={[
-          { label: "Gateway Configs" },
+          { label: "AI Gateway Configs" },
           { label: isEditing ? "Update" : "Create", active: true },
         ]}
       />
