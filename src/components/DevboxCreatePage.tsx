@@ -617,7 +617,7 @@ export const DevboxCreatePage = ({
         setSelectedGatewayIndex(selectedGatewayIndex + 1);
       } else if (key.return) {
         if (selectedGatewayIndex === 0) {
-          // Add new gateway - start with env prefix input
+          // Attach gateway - start with env prefix input
           setGatewayEnvPrefix("");
           setGatewayInputMode("envPrefix");
         } else if (selectedGatewayIndex === maxIndex) {
@@ -1647,7 +1647,7 @@ export const DevboxCreatePage = ({
                       {isActive ? figures.pointer : " "} {field.label}:{" "}
                     </Text>
                     <Text color={colors.text}>
-                      {formData.gateways.length} gateway(s)
+                      {formData.gateways.length} configured
                     </Text>
                     {isActive && (
                       <Text color={colors.textDim} dimColor>
@@ -1685,7 +1685,7 @@ export const DevboxCreatePage = ({
                 marginBottom={1}
               >
                 <Text color={colors.primary} bold>
-                  {figures.hamburger} Manage AI Gateways
+                  {figures.hamburger} Configure AI Gateways for Devbox
                 </Text>
 
                 {/* Input form - shown when adding */}
@@ -1698,7 +1698,7 @@ export const DevboxCreatePage = ({
                     paddingX={1}
                   >
                     <Text color={colors.success} bold>
-                      Adding New AI Gateway
+                      Attach AI Gateway
                     </Text>
                     <Box>
                       <Text color={colors.primary}>
@@ -1711,7 +1711,7 @@ export const DevboxCreatePage = ({
                       />
                     </Box>
                     <Text color={colors.textDim} dimColor>
-                      Press Enter to select AI gateway config
+                      Press Enter to select an AI gateway
                     </Text>
                   </Box>
                 )}
@@ -1740,7 +1740,7 @@ export const DevboxCreatePage = ({
                         }
                         bold={selectedGatewayIndex === 0}
                       >
-                        + Add new AI gateway
+                        + Attach AI gateway
                       </Text>
                     </Box>
 
@@ -1826,8 +1826,8 @@ export const DevboxCreatePage = ({
                 >
                   <Text color={colors.textDim} dimColor>
                     {gatewayInputMode
-                      ? `[Enter] Select gateway • [esc] Cancel`
-                      : `${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedGatewayIndex === 0 ? "Add" : selectedGatewayIndex === maxGatewayIndex ? "Done" : "Select"} • [d] Delete • [esc] Back`}
+                      ? `[Enter] Select AI gateway • [esc] Cancel`
+                      : `${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedGatewayIndex === 0 ? "Attach" : selectedGatewayIndex === maxGatewayIndex ? "Done" : "Select"} • [d] Remove • [esc] Back`}
                   </Text>
                 </Box>
               </Box>
