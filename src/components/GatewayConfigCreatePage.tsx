@@ -88,7 +88,9 @@ export const GatewayConfigCreatePage = ({
   }> = [
     {
       key: "create",
-      label: isEditing ? "Update AI Gateway Config" : "Create AI Gateway Config",
+      label: isEditing
+        ? "Update AI Gateway Config"
+        : "Create AI Gateway Config",
       type: "action",
     },
     {

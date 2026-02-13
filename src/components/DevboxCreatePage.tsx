@@ -2048,7 +2048,8 @@ export const DevboxCreatePage = ({
                               </Box>
                               <Box marginLeft={3} flexDirection="column">
                                 <Text color={colors.textDim} dimColor>
-                                  AI Gateway Config: {gw.gatewayName} ({gw.gateway})
+                                  AI Gateway Config: {gw.gatewayName} (
+                                  {gw.gateway})
                                 </Text>
                                 <Text color={colors.textDim} dimColor>
                                   Secret: {gw.secretName} ({gw.secret})

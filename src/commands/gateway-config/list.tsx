@@ -600,7 +600,10 @@ const ListGatewayConfigsUI = ({
     return (
       <>
         <Breadcrumb items={[{ label: "AI Gateway Configs", active: true }]} />
-        <ErrorMessage message="Failed to list AI gateway configs" error={error} />
+        <ErrorMessage
+          message="Failed to list AI gateway configs"
+          error={error}
+        />
       </>
     );
   }
@@ -631,7 +634,8 @@ const ListGatewayConfigsUI = ({
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
-              {figures.info} No AI gateway configs found. Press [c] to create one.
+              {figures.info} No AI gateway configs found. Press [c] to create
+              one.
             </Text>
           }
         />

@@ -105,7 +105,10 @@ export function GatewayConfigDetailScreen({
     return (
       <>
         <Breadcrumb
-          items={[{ label: "AI Gateway Configs" }, { label: "Error", active: true }]}
+          items={[
+            { label: "AI Gateway Configs" },
+            { label: "Error", active: true },
+          ]}
         />
         <ErrorMessage
           message="Failed to load AI gateway config details"
