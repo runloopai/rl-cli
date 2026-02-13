@@ -334,7 +334,8 @@ export const SecretCreatePage = ({
               return (
                 <Box key={field.key} marginBottom={0}>
                   <Text color={colors.textDim}>
-                    {"  "}{field.label}:{" "}
+                    {"  "}
+                    {field.label}:{" "}
                   </Text>
                   <Text color={colors.text} bold>
                     {formData.name}

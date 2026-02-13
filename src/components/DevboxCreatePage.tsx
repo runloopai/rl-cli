@@ -483,18 +483,15 @@ export const DevboxCreatePage = ({
   }, []);
 
   // Handle secret selection for gateway
-  const handleSecretSelect = React.useCallback(
-    (secrets: SecretListItem[]) => {
-      if (secrets.length > 0) {
-        const secret = secrets[0];
-        setPendingSecret({ id: secret.id, name: secret.name || secret.id });
-      }
-      setShowSecretPicker(false);
-      // Return to the form at the attach button
-      setGatewayFormField("attach");
-    },
-    [],
-  );
+  const handleSecretSelect = React.useCallback((secrets: SecretListItem[]) => {
+    if (secrets.length > 0) {
+      const secret = secrets[0];
+      setPendingSecret({ id: secret.id, name: secret.name || secret.id });
+    }
+    setShowSecretPicker(false);
+    // Return to the form at the attach button
+    setGatewayFormField("attach");
+  }, []);
 
   // Attach the configured gateway to the devbox
   const handleAttachGateway = React.useCallback(() => {
@@ -1183,7 +1180,10 @@ export const DevboxCreatePage = ({
       const endpointWidth = Math.max(20, tw >= 140 ? 40 : 25);
       const baseWidth = fixedWidth + idWidth + timeWidth;
       const optionalWidth = showEndpoint ? endpointWidth : 0;
-      const nameWidth = Math.min(80, Math.max(15, tw - baseWidth - optionalWidth));
+      const nameWidth = Math.min(
+        80,
+        Math.max(15, tw - baseWidth - optionalWidth),
+      );
       return [
         createTextColumn<GatewayConfig>("id", "ID", (config) => config.id, {
           width: idWidth + 1,
@@ -1784,9 +1784,7 @@ export const DevboxCreatePage = ({
             const maxGatewayIndex = gatewayCount + 1;
 
             const canAttach =
-              !!pendingGateway &&
-              !!pendingSecret &&
-              !!gatewayEnvPrefix.trim();
+              !!pendingGateway && !!pendingSecret && !!gatewayEnvPrefix.trim();
 
             return (
               <Box
@@ -1855,9 +1853,7 @@ export const DevboxCreatePage = ({
                             : colors.textDim
                         }
                       >
-                        {gatewayFormField === "gateway"
-                          ? figures.pointer
-                          : " "}{" "}
+                        {gatewayFormField === "gateway" ? figures.pointer : " "}{" "}
                         AI Gateway:{" "}
                       </Text>
                       {pendingGateway ? (
@@ -1886,9 +1882,7 @@ export const DevboxCreatePage = ({
                             : colors.textDim
                         }
                       >
-                        {gatewayFormField === "envName"
-                          ? figures.pointer
-                          : " "}{" "}
+                        {gatewayFormField === "envName" ? figures.pointer : " "}{" "}
                         ENV Name:{" "}
                       </Text>
                       {gatewayFormField === "envName" ? (
@@ -1900,9 +1894,7 @@ export const DevboxCreatePage = ({
                       ) : (
                         <Text
                           color={
-                            gatewayEnvPrefix
-                              ? colors.text
-                              : colors.textDim
+                            gatewayEnvPrefix ? colors.text : colors.textDim
                           }
                           dimColor={!gatewayEnvPrefix}
                         >
@@ -1920,15 +1912,11 @@ export const DevboxCreatePage = ({
                             : colors.textDim
                         }
                       >
-                        {gatewayFormField === "secret"
-                          ? figures.pointer
-                          : " "}{" "}
+                        {gatewayFormField === "secret" ? figures.pointer : " "}{" "}
                         Secret:{" "}
                       </Text>
                       {pendingSecret ? (
-                        <Text color={colors.success}>
-                          {pendingSecret.name}
-                        </Text>
+                        <Text color={colors.success}>{pendingSecret.name}</Text>
                       ) : (
                         <Text color={colors.textDim} dimColor>
                           (none selected)
