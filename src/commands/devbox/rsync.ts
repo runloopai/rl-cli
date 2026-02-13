@@ -14,11 +14,7 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import { output, outputError } from "../../utils/output.js";
 import { getProxyCommand, checkSSHTools } from "../../utils/ssh.js";
-import {
-  parseSCPPath,
-  resolveRemote,
-  type ParsedSCPPath,
-} from "./scp.js";
+import { parseSCPPath, resolveRemote, type ParsedSCPPath } from "./scp.js";
 
 const execFileAsync = promisify(execFile);
 
