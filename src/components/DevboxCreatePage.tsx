@@ -69,6 +69,7 @@ interface GatewaySpec {
   envPrefix: string;
   gateway: string; // gateway config ID or name
   gatewayName: string; // display name
+  gatewayEndpoint: string; // endpoint URL
   secret: string; // secret ID or name
   secretName: string; // display name
 }
@@ -166,6 +167,7 @@ export const DevboxCreatePage = ({
   const [pendingGateway, setPendingGateway] = React.useState<{
     id: string;
     name: string;
+    endpoint: string;
   } | null>(null);
   const [pendingSecret, setPendingSecret] = React.useState<{
     id: string;
@@ -471,7 +473,7 @@ export const DevboxCreatePage = ({
     if (configs.length > 0) {
       const config = configs[0];
       const configName = config.name || config.id;
-      setPendingGateway({ id: config.id, name: configName });
+      setPendingGateway({ id: config.id, name: configName, endpoint: config.endpoint || "" });
       // Auto-fill ENV name from config name (uppercase, underscores, no GWS_ prefix)
       const autoEnvName = configName
         .toUpperCase()
@@ -504,6 +506,7 @@ export const DevboxCreatePage = ({
       envPrefix: gatewayEnvPrefix.trim(),
       gateway: pendingGateway.id,
       gatewayName: pendingGateway.name,
+      gatewayEndpoint: pendingGateway.endpoint,
       secret: pendingSecret.id,
       secretName: pendingSecret.name,
     };
@@ -1188,7 +1191,7 @@ export const DevboxCreatePage = ({
           setShowInlineGatewayConfigCreate(false);
           // Auto-select the newly created gateway config
           const configName = config.name || config.id;
-          setPendingGateway({ id: config.id, name: configName });
+          setPendingGateway({ id: config.id, name: configName, endpoint: config.endpoint || "" });
           const autoEnvName = configName
             .toUpperCase()
             .replace(/[^A-Z0-9]+/g, "_")
@@ -1806,7 +1809,7 @@ export const DevboxCreatePage = ({
                       {formData.gateways.map((gw, idx) => (
                         <Text key={idx} color={colors.textDim} dimColor>
                           {figures.pointer} ENV: {gw.envPrefix} | Config:{" "}
-                          {gw.gatewayName} | Secret: {gw.secretName}
+                          {gw.gatewayName} ({gw.gatewayEndpoint}) | Secret: {gw.secretName}
                         </Text>
                       ))}
                     </Box>
@@ -1894,7 +1897,10 @@ export const DevboxCreatePage = ({
                       </Text>
                       {pendingGateway ? (
                         <Text color={colors.success}>
-                          {pendingGateway.name}
+                          {pendingGateway.name}{" "}
+                          <Text color={colors.textDim} dimColor>
+                            ({pendingGateway.endpoint})
+                          </Text>
                         </Text>
                       ) : (
                         <Text color={colors.textDim} dimColor>
@@ -2048,8 +2054,11 @@ export const DevboxCreatePage = ({
                               </Box>
                               <Box marginLeft={3} flexDirection="column">
                                 <Text color={colors.textDim} dimColor>
-                                  AI Gateway Config: {gw.gatewayName} (
+                                  Gateway Config: {gw.gatewayName} (
                                   {gw.gateway})
+                                </Text>
+                                <Text color={colors.textDim} dimColor>
+                                  Endpoint: {gw.gatewayEndpoint}
                                 </Text>
                                 <Text color={colors.textDim} dimColor>
                                   Secret: {gw.secretName} ({gw.secret})

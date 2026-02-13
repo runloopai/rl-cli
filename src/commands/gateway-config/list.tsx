@@ -630,7 +630,7 @@ const ListGatewayConfigsUI = ({
           data={configs}
           keyExtractor={(config: GatewayConfigListItem) => config.id}
           selectedIndex={selectedIndex}
-          title={`ai_gateways[${totalCount}]`}
+          title={`gateway_configs[${totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>

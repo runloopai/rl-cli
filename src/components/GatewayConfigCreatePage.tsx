@@ -16,6 +16,7 @@ import {
 } from "./form/index.js";
 import { colors } from "../utils/theme.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
+import { validateGatewayConfig } from "../utils/gatewayConfigValidation.js";
 
 interface GatewayConfigCreatePageProps {
   onBack: () => void;
@@ -238,19 +239,23 @@ export const GatewayConfigCreatePage = ({
   );
 
   const handleCreate = async () => {
-    // Validate required fields
-    if (!formData.name.trim()) {
-      setError(new Error("Name is required"));
+    // Validate using shared validation
+    const validation = validateGatewayConfig(
+      {
+        name: formData.name,
+        endpoint: formData.endpoint,
+        authType: formData.auth_type,
+        authKey: formData.auth_key,
+      },
+      { requireName: true, requireEndpoint: true },
+    );
+
+    if (!validation.valid) {
+      setError(new Error(validation.errors.join("\n")));
       return;
     }
-    if (!formData.endpoint.trim()) {
-      setError(new Error("Endpoint URL is required"));
-      return;
-    }
-    if (formData.auth_type === "header" && !formData.auth_key.trim()) {
-      setError(new Error("Auth header key is required for header auth type"));
-      return;
-    }
+
+    const { sanitized } = validation;
 
     setCreating(true);
     setError(null);
@@ -259,10 +264,10 @@ export const GatewayConfigCreatePage = ({
       const client = getClient();
 
       const authMechanism: { type: string; key?: string } = {
-        type: formData.auth_type,
+        type: sanitized!.authType!,
       };
-      if (formData.auth_type === "header" && formData.auth_key.trim()) {
-        authMechanism.key = formData.auth_key.trim();
+      if (sanitized!.authType === "header" && sanitized!.authKey) {
+        authMechanism.key = sanitized!.authKey;
       }
 
       let config: GatewayConfigView;
@@ -270,16 +275,16 @@ export const GatewayConfigCreatePage = ({
       if (isEditing && initialConfig?.id) {
         // Update existing config
         config = await client.gatewayConfigs.update(initialConfig.id, {
-          name: formData.name.trim(),
-          endpoint: formData.endpoint.trim(),
+          name: sanitized!.name!,
+          endpoint: sanitized!.endpoint!,
           auth_mechanism: authMechanism,
           description: formData.description.trim() || undefined,
         });
       } else {
         // Create new config
         config = await client.gatewayConfigs.create({
-          name: formData.name.trim(),
-          endpoint: formData.endpoint.trim(),
+          name: sanitized!.name!,
+          endpoint: sanitized!.endpoint!,
           auth_mechanism: authMechanism,
           description: formData.description.trim() || undefined,
         });

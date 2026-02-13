@@ -4,6 +4,7 @@
 
 import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
+import { validateGatewayConfig } from "../../utils/gatewayConfigValidation.js";
 
 interface UpdateOptions {
   id: string;
@@ -19,19 +20,6 @@ export async function updateGatewayConfig(options: UpdateOptions) {
   try {
     const client = getClient();
 
-    // Build update params - only include fields that are provided
-    const updateParams: Record<string, unknown> = {};
-
-    if (options.name) {
-      updateParams.name = options.name;
-    }
-    if (options.endpoint) {
-      updateParams.endpoint = options.endpoint;
-    }
-    if (options.description !== undefined) {
-      updateParams.description = options.description;
-    }
-
     // Validate that at most one auth type is specified
     if (options.bearerAuth && options.headerAuth) {
       outputError(
@@ -40,13 +28,51 @@ export async function updateGatewayConfig(options: UpdateOptions) {
       return;
     }
 
+    // Determine auth type if specified
+    const authType = options.bearerAuth
+      ? "bearer"
+      : options.headerAuth
+        ? "header"
+        : undefined;
+
+    // Validate provided fields using shared validation
+    const validation = validateGatewayConfig(
+      {
+        name: options.name,
+        endpoint: options.endpoint,
+        authType,
+        authKey: options.headerAuth,
+      },
+      { requireName: false, requireEndpoint: false },
+    );
+
+    if (!validation.valid) {
+      outputError(validation.errors.join("\n"));
+      return;
+    }
+
+    const { sanitized } = validation;
+
+    // Build update params - only include fields that are provided
+    const updateParams: Record<string, unknown> = {};
+
+    if (sanitized!.name) {
+      updateParams.name = sanitized!.name;
+    }
+    if (sanitized!.endpoint) {
+      updateParams.endpoint = sanitized!.endpoint;
+    }
+    if (options.description !== undefined) {
+      updateParams.description = options.description.trim() || undefined;
+    }
+
     // Handle auth mechanism update
-    if (options.bearerAuth) {
+    if (sanitized!.authType === "bearer") {
       updateParams.auth_mechanism = { type: "bearer" };
-    } else if (options.headerAuth) {
+    } else if (sanitized!.authType === "header" && sanitized!.authKey) {
       updateParams.auth_mechanism = {
         type: "header",
-        key: options.headerAuth,
+        key: sanitized!.authKey,
       };
     }
 
