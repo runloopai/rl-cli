@@ -17,6 +17,7 @@ import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
 import { ConfirmationPrompt } from "../components/ConfirmationPrompt.js";
+import { SecretCreatePage } from "../components/SecretCreatePage.js";
 import { colors } from "../utils/theme.js";
 
 interface SecretDetailScreenProps {
@@ -38,6 +39,7 @@ export function SecretDetailScreen({ secretId }: SecretDetailScreenProps) {
   const [secret, setSecret] = React.useState<Secret | null>(null);
   const [deleting, setDeleting] = React.useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const [showUpdateForm, setShowUpdateForm] = React.useState(false);
 
   // Fetch secret from API
   React.useEffect(() => {
@@ -164,8 +166,15 @@ export function SecretDetailScreen({ secretId }: SecretDetailScreenProps) {
     ],
   });
 
-  // Operations available for secrets (only delete - secrets are immutable)
+  // Operations available for secrets
   const operations: ResourceOperation[] = [
+    {
+      key: "update",
+      label: "Update Value",
+      color: colors.warning,
+      icon: figures.pointer,
+      shortcut: "u",
+    },
     {
       key: "delete",
       label: "Delete Secret",
@@ -178,6 +187,9 @@ export function SecretDetailScreen({ secretId }: SecretDetailScreenProps) {
   // Handle operation selection
   const handleOperation = async (operation: string, _resource: Secret) => {
     switch (operation) {
+      case "update":
+        setShowUpdateForm(true);
+        break;
       case "delete":
         // Show confirmation dialog
         setShowDeleteConfirm(true);
@@ -255,7 +267,7 @@ export function SecretDetailScreen({ secretId }: SecretDetailScreenProps) {
     lines.push(
       <Text key="security-notice2" color={colors.textDim} dimColor>
         {" "}
-        To change a secret, delete it and create a new one with the same name.
+        Use the Update Value operation to change a secret&apos;s value.
       </Text>,
     );
     lines.push(<Text key="security-space"> </Text>);
@@ -284,6 +296,25 @@ export function SecretDetailScreen({ secretId }: SecretDetailScreenProps) {
 
     return lines;
   };
+
+  // Show update form
+  if (showUpdateForm && secret) {
+    return (
+      <SecretCreatePage
+        onBack={() => setShowUpdateForm(false)}
+        onCreate={(updatedSecret) => {
+          // Refresh the secret data
+          setSecret({
+            ...secret,
+            ...updatedSecret,
+            update_time_ms: Date.now(),
+          });
+          setShowUpdateForm(false);
+        }}
+        initialSecret={{ id: secret.id, name: secret.name }}
+      />
+    );
+  }
 
   // Show delete confirmation
   if (showDeleteConfirm && secret) {

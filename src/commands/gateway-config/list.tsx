@@ -209,13 +209,13 @@ const ListGatewayConfigsUI = ({
       },
       {
         key: "edit",
-        label: "Edit Gateway Config",
+        label: "Edit AI Gateway Config",
         color: colors.warning,
         icon: figures.pointer,
       },
       {
         key: "delete",
-        label: "Delete Gateway Config",
+        label: "Delete AI Gateway Config",
         color: colors.error,
         icon: figures.cross,
       },
@@ -319,7 +319,7 @@ const ListGatewayConfigsUI = ({
         case "delete":
           await client.gatewayConfigs.delete(config.id);
           setOperationResult(
-            `Gateway config "${config.name}" deleted successfully`,
+            `AI gateway config "${config.name}" deleted successfully`,
           );
           break;
       }
@@ -481,11 +481,11 @@ const ListGatewayConfigsUI = ({
   if (showDeleteConfirm && selectedConfig) {
     return (
       <ConfirmationPrompt
-        title="Delete Gateway Config"
+        title="Delete AI Gateway Config"
         message={`Are you sure you want to delete "${selectedConfig.name}"?`}
-        details="This action cannot be undone. Any devboxes using this gateway config will no longer have access to it."
+        details="This action cannot be undone. Any devboxes using this AI gateway config will no longer have access to it."
         breadcrumbItems={[
-          { label: "Gateway Configs" },
+          { label: "AI Gateway Configs" },
           { label: selectedConfig.name || selectedConfig.id },
           { label: "Delete", active: true },
         ]}
@@ -511,7 +511,7 @@ const ListGatewayConfigsUI = ({
       <>
         <Breadcrumb
           items={[
-            { label: "Gateway Configs" },
+            { label: "AI Gateway Configs" },
             {
               label: selectedConfig?.name || selectedConfig?.id || "Config",
             },
@@ -534,13 +534,13 @@ const ListGatewayConfigsUI = ({
       operations.find((o) => o.key === executingOperation)?.label ||
       "Operation";
     const messages: Record<string, string> = {
-      delete: "Deleting gateway config...",
+      delete: "Deleting AI gateway config...",
     };
     return (
       <>
         <Breadcrumb
           items={[
-            { label: "Gateway Configs" },
+            { label: "AI Gateway Configs" },
             { label: selectedConfig.name || selectedConfig.id },
             { label: operationLabel, active: true },
           ]}
@@ -589,8 +589,8 @@ const ListGatewayConfigsUI = ({
   if (loading && configs.length === 0) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Gateway Configs", active: true }]} />
-        <SpinnerComponent message="Loading gateway configs..." />
+        <Breadcrumb items={[{ label: "AI Gateway Configs", active: true }]} />
+        <SpinnerComponent message="Loading AI gateway configs..." />
       </>
     );
   }
@@ -599,8 +599,11 @@ const ListGatewayConfigsUI = ({
   if (error) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Gateway Configs", active: true }]} />
-        <ErrorMessage message="Failed to list gateway configs" error={error} />
+        <Breadcrumb items={[{ label: "AI Gateway Configs", active: true }]} />
+        <ErrorMessage
+          message="Failed to list AI gateway configs"
+          error={error}
+        />
       </>
     );
   }
@@ -608,7 +611,7 @@ const ListGatewayConfigsUI = ({
   // Main list view
   return (
     <>
-      <Breadcrumb items={[{ label: "Gateway Configs", active: true }]} />
+      <Breadcrumb items={[{ label: "AI Gateway Configs", active: true }]} />
 
       {/* Search bar */}
       <SearchBar
@@ -618,7 +621,7 @@ const ListGatewayConfigsUI = ({
         resultCount={totalCount}
         onSearchChange={search.setSearchQuery}
         onSearchSubmit={search.submitSearch}
-        placeholder="Search gateway configs..."
+        placeholder="Search AI gateway configs..."
       />
 
       {/* Table - hide when popup is shown */}
@@ -631,7 +634,8 @@ const ListGatewayConfigsUI = ({
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
-              {figures.info} No gateway configs found. Press [c] to create one.
+              {figures.info} No AI gateway configs found. Press [c] to create
+              one.
             </Text>
           }
         />

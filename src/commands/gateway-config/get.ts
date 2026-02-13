@@ -1,8 +1,8 @@
 /**
- * Get gateway config command
+ * Get gateway config command - supports lookup by ID or name
  */
 
-import { getClient } from "../../utils/client.js";
+import { getGatewayConfigByIdOrName } from "../../services/gatewayConfigService.js";
 import { output, outputError } from "../../utils/output.js";
 
 interface GetOptions {
@@ -12,9 +12,12 @@ interface GetOptions {
 
 export async function getGatewayConfig(options: GetOptions) {
   try {
-    const client = getClient();
+    const config = await getGatewayConfigByIdOrName(options.id);
 
-    const config = await client.gatewayConfigs.retrieve(options.id);
+    if (!config) {
+      outputError(`Gateway config not found: ${options.id}`);
+      return;
+    }
 
     output(config, { format: options.output, defaultFormat: "json" });
   } catch (error) {
