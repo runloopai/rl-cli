@@ -814,7 +814,7 @@ export function createProgram(): Command {
     .description("Create a new gateway configuration")
     .requiredOption("--name <name>", "Gateway config name (required)")
     .requiredOption("--endpoint <url>", "Target endpoint URL (required)")
-    .option("--bearer-auth", "Use Bearer token authentication")
+    .option("--bearer-auth", "Use Bearer token authentication (default)")
     .option(
       "--header-auth <header>",
       "Use custom header authentication (specify header key name)",

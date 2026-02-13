@@ -24,7 +24,7 @@ const settingsMenuItems: SettingsMenuItem[] = [
   },
   {
     key: "gateway-configs",
-    label: "AI Gateways",
+    label: "AI Gateway Configs",
     description: "Configure API credential proxying",
     icon: "⬡",
     color: colors.success,

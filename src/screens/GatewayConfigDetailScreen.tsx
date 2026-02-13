@@ -91,11 +91,11 @@ export function GatewayConfigDetailScreen({
       <>
         <Breadcrumb
           items={[
-            { label: "AI Gateways" },
+            { label: "AI Gateway Configs" },
             { label: "Loading...", active: true },
           ]}
         />
-        <SpinnerComponent message="Loading AI gateway details..." />
+        <SpinnerComponent message="Loading AI gateway config details..." />
       </>
     );
   }
@@ -105,10 +105,10 @@ export function GatewayConfigDetailScreen({
     return (
       <>
         <Breadcrumb
-          items={[{ label: "AI Gateways" }, { label: "Error", active: true }]}
+          items={[{ label: "AI Gateway Configs" }, { label: "Error", active: true }]}
         />
         <ErrorMessage
-          message="Failed to load AI gateway details"
+          message="Failed to load AI gateway config details"
           error={error}
         />
       </>
@@ -121,13 +121,13 @@ export function GatewayConfigDetailScreen({
       <>
         <Breadcrumb
           items={[
-            { label: "AI Gateways" },
+            { label: "AI Gateway Configs" },
             { label: "Not Found", active: true },
           ]}
         />
         <ErrorMessage
-          message={`AI gateway ${gatewayConfigId || "unknown"} not found`}
-          error={new Error("AI gateway not found")}
+          message={`AI gateway config ${gatewayConfigId || "unknown"} not found`}
+          error={new Error("AI gateway config not found")}
         />
       </>
     );
@@ -198,14 +198,14 @@ export function GatewayConfigDetailScreen({
   const operations: ResourceOperation[] = [
     {
       key: "edit",
-      label: "Edit AI Gateway",
+      label: "Edit AI Gateway Config",
       color: colors.warning,
       icon: figures.pointer,
       shortcut: "e",
     },
     {
       key: "delete",
-      label: "Delete AI Gateway",
+      label: "Delete AI Gateway Config",
       color: colors.error,
       icon: figures.cross,
       shortcut: "d",
@@ -249,7 +249,7 @@ export function GatewayConfigDetailScreen({
     // Core Information
     lines.push(
       <Text key="core-title" color={colors.warning} bold>
-        AI Gateway Details
+        AI Gateway Config Details
       </Text>,
     );
     lines.push(
@@ -356,11 +356,11 @@ export function GatewayConfigDetailScreen({
   if (showDeleteConfirm && config) {
     return (
       <ConfirmationPrompt
-        title="Delete AI Gateway"
+        title="Delete AI Gateway Config"
         message={`Are you sure you want to delete "${config.name || config.id}"?`}
-        details="This action cannot be undone. Any devboxes using this AI gateway will no longer have access to it."
+        details="This action cannot be undone. Any devboxes using this AI gateway config will no longer have access to it."
         breadcrumbItems={[
-          { label: "AI Gateways" },
+          { label: "AI Gateway Configs" },
           { label: config.name || config.id },
           { label: "Delete", active: true },
         ]}
@@ -376,12 +376,12 @@ export function GatewayConfigDetailScreen({
       <>
         <Breadcrumb
           items={[
-            { label: "AI Gateways" },
+            { label: "AI Gateway Configs" },
             { label: config.name || config.id },
             { label: "Deleting...", active: true },
           ]}
         />
-        <SpinnerComponent message="Deleting AI gateway..." />
+        <SpinnerComponent message="Deleting AI gateway config..." />
       </>
     );
   }
@@ -389,7 +389,7 @@ export function GatewayConfigDetailScreen({
   return (
     <ResourceDetailPage
       resource={config}
-      resourceType="AI Gateways"
+      resourceType="AI Gateway Configs"
       getDisplayName={(gc) => gc.name || gc.id}
       getId={(gc) => gc.id}
       getStatus={() => "active"} // Gateway configs don't have a status field

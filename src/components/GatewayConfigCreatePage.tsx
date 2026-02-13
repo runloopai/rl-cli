@@ -88,7 +88,7 @@ export const GatewayConfigCreatePage = ({
   }> = [
     {
       key: "create",
-      label: isEditing ? "Update AI Gateway" : "Create AI Gateway",
+      label: isEditing ? "Update AI Gateway Config" : "Create AI Gateway Config",
       type: "action",
     },
     {
@@ -297,12 +297,12 @@ export const GatewayConfigCreatePage = ({
       <>
         <Breadcrumb
           items={[
-            { label: "AI Gateways" },
+            { label: "AI Gateway Configs" },
             { label: isEditing ? "Update" : "Create", active: true },
           ]}
         />
         <SuccessMessage
-          message={`AI gateway ${isEditing ? "updated" : "created"} successfully!`}
+          message={`AI gateway config ${isEditing ? "updated" : "created"} successfully!`}
         />
         <Box marginLeft={2} flexDirection="column" marginTop={1}>
           <Box>
@@ -335,12 +335,12 @@ export const GatewayConfigCreatePage = ({
       <>
         <Breadcrumb
           items={[
-            { label: "AI Gateways" },
+            { label: "AI Gateway Configs" },
             { label: isEditing ? "Update" : "Create", active: true },
           ]}
         />
         <ErrorMessage
-          message={`Failed to ${isEditing ? "update" : "create"} AI gateway`}
+          message={`Failed to ${isEditing ? "update" : "create"} AI gateway config`}
           error={error}
         />
         <NavigationTips
@@ -359,12 +359,12 @@ export const GatewayConfigCreatePage = ({
       <>
         <Breadcrumb
           items={[
-            { label: "AI Gateways" },
+            { label: "AI Gateway Configs" },
             { label: isEditing ? "Update" : "Create", active: true },
           ]}
         />
         <SpinnerComponent
-          message={`${isEditing ? "Updating" : "Creating"} AI gateway...`}
+          message={`${isEditing ? "Updating" : "Creating"} AI gateway config...`}
         />
       </>
     );
@@ -375,7 +375,7 @@ export const GatewayConfigCreatePage = ({
     <>
       <Breadcrumb
         items={[
-          { label: "AI Gateways" },
+          { label: "AI Gateway Configs" },
           { label: isEditing ? "Update" : "Create", active: true },
         ]}
       />
