@@ -1102,31 +1102,39 @@ export const DevboxCreatePage = ({
       return `Custom (${egress.allowed_hostnames?.length || 0})`;
     };
 
-    const networkPolicyColumns: Column<NetworkPolicy>[] = [
-      createTextColumn<NetworkPolicy>("id", "ID", (policy) => policy.id, {
-        width: 25,
-        color: colors.idColor,
-      }),
-      createTextColumn<NetworkPolicy>(
-        "name",
-        "Name",
-        (policy) => policy.name || "",
-        { width: 25 },
-      ),
-      createTextColumn<NetworkPolicy>(
-        "egress",
-        "Egress",
-        (policy) => getEgressLabel(policy.egress),
-        { width: 15 },
-      ),
-      createTextColumn<NetworkPolicy>(
-        "created",
-        "Created",
-        (policy) =>
-          policy.create_time_ms ? formatTimeAgo(policy.create_time_ms) : "",
-        { width: 18, color: colors.textDim },
-      ),
-    ];
+    const buildNetworkPolicyColumns = (tw: number): Column<NetworkPolicy>[] => {
+      const fixedWidth = 6;
+      const idWidth = 25;
+      const egressWidth = 15;
+      const timeWidth = 18;
+      const baseWidth = fixedWidth + idWidth + egressWidth + timeWidth;
+      const nameWidth = Math.min(80, Math.max(15, tw - baseWidth));
+      return [
+        createTextColumn<NetworkPolicy>("id", "ID", (policy) => policy.id, {
+          width: idWidth + 1,
+          color: colors.idColor,
+        }),
+        createTextColumn<NetworkPolicy>(
+          "name",
+          "Name",
+          (policy) => policy.name || "",
+          { width: nameWidth },
+        ),
+        createTextColumn<NetworkPolicy>(
+          "egress",
+          "Egress",
+          (policy) => getEgressLabel(policy.egress),
+          { width: egressWidth },
+        ),
+        createTextColumn<NetworkPolicy>(
+          "created",
+          "Created",
+          (policy) =>
+            policy.create_time_ms ? formatTimeAgo(policy.create_time_ms) : "",
+          { width: timeWidth, color: colors.textDim },
+        ),
+      ];
+    };
 
     return (
       <ResourcePicker<NetworkPolicy>
@@ -1146,7 +1154,7 @@ export const DevboxCreatePage = ({
           },
           getItemId: (policy) => policy.id,
           getItemLabel: (policy) => policy.name || policy.id,
-          columns: networkPolicyColumns,
+          columns: buildNetworkPolicyColumns,
           mode: "single",
           emptyMessage: "No network policies found",
           searchPlaceholder: "Search network policies...",
@@ -1167,31 +1175,45 @@ export const DevboxCreatePage = ({
 
   // Gateway config picker screen
   if (showGatewayPicker) {
-    const gatewayColumns: Column<GatewayConfig>[] = [
-      createTextColumn<GatewayConfig>("id", "ID", (config) => config.id, {
-        width: 25,
-        color: colors.idColor,
-      }),
-      createTextColumn<GatewayConfig>(
-        "name",
-        "Name",
-        (config) => config.name || "",
-        { width: 25 },
-      ),
-      createTextColumn<GatewayConfig>(
-        "endpoint",
-        "Endpoint",
-        (config) => config.endpoint || "",
-        { width: 30, color: colors.textDim },
-      ),
-      createTextColumn<GatewayConfig>(
-        "created",
-        "Created",
-        (config) =>
-          config.create_time_ms ? formatTimeAgo(config.create_time_ms) : "",
-        { width: 18, color: colors.textDim },
-      ),
-    ];
+    const buildGatewayColumns = (tw: number): Column<GatewayConfig>[] => {
+      const fixedWidth = 6;
+      const idWidth = 25;
+      const timeWidth = 20;
+      const showEndpoint = tw >= 100;
+      const endpointWidth = Math.max(20, tw >= 140 ? 40 : 25);
+      const baseWidth = fixedWidth + idWidth + timeWidth;
+      const optionalWidth = showEndpoint ? endpointWidth : 0;
+      const nameWidth = Math.min(80, Math.max(15, tw - baseWidth - optionalWidth));
+      return [
+        createTextColumn<GatewayConfig>("id", "ID", (config) => config.id, {
+          width: idWidth + 1,
+          color: colors.idColor,
+        }),
+        createTextColumn<GatewayConfig>(
+          "name",
+          "Name",
+          (config) => config.name || "",
+          { width: nameWidth },
+        ),
+        ...(showEndpoint
+          ? [
+              createTextColumn<GatewayConfig>(
+                "endpoint",
+                "Endpoint",
+                (config) => config.endpoint || "",
+                { width: endpointWidth, color: colors.textDim },
+              ),
+            ]
+          : []),
+        createTextColumn<GatewayConfig>(
+          "created",
+          "Created",
+          (config) =>
+            config.create_time_ms ? formatTimeAgo(config.create_time_ms) : "",
+          { width: timeWidth, color: colors.textDim },
+        ),
+      ];
+    };
 
     return (
       <ResourcePicker<GatewayConfig>
@@ -1212,7 +1234,7 @@ export const DevboxCreatePage = ({
           },
           getItemId: (config) => config.id,
           getItemLabel: (config) => config.name || config.id,
-          columns: gatewayColumns,
+          columns: buildGatewayColumns,
           mode: "single",
           emptyMessage: "No gateway configs found",
           searchPlaceholder: "Search gateway configs...",
@@ -1259,25 +1281,32 @@ export const DevboxCreatePage = ({
 
   // Secret picker screen (for gateway)
   if (showSecretPicker) {
-    const secretColumns: Column<SecretListItem>[] = [
-      createTextColumn<SecretListItem>("id", "ID", (secret) => secret.id, {
-        width: 25,
-        color: colors.idColor,
-      }),
-      createTextColumn<SecretListItem>(
-        "name",
-        "Name",
-        (secret) => secret.name || "",
-        { width: 30 },
-      ),
-      createTextColumn<SecretListItem>(
-        "created",
-        "Created",
-        (secret) =>
-          secret.create_time_ms ? formatTimeAgo(secret.create_time_ms) : "",
-        { width: 18, color: colors.textDim },
-      ),
-    ];
+    const buildSecretColumns = (tw: number): Column<SecretListItem>[] => {
+      const fixedWidth = 6;
+      const idWidth = 30;
+      const timeWidth = 20;
+      const baseWidth = fixedWidth + idWidth + timeWidth;
+      const nameWidth = Math.min(80, Math.max(15, tw - baseWidth));
+      return [
+        createTextColumn<SecretListItem>("id", "ID", (secret) => secret.id, {
+          width: idWidth + 1,
+          color: colors.idColor,
+        }),
+        createTextColumn<SecretListItem>(
+          "name",
+          "Name",
+          (secret) => secret.name || "",
+          { width: nameWidth },
+        ),
+        createTextColumn<SecretListItem>(
+          "created",
+          "Created",
+          (secret) =>
+            secret.create_time_ms ? formatTimeAgo(secret.create_time_ms) : "",
+          { width: timeWidth, color: colors.textDim },
+        ),
+      ];
+    };
 
     return (
       <ResourcePicker<SecretListItem>
@@ -1286,25 +1315,38 @@ export const DevboxCreatePage = ({
           title: "Select Secret for Gateway",
           fetchPage: async (params) => {
             const client = getClient();
-            // Secrets API doesn't support cursor pagination, just limit
+            // Secrets API doesn't support cursor pagination, so we fetch all
+            // and do client-side pagination by slicing to the requested page
             const page = await client.secrets.list({
-              limit: params.limit,
+              limit: 1000,
             });
+            const allSecrets = (page.secrets || []).map(
+              (s: { id: string; name: string; create_time_ms?: number }) => ({
+                id: s.id,
+                name: s.name,
+                create_time_ms: s.create_time_ms,
+              }),
+            );
+            // Client-side cursor pagination
+            let startIdx = 0;
+            if (params.startingAt) {
+              const cursorIdx = allSecrets.findIndex(
+                (s) => s.id === params.startingAt,
+              );
+              if (cursorIdx >= 0) {
+                startIdx = cursorIdx + 1;
+              }
+            }
+            const sliced = allSecrets.slice(startIdx, startIdx + params.limit);
             return {
-              items: (page.secrets || []).map(
-                (s: { id: string; name: string; create_time_ms?: number }) => ({
-                  id: s.id,
-                  name: s.name,
-                  create_time_ms: s.create_time_ms,
-                }),
-              ),
-              hasMore: false, // Secrets API doesn't support pagination
-              totalCount: page.total_count || 0,
+              items: sliced,
+              hasMore: startIdx + params.limit < allSecrets.length,
+              totalCount: allSecrets.length,
             };
           },
           getItemId: (secret) => secret.id,
           getItemLabel: (secret) => secret.name || secret.id,
-          columns: secretColumns,
+          columns: buildSecretColumns,
           mode: "single",
           emptyMessage: "No secrets found",
           searchPlaceholder: "Search secrets...",

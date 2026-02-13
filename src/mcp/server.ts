@@ -6,7 +6,7 @@ import {
   ListToolsRequestSchema,
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-import RunloopSDK from "@runloop/api-client";
+import Runloop from "@runloop/api-client";
 import { VERSION } from "@runloop/api-client/version.js";
 import Conf from "conf";
 import { processUtils } from "../utils/processUtils.js";
@@ -57,7 +57,7 @@ function getBaseUrl(): string {
   }
 }
 
-function getClient(): RunloopSDK {
+function getClient(): Runloop {
   const config = getConfig();
 
   if (!config.apiKey) {
@@ -68,7 +68,7 @@ function getClient(): RunloopSDK {
 
   const baseURL = getBaseUrl();
 
-  return new RunloopSDK({
+  return new Runloop({
     bearerToken: config.apiKey,
     baseURL,
     timeout: 10000, // 10 seconds instead of default 30 seconds

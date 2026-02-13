@@ -1,4 +1,4 @@
-import RunloopSDK from "@runloop/api-client";
+import Runloop from "@runloop/api-client";
 import { VERSION } from "@runloop/api-client/version.js";
 import { getConfig } from "./config.js";
 
@@ -19,7 +19,7 @@ function getBaseUrl(): string {
   }
 }
 
-export function getClient(): RunloopSDK {
+export function getClient(): Runloop {
   const config = getConfig();
 
   if (!config.apiKey) {
@@ -30,7 +30,7 @@ export function getClient(): RunloopSDK {
 
   const baseURL = getBaseUrl();
 
-  return new RunloopSDK({
+  return new Runloop({
     bearerToken: config.apiKey,
     baseURL,
     defaultHeaders: {

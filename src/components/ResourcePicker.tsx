@@ -55,7 +55,7 @@ export interface ResourcePickerConfig<T> {
   getItemStatus?: (item: T) => string | undefined;
 
   /** Column definitions for table display (if not provided, uses simple label/status) */
-  columns?: Column<T>[];
+  columns?: Column<T>[] | ((terminalWidth: number) => Column<T>[]);
 
   /** Selection mode */
   mode: "single" | "multi";
@@ -116,7 +116,8 @@ export function ResourcePicker<T>({
     onSearchClear: () => setSelectedIndex(0),
   });
 
-  // Calculate overhead for viewport height (matches list pages)
+  // Calculate overhead for viewport height
+  // Matches list pages: breadcrumb(4) + table chrome(4) + stats(2) + nav tips(2) + buffer(1) = 13
   const overhead = 13 + search.getSearchOverhead();
   const { viewportHeight, terminalWidth } = useViewportHeight({
     overhead,
@@ -125,8 +126,14 @@ export function ResourcePicker<T>({
 
   const PAGE_SIZE = viewportHeight;
 
-  // terminalWidth available from viewport hook for column calculations
-  void terminalWidth;
+  // Resolve columns - support both static array and function that receives terminalWidth
+  const resolvedColumns = React.useMemo(() => {
+    if (!config.columns) return undefined;
+    if (typeof config.columns === "function") {
+      return config.columns(terminalWidth);
+    }
+    return config.columns;
+  }, [config.columns, terminalWidth]);
 
   // Store fetchPage in a ref to avoid dependency issues
   const fetchPageRef = React.useRef(config.fetchPage);
@@ -330,7 +337,7 @@ export function ResourcePicker<T>({
       />
 
       {/* Table view */}
-      {config.columns ? (
+      {resolvedColumns ? (
         <Table
           data={items}
           keyExtractor={config.getItemId}
@@ -357,9 +364,9 @@ export function ResourcePicker<T>({
                     },
                     { width: 3 },
                   ),
-                  ...config.columns,
+                  ...resolvedColumns,
                 ]
-              : config.columns
+              : resolvedColumns
           }
           emptyState={
             <Text color={colors.textDim}>
