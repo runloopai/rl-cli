@@ -34,6 +34,7 @@ import type { Snapshot } from "../store/snapshotStore.js";
 import type { NetworkPolicy } from "../store/networkPolicyStore.js";
 import type { GatewayConfig } from "../store/gatewayConfigStore.js";
 import { SecretCreatePage } from "./SecretCreatePage.js";
+import { GatewayConfigCreatePage } from "./GatewayConfigCreatePage.js";
 
 // Secret list interface for the picker
 interface SecretListItem {
@@ -171,6 +172,8 @@ export const DevboxCreatePage = ({
     name: string;
   } | null>(null);
   const [showInlineSecretCreate, setShowInlineSecretCreate] =
+    React.useState(false);
+  const [showInlineGatewayConfigCreate, setShowInlineGatewayConfigCreate] =
     React.useState(false);
   // Gateway attach form: when active, shows a mini-form to configure a gateway
   const [gatewayFormActive, setGatewayFormActive] = React.useState(false);
@@ -415,7 +418,8 @@ export const DevboxCreatePage = ({
         !showNetworkPolicyPicker &&
         !showGatewayPicker &&
         !showSecretPicker &&
-        !showInlineSecretCreate,
+        !showInlineSecretCreate &&
+        !showInlineGatewayConfigCreate,
     },
   );
 
@@ -729,7 +733,8 @@ export const DevboxCreatePage = ({
         inGatewaySection &&
         !showGatewayPicker &&
         !showSecretPicker &&
-        !showInlineSecretCreate,
+        !showInlineSecretCreate &&
+        !showInlineGatewayConfigCreate,
     },
   );
 
@@ -1170,6 +1175,32 @@ export const DevboxCreatePage = ({
     );
   }
 
+  // Inline gateway config creation screen (from gateway attach flow)
+  if (showInlineGatewayConfigCreate) {
+    return (
+      <GatewayConfigCreatePage
+        onBack={() => {
+          setShowInlineGatewayConfigCreate(false);
+          // Return to gateway picker
+          setShowGatewayPicker(true);
+        }}
+        onCreate={(config) => {
+          setShowInlineGatewayConfigCreate(false);
+          // Auto-select the newly created gateway config
+          const configName = config.name || config.id;
+          setPendingGateway({ id: config.id, name: configName });
+          const autoEnvName = configName
+            .toUpperCase()
+            .replace(/[^A-Z0-9]+/g, "_")
+            .replace(/^_|_$/g, "");
+          setGatewayEnvPrefix(autoEnvName);
+          setShowGatewayPicker(false);
+          setGatewayFormField("envName");
+        }}
+      />
+    );
+  }
+
   // Gateway config picker screen
   if (showGatewayPicker) {
     const buildGatewayColumns = (tw: number): Column<GatewayConfig>[] => {
@@ -1236,14 +1267,19 @@ export const DevboxCreatePage = ({
           getItemLabel: (config) => config.name || config.id,
           columns: buildGatewayColumns,
           mode: "single",
-          emptyMessage: "No gateway configs found",
-          searchPlaceholder: "Search gateway configs...",
+          emptyMessage: "No AI gateways found",
+          searchPlaceholder: "Search AI gateways...",
           breadcrumbItems: [
             { label: "Devboxes" },
             { label: "Create" },
             { label: "Attach AI Gateway" },
             { label: "Select Config", active: true },
           ],
+          onCreateNew: () => {
+            setShowGatewayPicker(false);
+            setShowInlineGatewayConfigCreate(true);
+          },
+          createNewLabel: "Create AI gateway",
         }}
         onSelect={handleGatewaySelect}
         onCancel={() => {
