@@ -161,16 +161,25 @@ export const DevboxCreatePage = ({
   const [showSecretPicker, setShowSecretPicker] = React.useState(false);
   const [inGatewaySection, setInGatewaySection] = React.useState(false);
   const [gatewayEnvPrefix, setGatewayEnvPrefix] = React.useState("");
-  const [gatewayInputMode, setGatewayInputMode] = React.useState<
-    "envPrefix" | "gateway" | "secret" | null
-  >(null);
   const [selectedGatewayIndex, setSelectedGatewayIndex] = React.useState(0);
   const [pendingGateway, setPendingGateway] = React.useState<{
     id: string;
     name: string;
   } | null>(null);
+  const [pendingSecret, setPendingSecret] = React.useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [showInlineSecretCreate, setShowInlineSecretCreate] =
     React.useState(false);
+  // Gateway attach form: when active, shows a mini-form to configure a gateway
+  const [gatewayFormActive, setGatewayFormActive] = React.useState(false);
+  const [gatewayFormField, setGatewayFormField] = React.useState<
+    "attach" | "gateway" | "envName" | "secret"
+  >("attach");
+
+  const gatewayFormFields = ["attach", "gateway", "envName", "secret"] as const;
+  const gatewayFormFieldIndex = gatewayFormFields.indexOf(gatewayFormField);
 
   const baseFields: Array<{
     key: FormField;
@@ -457,10 +466,17 @@ export const DevboxCreatePage = ({
   const handleGatewaySelect = React.useCallback((configs: GatewayConfig[]) => {
     if (configs.length > 0) {
       const config = configs[0];
-      setPendingGateway({ id: config.id, name: config.name || config.id });
+      const configName = config.name || config.id;
+      setPendingGateway({ id: config.id, name: configName });
+      // Auto-fill ENV name from config name (uppercase, underscores, no GWS_ prefix)
+      const autoEnvName = configName
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, "_")
+        .replace(/^_|_$/g, "");
+      setGatewayEnvPrefix(autoEnvName);
       setShowGatewayPicker(false);
-      // Now show secret picker
-      setShowSecretPicker(true);
+      // Move to env name field in the form
+      setGatewayFormField("envName");
     } else {
       setShowGatewayPicker(false);
     }
@@ -469,28 +485,39 @@ export const DevboxCreatePage = ({
   // Handle secret selection for gateway
   const handleSecretSelect = React.useCallback(
     (secrets: SecretListItem[]) => {
-      if (secrets.length > 0 && pendingGateway && gatewayEnvPrefix) {
+      if (secrets.length > 0) {
         const secret = secrets[0];
-        const newGateway: GatewaySpec = {
-          envPrefix: gatewayEnvPrefix,
-          gateway: pendingGateway.id,
-          gatewayName: pendingGateway.name,
-          secret: secret.id,
-          secretName: secret.name || secret.id,
-        };
-        setFormData((prev) => ({
-          ...prev,
-          gateways: [...prev.gateways, newGateway],
-        }));
+        setPendingSecret({ id: secret.id, name: secret.name || secret.id });
       }
       setShowSecretPicker(false);
-      setPendingGateway(null);
-      setGatewayEnvPrefix("");
-      setGatewayInputMode(null);
-      setSelectedGatewayIndex(0);
+      // Return to the form at the attach button
+      setGatewayFormField("attach");
     },
-    [pendingGateway, gatewayEnvPrefix],
+    [],
   );
+
+  // Attach the configured gateway to the devbox
+  const handleAttachGateway = React.useCallback(() => {
+    if (!pendingGateway || !pendingSecret || !gatewayEnvPrefix.trim()) return;
+    const newGateway: GatewaySpec = {
+      envPrefix: gatewayEnvPrefix.trim(),
+      gateway: pendingGateway.id,
+      gatewayName: pendingGateway.name,
+      secret: pendingSecret.id,
+      secretName: pendingSecret.name,
+    };
+    setFormData((prev) => ({
+      ...prev,
+      gateways: [...prev.gateways, newGateway],
+    }));
+    // Reset form
+    setPendingGateway(null);
+    setPendingSecret(null);
+    setGatewayEnvPrefix("");
+    setGatewayFormActive(false);
+    setGatewayFormField("attach");
+    setSelectedGatewayIndex(0);
+  }, [pendingGateway, pendingSecret, gatewayEnvPrefix]);
 
   // Handle clearing source
   const handleClearSource = React.useCallback(() => {
@@ -592,47 +619,101 @@ export const DevboxCreatePage = ({
   // Gateway section input handler - active when in gateway section
   useInput(
     (input, key) => {
-      const gatewayCount = formData.gateways.length;
-      const maxIndex = gatewayCount + 1; // Add new + existing items + Done
-
-      // Handle input mode (typing env prefix)
-      if (gatewayInputMode === "envPrefix") {
-        if (key.return && gatewayEnvPrefix.trim()) {
-          // Open gateway picker
-          setGatewayInputMode(null);
-          setShowGatewayPicker(true);
+      // === Gateway attach form mode ===
+      if (gatewayFormActive) {
+        // envName field is a text input - only handle navigation keys
+        if (gatewayFormField === "envName") {
+          if (key.upArrow || (key.tab && key.shift)) {
+            setGatewayFormField("gateway");
+            return;
+          }
+          if (key.downArrow || (key.tab && !key.shift)) {
+            setGatewayFormField("secret");
+            return;
+          }
+          if (key.escape) {
+            // Cancel the form
+            setPendingGateway(null);
+            setPendingSecret(null);
+            setGatewayEnvPrefix("");
+            setGatewayFormActive(false);
+            setGatewayFormField("attach");
+            return;
+          }
+          // Let TextInput handle other keys
           return;
-        } else if (key.escape) {
+        }
+
+        // Navigation between form fields
+        if (key.upArrow || (key.tab && key.shift)) {
+          const prevIdx = Math.max(0, gatewayFormFieldIndex - 1);
+          setGatewayFormField(gatewayFormFields[prevIdx]);
+          return;
+        }
+        if (key.downArrow || (key.tab && !key.shift)) {
+          const nextIdx = Math.min(
+            gatewayFormFields.length - 1,
+            gatewayFormFieldIndex + 1,
+          );
+          setGatewayFormField(gatewayFormFields[nextIdx]);
+          return;
+        }
+
+        // Enter on specific fields
+        if (key.return) {
+          if (gatewayFormField === "gateway") {
+            setShowGatewayPicker(true);
+            return;
+          }
+          if (gatewayFormField === "secret") {
+            setShowSecretPicker(true);
+            return;
+          }
+          if (gatewayFormField === "attach") {
+            handleAttachGateway();
+            return;
+          }
+        }
+
+        if (key.escape || input === "q") {
+          // Cancel the form
+          setPendingGateway(null);
+          setPendingSecret(null);
           setGatewayEnvPrefix("");
-          setGatewayInputMode(null);
+          setGatewayFormActive(false);
+          setGatewayFormField("attach");
           return;
         }
         return;
       }
 
-      // Navigation mode in gateway section
+      // === List navigation mode (existing gateways + attach/done) ===
+      const gatewayCount = formData.gateways.length;
+      const maxIndex = gatewayCount + 1; // Attach + existing items + Done
+
       if (key.upArrow && selectedGatewayIndex > 0) {
         setSelectedGatewayIndex(selectedGatewayIndex - 1);
       } else if (key.downArrow && selectedGatewayIndex < maxIndex) {
         setSelectedGatewayIndex(selectedGatewayIndex + 1);
       } else if (key.return) {
         if (selectedGatewayIndex === 0) {
-          // Attach gateway - start with env prefix input
+          // Open the attach form
+          setPendingGateway(null);
+          setPendingSecret(null);
           setGatewayEnvPrefix("");
-          setGatewayInputMode("envPrefix");
+          setGatewayFormActive(true);
+          setGatewayFormField("gateway");
         } else if (selectedGatewayIndex === maxIndex) {
           // Done
           setInGatewaySection(false);
           setSelectedGatewayIndex(0);
-          setGatewayEnvPrefix("");
-          setGatewayInputMode(null);
         }
       } else if (
         (input === "d" || key.delete) &&
         selectedGatewayIndex >= 1 &&
         selectedGatewayIndex <= gatewayCount
       ) {
-        // Delete gateway at index
+        // Remove gateway at index
         const indexToDelete = selectedGatewayIndex - 1;
         const newGateways = [...formData.gateways];
         newGateways.splice(indexToDelete, 1);
@@ -644,8 +725,6 @@ export const DevboxCreatePage = ({
       } else if (key.escape || input === "q") {
         setInGatewaySection(false);
         setSelectedGatewayIndex(0);
-        setGatewayEnvPrefix("");
-        setGatewayInputMode(null);
       }
     },
     {
@@ -1140,14 +1219,15 @@ export const DevboxCreatePage = ({
           breadcrumbItems: [
             { label: "Devboxes" },
             { label: "Create" },
-            { label: `Gateway: ${gatewayEnvPrefix}`, active: true },
+            { label: "Attach AI Gateway" },
+            { label: "Select Config", active: true },
           ],
         }}
         onSelect={handleGatewaySelect}
         onCancel={() => {
           setShowGatewayPicker(false);
-          setGatewayEnvPrefix("");
-          setGatewayInputMode(null);
+          // Return to the form at the gateway field
+          setGatewayFormField("gateway");
         }}
         initialSelected={[]}
       />
@@ -1165,25 +1245,13 @@ export const DevboxCreatePage = ({
         }}
         onCreate={(secret) => {
           setShowInlineSecretCreate(false);
-          // Auto-select the newly created secret and complete the gateway flow
-          if (pendingGateway && gatewayEnvPrefix) {
-            const newGateway: GatewaySpec = {
-              envPrefix: gatewayEnvPrefix,
-              gateway: pendingGateway.id,
-              gatewayName: pendingGateway.name,
-              secret: secret.id,
-              secretName: secret.name || secret.id,
-            };
-            setFormData((prev) => ({
-              ...prev,
-              gateways: [...prev.gateways, newGateway],
-            }));
-          }
+          // Store as pending secret and return to the attach form
+          setPendingSecret({
+            id: secret.id,
+            name: secret.name || secret.id,
+          });
           setShowSecretPicker(false);
-          setPendingGateway(null);
-          setGatewayEnvPrefix("");
-          setGatewayInputMode(null);
-          setSelectedGatewayIndex(0);
+          setGatewayFormField("attach");
         }}
       />
     );
@@ -1243,7 +1311,7 @@ export const DevboxCreatePage = ({
           breadcrumbItems: [
             { label: "Devboxes" },
             { label: "Create" },
-            { label: `Gateway: ${gatewayEnvPrefix}` },
+            { label: "Attach AI Gateway" },
             { label: "Select Secret", active: true },
           ],
           onCreateNew: () => {
@@ -1255,9 +1323,8 @@ export const DevboxCreatePage = ({
         onSelect={handleSecretSelect}
         onCancel={() => {
           setShowSecretPicker(false);
-          setPendingGateway(null);
-          setGatewayEnvPrefix("");
-          setGatewayInputMode(null);
+          // Return to the form at the secret field
+          setGatewayFormField("secret");
         }}
         initialSelected={[]}
       />
@@ -1674,6 +1741,11 @@ export const DevboxCreatePage = ({
             const gatewayCount = formData.gateways.length;
             const maxGatewayIndex = gatewayCount + 1;
 
+            const canAttach =
+              !!pendingGateway &&
+              !!pendingSecret &&
+              !!gatewayEnvPrefix.trim();
+
             return (
               <Box
                 key={field.key}
@@ -1688,8 +1760,8 @@ export const DevboxCreatePage = ({
                   {figures.hamburger} Configure AI Gateways for Devbox
                 </Text>
 
-                {/* Input form - shown when adding */}
-                {gatewayInputMode === "envPrefix" && (
+                {/* Attach form - shown when configuring a new gateway */}
+                {gatewayFormActive && (
                   <Box
                     flexDirection="column"
                     marginTop={1}
@@ -1700,26 +1772,158 @@ export const DevboxCreatePage = ({
                     <Text color={colors.success} bold>
                       Attach AI Gateway
                     </Text>
-                    <Box>
-                      <Text color={colors.primary}>
-                        Gateway Secret ENV Name (e.g., GWS_ANTHROPIC):{" "}
+
+                    {/* Attach button */}
+                    <Box marginTop={1}>
+                      <Text
+                        color={
+                          gatewayFormField === "attach"
+                            ? canAttach
+                              ? colors.success
+                              : colors.primary
+                            : colors.textDim
+                        }
+                      >
+                        {gatewayFormField === "attach"
+                          ? figures.pointer
+                          : " "}{" "}
                       </Text>
-                      <TextInput
-                        value={gatewayEnvPrefix || ""}
-                        onChange={setGatewayEnvPrefix}
-                        placeholder="GWS_ANTHROPIC"
-                      />
+                      <Text
+                        color={
+                          gatewayFormField === "attach"
+                            ? canAttach
+                              ? colors.success
+                              : colors.primary
+                            : colors.textDim
+                        }
+                        bold={gatewayFormField === "attach"}
+                      >
+                        {canAttach
+                          ? `${figures.tick} Attach Gateway`
+                          : `${figures.ellipsis} Attach Gateway (fill fields below)`}
+                      </Text>
                     </Box>
-                    <Text color={colors.textDim} dimColor>
-                      Press Enter to select an AI gateway
-                    </Text>
+
+                    {/* Field 1: Gateway Config */}
+                    <Box marginTop={1}>
+                      <Text
+                        color={
+                          gatewayFormField === "gateway"
+                            ? colors.primary
+                            : colors.textDim
+                        }
+                      >
+                        {gatewayFormField === "gateway"
+                          ? figures.pointer
+                          : " "}{" "}
+                        AI Gateway:{" "}
+                      </Text>
+                      {pendingGateway ? (
+                        <Text color={colors.success}>
+                          {pendingGateway.name}
+                        </Text>
+                      ) : (
+                        <Text color={colors.textDim} dimColor>
+                          (none selected)
+                        </Text>
+                      )}
+                      {gatewayFormField === "gateway" && (
+                        <Text color={colors.textDim} dimColor>
+                          {" "}
+                          [Enter to select]
+                        </Text>
+                      )}
+                    </Box>
+
+                    {/* Field 2: ENV Name */}
+                    <Box>
+                      <Text
+                        color={
+                          gatewayFormField === "envName"
+                            ? colors.primary
+                            : colors.textDim
+                        }
+                      >
+                        {gatewayFormField === "envName"
+                          ? figures.pointer
+                          : " "}{" "}
+                        ENV Name:{" "}
+                      </Text>
+                      {gatewayFormField === "envName" ? (
+                        <TextInput
+                          value={gatewayEnvPrefix || ""}
+                          onChange={setGatewayEnvPrefix}
+                          placeholder="ANTHROPIC"
+                        />
+                      ) : (
+                        <Text
+                          color={
+                            gatewayEnvPrefix
+                              ? colors.text
+                              : colors.textDim
+                          }
+                          dimColor={!gatewayEnvPrefix}
+                        >
+                          {gatewayEnvPrefix || "(auto-filled from config)"}
+                        </Text>
+                      )}
+                    </Box>
+
+                    {/* Field 3: Secret */}
+                    <Box>
+                      <Text
+                        color={
+                          gatewayFormField === "secret"
+                            ? colors.primary
+                            : colors.textDim
+                        }
+                      >
+                        {gatewayFormField === "secret"
+                          ? figures.pointer
+                          : " "}{" "}
+                        Secret:{" "}
+                      </Text>
+                      {pendingSecret ? (
+                        <Text color={colors.success}>
+                          {pendingSecret.name}
+                        </Text>
+                      ) : (
+                        <Text color={colors.textDim} dimColor>
+                          (none selected)
+                        </Text>
+                      )}
+                      {gatewayFormField === "secret" && (
+                        <Text color={colors.textDim} dimColor>
+                          {" "}
+                          [Enter to select]
+                        </Text>
+                      )}
+                    </Box>
+
+                    {/* Help text for form */}
+                    <Box
+                      marginTop={1}
+                      borderStyle="single"
+                      borderColor={colors.border}
+                      paddingX={1}
+                    >
+                      <Text color={colors.textDim} dimColor>
+                        {gatewayFormField === "envName"
+                          ? `Type to edit • ${figures.arrowUp}${figures.arrowDown} Navigate • [esc] Cancel`
+                          : gatewayFormField === "attach"
+                            ? canAttach
+                              ? `[Enter] Attach • ${figures.arrowUp}${figures.arrowDown} Navigate • [esc] Cancel`
+                              : `${figures.arrowUp}${figures.arrowDown} Navigate • [esc] Cancel`
+                            : `[Enter] Select • ${figures.arrowUp}${figures.arrowDown} Navigate • [esc] Cancel`}
+                      </Text>
+                    </Box>
                   </Box>
                 )}
 
-                {/* Navigation menu - shown when not in input mode */}
-                {!gatewayInputMode && (
+                {/* Navigation menu - shown when not in form mode */}
+                {!gatewayFormActive && (
                   <>
-                    {/* Add new option */}
+                    {/* Attach new option */}
                     <Box marginTop={1}>
                       <Text
                         color={
@@ -1814,22 +2018,20 @@ export const DevboxCreatePage = ({
                         {figures.tick} Done
                       </Text>
                     </Box>
+
+                    {/* Help text */}
+                    <Box
+                      marginTop={1}
+                      borderStyle="single"
+                      borderColor={colors.border}
+                      paddingX={1}
+                    >
+                      <Text color={colors.textDim} dimColor>
+                        {`${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedGatewayIndex === 0 ? "Attach" : selectedGatewayIndex === maxGatewayIndex ? "Done" : "Select"} • [d] Remove • [esc] Back`}
+                      </Text>
+                    </Box>
                   </>
                 )}
-
-                {/* Help text */}
-                <Box
-                  marginTop={1}
-                  borderStyle="single"
-                  borderColor={colors.border}
-                  paddingX={1}
-                >
-                  <Text color={colors.textDim} dimColor>
-                    {gatewayInputMode
-                      ? `[Enter] Select AI gateway • [esc] Cancel`
-                      : `${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedGatewayIndex === 0 ? "Attach" : selectedGatewayIndex === maxGatewayIndex ? "Done" : "Select"} • [d] Remove • [esc] Back`}
-                  </Text>
-                </Box>
               </Box>
             );
           }

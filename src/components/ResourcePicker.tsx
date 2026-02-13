@@ -116,8 +116,8 @@ export function ResourcePicker<T>({
     onSearchClear: () => setSelectedIndex(0),
   });
 
-  // Calculate overhead for viewport height
-  const overhead = 15 + search.getSearchOverhead();
+  // Calculate overhead for viewport height (matches list pages)
+  const overhead = 13 + search.getSearchOverhead();
   const { viewportHeight, terminalWidth } = useViewportHeight({
     overhead,
     minHeight: 5,

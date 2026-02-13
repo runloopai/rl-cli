@@ -22,6 +22,11 @@ interface Secret {
 interface SecretCreatePageProps {
   onBack: () => void;
   onCreate?: (secret: Secret) => void;
+  /** If provided, the form will be in update mode for this secret */
+  initialSecret?: {
+    id: string;
+    name: string;
+  };
 }
 
 type FormField = "submit" | "name" | "value";
@@ -34,10 +39,12 @@ interface FormData {
 export const SecretCreatePage = ({
   onBack,
   onCreate,
+  initialSecret,
 }: SecretCreatePageProps) => {
+  const isUpdating = !!initialSecret;
   const [currentField, setCurrentField] = React.useState<FormField>("submit");
   const [formData, setFormData] = React.useState<FormData>({
-    name: "",
+    name: initialSecret?.name || "",
     value: "",
   });
   const [submitting, setSubmitting] = React.useState(false);
@@ -52,9 +59,17 @@ export const SecretCreatePage = ({
     label: string;
     type: "text" | "password" | "action";
   }> = [
-    { key: "submit", label: "Create Secret", type: "action" },
+    {
+      key: "submit",
+      label: isUpdating ? "Update Secret" : "Create Secret",
+      type: "action",
+    },
     { key: "name", label: "Name (required)", type: "text" },
-    { key: "value", label: "Value (required)", type: "password" },
+    {
+      key: "value",
+      label: isUpdating ? "New Value (required)" : "Value (required)",
+      type: "password",
+    },
   ];
 
   const currentFieldIndex = fields.findIndex((f) => f.key === currentField);
@@ -112,16 +127,33 @@ export const SecretCreatePage = ({
     }
 
     // Navigation between fields (up/down arrows and tab/shift+tab)
-    if ((key.upArrow || (key.tab && key.shift)) && currentFieldIndex > 0) {
-      setCurrentField(fields[currentFieldIndex - 1].key);
+    // In update mode, skip the name field (it's read-only)
+    const getNextFieldIndex = (direction: "up" | "down"): number | null => {
+      let nextIdx =
+        direction === "up" ? currentFieldIndex - 1 : currentFieldIndex + 1;
+      while (nextIdx >= 0 && nextIdx < fields.length) {
+        if (isUpdating && fields[nextIdx].key === "name") {
+          nextIdx = direction === "up" ? nextIdx - 1 : nextIdx + 1;
+          continue;
+        }
+        return nextIdx;
+      }
+      return null;
+    };
+
+    if (key.upArrow || (key.tab && key.shift)) {
+      const nextIdx = getNextFieldIndex("up");
+      if (nextIdx !== null) {
+        setCurrentField(fields[nextIdx].key);
+      }
       return;
     }
 
-    if (
-      (key.downArrow || (key.tab && !key.shift)) &&
-      currentFieldIndex < fields.length - 1
-    ) {
-      setCurrentField(fields[currentFieldIndex + 1].key);
+    if (key.downArrow || (key.tab && !key.shift)) {
+      const nextIdx = getNextFieldIndex("down");
+      if (nextIdx !== null) {
+        setCurrentField(fields[nextIdx].key);
+      }
       return;
     }
   });
@@ -145,11 +177,19 @@ export const SecretCreatePage = ({
 
     try {
       const client = getClient();
-      const secret = await client.secrets.create({
-        name: formData.name.trim(),
-        value: formData.value,
-      });
-      setResult(secret as Secret);
+      let secret: Secret;
+      if (isUpdating) {
+        // Update existing secret by name
+        secret = (await client.secrets.update(formData.name.trim(), {
+          value: formData.value,
+        })) as Secret;
+      } else {
+        secret = (await client.secrets.create({
+          name: formData.name.trim(),
+          value: formData.value,
+        })) as Secret;
+      }
+      setResult(secret);
     } catch (err) {
       setError(err as Error);
     } finally {
@@ -165,10 +205,12 @@ export const SecretCreatePage = ({
           items={[
             { label: "Settings" },
             { label: "Secrets" },
-            { label: "Create", active: true },
+            { label: isUpdating ? "Update" : "Create", active: true },
           ]}
         />
-        <SuccessMessage message="Secret created successfully!" />
+        <SuccessMessage
+          message={`Secret ${isUpdating ? "updated" : "created"} successfully!`}
+        />
         <Box marginLeft={2} flexDirection="column" marginTop={1}>
           <Box>
             <Text color={colors.textDim} dimColor>
@@ -189,7 +231,12 @@ export const SecretCreatePage = ({
           </Text>
         </Box>
         <NavigationTips
-          tips={[{ key: "Enter/q/esc", label: "View secret details" }]}
+          tips={[
+            {
+              key: "Enter/q/esc",
+              label: isUpdating ? "Return to details" : "View secret details",
+            },
+          ]}
         />
       </>
     );
@@ -203,10 +250,13 @@ export const SecretCreatePage = ({
           items={[
             { label: "Settings" },
             { label: "Secrets" },
-            { label: "Create", active: true },
+            { label: isUpdating ? "Update" : "Create", active: true },
           ]}
         />
-        <ErrorMessage message="Failed to create secret" error={error} />
+        <ErrorMessage
+          message={`Failed to ${isUpdating ? "update" : "create"} secret`}
+          error={error}
+        />
         <NavigationTips
           tips={[
             { key: "Enter/r", label: "Retry" },
@@ -225,10 +275,12 @@ export const SecretCreatePage = ({
           items={[
             { label: "Settings" },
             { label: "Secrets" },
-            { label: "Create", active: true },
+            { label: isUpdating ? "Update" : "Create", active: true },
           ]}
         />
-        <SpinnerComponent message="Creating secret..." />
+        <SpinnerComponent
+          message={`${isUpdating ? "Updating" : "Creating"} secret...`}
+        />
       </>
     );
   }
@@ -240,7 +292,7 @@ export const SecretCreatePage = ({
         items={[
           { label: "Settings" },
           { label: "Secrets" },
-          { label: "Create", active: true },
+          { label: isUpdating ? "Update" : "Create", active: true },
         ]}
       />
 
@@ -253,9 +305,11 @@ export const SecretCreatePage = ({
       >
         <Text color={colors.info}>
           {figures.info} <Text bold>Note:</Text> Secret values are{" "}
-          <Text bold>write-only</Text>. Once created, the value cannot be
-          retrieved or viewed. To change a secret, delete it and create a new
-          one.
+          <Text bold>write-only</Text>. Once stored, the value cannot be
+          retrieved or viewed.{" "}
+          {isUpdating
+            ? "Enter a new value to replace the current one."
+            : "You can update a secret's value later."}
         </Text>
       </Box>
 
@@ -269,12 +323,25 @@ export const SecretCreatePage = ({
                 key={field.key}
                 label={field.label}
                 isActive={isActive}
-                hint="[Enter to create]"
+                hint={`[Enter to ${isUpdating ? "update" : "create"}]`}
               />
             );
           }
 
           if (field.type === "text") {
+            // In update mode, name is read-only
+            if (isUpdating && field.key === "name") {
+              return (
+                <Box key={field.key} marginBottom={0}>
+                  <Text color={colors.textDim}>
+                    {"  "}{field.label}:{" "}
+                  </Text>
+                  <Text color={colors.text} bold>
+                    {formData.name}
+                  </Text>
+                </Box>
+              );
+            }
             const value = formData[field.key as keyof FormData] as string;
             const hasError =
               field.key === "name" && validationError === "Name is required";
@@ -328,7 +395,7 @@ export const SecretCreatePage = ({
       <NavigationTips
         showArrows
         tips={[
-          { key: "Enter", label: "Create" },
+          { key: "Enter", label: isUpdating ? "Update" : "Create" },
           { key: "q", label: "Cancel" },
         ]}
       />
