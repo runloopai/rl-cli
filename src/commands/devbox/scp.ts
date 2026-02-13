@@ -217,11 +217,10 @@ export async function scpFiles(src: string, dst: string, options: SCPOptions) {
     }
 
     const proxyCommand = getProxyCommand();
-    const dualRemote = parsedSrc.isRemote && parsedDst.isRemote;
 
     let scpCommand: string[];
 
-    if (dualRemote) {
+    if (parsedSrc.isRemote && parsedDst.isRemote) {
       // Both sides are remote devboxes — resolve both in parallel
       const [srcRemote, dstRemote] = await Promise.all([
         resolveRemote(parsedSrc.host!),
