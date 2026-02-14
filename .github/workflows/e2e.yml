@@ -1,0 +1,41 @@
+name: E2E Smoke Tests
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+        default: dev
+
+jobs:
+  e2e:
+    runs-on: ubuntu-slim
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run e2e smoke tests
+        env:
+          RUNLOOP_API_KEY: ${{ inputs.environment == 'prod' && secrets.RUNLOOP_SMOKETEST_PROD_API_KEY || secrets.RUNLOOP_SMOKETEST_DEV_API_KEY }}
+          RUNLOOP_ENV: ${{ inputs.environment }}
+        run: pnpm run test:e2e

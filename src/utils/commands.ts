@@ -16,7 +16,9 @@ export function createProgram(): Command {
   program
     .name("rli")
     .description("Beautiful CLI for Runloop devbox management")
-    .version(VERSION);
+    .version(VERSION)
+    .showHelpAfterError()
+    .showSuggestionAfterError();
 
   // Devbox commands
   const devbox = program
@@ -195,29 +197,47 @@ export function createProgram(): Command {
     });
 
   devbox
-    .command("scp <id> <src> <dst>")
-    .description("Copy files to/from a devbox using scp")
+    .command("scp <src> <dst>")
+    .description(
+      "Copy files to/from a devbox using scp. Use the devbox ID (dbx_*) as a hostname in src or dst.\n\n" +
+        "  Examples:\n" +
+        "    $ rli devbox scp dbx_abc123:/home/user/file.txt ./file.txt       # download from devbox\n" +
+        "    $ rli devbox scp ./file.txt dbx_abc123:/home/user/file.txt       # upload to devbox\n" +
+        "    $ rli devbox scp root@dbx_abc123:/etc/hosts ./hosts              # with explicit user\n" +
+        "    $ rli devbox scp dbx_src:/data/file.txt dbx_dst:/data/file.txt   # devbox to devbox\n\n" +
+        "  If no user is specified, the devbox's configured user is used.\n" +
+        "  Paths without a dbx_ hostname are treated as local.\n" +
+        "  Devbox-to-devbox transfers route through your local machine via scp -3.",
+    )
     .option("--scp-options <options>", "Additional scp options (quoted)")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
     )
-    .action(async (id, src, dst, options) => {
+    .action(async (src, dst, options) => {
       const { scpFiles } = await import("../commands/devbox/scp.js");
-      await scpFiles(id, { src, dst, ...options });
+      await scpFiles(src, dst, options);
     });
 
   devbox
-    .command("rsync <id> <src> <dst>")
-    .description("Sync files to/from a devbox using rsync")
+    .command("rsync <src> <dst>")
+    .description(
+      "Sync files to/from a devbox using rsync. Use the devbox ID (dbx_*) as a hostname in src or dst.\n\n" +
+        "  Examples:\n" +
+        "    $ rli devbox rsync dbx_abc123:/home/user/data/ ./data/             # download from devbox\n" +
+        "    $ rli devbox rsync ./data/ dbx_abc123:/home/user/data/             # upload to devbox\n" +
+        "    $ rli devbox rsync root@dbx_abc123:/etc/config/ ./config/          # with explicit user\n\n" +
+        "  If no user is specified, the devbox's configured user is used.\n" +
+        "  Paths without a dbx_ hostname are treated as local.",
+    )
     .option("--rsync-options <options>", "Additional rsync options (quoted)")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
     )
-    .action(async (id, src, dst, options) => {
+    .action(async (src, dst, options) => {
       const { rsyncFiles } = await import("../commands/devbox/rsync.js");
-      await rsyncFiles(id, { src, dst, ...options });
+      await rsyncFiles(src, dst, options);
     });
 
   devbox
