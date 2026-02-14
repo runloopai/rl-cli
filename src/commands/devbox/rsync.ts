@@ -34,7 +34,9 @@ export function buildRsyncCommand(opts: {
   defaultUser: string;
   rsyncOptions?: string;
 }): string[] {
-  const sshTransport = `ssh -i ${opts.sshInfo.keyfilePath} -o ProxyCommand=${opts.proxyCommand} -o StrictHostKeyChecking=no`;
+  // Rsync re-splits the -e value on whitespace internally, so the
+  // ProxyCommand (which contains spaces) must be single-quoted.
+  const sshTransport = `ssh -i ${opts.sshInfo.keyfilePath} -o 'ProxyCommand=${opts.proxyCommand}' -o StrictHostKeyChecking=no`;
 
   const rsyncCommand = [
     "rsync",
