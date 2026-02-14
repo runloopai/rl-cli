@@ -62,6 +62,7 @@ type FormField =
   | "metadata"
   | "source"
   | "network_policy_id"
+  | "tunnel_auth_mode"
   | "gateways";
 
 // Gateway configuration for devbox
@@ -97,6 +98,7 @@ interface FormData {
   blueprint_id: string;
   snapshot_id: string;
   network_policy_id: string;
+  tunnel_auth_mode: "none" | "open" | "authenticated";
   gateways: GatewaySpec[];
 }
 
@@ -110,6 +112,7 @@ const resourceSizes = [
   "XX_LARGE",
   "CUSTOM_SIZE",
 ] as const;
+const tunnelAuthModes = ["none", "open", "authenticated"] as const;
 
 export const DevboxCreatePage = ({
   onBack,
@@ -130,6 +133,7 @@ export const DevboxCreatePage = ({
     blueprint_id: initialBlueprintId || "",
     snapshot_id: initialSnapshotId || "",
     network_policy_id: "",
+    tunnel_auth_mode: "none",
     gateways: [],
   });
   const [metadataKey, setMetadataKey] = React.useState("");
@@ -260,6 +264,12 @@ export const DevboxCreatePage = ({
       placeholder: "Select a network policy...",
     },
     {
+      key: "tunnel_auth_mode",
+      label: "Tunnel (optional)",
+      type: "select",
+      placeholder: "none",
+    },
+    {
       key: "gateways",
       label: "AI Gateway Configs (optional)",
       type: "gateways",
@@ -288,6 +298,13 @@ export const DevboxCreatePage = ({
     resourceSizes,
     (value) => setFormData({ ...formData, resource_size: value }),
     currentField === "resource_size",
+  );
+
+  const handleTunnelNav = useFormSelectNavigation(
+    formData.tunnel_auth_mode,
+    tunnelAuthModes,
+    (value) => setFormData({ ...formData, tunnel_auth_mode: value }),
+    currentField === "tunnel_auth_mode",
   );
 
   const handleSourceTypeNav = useFormSelectNavigation(
@@ -395,6 +412,7 @@ export const DevboxCreatePage = ({
       // Handle select field navigation using shared hooks
       if (handleArchitectureNav(input, key)) return;
       if (handleResourceSizeNav(input, key)) return;
+      if (handleTunnelNav(input, key)) return;
       if (handleSourceTypeNav(input, key)) return;
 
       // Navigation (up/down arrows and tab/shift+tab)
@@ -863,6 +881,13 @@ export const DevboxCreatePage = ({
           };
         }
         createParams.gateways = gateways;
+      }
+
+      // Add tunnel configuration if not "none"
+      if (formData.tunnel_auth_mode !== "none") {
+        createParams.tunnel = {
+          auth_mode: formData.tunnel_auth_mode,
+        };
       }
 
       const devbox = await client.devboxes.create(createParams);
@@ -1461,14 +1486,22 @@ export const DevboxCreatePage = ({
 
           if (field.type === "select") {
             const value = fieldData as string;
+            let options: readonly string[];
+            if (field.key === "architecture") {
+              options = architectures;
+            } else if (field.key === "resource_size") {
+              options = resourceSizes;
+            } else if (field.key === "tunnel_auth_mode") {
+              options = tunnelAuthModes;
+            } else {
+              options = [];
+            }
             return (
               <FormSelect
                 key={field.key}
                 label={field.label}
                 value={value || ""}
-                options={
-                  field.key === "architecture" ? architectures : resourceSizes
-                }
+                options={options}
                 onChange={(newValue) =>
                   setFormData({ ...formData, [field.key]: newValue })
                 }

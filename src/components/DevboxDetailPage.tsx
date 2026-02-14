@@ -102,31 +102,48 @@ export const DevboxDetailPage = ({
 
   // Filter operations based on devbox status
   const getFilteredOperations = (devbox: Devbox): ResourceOperation[] => {
-    return allOperations.filter((op) => {
-      const status = devbox.status;
+    const hasTunnel = !!(devbox.tunnel && devbox.tunnel.tunnel_key);
 
-      // When suspended: logs and resume
-      if (status === "suspended") {
-        return op.key === "resume" || op.key === "logs";
-      }
+    return allOperations
+      .filter((op) => {
+        const status = devbox.status;
 
-      // When not running (shutdown, failure, etc): only logs
-      if (
-        status !== "running" &&
-        status !== "provisioning" &&
-        status !== "initializing"
-      ) {
-        return op.key === "logs";
-      }
+        // When suspended: logs and resume
+        if (status === "suspended") {
+          return op.key === "resume" || op.key === "logs";
+        }
 
-      // When running: everything except resume
-      if (status === "running") {
-        return op.key !== "resume";
-      }
+        // When not running (shutdown, failure, etc): only logs
+        if (
+          status !== "running" &&
+          status !== "provisioning" &&
+          status !== "initializing"
+        ) {
+          return op.key === "logs";
+        }
 
-      // Default for transitional states (provisioning, initializing)
-      return op.key === "logs" || op.key === "delete";
-    });
+        // When running: everything except resume
+        if (status === "running") {
+          return op.key !== "resume";
+        }
+
+        // Default for transitional states (provisioning, initializing)
+        return op.key === "logs" || op.key === "delete";
+      })
+      .map((op) => {
+        // Dynamic tunnel label based on whether tunnel is active
+        if (op.key === "tunnel") {
+          return hasTunnel
+            ? {
+                ...op,
+                label: "Tunnel (Active)",
+                color: colors.success,
+                icon: figures.tick,
+              }
+            : op;
+        }
+        return op;
+      });
   };
 
   // Build detail sections for the devbox
@@ -260,6 +277,38 @@ export const DevboxDetailPage = ({
           params: { networkPolicyId: lp.network_policy_id },
           hint: "View Policy",
         },
+      });
+    }
+
+    // Tunnel status - always show when running
+    if (devbox.tunnel && devbox.tunnel.tunnel_key) {
+      const tunnelKey = devbox.tunnel.tunnel_key;
+      const authMode = devbox.tunnel.auth_mode;
+      const tunnelUrl = `https://{port}-${tunnelKey}.tunnel.runloop.ai`;
+
+      detailFields.push({
+        label: "Tunnel",
+        value: (
+          <>
+            <Text color={colors.success} bold>
+              {figures.tick} Active
+            </Text>
+            <Text color={colors.textDim}> • </Text>
+            <Text color={colors.success}>{tunnelUrl}</Text>
+            {authMode === "authenticated" && (
+              <Text color={colors.warning}> (authenticated)</Text>
+            )}
+          </>
+        ),
+      });
+    } else if (devbox.status === "running") {
+      detailFields.push({
+        label: "Tunnel",
+        value: (
+          <Text color={colors.textDim} dimColor>
+            {figures.cross} Off
+          </Text>
+        ),
       });
     }
 
@@ -516,6 +565,46 @@ export const DevboxDetailPage = ({
         }
       }
       lines.push(<Text key="launch-space"> </Text>);
+    }
+
+    // Tunnel Information
+    if (devbox.tunnel && devbox.tunnel.tunnel_key) {
+      lines.push(
+        <Text key="tunnel-title" color={colors.warning} bold>
+          Tunnel
+        </Text>,
+      );
+      lines.push(
+        <Text key="tunnel-key" dimColor>
+          {" "}
+          Tunnel Key: {devbox.tunnel.tunnel_key}
+        </Text>,
+      );
+      lines.push(
+        <Text key="tunnel-auth" dimColor>
+          {" "}
+          Auth Mode: {devbox.tunnel.auth_mode}
+        </Text>,
+      );
+
+      const tunnelUrl = `https://{port}-${devbox.tunnel.tunnel_key}.tunnel.runloop.ai`;
+      lines.push(
+        <Text key="tunnel-url" color={colors.success}>
+          {" "}
+          Tunnel URL: {tunnelUrl}
+        </Text>,
+      );
+
+      if (devbox.tunnel.auth_token) {
+        lines.push(
+          <Text key="tunnel-token" color={colors.warning}>
+            {" "}
+            Auth Token: {devbox.tunnel.auth_token}
+          </Text>,
+        );
+      }
+
+      lines.push(<Text key="tunnel-space"> </Text>);
     }
 
     // Source
