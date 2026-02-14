@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.10.0](https://github.com/runloopai/rl-cli/compare/v1.9.0...v1.10.0) (2026-02-14)
+
+
+### Features
+
+* **devbox:** allow tunnel config interactive, show tunnel in info ([#102](https://github.com/runloopai/rl-cli/issues/102)) ([7f073d4](https://github.com/runloopai/rl-cli/commit/7f073d412bf3ba855500e743dd72e9db80cdbfa9))
+
+
+### Bug Fixes
+
+* **devbox:** scp command improved to allow for src or dest to be devboxes ([#109](https://github.com/runloopai/rl-cli/issues/109)) ([5c9b884](https://github.com/runloopai/rl-cli/commit/5c9b88490cf61e8e4e4d9e1c2d6be37882d51c06))
+* gateway cli improvements ([#113](https://github.com/runloopai/rl-cli/issues/113)) ([ad33a02](https://github.com/runloopai/rl-cli/commit/ad33a0276a2954c6c0edc4ab7f076047d530ae5d))
+
 ## [1.9.0](https://github.com/runloopai/rl-cli/compare/v1.8.0...v1.9.0) (2026-02-10)
 
 
