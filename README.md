@@ -242,6 +242,27 @@ bun test
 
 Both TUI and CLI modes are fully supported with Bun. See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 
+### Building Standalone Executables (Experimental)
+
+You can attempt to build standalone executables (single-file binaries) using Bun:
+
+```bash
+# Build for current platform
+bun run build:exe
+
+# Build for specific platforms
+bun run build:exe:macos      # macOS Apple Silicon
+bun run build:exe:macos-x64  # macOS Intel
+bun run build:exe:linux      # Linux x64
+bun run build:exe:linux-arm  # Linux ARM64
+bun run build:exe:windows    # Windows x64
+
+# Build for all platforms
+bun run build:exe:all
+```
+
+**Note:** As of Bun 1.3.9, executable builds may have issues with Ink's yoga-layout dependency. This is being tracked in Bun's issue tracker. The runtime version (`bun run src/cli.ts`) works perfectly. See [BUN_IMPLEMENTATION_GUIDE.md](./BUN_IMPLEMENTATION_GUIDE.md) for more details.
+
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to contribute to this project.

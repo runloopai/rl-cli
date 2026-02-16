@@ -30,7 +30,14 @@
     "dev:bun": "bun --watch src/cli.ts",
     "start:bun": "bun run src/cli.ts",
     "test:bun": "bun test",
-    "install:bun": "bun install"
+    "install:bun": "bun install",
+    "build:exe": "bun build --compile --minify --bytecode src/cli.ts --outfile rli",
+    "build:exe:macos": "bun build --compile --target=bun-darwin-arm64 --minify --bytecode src/cli.ts --outfile dist/rli-macos-arm64",
+    "build:exe:macos-x64": "bun build --compile --target=bun-darwin-x64 --minify --bytecode src/cli.ts --outfile dist/rli-macos-x64",
+    "build:exe:linux": "bun build --compile --target=bun-linux-x64 --minify --bytecode src/cli.ts --outfile dist/rli-linux-x64",
+    "build:exe:linux-arm": "bun build --compile --target=bun-linux-arm64 --minify --bytecode src/cli.ts --outfile dist/rli-linux-arm64",
+    "build:exe:windows": "bun build --compile --target=bun-windows-x64 --minify --bytecode src/cli.ts --outfile dist/rli-windows-x64.exe",
+    "build:exe:all": "bun run build:exe:macos && bun run build:exe:macos-x64 && bun run build:exe:linux && bun run build:exe:linux-arm && bun run build:exe:windows"
   },
   "packageManager": "pnpm@9.15.4",
   "keywords": [

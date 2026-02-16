@@ -76,6 +76,37 @@ bun test
 
 **Note:** Both TUI and CLI modes work with Bun thanks to the stdin workaround in `src/commands/menu.tsx`. All features are supported.
 
+### Building Standalone Executables (Experimental)
+
+Bun can compile the CLI into a single executable file, though this is currently experimental:
+
+```bash
+# Build for your current platform (creates ./rli)
+bun run build:exe
+
+# Build for specific platforms
+bun run build:exe:macos       # macOS Apple Silicon (dist/rli-macos-arm64)
+bun run build:exe:macos-x64   # macOS Intel (dist/rli-macos-x64)
+bun run build:exe:linux       # Linux x64 (dist/rli-linux-x64)
+bun run build:exe:linux-arm   # Linux ARM64 (dist/rli-linux-arm64)
+bun run build:exe:windows     # Windows x64 (dist/rli-windows-x64.exe)
+
+# Build all platforms at once
+bun run build:exe:all
+```
+
+**Known Limitations (Bun 1.3.9):**
+- Executable builds currently fail due to Ink's yoga-layout dependency
+- This is a Bun bundler limitation being tracked upstream
+- The runtime version (`bun run src/cli.ts`) works perfectly
+- Use runtime version for development and testing
+
+If executables build successfully:
+- They are 50-100MB in size (includes Bun runtime)
+- Both TUI and CLI modes should work
+- They work on machines without Node.js or Bun installed
+- They can be distributed as standalone binaries
+
 ## Code Style
 
 This project uses Prettier and ESLint to maintain code quality.
