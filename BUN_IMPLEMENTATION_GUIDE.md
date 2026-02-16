@@ -371,6 +371,23 @@ Before committing any changes:
 - [ ] Executables built for all platforms (if Option 2/3)
 - [ ] Verify executable size is acceptable (50-100MB expected)
 
+## CI/CD Integration
+
+A GitHub Actions workflow has been added (`.github/workflows/release.yml`) that automatically:
+- Builds executables for all 5 platforms on every release
+- Uploads them as release assets
+- Generates SHA256 checksums
+- Adds installation instructions to release notes
+
+**Platforms built:**
+- macOS Apple Silicon (darwin-arm64)
+- macOS Intel (darwin-x64)
+- Linux x64 (linux-x64)
+- Linux ARM64 (linux-arm64)
+- Windows x64 (windows-x64)
+
+**Current status:** Builds will fail gracefully until Bun resolves the yoga-layout bundling issue. Once fixed, executables will automatically appear on future releases.
+
 ## Recommended Approach
 
 **Start with Option 1 (Hybrid Development)**
@@ -384,6 +401,8 @@ Before committing any changes:
 - CI/CD automation is a priority
 - You want faster startup for scripts
 - Willing to maintain additional CI workflow
+
+**Note:** CI/CD is already configured for Option 2, just waiting on Bun fix
 
 **Avoid Option 3** unless:
 - You explicitly want to deprecate TUI mode
