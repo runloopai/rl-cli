@@ -47,7 +47,7 @@ export async function runMainMenu(
   // WORKAROUND for Bun: Manually resume stdin as Bun doesn't do it automatically
   // See: https://github.com/oven-sh/bun/issues/6862
   // This is required for Ink's useInput hook to work properly with Bun
-  if (typeof Bun !== 'undefined') {
+  if (typeof Bun !== "undefined") {
     process.stdin.resume();
   }
 
