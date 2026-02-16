@@ -5,13 +5,12 @@
 
 console.log('Testing raw mode support in Bun...\n');
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const isBun = typeof (globalThis as any).Bun !== 'undefined';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const bunVersion = isBun ? (globalThis as any).Bun.version : null;
+const globalWithBun = globalThis as typeof globalThis & {
+  Bun?: { version: string };
+};
 
-console.log('Runtime:', isBun ? 'Bun' : 'Node.js');
-console.log('Version:', bunVersion || process.version);
+console.log('Runtime:', globalWithBun.Bun ? 'Bun' : 'Node.js');
+console.log('Version:', globalWithBun.Bun?.version || process.version);
 console.log('');
 
 // Check if stdin has setRawMode
@@ -40,15 +39,17 @@ try {
   process.stdin.resume();
   process.stdin.setEncoding('utf8');
 
-  process.stdin.on('data', (key) => {
+  process.stdin.on('data', (key: string | Buffer) => {
+    const keyStr = typeof key === 'string' ? key : key.toString();
+
     // Ctrl+C or ESC
-    if (key === '\u0003' || key === '\u001b') {
+    if (keyStr === '\u0003' || keyStr === '\u001b') {
       console.log('\n\nExiting...');
       process.stdin.setRawMode(false);
       process.exit(0);
     }
 
-    console.log('Key pressed:', JSON.stringify(key), '(code:', key.charCodeAt(0), ')');
+    console.log('Key pressed:', JSON.stringify(keyStr), '(code:', keyStr.charCodeAt(0), ')');
   });
 
 } catch (error) {

@@ -48,8 +48,8 @@ export async function runMainMenu(
   // See: https://github.com/oven-sh/bun/issues/6862
   // This is required for Ink's useInput hook to work properly with Bun
   // Safe to call in Node.js too - it's idempotent
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (typeof (globalThis as any).Bun !== "undefined") {
+  const globalWithBun = globalThis as typeof globalThis & { Bun?: unknown };
+  if (globalWithBun.Bun) {
     process.stdin.resume();
   }
 
