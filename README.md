@@ -209,6 +209,8 @@ The TUI supports both light and dark terminal themes and will automatically sele
 
 ## Development
 
+### Standard Setup (pnpm + Node.js)
+
 ```bash
 # Install dependencies
 pnpm install
@@ -218,6 +220,27 @@ pnpm run build
 
 # Watch mode
 pnpm run dev
+```
+
+### Alternative: Using Bun (Optional, Faster)
+
+For faster development experience, you can use [Bun](https://bun.sh):
+
+```bash
+# Install Bun (one-time)
+curl -fsSL https://bun.sh/install | bash
+
+# Install dependencies
+bun install
+
+# Run in watch mode
+bun run dev:bun
+
+# Run tests
+bun test
+```
+
+Both TUI and CLI modes are fully supported with Bun. See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 
 ## Contributing
 

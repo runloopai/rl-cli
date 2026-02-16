@@ -40,6 +40,8 @@ Now you can use `rli` commands locally with your changes.
 
 ### Development Workflow
 
+**Standard (Node.js + pnpm):**
+
 ```bash
 # Watch mode - rebuilds on file changes
 pnpm run dev
@@ -50,6 +52,29 @@ pnpm start -- <command>
 # Or after linking
 rli <command>
 ```
+
+**Alternative: Using Bun (Faster):**
+
+For faster development iteration, you can use [Bun](https://bun.sh) instead:
+
+```bash
+# Install Bun (one-time setup)
+curl -fsSL https://bun.sh/install | bash
+
+# Install dependencies
+bun install
+
+# Run in watch mode (auto-restarts on changes)
+bun run dev:bun
+
+# Or run directly
+bun run start:bun -- <command>
+
+# Run tests
+bun test
+```
+
+**Note:** Both TUI and CLI modes work with Bun thanks to the stdin workaround in `src/commands/menu.tsx`. All features are supported.
 
 ## Code Style
 

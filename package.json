@@ -26,7 +26,11 @@
     "test:components": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.components.config.js --coverage --forceExit",
     "test:e2e": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.e2e.config.js --forceExit",
     "docs:commands": "pnpm run build && node scripts/generate-command-docs.js",
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev:bun": "bun --watch src/cli.ts",
+    "start:bun": "bun run src/cli.ts",
+    "test:bun": "bun test",
+    "install:bun": "bun install"
   },
   "packageManager": "pnpm@9.15.4",
   "keywords": [
@@ -89,11 +93,6 @@
     "yaml": "^2.8.2",
     "zustand": "^5.0.10"
   },
-  "pnpm": {
-    "overrides": {
-      "tmp": "^0.2.5"
-    }
-  },
   "devDependencies": {
     "@anthropic-ai/mcpb": "^2.1.2",
     "@types/jest": "^29.5.14",
@@ -113,5 +112,8 @@
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "tmp": "^0.2.5"
   }
 }
