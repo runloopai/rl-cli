@@ -43,7 +43,7 @@ export function ScenarioRunDetailScreen({
 
   // Polling function
   const pollRun = React.useCallback(async () => {
-    if (!scenarioRunId) return null as unknown as ScenarioRun;
+    if (!scenarioRunId) throw new Error("scenarioRunId required");
     return getScenarioRun(scenarioRunId);
   }, [scenarioRunId]);
 

@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Text, useInput, useApp } from "ink";
 import figures from "figures";
 import type { NetworkPoliciesCursorIDPage } from "@runloop/api-client/pagination";
+import type { NetworkPolicyView } from "@runloop/api-client/resources/network-policies";
 import { getClient } from "../../utils/client.js";
 import { Header } from "../../components/Header.js";
 import { SpinnerComponent } from "../../components/Spinner.js";
@@ -147,18 +148,15 @@ const ListNetworkPoliciesUI = ({
         queryParams.search = search.submittedSearchQuery;
       }
 
-      // Fetch ONE page only
-      const page = (await client.networkPolicies.list(
-        queryParams,
-      )) as unknown as NetworkPoliciesCursorIDPage<NetworkPolicyListItem>;
+      const page = await client.networkPolicies.list(queryParams);
 
       // Extract data and create defensive copies
       if (page.network_policies && Array.isArray(page.network_policies)) {
-        page.network_policies.forEach((p: NetworkPolicyListItem) => {
+        page.network_policies.forEach((p: NetworkPolicyView) => {
           pagePolicies.push({
             id: p.id,
             name: p.name,
-            description: p.description,
+            description: p.description ?? undefined,
             create_time_ms: p.create_time_ms,
             update_time_ms: p.update_time_ms,
             egress: {

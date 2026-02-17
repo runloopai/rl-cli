@@ -108,12 +108,13 @@ export async function createBenchmarkJob(
     throw new Error("Cannot specify both benchmarkId and scenarioIds");
   }
 
-  // Build agent configs in API format
-  // Use the same agent config type for both spec types
-  const agentConfigs: Array<any> = options.agentConfigs.map((agent) => {
-    const config: any = {
+  // Build agent configs in API format (matches BenchmarkDefinitionJobSpec.AgentConfig)
+  type ApiAgentConfig =
+    BenchmarkJobCreateParams.BenchmarkDefinitionJobSpec.AgentConfig;
+  const agentConfigs: ApiAgentConfig[] = options.agentConfigs.map((agent) => {
+    const config: ApiAgentConfig = {
       name: agent.name,
-      type: "job_agent" as const,
+      type: "job_agent",
     };
 
     if (agent.agentId) {
@@ -150,7 +151,7 @@ export async function createBenchmarkJob(
   });
 
   // Build orchestrator config if provided
-  let orchestratorConfig: any;
+  let orchestratorConfig: Record<string, unknown> | undefined;
   if (options.orchestratorConfig) {
     orchestratorConfig = {};
     if (options.orchestratorConfig.nAttempts !== undefined) {

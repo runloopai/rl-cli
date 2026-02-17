@@ -36,13 +36,35 @@ rli devbox delete <devbox-id>
 
 ## Installation
 
-Install globally via npm or pnpm:
+### Option 1: npm or pnpm (recommended)
 
 ```bash
 npm install -g @runloop/rl-cli
 # or
 pnpm add -g @runloop/rl-cli
 ```
+
+### Option 2: Standalone binary (install script)
+
+Install the latest release binary for your platform (macOS or Linux) with one command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/runloopai/rl-cli/main/install_standalone.sh | bash
+```
+
+The script installs to `~/.local/bin` by default. Set `RLI_INSTALL_DIR` to override:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/runloopai/rl-cli/main/install_standalone.sh | RLI_INSTALL_DIR=/usr/local/bin bash
+```
+
+To install a specific version:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/runloopai/rl-cli/main/install_standalone.sh | bash -s -- v1.10.0
+```
+
+Ensure the install directory is in your `PATH` (the script will remind you if not).
 
 ## Setup
 
@@ -209,6 +231,8 @@ The TUI supports both light and dark terminal themes and will automatically sele
 
 ## Development
 
+### Standard Setup (pnpm + Node.js)
+
 ```bash
 # Install dependencies
 pnpm install
@@ -218,6 +242,48 @@ pnpm run build
 
 # Watch mode
 pnpm run dev
+```
+
+### Alternative: Using Bun (Optional, Faster)
+
+For faster development experience, you can use [Bun](https://bun.sh):
+
+```bash
+# Install Bun (one-time)
+curl -fsSL https://bun.sh/install | bash
+
+# Install dependencies
+bun install
+
+# Run in watch mode
+bun run dev:bun
+
+# Run tests
+bun test
+```
+
+Both TUI and CLI modes are fully supported with Bun. See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
+
+### Building Standalone Executables (Experimental)
+
+You can attempt to build standalone executables (single-file binaries) using Bun:
+
+```bash
+# Build for current platform
+bun run build:exe
+
+# Build for specific platforms
+bun run build:exe:macos      # macOS Apple Silicon
+bun run build:exe:macos-x64  # macOS Intel
+bun run build:exe:linux      # Linux x64
+bun run build:exe:linux-arm  # Linux ARM64
+bun run build:exe:windows    # Windows x64
+
+# Build for all platforms
+bun run build:exe:all
+```
+
+**Note:** As of Bun 1.3.9, executable builds may have issues with Ink's yoga-layout dependency. This is being tracked in Bun's issue tracker. The runtime version (`bun run src/cli.ts`) works perfectly. See [BUN_IMPLEMENTATION_GUIDE.md](./BUN_IMPLEMENTATION_GUIDE.md) for more details.
 
 ## Contributing
 

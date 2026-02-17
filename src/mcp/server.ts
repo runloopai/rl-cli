@@ -7,6 +7,13 @@ import {
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 import Runloop from "@runloop/api-client";
+import type {
+  DevboxCreateParams,
+  DevboxListDiskSnapshotsParams,
+  DevboxListParams,
+  DevboxSnapshotDiskParams,
+  DevboxSnapshotView,
+} from "@runloop/api-client/resources/devboxes/devboxes.js";
 import { VERSION } from "@runloop/api-client/version.js";
 import Conf from "conf";
 import { processUtils } from "../utils/processUtils.js";
@@ -302,10 +309,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     switch (name) {
       case "list_devboxes": {
-        const result = await client.devboxes.list({
-          status: args.status as any,
-          limit: args.limit as number,
-        });
+        const listParams: DevboxListParams = {};
+        if (args.status != null)
+          listParams.status = args.status as DevboxListParams["status"];
+        if (args.limit != null) listParams.limit = args.limit as number;
+        const result = await client.devboxes.list(listParams);
         return {
           content: [
             {
@@ -329,23 +337,35 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "create_devbox": {
-        const createParams: any = {};
-        if (args.name) createParams.name = args.name;
-        if (args.blueprint_id) createParams.blueprint_id = args.blueprint_id;
-        if (args.snapshot_id) createParams.snapshot_id = args.snapshot_id;
-        if (args.entrypoint) createParams.entrypoint = args.entrypoint;
+        const createParams: DevboxCreateParams = {};
+        if (args.name) createParams.name = args.name as string;
+        if (args.blueprint_id)
+          createParams.blueprint_id = args.blueprint_id as string;
+        if (args.snapshot_id)
+          createParams.snapshot_id = args.snapshot_id as string;
+        if (args.entrypoint)
+          createParams.entrypoint = args.entrypoint as string;
         if (args.environment_variables)
-          createParams.environment_variables = args.environment_variables;
+          createParams.environment_variables =
+            args.environment_variables as Record<string, string>;
         if (args.resource_size) {
+          type Size =
+            | "X_SMALL"
+            | "SMALL"
+            | "MEDIUM"
+            | "LARGE"
+            | "X_LARGE"
+            | "XX_LARGE"
+            | "CUSTOM_SIZE";
           createParams.launch_parameters = {
-            resource_size_request: args.resource_size,
+            resource_size_request: args.resource_size as Size,
           };
         }
         if (args.keep_alive_seconds) {
-          if (!createParams.launch_parameters)
-            createParams.launch_parameters = {};
-          createParams.launch_parameters.keep_alive_time_seconds =
-            args.keep_alive_seconds;
+          createParams.launch_parameters = {
+            ...createParams.launch_parameters,
+            keep_alive_time_seconds: args.keep_alive_seconds as number,
+          };
         }
 
         const result = await client.devboxes.create(createParams);
@@ -427,10 +447,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "list_snapshots": {
-        const params: any = {};
-        if (args.devbox_id) params.devbox_id = args.devbox_id;
+        const params: DevboxListDiskSnapshotsParams = {};
+        if (args.devbox_id) params.devbox_id = args.devbox_id as string;
 
-        const allSnapshots: any[] = [];
+        const allSnapshots: DevboxSnapshotView[] = [];
         let count = 0;
         const limit = (args.limit as number) || 100;
 
@@ -453,8 +473,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "create_snapshot": {
-        const params: any = {};
-        if (args.name) params.name = args.name;
+        const params: DevboxSnapshotDiskParams = {};
+        if (args.name) params.name = args.name as string;
 
         const result = await client.devboxes.snapshotDisk(
           args.devbox_id as string,
@@ -473,12 +493,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     return {
       content: [
         {
           type: "text",
-          text: `Error: ${error.message}`,
+          text: `Error: ${message}`,
         },
       ],
       isError: true,

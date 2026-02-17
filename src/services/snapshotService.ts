@@ -8,7 +8,6 @@ import type {
   DevboxSnapshotDiskParams,
   DevboxSnapshotView,
 } from "@runloop/api-client/resources/devboxes/devboxes";
-import type { DiskSnapshotsCursorIDPage } from "@runloop/api-client/pagination";
 
 export interface ListSnapshotsOptions {
   limit: number;
@@ -42,8 +41,7 @@ export async function listSnapshots(
   }
 
   const pagePromise = client.devboxes.listDiskSnapshots(queryParams);
-  const page =
-    (await pagePromise) as unknown as DiskSnapshotsCursorIDPage<DevboxSnapshotView>;
+  const page = await pagePromise;
 
   const snapshots: Snapshot[] = [];
 
@@ -100,7 +98,7 @@ export async function listSnapshots(
 /**
  * Get snapshot status by ID
  */
-export async function getSnapshotStatus(id: string): Promise<any> {
+export async function getSnapshotStatus(id: string): Promise<unknown> {
   const client = getClient();
   const status = await client.devboxes.diskSnapshots.queryStatus(id);
   return status;

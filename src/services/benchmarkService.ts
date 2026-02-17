@@ -178,33 +178,3 @@ export async function getBenchmark(id: string): Promise<Benchmark> {
   const client = getClient();
   return client.benchmarks.retrieve(id);
 }
-
-/**
- * Create/start a benchmark run with selected benchmarks
- */
-export async function createBenchmarkRun(
-  benchmarkIds: string[],
-  options?: { name?: string; metadata?: Record<string, string> },
-): Promise<BenchmarkRun> {
-  const client = getClient();
-
-  const createParams: {
-    benchmark_ids: string[];
-    name?: string;
-    metadata?: Record<string, string>;
-  } = {
-    benchmark_ids: benchmarkIds,
-  };
-
-  if (options?.name) {
-    createParams.name = options.name;
-  }
-
-  if (options?.metadata) {
-    createParams.metadata = options.metadata;
-  }
-
-  // Use type assertion since the API client types may not be fully defined
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (client.benchmarkRuns as any).create(createParams);
-}

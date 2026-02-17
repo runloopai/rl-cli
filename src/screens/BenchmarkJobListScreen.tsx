@@ -4,7 +4,7 @@
 import React from "react";
 import { Box, Text, useInput, useApp } from "ink";
 import figures from "figures";
-import { useNavigation } from "../store/navigationStore.js";
+import { useNavigation, type RouteParams } from "../store/navigationStore.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
@@ -24,13 +24,14 @@ import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../hooks/useCursorPagination.js";
 import { useListSearch } from "../hooks/useListSearch.js";
+import type { BenchmarkJobView } from "@runloop/api-client/resources/benchmark-jobs";
 import {
   listBenchmarkJobs,
   type BenchmarkJob,
 } from "../services/benchmarkJobService.js";
 
 export function BenchmarkJobListScreen() {
-  const { exit: inkExit } = useApp();
+  const { exit: _inkExit } = useApp();
   const { navigate, goBack } = useNavigation();
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showPopup, setShowPopup] = React.useState(false);
@@ -283,42 +284,29 @@ export function BenchmarkJobListScreen() {
           });
         } else if (operationKey === "clone_job" && selectedJob) {
           // Pass job data for cloning
-          const cloneParams: any = {
+          const cloneParams: RouteParams = {
             cloneFromJobId: selectedJob.id,
-            cloneJobName: selectedJob.name,
+            cloneJobName: selectedJob.name ?? undefined,
           };
 
-          // Determine source type and extract IDs
-          if (selectedJob.job_spec) {
-            const spec = selectedJob.job_spec as any;
-
-            // Check if it's a scenarios spec (has scenario_ids array)
-            if (spec.scenario_ids && Array.isArray(spec.scenario_ids)) {
-              cloneParams.cloneSourceType = "scenarios";
-              cloneParams.initialScenarioIds = spec.scenario_ids.join(",");
-            }
-            // Check if it's a benchmark spec (has benchmark_id)
-            else if (spec.benchmark_id) {
-              cloneParams.cloneSourceType = "benchmark";
-              cloneParams.initialBenchmarkIds = spec.benchmark_id;
-            }
-            // Fallback: check job_source
-            else if (selectedJob.job_source) {
-              const source = selectedJob.job_source as any;
-              if (source.scenario_ids && Array.isArray(source.scenario_ids)) {
-                cloneParams.cloneSourceType = "scenarios";
-                cloneParams.initialScenarioIds = source.scenario_ids.join(",");
-              } else if (source.benchmark_id) {
-                cloneParams.cloneSourceType = "benchmark";
-                cloneParams.initialBenchmarkIds = source.benchmark_id;
-              }
-            }
+          // Determine source type and extract IDs from job_source (or job_spec for scenario_ids fallback)
+          const source = selectedJob.job_source;
+          if (source?.type === "scenarios") {
+            cloneParams.cloneSourceType = "scenarios";
+            cloneParams.initialScenarioIds = source.scenario_ids.join(",");
+          } else if (source?.type === "benchmark") {
+            cloneParams.cloneSourceType = "benchmark";
+            cloneParams.initialBenchmarkIds = source.benchmark_id;
+          } else if (selectedJob.job_spec?.scenario_ids?.length) {
+            cloneParams.cloneSourceType = "scenarios";
+            cloneParams.initialScenarioIds =
+              selectedJob.job_spec.scenario_ids.join(",");
           }
 
           // Extract agent configs - both full configs and legacy fields
           if (selectedJob.job_spec?.agent_configs) {
             const agentConfigs = selectedJob.job_spec.agent_configs.map(
-              (a: any) => ({
+              (a: BenchmarkJobView.JobSpec.AgentConfig) => ({
                 agentId: a.agent_id,
                 name: a.name,
                 modelName: a.model_name,
@@ -333,10 +321,10 @@ export function BenchmarkJobListScreen() {
 
             // Also extract legacy fields for form initialization
             cloneParams.cloneAgentIds = selectedJob.job_spec.agent_configs
-              .map((a: any) => a.agent_id)
+              .map((a: BenchmarkJobView.JobSpec.AgentConfig) => a.agent_id)
               .join(",");
             cloneParams.cloneAgentNames = selectedJob.job_spec.agent_configs
-              .map((a: any) => a.name)
+              .map((a: BenchmarkJobView.JobSpec.AgentConfig) => a.name)
               .join(",");
           }
 
@@ -360,43 +348,29 @@ export function BenchmarkJobListScreen() {
         });
       } else if (input === "n" && selectedJob) {
         setShowPopup(false);
-        // Clone the selected job
-        const cloneParams: any = {
+        const cloneParams: RouteParams = {
           cloneFromJobId: selectedJob.id,
-          cloneJobName: selectedJob.name,
+          cloneJobName: selectedJob.name ?? undefined,
         };
 
-        // Determine source type and extract IDs
-        if (selectedJob.job_spec) {
-          const spec = selectedJob.job_spec as any;
-
-          // Check if it's a scenarios spec (has scenario_ids array)
-          if (spec.scenario_ids && Array.isArray(spec.scenario_ids)) {
-            cloneParams.cloneSourceType = "scenarios";
-            cloneParams.initialScenarioIds = spec.scenario_ids.join(",");
-          }
-          // Check if it's a benchmark spec (has benchmark_id)
-          else if (spec.benchmark_id) {
-            cloneParams.cloneSourceType = "benchmark";
-            cloneParams.initialBenchmarkIds = spec.benchmark_id;
-          }
-          // Fallback: check job_source
-          else if (selectedJob.job_source) {
-            const source = selectedJob.job_source as any;
-            if (source.scenario_ids && Array.isArray(source.scenario_ids)) {
-              cloneParams.cloneSourceType = "scenarios";
-              cloneParams.initialScenarioIds = source.scenario_ids.join(",");
-            } else if (source.benchmark_id) {
-              cloneParams.cloneSourceType = "benchmark";
-              cloneParams.initialBenchmarkIds = source.benchmark_id;
-            }
-          }
+        // Determine source type and extract IDs from job_source (or job_spec for scenario_ids fallback)
+        const source = selectedJob.job_source;
+        if (source?.type === "scenarios") {
+          cloneParams.cloneSourceType = "scenarios";
+          cloneParams.initialScenarioIds = source.scenario_ids.join(",");
+        } else if (source?.type === "benchmark") {
+          cloneParams.cloneSourceType = "benchmark";
+          cloneParams.initialBenchmarkIds = source.benchmark_id;
+        } else if (selectedJob.job_spec?.scenario_ids?.length) {
+          cloneParams.cloneSourceType = "scenarios";
+          cloneParams.initialScenarioIds =
+            selectedJob.job_spec.scenario_ids.join(",");
         }
 
         // Extract agent configs - both full configs and legacy fields
         if (selectedJob.job_spec?.agent_configs) {
           const agentConfigs = selectedJob.job_spec.agent_configs.map(
-            (a: any) => ({
+            (a: BenchmarkJobView.JobSpec.AgentConfig) => ({
               agentId: a.agent_id,
               name: a.name,
               modelName: a.model_name,
@@ -410,10 +384,10 @@ export function BenchmarkJobListScreen() {
 
           // Also extract legacy fields for form initialization
           cloneParams.cloneAgentIds = selectedJob.job_spec.agent_configs
-            .map((a: any) => a.agent_id)
+            .map((a: BenchmarkJobView.JobSpec.AgentConfig) => a.agent_id)
             .join(",");
           cloneParams.cloneAgentNames = selectedJob.job_spec.agent_configs
-            .map((a: any) => a.name)
+            .map((a: BenchmarkJobView.JobSpec.AgentConfig) => a.name)
             .join(",");
         }
 
@@ -467,44 +441,30 @@ export function BenchmarkJobListScreen() {
       setShowPopup(true);
       setSelectedOperation(0);
     } else if (input === "3") {
-      // Quick shortcut to clone the selected job, or create a new job if none selected
       if (selectedJob) {
-        const cloneParams: any = {
+        const cloneParams: RouteParams = {
           cloneFromJobId: selectedJob.id,
-          cloneJobName: selectedJob.name,
+          cloneJobName: selectedJob.name ?? undefined,
         };
 
-        // Determine source type and extract IDs
-        if (selectedJob.job_spec) {
-          const spec = selectedJob.job_spec as any;
-
-          // Check if it's a scenarios spec (has scenario_ids array)
-          if (spec.scenario_ids && Array.isArray(spec.scenario_ids)) {
-            cloneParams.cloneSourceType = "scenarios";
-            cloneParams.initialScenarioIds = spec.scenario_ids.join(",");
-          }
-          // Check if it's a benchmark spec (has benchmark_id)
-          else if (spec.benchmark_id) {
-            cloneParams.cloneSourceType = "benchmark";
-            cloneParams.initialBenchmarkIds = spec.benchmark_id;
-          }
-          // Fallback: check job_source
-          else if (selectedJob.job_source) {
-            const source = selectedJob.job_source as any;
-            if (source.scenario_ids && Array.isArray(source.scenario_ids)) {
-              cloneParams.cloneSourceType = "scenarios";
-              cloneParams.initialScenarioIds = source.scenario_ids.join(",");
-            } else if (source.benchmark_id) {
-              cloneParams.cloneSourceType = "benchmark";
-              cloneParams.initialBenchmarkIds = source.benchmark_id;
-            }
-          }
+        // Determine source type and extract IDs from job_source (or job_spec for scenario_ids fallback)
+        const source = selectedJob.job_source;
+        if (source?.type === "scenarios") {
+          cloneParams.cloneSourceType = "scenarios";
+          cloneParams.initialScenarioIds = source.scenario_ids.join(",");
+        } else if (source?.type === "benchmark") {
+          cloneParams.cloneSourceType = "benchmark";
+          cloneParams.initialBenchmarkIds = source.benchmark_id;
+        } else if (selectedJob.job_spec?.scenario_ids?.length) {
+          cloneParams.cloneSourceType = "scenarios";
+          cloneParams.initialScenarioIds =
+            selectedJob.job_spec.scenario_ids.join(",");
         }
 
         // Extract agent configs - both full configs and legacy fields
         if (selectedJob.job_spec?.agent_configs) {
           const agentConfigs = selectedJob.job_spec.agent_configs.map(
-            (a: any) => ({
+            (a: BenchmarkJobView.JobSpec.AgentConfig) => ({
               agentId: a.agent_id,
               name: a.name,
               modelName: a.model_name,
@@ -518,10 +478,10 @@ export function BenchmarkJobListScreen() {
 
           // Also extract legacy fields for form initialization
           cloneParams.cloneAgentIds = selectedJob.job_spec.agent_configs
-            .map((a: any) => a.agent_id)
+            .map((a: BenchmarkJobView.JobSpec.AgentConfig) => a.agent_id)
             .join(",");
           cloneParams.cloneAgentNames = selectedJob.job_spec.agent_configs
-            .map((a: any) => a.name)
+            .map((a: BenchmarkJobView.JobSpec.AgentConfig) => a.name)
             .join(",");
         }
 

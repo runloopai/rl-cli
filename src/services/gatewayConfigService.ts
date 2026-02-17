@@ -7,7 +7,6 @@ import type {
   GatewayConfigListParams,
   GatewayConfigView,
 } from "@runloop/api-client/resources/gateway-configs";
-import type { GatewayConfigsCursorIDPage } from "@runloop/api-client/pagination";
 
 export interface ListGatewayConfigsOptions {
   limit: number;
@@ -41,8 +40,7 @@ export async function listGatewayConfigs(
   }
 
   const pagePromise = client.gatewayConfigs.list(queryParams);
-  const page =
-    (await pagePromise) as unknown as GatewayConfigsCursorIDPage<GatewayConfigView>;
+  const page = await pagePromise;
 
   const gatewayConfigs: GatewayConfig[] = [];
 
@@ -134,8 +132,7 @@ export async function getGatewayConfigByIdOrName(
     name: idOrName,
   };
   const pagePromise = client.gatewayConfigs.list(queryParams);
-  const page =
-    (await pagePromise) as unknown as GatewayConfigsCursorIDPage<GatewayConfigView>;
+  const page = await pagePromise;
 
   const configs = page.gateway_configs || [];
   if (configs.length === 0) {

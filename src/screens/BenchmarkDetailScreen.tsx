@@ -7,6 +7,12 @@ import { Text } from "ink";
 import figures from "figures";
 import { useNavigation } from "../store/navigationStore.js";
 import { useBenchmarkStore, type Benchmark } from "../store/benchmarkStore.js";
+
+/** Benchmark with optional API fields used for display */
+type BenchmarkWithOptionalFields = Benchmark & {
+  created_at?: string;
+  status?: string;
+};
 import {
   ResourceDetailPage,
   formatTimestamp,
@@ -38,8 +44,8 @@ export function BenchmarkDetailScreen({
   const benchmarkFromStore = benchmarks.find((b) => b.id === benchmarkId);
 
   // Polling function
-  const pollBenchmark = React.useCallback(async () => {
-    if (!benchmarkId) return null as unknown as Benchmark;
+  const _pollBenchmark = React.useCallback(async () => {
+    if (!benchmarkId) throw new Error("benchmarkId required");
     return getBenchmark(benchmarkId);
   }, [benchmarkId]);
 
@@ -121,23 +127,26 @@ export function BenchmarkDetailScreen({
     );
   }
 
-  // Build detail sections
+  // Build detail sections (benchmark may include optional API fields for display)
+  const displayBenchmark: BenchmarkWithOptionalFields = benchmark;
   const detailSections: DetailSection[] = [];
 
-  // Basic details section
   const basicFields = [];
-
-  if ((benchmark as any).created_at) {
-    basicFields.push({
-      label: "Created",
-      value: formatTimestamp((benchmark as any).created_at),
-    });
+  const created_at = displayBenchmark.created_at;
+  if (created_at) {
+    const createdMs = new Date(created_at).getTime();
+    if (!Number.isNaN(createdMs)) {
+      basicFields.push({
+        label: "Created",
+        value: formatTimestamp(createdMs),
+      });
+    }
   }
 
-  if ((benchmark as any).description) {
+  if (displayBenchmark.description) {
     basicFields.push({
       label: "Description",
-      value: (benchmark as any).description,
+      value: displayBenchmark.description,
     });
   }
 
@@ -150,12 +159,11 @@ export function BenchmarkDetailScreen({
     });
   }
 
-  // Metadata section
   if (
-    (benchmark as any).metadata &&
-    Object.keys((benchmark as any).metadata).length > 0
+    displayBenchmark.metadata &&
+    Object.keys(displayBenchmark.metadata).length > 0
   ) {
-    const metadataFields = Object.entries((benchmark as any).metadata).map(
+    const metadataFields = Object.entries(displayBenchmark.metadata).map(
       ([key, value]) => ({
         label: key,
         value: value as string,
@@ -190,11 +198,11 @@ export function BenchmarkDetailScreen({
     }
   };
 
-  // Build detailed info lines for full details view
-  const buildDetailLines = (b: Benchmark): React.ReactElement[] => {
+  const buildDetailLines = (
+    b: BenchmarkWithOptionalFields,
+  ): React.ReactElement[] => {
     const lines: React.ReactElement[] = [];
 
-    // Core Information
     lines.push(
       <Text key="core-title" color={colors.warning} bold>
         Benchmark Details
@@ -212,32 +220,36 @@ export function BenchmarkDetailScreen({
         Name: {b.name || "(none)"}
       </Text>,
     );
-    if ((b as any).description) {
+    if (b.description) {
       lines.push(
         <Text key="core-desc" dimColor>
           {" "}
-          Description: {(b as any).description}
+          Description: {b.description}
         </Text>,
       );
     }
-    if ((b as any).created_at) {
-      lines.push(
-        <Text key="core-created" dimColor>
-          {" "}
-          Created: {new Date((b as any).created_at).toLocaleString()}
-        </Text>,
-      );
+    const created_at = b.created_at;
+    if (created_at) {
+      const date = new Date(created_at);
+      if (!Number.isNaN(date.getTime())) {
+        lines.push(
+          <Text key="core-created" dimColor>
+            {" "}
+            Created: {date.toLocaleString()}
+          </Text>,
+        );
+      }
     }
     lines.push(<Text key="core-space"> </Text>);
 
     // Metadata
-    if ((b as any).metadata && Object.keys((b as any).metadata).length > 0) {
+    if (b.metadata && Object.keys(b.metadata).length > 0) {
       lines.push(
         <Text key="meta-title" color={colors.warning} bold>
           Metadata
         </Text>,
       );
-      Object.entries((b as any).metadata).forEach(([key, value], idx) => {
+      Object.entries(b.metadata).forEach(([key, value], idx) => {
         lines.push(
           <Text key={`meta-${idx}`} dimColor>
             {" "}
@@ -268,12 +280,12 @@ export function BenchmarkDetailScreen({
   };
 
   return (
-    <ResourceDetailPage
-      resource={benchmark}
+    <ResourceDetailPage<BenchmarkWithOptionalFields>
+      resource={displayBenchmark}
       resourceType="Benchmark Definitions"
       getDisplayName={(b) => b.name || b.id}
       getId={(b) => b.id}
-      getStatus={(b) => (b as any).status}
+      getStatus={(b) => b.status ?? ""}
       detailSections={detailSections}
       operations={operations}
       onOperation={handleOperation}

@@ -43,7 +43,7 @@ export function SnapshotDetailScreen({
 
   // Polling function - must be defined before any early returns (Rules of Hooks)
   const pollSnapshot = React.useCallback(async () => {
-    if (!snapshotId) return null as unknown as Snapshot;
+    if (!snapshotId) throw new Error("snapshotId required");
     return getSnapshot(snapshotId);
   }, [snapshotId]);
 

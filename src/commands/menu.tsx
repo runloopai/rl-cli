@@ -1,5 +1,4 @@
 import React from "react";
-import { render } from "ink";
 import {
   enterAlternateScreenBuffer,
   exitAlternateScreenBuffer,
@@ -43,6 +42,24 @@ export async function runMainMenu(
 ) {
   enterAlternateScreenBuffer();
   clearScreen(); // Ensure cursor is at top-left before Ink renders
+
+  // WORKAROUND for Bun: Manually resume stdin as Bun doesn't do it automatically
+  // See: https://github.com/oven-sh/bun/issues/6862
+  // This is required for Ink's useInput hook to work properly with Bun
+  // Safe to call in Node.js too - it's idempotent
+  const globalWithBun = globalThis as typeof globalThis & { Bun?: unknown };
+  if (globalWithBun.Bun) {
+    process.stdin.resume();
+  }
+
+  // Preload Yoga before Ink. Patched yoga-layout (Bun) exports yogaReady; unpatched (pnpm) is ready after import.
+  const yoga = await import("yoga-layout");
+  const yogaReady = (yoga as { yogaReady?: Promise<unknown> }).yogaReady;
+  if (yogaReady != null && typeof yogaReady.then === "function") {
+    await yogaReady;
+  }
+
+  const { render } = await import("ink");
 
   try {
     const { waitUntilExit } = render(

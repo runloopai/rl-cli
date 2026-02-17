@@ -29,8 +29,8 @@ export async function downloadFile(
       path: options.filePath!,
     });
 
-    // Write the file contents to the output path
-    writeFileSync(options.outputPath!, result as unknown as string);
+    const buffer = Buffer.from(await result.arrayBuffer());
+    writeFileSync(options.outputPath!, buffer);
 
     // Default: just output the local path for easy scripting
     if (!options.output || options.output === "text") {

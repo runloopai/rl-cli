@@ -6,7 +6,7 @@ import React from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
-import { useNavigation, type RouteParams } from "../store/navigationStore.js";
+import { useNavigation } from "../store/navigationStore.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { SuccessMessage } from "../components/SuccessMessage.js";
@@ -373,7 +373,8 @@ export function BenchmarkJobCreateScreen({
       fetchPage: fetchBenchmarksPage,
       getItemId: (benchmark: Benchmark) => benchmark.id,
       getItemLabel: (benchmark: Benchmark) => benchmark.name || benchmark.id,
-      getItemStatus: (benchmark: Benchmark) => (benchmark as any).status,
+      getItemStatus: (benchmark: Benchmark) =>
+        (benchmark as Benchmark & { status?: string }).status,
       mode: "single" as const,
       minSelection: 1,
       emptyMessage: "No benchmarks found",

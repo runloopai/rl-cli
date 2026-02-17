@@ -19,8 +19,10 @@ export interface StatusDisplay {
   label: string;
 }
 
-export const getStatusDisplay = (status: string): StatusDisplay => {
-  if (!status) {
+export const getStatusDisplay = (
+  status: string | null | undefined,
+): StatusDisplay => {
+  if (status == null || status === "") {
     return {
       icon: figures.questionMarkPrefix,
       color: colors.textDim,

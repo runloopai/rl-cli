@@ -24,7 +24,7 @@ export const LogsViewer = ({
   logs,
   breadcrumbItems = [{ label: "Logs", active: true }],
   onBack,
-  title = "Logs",
+  title: _title = "Logs",
 }: LogsViewerProps) => {
   const [logsWrapMode, setLogsWrapMode] = React.useState(false);
   const [logsScroll, setLogsScroll] = React.useState(0);

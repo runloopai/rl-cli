@@ -4,10 +4,10 @@
 import { getClient } from "../utils/client.js";
 import type { Blueprint } from "../store/blueprintStore.js";
 import type {
+  BlueprintBuildLog,
   BlueprintListParams,
   BlueprintView,
 } from "@runloop/api-client/resources/blueprints";
-import type { BlueprintsCursorIDPage } from "@runloop/api-client/pagination";
 
 export interface ListBlueprintsOptions {
   limit: number;
@@ -41,8 +41,7 @@ export async function listBlueprints(
   }
 
   const pagePromise = client.blueprints.list(queryParams);
-  const page =
-    (await pagePromise) as unknown as BlueprintsCursorIDPage<BlueprintView>;
+  const page = await pagePromise;
 
   const blueprints: Blueprint[] = [];
 
@@ -51,7 +50,7 @@ export async function listBlueprints(
       // CRITICAL: Truncate all strings to prevent Yoga crashes
       const MAX_ID_LENGTH = 100;
       const MAX_NAME_LENGTH = 200;
-      const MAX_STATUS_LENGTH = 50;
+      const _MAX_STATUS_LENGTH = 50;
       const MAX_ARCH_LENGTH = 50;
       const MAX_RESOURCES_LENGTH = 100;
 
@@ -137,29 +136,36 @@ export async function getBlueprintByIdOrName(
  * Returns the raw logs array from the API response
  * Similar to getDevboxLogs - formatting is handled by logFormatter
  */
-export async function getBlueprintLogs(id: string): Promise<any[]> {
+export async function getBlueprintLogs(
+  id: string,
+): Promise<BlueprintBuildLog[]> {
   const client = getClient();
   const response = await client.blueprints.logs(id);
 
   // Return the logs array directly - formatting is handled by logFormatter
   // Ensure timestamp_ms is present (API may return timestamp or timestamp_ms)
   if (response.logs && Array.isArray(response.logs)) {
-    return response.logs.map((log: any) => {
-      // Normalize timestamp field to timestamp_ms if needed
-      // Create a new object to avoid mutating the original
-      const normalizedLog = { ...log };
-      if (normalizedLog.timestamp && !normalizedLog.timestamp_ms) {
-        // If timestamp is a number, use it directly; if it's a string, parse it
-        if (typeof normalizedLog.timestamp === "number") {
-          normalizedLog.timestamp_ms = normalizedLog.timestamp;
-        } else if (typeof normalizedLog.timestamp === "string") {
-          normalizedLog.timestamp_ms = new Date(
-            normalizedLog.timestamp,
-          ).getTime();
+    return response.logs.map(
+      (log: BlueprintBuildLog & { timestamp?: number | string }) => {
+        // Normalize timestamp field to timestamp_ms if needed
+        // Create a new object to avoid mutating the original
+        const normalizedLog = { ...log } as BlueprintBuildLog & {
+          timestamp?: number | string;
+          timestamp_ms?: number;
+        };
+        if (normalizedLog.timestamp && !normalizedLog.timestamp_ms) {
+          // If timestamp is a number, use it directly; if it's a string, parse it
+          if (typeof normalizedLog.timestamp === "number") {
+            normalizedLog.timestamp_ms = normalizedLog.timestamp;
+          } else if (typeof normalizedLog.timestamp === "string") {
+            normalizedLog.timestamp_ms = new Date(
+              normalizedLog.timestamp,
+            ).getTime();
+          }
         }
-      }
-      return normalizedLog;
-    });
+        return normalizedLog;
+      },
+    );
   }
 
   return [];

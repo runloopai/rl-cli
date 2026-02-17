@@ -59,7 +59,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
 
   // Polling function - must be defined before any early returns (Rules of Hooks)
   const pollObject = React.useCallback(async () => {
-    if (!objectId) return null as unknown as StorageObjectView;
+    if (!objectId) throw new Error("objectId required");
     return getObject(objectId);
   }, [objectId]);
 
