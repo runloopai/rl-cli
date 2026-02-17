@@ -25,8 +25,8 @@ export function DevboxExecScreen({
   execCommand,
   executionId,
   devboxName,
-  returnScreen,
-  returnParams,
+  returnScreen: _returnScreen,
+  returnParams: _returnParams,
 }: DevboxExecScreenProps) {
   const { goBack, replace, params } = useNavigation();
   const devboxes = useDevboxStore((state) => state.devboxes);

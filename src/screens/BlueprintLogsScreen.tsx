@@ -18,7 +18,9 @@ interface BlueprintLogsScreenProps {
 
 export function BlueprintLogsScreen({ blueprintId }: BlueprintLogsScreenProps) {
   const { goBack, params } = useNavigation();
-  const [logs, setLogs] = React.useState<any[]>([]);
+  const [logs, setLogs] = React.useState<
+    import("@runloop/api-client/resources/blueprints").BlueprintBuildLog[]
+  >([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<Error | null>(null);
 

@@ -148,9 +148,10 @@ export const DevboxCreatePage = ({
   const [error, setError] = React.useState<Error | null>(null);
 
   // Source picker states (toggle between blueprint/snapshot)
-  const [sourceTypeToggle, setSourceTypeToggle] = React.useState<
-    "blueprint" | "snapshot"
-  >(initialSnapshotId ? "snapshot" : "blueprint");
+  const [sourceTypeToggle, setSourceTypeToggle] =
+    React.useState<SourceTypeToggle>(
+      initialSnapshotId ? "snapshot" : "blueprint",
+    );
   const [showBlueprintPicker, setShowBlueprintPicker] = React.useState(false);
   const [showSnapshotPicker, setShowSnapshotPicker] = React.useState(false);
   const [showNetworkPolicyPicker, setShowNetworkPolicyPicker] =

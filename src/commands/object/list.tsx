@@ -169,17 +169,10 @@ const ListObjectsUI = ({
         });
       }
 
-      // Access pagination properties from the result
-      const pageResult = result as unknown as {
-        objects: unknown[];
-        total_count?: number;
-        has_more?: boolean;
-      };
-
       return {
         items: pageObjects,
-        hasMore: pageResult.has_more || false,
-        totalCount: pageResult.total_count || pageObjects.length,
+        hasMore: result.has_more ?? false,
+        totalCount: result.total_count ?? pageObjects.length,
       };
     },
     [search.submittedSearchQuery],

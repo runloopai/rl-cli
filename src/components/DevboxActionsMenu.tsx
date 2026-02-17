@@ -39,6 +39,29 @@ type Operation =
   | "delete"
   | null;
 
+/** Custom operation result shapes for render (exec output, tunnel URL, logs viewer) */
+type OperationResultCustom =
+  | {
+      __customRender: "exec";
+      command?: string;
+      stdout?: string;
+      stderr?: string;
+      exitCode?: number;
+    }
+  | { __customRender: "tunnel"; __tunnelUrl: string; __port?: number }
+  | { __customRender: "logs" };
+
+function isCustomOperationResult(
+  v: unknown,
+): v is OperationResultCustom & Record<string, unknown> {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    "__customRender" in v &&
+    typeof (v as OperationResultCustom).__customRender === "string"
+  );
+}
+
 interface DevboxActionsMenuProps {
   devbox: DevboxView;
   onBack: () => void;
@@ -68,9 +91,9 @@ export const DevboxActionsMenu = ({
     (initialOperation as Operation) || null,
   );
   const [operationInput, setOperationInput] = React.useState("");
-  const [operationResult, setOperationResult] = React.useState<string | null>(
-    null,
-  );
+  const [operationResult, setOperationResult] = React.useState<
+    string | null | OperationResultCustom
+  >(null);
   const [operationError, setOperationError] = React.useState<Error | null>(
     null,
   );
@@ -489,11 +512,11 @@ export const DevboxActionsMenu = ({
       } else if (
         input === "o" &&
         operationResult &&
-        typeof operationResult === "object" &&
-        (operationResult as any).__customRender === "tunnel"
+        isCustomOperationResult(operationResult) &&
+        operationResult.__customRender === "tunnel"
       ) {
         // Open tunnel URL in browser
-        const tunnelUrl = (operationResult as any).__tunnelUrl;
+        const tunnelUrl = operationResult.__tunnelUrl;
         if (tunnelUrl) {
           openInBrowser(tunnelUrl);
           setCopyStatus("Opened in browser!");
@@ -503,46 +526,56 @@ export const DevboxActionsMenu = ({
         (key.upArrow || input === "k") &&
         operationResult &&
         typeof operationResult === "object" &&
-        (operationResult as any).__customRender === "exec"
+        isCustomOperationResult(operationResult) &&
+        operationResult.__customRender === "exec"
       ) {
         setExecScroll(Math.max(0, execScroll - 1));
       } else if (
         (key.downArrow || input === "j") &&
         operationResult &&
         typeof operationResult === "object" &&
-        (operationResult as any).__customRender === "exec"
+        isCustomOperationResult(operationResult) &&
+        operationResult.__customRender === "exec"
       ) {
         setExecScroll(execScroll + 1);
       } else if (
         key.pageUp &&
         operationResult &&
         typeof operationResult === "object" &&
-        (operationResult as any).__customRender === "exec"
+        isCustomOperationResult(operationResult) &&
+        operationResult.__customRender === "exec"
       ) {
         setExecScroll(Math.max(0, execScroll - 10));
       } else if (
         key.pageDown &&
         operationResult &&
         typeof operationResult === "object" &&
-        (operationResult as any).__customRender === "exec"
+        isCustomOperationResult(operationResult) &&
+        operationResult.__customRender === "exec"
       ) {
         setExecScroll(execScroll + 10);
       } else if (
         input === "g" &&
         operationResult &&
         typeof operationResult === "object" &&
-        (operationResult as any).__customRender === "exec"
+        isCustomOperationResult(operationResult) &&
+        operationResult.__customRender === "exec"
       ) {
         setExecScroll(0);
       } else if (
         input === "G" &&
         operationResult &&
         typeof operationResult === "object" &&
-        (operationResult as any).__customRender === "exec"
+        isCustomOperationResult(operationResult) &&
+        operationResult.__customRender === "exec"
       ) {
         const lines = [
-          ...((operationResult as any).stdout || "").split("\n"),
-          ...((operationResult as any).stderr || "").split("\n"),
+          ...(operationResult.__customRender === "exec"
+            ? (operationResult.stdout || "").split("\n")
+            : []),
+          ...(operationResult.__customRender === "exec"
+            ? (operationResult.stderr || "").split("\n")
+            : []),
         ];
         const maxScroll = Math.max(
           0,
@@ -554,12 +587,17 @@ export const DevboxActionsMenu = ({
         !key.ctrl && // Ignore if Ctrl+C for quit
         operationResult &&
         typeof operationResult === "object" &&
-        (operationResult as any).__customRender === "exec"
+        isCustomOperationResult(operationResult) &&
+        operationResult.__customRender === "exec"
       ) {
         // Copy exec output to clipboard
         const output =
-          ((operationResult as any).stdout || "") +
-          ((operationResult as any).stderr || "");
+          (operationResult.__customRender === "exec"
+            ? operationResult.stdout || ""
+            : "") +
+          (operationResult.__customRender === "exec"
+            ? operationResult.stderr || ""
+            : "");
 
         copyToClipboard(output).then((status) => {
           setCopyStatus(status);
@@ -683,10 +721,7 @@ export const DevboxActionsMenu = ({
 
         case "logs":
           // Set flag to show streaming logs viewer
-          const logsResult: any = {
-            __customRender: "logs",
-          };
-          setOperationResult(logsResult);
+          setOperationResult({ __customRender: "logs" });
           break;
 
         case "tunnel":
@@ -701,12 +736,11 @@ export const DevboxActionsMenu = ({
           } else {
             const tunnel = await createTunnel(devbox.id, port);
             // Store tunnel result with custom render type to enable "open in browser"
-            const tunnelResult: any = {
+            setOperationResult({
               __customRender: "tunnel",
               __tunnelUrl: tunnel.url,
               __port: port,
-            };
-            setOperationResult(tunnelResult);
+            });
           }
           break;
 
@@ -769,13 +803,13 @@ export const DevboxActionsMenu = ({
     // Check for custom exec rendering
     if (
       operationResult &&
-      typeof operationResult === "object" &&
-      (operationResult as any).__customRender === "exec"
+      isCustomOperationResult(operationResult) &&
+      operationResult.__customRender === "exec"
     ) {
-      const command = (operationResult as any).command || "";
-      const stdout = (operationResult as any).stdout || "";
-      const stderr = (operationResult as any).stderr || "";
-      const exitCode = (operationResult as any).exitCode;
+      const command = operationResult.command || "";
+      const stdout = operationResult.stdout || "";
+      const stderr = operationResult.stderr || "";
+      const exitCode = operationResult.exitCode;
 
       const stdoutLines = stdout ? stdout.split("\n") : [];
       const stderrLines = stderr ? stderr.split("\n") : [];
@@ -938,8 +972,8 @@ export const DevboxActionsMenu = ({
     // Check for custom logs rendering - use streaming logs viewer
     if (
       operationResult &&
-      typeof operationResult === "object" &&
-      (operationResult as any).__customRender === "logs"
+      isCustomOperationResult(operationResult) &&
+      operationResult.__customRender === "logs"
     ) {
       return (
         <StreamingLogsViewer
@@ -969,11 +1003,11 @@ export const DevboxActionsMenu = ({
     // Check for custom tunnel rendering
     if (
       operationResult &&
-      typeof operationResult === "object" &&
-      (operationResult as any).__customRender === "tunnel"
+      isCustomOperationResult(operationResult) &&
+      operationResult.__customRender === "tunnel"
     ) {
-      const tunnelUrl = (operationResult as any).__tunnelUrl || "";
-      const tunnelPort = (operationResult as any).__port || "";
+      const tunnelUrl = operationResult.__tunnelUrl || "";
+      const tunnelPort = String(operationResult.__port ?? "");
 
       return (
         <>
@@ -1037,7 +1071,9 @@ export const DevboxActionsMenu = ({
           items={[...breadcrumbItems, { label: operationLabel, active: true }]}
         />
         <Header title="Operation Result" />
-        {operationResult && <SuccessMessage message={operationResult} />}
+        {operationResult && typeof operationResult === "string" && (
+          <SuccessMessage message={operationResult} />
+        )}
         {operationError && (
           <ErrorMessage message="Operation failed" error={operationError} />
         )}
@@ -1069,7 +1105,7 @@ export const DevboxActionsMenu = ({
       { key: "create", label: "Create Snapshot" },
     ] as const;
 
-    const currentFieldIndex = snapshotFields.findIndex(
+    const _currentFieldIndex = snapshotFields.findIndex(
       (f) => f.key === snapshotFormField,
     );
 

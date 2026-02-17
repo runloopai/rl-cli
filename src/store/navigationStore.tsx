@@ -65,6 +65,15 @@ export interface RouteParams {
   scenarioRunId?: string;
   benchmarkJobId?: string;
   initialBenchmarkIds?: string;
+  // Benchmark job create (clone) params
+  cloneFromJobId?: string;
+  cloneJobName?: string;
+  cloneSourceType?: "benchmark" | "scenarios";
+  initialScenarioIds?: string;
+  cloneAgentConfigs?: string;
+  cloneAgentIds?: string;
+  cloneAgentNames?: string;
+  cloneOrchestratorConfig?: string;
   [key: string]: string | ScreenName | RouteParams | undefined;
 }
 

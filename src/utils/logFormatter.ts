@@ -149,12 +149,13 @@ export function parseBlueprintLogEntry(log: BlueprintLog): FormattedLogParts {
   // Blueprint logs don't have a source, use "build" as default
   const sourceInfo = getSourceInfo("build");
 
-  // Handle timestamp - may be timestamp_ms or timestamp
+  // Handle timestamp - may be timestamp_ms or timestamp (BlueprintLog uses timestamp)
   let timestampMs: number;
+  const logWithTimestamp = log as typeof log & { timestamp?: number | string };
   if (log.timestamp_ms !== undefined) {
     timestampMs = log.timestamp_ms;
-  } else if ((log as any).timestamp !== undefined) {
-    const ts = (log as any).timestamp;
+  } else if (logWithTimestamp.timestamp !== undefined) {
+    const ts = logWithTimestamp.timestamp;
     timestampMs = typeof ts === "number" ? ts : new Date(ts).getTime();
   } else {
     // Fallback to current time if no timestamp

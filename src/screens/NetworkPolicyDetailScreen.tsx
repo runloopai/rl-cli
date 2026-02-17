@@ -19,7 +19,6 @@ import {
 import {
   getNetworkPolicy,
   deleteNetworkPolicy,
-  updateNetworkPolicy,
 } from "../services/networkPolicyService.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";

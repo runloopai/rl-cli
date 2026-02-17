@@ -43,7 +43,7 @@ export function BlueprintDetailScreen({
 
   // Polling function - must be defined before any early returns (Rules of Hooks)
   const pollBlueprint = React.useCallback(async () => {
-    if (!blueprintId) return null as unknown as Blueprint;
+    if (!blueprintId) throw new Error("blueprintId required");
     return getBlueprint(blueprintId);
   }, [blueprintId]);
 

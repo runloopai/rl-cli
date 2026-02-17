@@ -28,7 +28,7 @@ import { listBenchmarkRuns } from "../services/benchmarkService.js";
 import type { BenchmarkRun } from "../store/benchmarkStore.js";
 
 export function BenchmarkRunListScreen() {
-  const { exit: inkExit } = useApp();
+  const { exit: _inkExit } = useApp();
   const { navigate, goBack } = useNavigation();
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showPopup, setShowPopup] = React.useState(false);
@@ -87,7 +87,7 @@ export function BenchmarkRunListScreen() {
     totalCount,
     nextPage,
     prevPage,
-    refresh,
+    refresh: _refresh,
   } = useCursorPagination({
     fetchPage,
     pageSize: PAGE_SIZE,

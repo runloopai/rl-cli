@@ -96,10 +96,7 @@ export async function listDevboxes(
       });
     });
     try {
-      page = (await Promise.race([
-        pagePromise,
-        abortPromise,
-      ])) as unknown as DevboxesCursorIDPage<DevboxView>;
+      page = await Promise.race([pagePromise, abortPromise]);
     } catch (err) {
       // Re-throw abort errors, convert others
       if ((err as Error)?.name === "AbortError") {
@@ -108,7 +105,7 @@ export async function listDevboxes(
       throw err;
     }
   } else {
-    page = (await pagePromise) as unknown as DevboxesCursorIDPage<DevboxView>;
+    page = await pagePromise;
   }
 
   // Check again after await (in case abort happened during request)
@@ -193,7 +190,9 @@ export async function uploadFile(
   const fileStream = fs.createReadStream(filepath);
 
   await client.devboxes.uploadFile(id, {
-    file: fileStream as any,
+    file: fileStream as Parameters<
+      typeof client.devboxes.uploadFile
+    >[1]["file"],
     path: remotePath,
   });
 }
@@ -264,7 +263,7 @@ export async function createTunnel(
   const tunnel = await client.devboxes.createTunnel(id, { port });
 
   return {
-    url: String((tunnel as any).url || "").substring(0, 500),
+    url: String((tunnel as { url?: string }).url || "").substring(0, 500),
   };
 }
 
@@ -296,7 +295,7 @@ export async function execCommand(
   return {
     stdout,
     stderr,
-    exit_code: (result as any).exit_code || 0,
+    exit_code: (result as { exit_code?: number }).exit_code ?? 0,
   };
 }
 
@@ -304,7 +303,9 @@ export async function execCommand(
  * Get devbox logs
  * Returns the raw logs array from the API response
  */
-export async function getDevboxLogs(id: string): Promise<any[]> {
+export async function getDevboxLogs(
+  id: string,
+): Promise<import("../utils/logFormatter.js").DevboxLog[]> {
   const client = getClient();
   const response = await client.devboxes.logs.list(id);
 
@@ -324,12 +325,12 @@ export async function execCommandAsync(
   const result = await client.devboxes.executions.executeAsync(id, { command });
 
   // Extract execution ID from result
-  const executionId =
-    (result as any).execution_id || (result as any).id || String(result);
+  const r = result as { execution_id?: string; id?: string; status?: string };
+  const executionId = r.execution_id ?? r.id ?? String(result);
 
   return {
     executionId: String(executionId).substring(0, 100),
-    status: (result as any).status || "running",
+    status: r.status ?? "running",
   };
 }
 

@@ -34,7 +34,7 @@ interface ScenarioRunListScreenProps {
 export function ScenarioRunListScreen({
   benchmarkRunId,
 }: ScenarioRunListScreenProps) {
-  const { exit: inkExit } = useApp();
+  const { exit: _inkExit } = useApp();
   const { navigate, goBack } = useNavigation();
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showPopup, setShowPopup] = React.useState(false);
@@ -95,7 +95,7 @@ export function ScenarioRunListScreen({
     totalCount,
     nextPage,
     prevPage,
-    refresh,
+    refresh: _refresh,
   } = useCursorPagination({
     fetchPage,
     pageSize: PAGE_SIZE,

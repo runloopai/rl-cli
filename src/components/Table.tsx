@@ -17,8 +17,8 @@ export interface Column<T> {
 }
 
 export interface TableProps<T> {
-  /** Array of data rows */
-  data: T[];
+  /** Array of data rows (null/undefined treated as empty) */
+  data: T[] | null | undefined;
   /** Column definitions */
   columns: Column<T>[];
   /** Index of selected row (-1 for no selection) */

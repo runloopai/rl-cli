@@ -3,6 +3,7 @@ import { Box, Text, useApp } from "ink";
 import TextInput from "ink-text-input";
 import figures from "figures";
 import type { BlueprintsCursorIDPage } from "@runloop/api-client/pagination";
+import type { BlueprintView } from "@runloop/api-client/resources/blueprints";
 import { getClient } from "../../utils/client.js";
 import { Header } from "../../components/Header.js";
 import { SpinnerComponent } from "../../components/Spinner.js";
@@ -128,14 +129,11 @@ const ListBlueprintsUI = ({
         queryParams.search = search.submittedSearchQuery;
       }
 
-      // Fetch ONE page only
-      const page = (await client.blueprints.list(
-        queryParams,
-      )) as unknown as BlueprintsCursorIDPage<BlueprintListItem>;
+      const page = await client.blueprints.list(queryParams);
 
       // Extract data and create defensive copies
       if (page.blueprints && Array.isArray(page.blueprints)) {
-        page.blueprints.forEach((b: BlueprintListItem) => {
+        page.blueprints.forEach((b: BlueprintView) => {
           pageBlueprints.push({
             id: b.id,
             name: b.name,

@@ -5,6 +5,7 @@ import React from "react";
 import { Box, Text, useInput, useApp } from "ink";
 import figures from "figures";
 import { useNavigation } from "../store/navigationStore.js";
+import type { Benchmark } from "../store/benchmarkStore.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
@@ -25,10 +26,9 @@ import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../hooks/useCursorPagination.js";
 import { useListSearch } from "../hooks/useListSearch.js";
 import { listBenchmarks } from "../services/benchmarkService.js";
-import type { Benchmark } from "../store/benchmarkStore.js";
 
 export function BenchmarkListScreen() {
-  const { exit: inkExit } = useApp();
+  const { exit: _inkExit } = useApp();
   const { navigate, goBack } = useNavigation();
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showPopup, setShowPopup] = React.useState(false);
@@ -137,7 +137,8 @@ export function BenchmarkListScreen() {
         "status",
         "Status",
         (benchmark, _index, isSelected) => {
-          const status = (benchmark as any).status || "active";
+          type WithStatus = Benchmark & { status?: string };
+          const status = (benchmark as WithStatus).status ?? "active";
           const statusDisplay = getStatusDisplay(status);
           const text = statusDisplay.text
             .slice(0, statusWidth)
@@ -157,10 +158,13 @@ export function BenchmarkListScreen() {
       createTextColumn(
         "created",
         "Created",
-        (benchmark: Benchmark) =>
-          (benchmark as any).created_at
-            ? formatTimeAgo((benchmark as any).created_at)
-            : "",
+        (benchmark: Benchmark) => {
+          type WithCreated = Benchmark & { created_at?: string };
+          const created_at = (benchmark as WithCreated).created_at;
+          if (!created_at) return "";
+          const ms = new Date(created_at).getTime();
+          return Number.isNaN(ms) ? "" : formatTimeAgo(ms);
+        },
         {
           width: timeWidth,
           color: colors.textDim,

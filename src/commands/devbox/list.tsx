@@ -102,10 +102,7 @@ const ListDevboxesUI = ({
         queryParams.search = search.submittedSearchQuery;
       }
 
-      // Fetch ONE page only
-      const page = (await client.devboxes.list(
-        queryParams,
-      )) as unknown as DevboxesCursorIDPage<Devbox>;
+      const page = await client.devboxes.list(queryParams);
 
       // Extract data and create defensive copies using JSON serialization
       if (page.devboxes && Array.isArray(page.devboxes)) {

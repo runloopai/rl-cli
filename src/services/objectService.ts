@@ -1,6 +1,7 @@
 /**
  * Object Service - Handles all storage object API calls
  */
+import type { ObjectView } from "@runloop/api-client/resources/objects";
 import { getClient } from "../utils/client.js";
 import type { StorageObjectView } from "../store/objectStore.js";
 
@@ -57,8 +58,8 @@ export async function listObjects(
       // CRITICAL: Truncate all strings to prevent Yoga crashes
       const MAX_ID_LENGTH = 100;
       const MAX_NAME_LENGTH = 200;
-      const MAX_CONTENT_TYPE_LENGTH = 100;
-      const MAX_STATE_LENGTH = 50;
+      const _MAX_CONTENT_TYPE_LENGTH = 100;
+      const _MAX_STATE_LENGTH = 50;
 
       objects.push({
         id: String(obj.id || "").substring(0, MAX_ID_LENGTH),
@@ -74,27 +75,20 @@ export async function listObjects(
     });
   }
 
-  // Access pagination properties from the result
-  const pageResult = result as unknown as {
-    objects: unknown[];
-    total_count?: number;
-    has_more?: boolean;
-  };
-
   return {
     objects,
-    totalCount: pageResult.total_count || objects.length,
-    hasMore: pageResult.has_more || false,
+    totalCount: result.total_count ?? objects.length,
+    hasMore: result.has_more ?? false,
   };
 }
 
-/**
- * Get full object details by ID
- */
+/** API may return extra fields not in ObjectView; we use StorageObjectView for UI. */
+type ObjectViewFromAPI = ObjectView &
+  Partial<Pick<StorageObjectView, "is_public" | "download_url" | "metadata">>;
+
 export async function getObject(id: string): Promise<StorageObjectView> {
   const client = getClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const obj: any = await client.objects.retrieve(id);
+  const obj: ObjectViewFromAPI = await client.objects.retrieve(id);
 
   return {
     id: obj.id,
@@ -104,10 +98,9 @@ export async function getObject(id: string): Promise<StorageObjectView> {
     state: obj.state || "UPLOADING",
     size_bytes: obj.size_bytes,
     delete_after_time_ms: obj.delete_after_time_ms,
-    // UI-specific extended fields
     is_public: obj.is_public,
-    download_url: obj.download_url || undefined,
-    metadata: obj.metadata as Record<string, string> | undefined,
+    download_url: obj.download_url ?? undefined,
+    metadata: obj.metadata,
   };
 }
 

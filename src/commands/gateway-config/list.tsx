@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Text, useInput, useApp } from "ink";
 import figures from "figures";
 import type { GatewayConfigsCursorIDPage } from "@runloop/api-client/pagination";
+import type { GatewayConfigView } from "@runloop/api-client/resources/gateway-configs";
 import { getClient } from "../../utils/client.js";
 import { Header } from "../../components/Header.js";
 import { SpinnerComponent } from "../../components/Spinner.js";
@@ -136,18 +137,15 @@ const ListGatewayConfigsUI = ({
         queryParams.name = search.submittedSearchQuery;
       }
 
-      // Fetch ONE page only
-      const page = (await client.gatewayConfigs.list(
-        queryParams,
-      )) as unknown as GatewayConfigsCursorIDPage<GatewayConfigListItem>;
+      const page = await client.gatewayConfigs.list(queryParams);
 
       // Extract data and create defensive copies
       if (page.gateway_configs && Array.isArray(page.gateway_configs)) {
-        page.gateway_configs.forEach((g: GatewayConfigListItem) => {
+        page.gateway_configs.forEach((g: GatewayConfigView) => {
           pageConfigs.push({
             id: g.id,
             name: g.name,
-            description: g.description,
+            description: g.description ?? undefined,
             endpoint: g.endpoint,
             create_time_ms: g.create_time_ms,
             auth_mechanism: {

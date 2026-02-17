@@ -7,7 +7,6 @@ import type {
   NetworkPolicyListParams,
   NetworkPolicyView,
 } from "@runloop/api-client/resources/network-policies";
-import type { NetworkPoliciesCursorIDPage } from "@runloop/api-client/pagination";
 
 export interface ListNetworkPoliciesOptions {
   limit: number;
@@ -41,8 +40,7 @@ export async function listNetworkPolicies(
   }
 
   const pagePromise = client.networkPolicies.list(queryParams);
-  const page =
-    (await pagePromise) as unknown as NetworkPoliciesCursorIDPage<NetworkPolicyView>;
+  const page = await pagePromise;
 
   const networkPolicies: NetworkPolicy[] = [];
 

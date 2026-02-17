@@ -19,8 +19,8 @@ export interface FormSelectProps<T extends string> {
 export function FormSelect<T extends string>({
   label,
   value,
-  options,
-  onChange,
+  options: _options,
+  onChange: _onChange,
   isActive,
   getDisplayLabel,
 }: FormSelectProps<T>) {

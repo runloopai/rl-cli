@@ -121,18 +121,15 @@ const ListSnapshotsUI = ({
         queryParams.search = search.submittedSearchQuery;
       }
 
-      // Fetch ONE page only
-      const page = (await client.devboxes.listDiskSnapshots(
-        queryParams,
-      )) as unknown as DiskSnapshotsCursorIDPage<SnapshotListItem>;
+      const page = await client.devboxes.listDiskSnapshots(queryParams);
 
       // Extract data and create defensive copies
       if (page.snapshots && Array.isArray(page.snapshots)) {
-        page.snapshots.forEach((s: SnapshotListItem) => {
+        page.snapshots.forEach((s: DevboxSnapshotView) => {
           pageSnapshots.push({
             id: s.id,
-            name: s.name,
-            status: s.status,
+            name: s.name ?? undefined,
+            status: (s as DevboxSnapshotView & { status?: string }).status,
             create_time_ms: s.create_time_ms,
             source_devbox_id: s.source_devbox_id,
           });

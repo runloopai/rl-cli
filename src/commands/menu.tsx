@@ -1,5 +1,4 @@
 import React from "react";
-import { render } from "ink";
 import {
   enterAlternateScreenBuffer,
   exitAlternateScreenBuffer,
@@ -52,6 +51,15 @@ export async function runMainMenu(
   if (globalWithBun.Bun) {
     process.stdin.resume();
   }
+
+  // Preload Yoga before Ink. Patched yoga-layout (Bun) exports yogaReady; unpatched (pnpm) is ready after import.
+  const yoga = await import("yoga-layout");
+  const yogaReady = (yoga as { yogaReady?: Promise<unknown> }).yogaReady;
+  if (yogaReady != null && typeof yogaReady.then === "function") {
+    await yogaReady;
+  }
+
+  const { render } = await import("ink");
 
   try {
     const { waitUntilExit } = render(

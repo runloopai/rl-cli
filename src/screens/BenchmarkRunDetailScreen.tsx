@@ -24,7 +24,7 @@ import {
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
-import { getStatusDisplay, StatusBadge } from "../components/StatusBadge.js";
+import { getStatusDisplay } from "../components/StatusBadge.js";
 import {
   Table,
   createTextColumn,
@@ -53,7 +53,7 @@ export function BenchmarkRunDetailScreen({
 
   // Polling function
   const pollRun = React.useCallback(async () => {
-    if (!benchmarkRunId) return null as unknown as BenchmarkRun;
+    if (!benchmarkRunId) throw new Error("benchmarkRunId required");
 
     // Also refresh scenario runs when polling
     listScenarioRuns({
