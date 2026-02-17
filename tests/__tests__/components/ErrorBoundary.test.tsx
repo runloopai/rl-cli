@@ -1,21 +1,21 @@
 /**
  * Tests for ErrorBoundary component
  */
-import React from 'react';
-import { jest } from '@jest/globals';
-import { render } from 'ink-testing-library';
-import { ErrorBoundary } from '../../../src/components/ErrorBoundary.js';
-import { Text } from 'ink';
+import React from "react";
+import { jest } from "@jest/globals";
+import { render } from "ink-testing-library";
+import { ErrorBoundary } from "../../../src/components/ErrorBoundary.js";
+import { Text } from "ink";
 
 // Component that throws an error
 const ThrowingComponent = ({ shouldThrow }: { shouldThrow: boolean }) => {
   if (shouldThrow) {
-    throw new Error('Test error message');
+    throw new Error("Test error message");
   }
   return <Text>Normal render</Text>;
 };
 
-describe('ErrorBoundary', () => {
+describe("ErrorBoundary", () => {
   // Suppress console.error for expected errors
   const originalError = console.error;
   beforeAll(() => {
@@ -25,62 +25,61 @@ describe('ErrorBoundary', () => {
     console.error = originalError;
   });
 
-  it('renders children when no error', () => {
+  it("renders children when no error", () => {
     const { lastFrame } = render(
       <ErrorBoundary>
         <Text>Test content</Text>
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
-    expect(lastFrame()).toContain('Test content');
+    expect(lastFrame()).toContain("Test content");
   });
 
-  it('catches errors and displays error UI', () => {
+  it("catches errors and displays error UI", () => {
     const { lastFrame } = render(
       <ErrorBoundary>
         <ThrowingComponent shouldThrow={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
-    
-    const frame = lastFrame() || '';
-    expect(frame).toContain('Rendering Error');
-    expect(frame).toContain('Test error message');
+
+    const frame = lastFrame() || "";
+    expect(frame).toContain("Rendering Error");
+    expect(frame).toContain("Test error message");
   });
 
-  it('shows Ctrl+C exit instruction on error', () => {
+  it("shows Ctrl+C exit instruction on error", () => {
     const { lastFrame } = render(
       <ErrorBoundary>
         <ThrowingComponent shouldThrow={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
-    
-    expect(lastFrame()).toContain('Ctrl+C');
+
+    expect(lastFrame()).toContain("Ctrl+C");
   });
 
-  it('renders custom fallback when provided', () => {
+  it("renders custom fallback when provided", () => {
     const CustomFallback = <Text>Custom error fallback</Text>;
-    
+
     const { lastFrame } = render(
       <ErrorBoundary fallback={CustomFallback}>
         <ThrowingComponent shouldThrow={true} />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
-    
-    expect(lastFrame()).toContain('Custom error fallback');
+
+    expect(lastFrame()).toContain("Custom error fallback");
   });
 
-  it('is a class component', () => {
-    expect(ErrorBoundary.prototype).toHaveProperty('render');
-    expect(ErrorBoundary.prototype).toHaveProperty('componentDidCatch');
+  it("is a class component", () => {
+    expect(ErrorBoundary.prototype).toHaveProperty("render");
+    expect(ErrorBoundary.prototype).toHaveProperty("componentDidCatch");
   });
 
-  it('has getDerivedStateFromError static method', () => {
+  it("has getDerivedStateFromError static method", () => {
     expect(ErrorBoundary.getDerivedStateFromError).toBeDefined();
-    
-    const error = new Error('Test');
+
+    const error = new Error("Test");
     const state = ErrorBoundary.getDerivedStateFromError(error);
-    
+
     expect(state.hasError).toBe(true);
     expect(state.error).toBe(error);
   });
 });
-

@@ -33,9 +33,7 @@ describe("deleteBlueprint", () => {
   it("should delete a blueprint by ID", async () => {
     mockDelete.mockResolvedValue(undefined);
 
-    const { deleteBlueprint } = await import(
-      "@/commands/blueprint/delete.js"
-    );
+    const { deleteBlueprint } = await import("@/commands/blueprint/delete.js");
     await deleteBlueprint("bpt_abc123", {});
 
     expect(mockDelete).toHaveBeenCalledWith("bpt_abc123");
@@ -45,9 +43,7 @@ describe("deleteBlueprint", () => {
   it("should output JSON format when requested", async () => {
     mockDelete.mockResolvedValue(undefined);
 
-    const { deleteBlueprint } = await import(
-      "@/commands/blueprint/delete.js"
-    );
+    const { deleteBlueprint } = await import("@/commands/blueprint/delete.js");
     await deleteBlueprint("bpt_json123", { output: "json" });
 
     expect(mockDelete).toHaveBeenCalledWith("bpt_json123");
@@ -61,9 +57,7 @@ describe("deleteBlueprint", () => {
   it("should output YAML format when requested", async () => {
     mockDelete.mockResolvedValue(undefined);
 
-    const { deleteBlueprint } = await import(
-      "@/commands/blueprint/delete.js"
-    );
+    const { deleteBlueprint } = await import("@/commands/blueprint/delete.js");
     await deleteBlueprint("bpt_yaml456", { output: "yaml" });
 
     expect(mockDelete).toHaveBeenCalledWith("bpt_yaml456");
@@ -76,9 +70,7 @@ describe("deleteBlueprint", () => {
   it("should output just the ID in text format (default)", async () => {
     mockDelete.mockResolvedValue(undefined);
 
-    const { deleteBlueprint } = await import(
-      "@/commands/blueprint/delete.js"
-    );
+    const { deleteBlueprint } = await import("@/commands/blueprint/delete.js");
     await deleteBlueprint("bpt_text789", { output: "text" });
 
     expect(console.log).toHaveBeenCalledWith("bpt_text789");
@@ -88,9 +80,7 @@ describe("deleteBlueprint", () => {
   it("should output just the ID when no output option is provided", async () => {
     mockDelete.mockResolvedValue(undefined);
 
-    const { deleteBlueprint } = await import(
-      "@/commands/blueprint/delete.js"
-    );
+    const { deleteBlueprint } = await import("@/commands/blueprint/delete.js");
     await deleteBlueprint("bpt_default", {});
 
     expect(console.log).toHaveBeenCalledWith("bpt_default");
@@ -101,9 +91,7 @@ describe("deleteBlueprint", () => {
     const apiError = new Error("API Error: Forbidden");
     mockDelete.mockRejectedValue(apiError);
 
-    const { deleteBlueprint } = await import(
-      "@/commands/blueprint/delete.js"
-    );
+    const { deleteBlueprint } = await import("@/commands/blueprint/delete.js");
     await deleteBlueprint("bpt_error", {});
 
     expect(mockOutputError).toHaveBeenCalledWith(
@@ -118,9 +106,7 @@ describe("deleteBlueprint", () => {
     );
     mockDelete.mockRejectedValue(apiError);
 
-    const { deleteBlueprint } = await import(
-      "@/commands/blueprint/delete.js"
-    );
+    const { deleteBlueprint } = await import("@/commands/blueprint/delete.js");
     await deleteBlueprint("bpt_has_snapshots", {});
 
     expect(mockOutputError).toHaveBeenCalledWith(

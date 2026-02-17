@@ -13,7 +13,9 @@ class Conf {
   }
 
   get<T>(key: string, defaultValue?: T): T | undefined {
-    return (this.store.get(key) as T) ?? (this.defaults[key] as T) ?? defaultValue;
+    return (
+      (this.store.get(key) as T) ?? (this.defaults[key] as T) ?? defaultValue
+    );
   }
 
   set(key: string, value: unknown): void {
@@ -44,4 +46,3 @@ class Conf {
 }
 
 export default Conf;
-
