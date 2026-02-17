@@ -2,14 +2,7 @@
  * Tests for stdin utilities
  */
 
-import {
-  jest,
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-} from "@jest/globals";
+import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 
 // We need to mock process.stdin before importing the module
 const mockStdin = {

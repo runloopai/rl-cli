@@ -1,70 +1,62 @@
-import { jest } from "@jest/globals";
+import { jest } from '@jest/globals';
 
 export const mockDevbox = (overrides = {}) => ({
-  id: "test-id",
-  status: "running",
-  created_at: "2024-01-01T00:00:00Z",
+  id: 'test-id',
+  status: 'running',
+  created_at: '2024-01-01T00:00:00Z',
   launch_parameters: {
     user_parameters: {
-      username: "test-user",
-    },
+      username: 'test-user'
+    }
   },
-  model_dump_json: jest.fn().mockReturnValue(
-    JSON.stringify({
-      id: "test-id",
-      status: "running",
-      created_at: "2024-01-01T00:00:00Z",
-    }),
-  ),
-  ...overrides,
+  model_dump_json: jest.fn().mockReturnValue(JSON.stringify({
+    id: 'test-id',
+    status: 'running',
+    created_at: '2024-01-01T00:00:00Z'
+  })),
+  ...overrides
 });
 
 export const mockBlueprint = (overrides = {}) => ({
-  id: "bp-test-id",
-  name: "test-blueprint",
-  status: "ready",
-  created_at: "2024-01-01T00:00:00Z",
-  model_dump_json: jest.fn().mockReturnValue(
-    JSON.stringify({
-      id: "bp-test-id",
-      name: "test-blueprint",
-      status: "ready",
-    }),
-  ),
-  ...overrides,
+  id: 'bp-test-id',
+  name: 'test-blueprint',
+  status: 'ready',
+  created_at: '2024-01-01T00:00:00Z',
+  model_dump_json: jest.fn().mockReturnValue(JSON.stringify({
+    id: 'bp-test-id',
+    name: 'test-blueprint',
+    status: 'ready'
+  })),
+  ...overrides
 });
 
 export const mockObject = (overrides = {}) => ({
-  id: "obj-test-id",
-  name: "test-object",
-  content_type: "text",
-  state: "READ_ONLY",
+  id: 'obj-test-id',
+  name: 'test-object',
+  content_type: 'text',
+  state: 'READ_ONLY',
   size_bytes: 1024,
-  created_at: "2024-01-01T00:00:00Z",
-  model_dump_json: jest.fn().mockReturnValue(
-    JSON.stringify({
-      id: "obj-test-id",
-      name: "test-object",
-      content_type: "text",
-      state: "READ_ONLY",
-    }),
-  ),
-  ...overrides,
+  created_at: '2024-01-01T00:00:00Z',
+  model_dump_json: jest.fn().mockReturnValue(JSON.stringify({
+    id: 'obj-test-id',
+    name: 'test-object',
+    content_type: 'text',
+    state: 'READ_ONLY'
+  })),
+  ...overrides
 });
 
 export const mockSnapshot = (overrides = {}) => ({
-  id: "snap-test-id",
-  devbox_id: "test-id",
-  status: "completed",
-  created_at: "2024-01-01T00:00:00Z",
-  model_dump_json: jest.fn().mockReturnValue(
-    JSON.stringify({
-      id: "snap-test-id",
-      devbox_id: "test-id",
-      status: "completed",
-    }),
-  ),
-  ...overrides,
+  id: 'snap-test-id',
+  devbox_id: 'test-id',
+  status: 'completed',
+  created_at: '2024-01-01T00:00:00Z',
+  model_dump_json: jest.fn().mockReturnValue(JSON.stringify({
+    id: 'snap-test-id',
+    devbox_id: 'test-id',
+    status: 'completed'
+  })),
+  ...overrides
 });
 
 export const mockAPIClient = () => ({
@@ -78,10 +70,10 @@ export const mockAPIClient = () => ({
     execute: jest.fn(),
     executeAsync: jest.fn(),
     executions: {
-      retrieve: jest.fn(),
+      retrieve: jest.fn()
     },
     logs: {
-      list: jest.fn(),
+      list: jest.fn()
     },
     readFileContents: jest.fn(),
     writeFileContents: jest.fn(),
@@ -91,15 +83,15 @@ export const mockAPIClient = () => ({
     snapshotDiskAsync: jest.fn(),
     diskSnapshots: {
       queryStatus: jest.fn(),
-      list: jest.fn(),
-    },
+      list: jest.fn()
+    }
   },
   blueprints: {
     create: jest.fn(),
     list: jest.fn(),
     retrieve: jest.fn(),
     preview: jest.fn(),
-    logs: jest.fn(),
+    logs: jest.fn()
   },
   objects: {
     create: jest.fn(),
@@ -109,36 +101,35 @@ export const mockAPIClient = () => ({
     download: jest.fn(),
     upload: jest.fn(),
     delete: jest.fn(),
-    complete: jest.fn(),
-  },
+    complete: jest.fn()
+  }
 });
 
 export const mockSSHKey = () => ({
-  ssh_private_key:
-    "-----BEGIN PRIVATE KEY-----\ntest-key-content\n-----END PRIVATE KEY-----",
-  url: "test-host.example.com",
+  ssh_private_key: '-----BEGIN PRIVATE KEY-----\ntest-key-content\n-----END PRIVATE KEY-----',
+  url: 'test-host.example.com'
 });
 
 export const mockLogEntry = (overrides = {}) => ({
   timestamp_ms: 1710000000000,
-  source: "entrypoint",
-  cmd: "echo test",
-  message: "test message",
+  source: 'entrypoint',
+  cmd: 'echo test',
+  message: 'test message',
   exit_code: 0,
-  ...overrides,
+  ...overrides
 });
 
 export const mockExecution = (overrides = {}) => ({
-  id: "exec-test-id",
-  status: "completed",
-  command: "echo hello",
-  created_at: "2024-01-01T00:00:00Z",
-  model_dump_json: jest.fn().mockReturnValue(
-    JSON.stringify({
-      id: "exec-test-id",
-      status: "completed",
-      command: "echo hello",
-    }),
-  ),
-  ...overrides,
+  id: 'exec-test-id',
+  status: 'completed',
+  command: 'echo hello',
+  created_at: '2024-01-01T00:00:00Z',
+  model_dump_json: jest.fn().mockReturnValue(JSON.stringify({
+    id: 'exec-test-id',
+    status: 'completed',
+    command: 'echo hello'
+  })),
+  ...overrides
 });
+
+

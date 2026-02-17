@@ -106,7 +106,9 @@ describe("scp e2e", () => {
 
   it("should download a file from the devbox", async () => {
     const remotePath = `${REMOTE_DIR}/download-src.txt`;
-    await execOnDevbox(`echo -n '${TEST_CONTENT}' > ${remotePath}`);
+    await execOnDevbox(
+      `echo -n '${TEST_CONTENT}' > ${remotePath}`,
+    );
 
     const localDir = makeTempDir("scp-download");
     const localFile = join(localDir, "download.txt");

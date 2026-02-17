@@ -157,7 +157,9 @@ describe("buildSCPCommand", () => {
     });
 
     const joined = cmd.join(" ");
-    expect(joined).toContain("custom-user@dbx_abc123.runloop.dev:/file");
+    expect(joined).toContain(
+      "custom-user@dbx_abc123.runloop.dev:/file",
+    );
   });
 
   it("should include additional scp options when provided", () => {

@@ -145,10 +145,7 @@ describe("ResourceDetailPage", () => {
       },
     ];
     const { lastFrame } = renderWithNav(
-      <ResourceDetailPage
-        {...createDefaultProps()}
-        detailSections={sections}
-      />,
+      <ResourceDetailPage {...createDefaultProps()} detailSections={sections} />,
     );
     const frame = lastFrame() || "";
     expect(frame).toContain("Present");
@@ -162,10 +159,7 @@ describe("ResourceDetailPage", () => {
       { title: "Section B", fields: [{ label: "B1", value: "val2" }] },
     ];
     const { lastFrame } = renderWithNav(
-      <ResourceDetailPage
-        {...createDefaultProps()}
-        detailSections={sections}
-      />,
+      <ResourceDetailPage {...createDefaultProps()} detailSections={sections} />,
     );
     const frame = lastFrame() || "";
     expect(frame).toContain("Section A");
@@ -324,10 +318,7 @@ describe("ResourceDetailPage", () => {
       },
     ];
     const { lastFrame } = renderWithNav(
-      <ResourceDetailPage
-        {...createDefaultProps()}
-        detailSections={sections}
-      />,
+      <ResourceDetailPage {...createDefaultProps()} detailSections={sections} />,
     );
     const frame = lastFrame() || "";
     // The link hint should NOT be visible since it's not selected
@@ -340,21 +331,27 @@ describe("ResourceDetailPage", () => {
 
   it("calls onBack when escape is pressed", () => {
     const props = createDefaultProps();
-    const { stdin } = renderWithNav(<ResourceDetailPage {...props} />);
+    const { stdin } = renderWithNav(
+      <ResourceDetailPage {...props} />,
+    );
     stdin.write("\u001B"); // escape
     expect(props.onBack).toHaveBeenCalled();
   });
 
   it("calls onBack when q is pressed", () => {
     const props = createDefaultProps();
-    const { stdin } = renderWithNav(<ResourceDetailPage {...props} />);
+    const { stdin } = renderWithNav(
+      <ResourceDetailPage {...props} />,
+    );
     stdin.write("q");
     expect(props.onBack).toHaveBeenCalled();
   });
 
   it("calls onOperation with correct key when Enter is pressed on an operation", () => {
     const props = createDefaultProps();
-    const { stdin } = renderWithNav(<ResourceDetailPage {...props} />);
+    const { stdin } = renderWithNav(
+      <ResourceDetailPage {...props} />,
+    );
     // Default selection is the first operation, press Enter
     stdin.write("\r");
     expect(props.onOperation).toHaveBeenCalledWith("view-logs", mockResource);
@@ -362,7 +359,9 @@ describe("ResourceDetailPage", () => {
 
   it("calls onOperation via shortcut key", () => {
     const props = createDefaultProps();
-    const { stdin } = renderWithNav(<ResourceDetailPage {...props} />);
+    const { stdin } = renderWithNav(
+      <ResourceDetailPage {...props} />,
+    );
     // Press 'd' shortcut for delete
     stdin.write("d");
     expect(props.onOperation).toHaveBeenCalledWith("delete", mockResource);
@@ -370,14 +369,18 @@ describe("ResourceDetailPage", () => {
 
   it("triggers different operations via different shortcuts", () => {
     const props = createDefaultProps();
-    const { stdin } = renderWithNav(<ResourceDetailPage {...props} />);
+    const { stdin } = renderWithNav(
+      <ResourceDetailPage {...props} />,
+    );
     stdin.write("l");
     expect(props.onOperation).toHaveBeenCalledWith("view-logs", mockResource);
   });
 
   it("does not trigger operations for non-shortcut keys", () => {
     const props = createDefaultProps();
-    const { stdin } = renderWithNav(<ResourceDetailPage {...props} />);
+    const { stdin } = renderWithNav(
+      <ResourceDetailPage {...props} />,
+    );
     stdin.write("x"); // not a shortcut
     expect(props.onOperation).not.toHaveBeenCalled();
   });
