@@ -36,13 +36,35 @@ rli devbox delete <devbox-id>
 
 ## Installation
 
-Install globally via npm or pnpm:
+### Option 1: npm or pnpm (recommended)
 
 ```bash
 npm install -g @runloop/rl-cli
 # or
 pnpm add -g @runloop/rl-cli
 ```
+
+### Option 2: Standalone binary (install script)
+
+Install the latest release binary for your platform (macOS or Linux) with one command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/runloopai/rl-cli/main/install_standalone.sh | bash
+```
+
+The script installs to `~/.local/bin` by default. Set `RLI_INSTALL_DIR` to override:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/runloopai/rl-cli/main/install_standalone.sh | RLI_INSTALL_DIR=/usr/local/bin bash
+```
+
+To install a specific version:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/runloopai/rl-cli/main/install_standalone.sh | bash -s -- v1.10.0
+```
+
+Ensure the install directory is in your `PATH` (the script will remind you if not).
 
 ## Setup
 

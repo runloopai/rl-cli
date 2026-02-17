@@ -386,7 +386,7 @@ A GitHub Actions workflow has been added (`.github/workflows/release.yml`) that 
 - Linux ARM64 (linux-arm64)
 - Windows x64 (windows-x64)
 
-**Current status:** Builds will fail gracefully until Bun resolves the yoga-layout bundling issue. Once fixed, executables will automatically appear on future releases.
+**Current status:** Executable builds work. Ink and yoga-layout use top-level await, which Bun’s compiler doesn’t support; we avoid it via pnpm patches (see below) and preloading Yoga before Ink in the menu.
 
 ## Recommended Approach
 
@@ -402,11 +402,23 @@ A GitHub Actions workflow has been added (`.github/workflows/release.yml`) that 
 - You want faster startup for scripts
 - Willing to maintain additional CI workflow
 
-**Note:** CI/CD is already configured for Option 2, just waiting on Bun fix
+**Note:** CI/CD is already configured for Option 2. TUI is supported in the compiled binary thanks to the top-level await workaround below.
 
 **Avoid Option 3** unless:
 - You explicitly want to deprecate TUI mode
 - Target audience is 100% automation/scripting
+
+### Top-level await workaround (TUI in compiled binary)
+
+Ink and its dependency yoga-layout use top-level await, which Bun’s `--compile` does not support. We work around this so the TUI works in the compiled executable:
+
+1. **pnpm patches** (`patches/`, `pnpm.patchedDependencies` in package.json):
+   - **ink**: Remove the devtools block that used `await import('./devtools.js')`, so the bundle never pulls in optional `react-devtools-core`.
+   - **yoga-layout**: Remove TLA from the default export; export a `yogaReady` promise and a Proxy that delegates to the loaded Yoga once ready.
+
+2. **Menu preload** (`src/commands/menu.tsx`): Before importing Ink, we `await import('yoga-layout').then(m => m.yogaReady)`, so when Ink’s reconciler imports yoga-layout, the Proxy already has Yoga loaded.
+
+After `pnpm install`, patches are applied automatically. Do not remove them if you want `bun build --compile` to succeed with TUI.
 
 ## Questions?
 

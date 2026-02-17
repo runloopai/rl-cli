@@ -122,5 +122,11 @@
   },
   "overrides": {
     "tmp": "^0.2.5"
+  },
+  "bun": {
+    "patchedDependencies": {
+      "ink@6.6.0": "patches/ink@6.6.0.patch",
+      "yoga-layout@3.2.1": "patches/yoga-layout@3.2.1.patch"
+    }
   }
 }
