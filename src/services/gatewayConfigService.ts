@@ -73,7 +73,7 @@ export async function listGatewayConfigs(
 
   const result = {
     gatewayConfigs,
-    totalCount: page.total_count || gatewayConfigs.length,
+    totalCount: gatewayConfigs.length,
     hasMore: page.has_more || false,
   };
 

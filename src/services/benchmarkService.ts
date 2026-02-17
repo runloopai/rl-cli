@@ -66,7 +66,7 @@ export async function listBenchmarkRuns(
 
   return {
     benchmarkRuns,
-    totalCount: page.total_count || benchmarkRuns.length,
+    totalCount: benchmarkRuns.length,
     hasMore: page.has_more || false,
   };
 }
@@ -105,7 +105,7 @@ export async function listScenarioRuns(
 
     return {
       scenarioRuns,
-      totalCount: page.total_count || scenarioRuns.length,
+      totalCount: scenarioRuns.length,
       hasMore: page.has_more || false,
     };
   }
@@ -124,7 +124,7 @@ export async function listScenarioRuns(
 
   return {
     scenarioRuns,
-    totalCount: page.total_count || scenarioRuns.length,
+    totalCount: scenarioRuns.length,
     hasMore: page.has_more || false,
   };
 }
@@ -166,7 +166,7 @@ export async function listBenchmarks(
 
   return {
     benchmarks,
-    totalCount: page.total_count || benchmarks.length,
+    totalCount: benchmarks.length,
     hasMore: page.has_more || false,
   };
 }

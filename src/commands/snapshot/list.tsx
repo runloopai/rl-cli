@@ -142,7 +142,7 @@ const ListSnapshotsUI = ({
       const result = {
         items: pageSnapshots,
         hasMore: page.has_more || false,
-        totalCount: page.total_count || pageSnapshots.length,
+        totalCount: pageSnapshots.length,
       };
 
       return result;

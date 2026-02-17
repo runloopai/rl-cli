@@ -148,7 +148,7 @@ const ListBlueprintsUI = ({
       const result = {
         items: pageBlueprints,
         hasMore: page.has_more || false,
-        totalCount: page.total_count || pageBlueprints.length,
+        totalCount: pageBlueprints.length,
       };
 
       return result;

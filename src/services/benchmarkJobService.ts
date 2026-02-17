@@ -79,7 +79,7 @@ export async function listBenchmarkJobs(
 
   return {
     jobs,
-    totalCount: page.total_count || jobs.length,
+    totalCount: jobs.length,
     hasMore: page.has_more || false,
   };
 }

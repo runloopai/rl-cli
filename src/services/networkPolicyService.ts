@@ -72,7 +72,7 @@ export async function listNetworkPolicies(
 
   const result = {
     networkPolicies,
-    totalCount: page.total_count || networkPolicies.length,
+    totalCount: networkPolicies.length,
     hasMore: page.has_more || false,
   };
 

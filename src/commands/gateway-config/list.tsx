@@ -162,7 +162,7 @@ const ListGatewayConfigsUI = ({
       const result = {
         items: pageConfigs,
         hasMore: page.has_more || false,
-        totalCount: page.total_count || pageConfigs.length,
+        totalCount: pageConfigs.length,
       };
 
       return result;

@@ -173,7 +173,7 @@ const ListNetworkPoliciesUI = ({
       const result = {
         items: pagePolicies,
         hasMore: page.has_more || false,
-        totalCount: page.total_count || pagePolicies.length,
+        totalCount: pagePolicies.length,
       };
 
       return result;

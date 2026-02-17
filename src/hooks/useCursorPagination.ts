@@ -190,9 +190,10 @@ export function useCursorPagination<T>(
 
         // Update pagination state
         setHasMore(result.hasMore);
-        if (result.totalCount !== undefined) {
-          setTotalCount(result.totalCount);
-        }
+        // Compute cumulative total: items seen on all previous pages + current page.
+        // This monotonically increases as the user pages forward and is exact when
+        // hasMore is false (i.e. we've reached the last page).
+        setTotalCount(page * pageSizeRef.current + result.items.length);
       } catch (err) {
         if (!isMountedRef.current) return;
         setError(err as Error);

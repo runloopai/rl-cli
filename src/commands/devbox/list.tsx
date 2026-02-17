@@ -117,7 +117,7 @@ const ListDevboxesUI = ({
       const result = {
         items: pageDevboxes,
         hasMore: page.has_more || false,
-        totalCount: page.total_count || pageDevboxes.length,
+        totalCount: pageDevboxes.length,
       };
 
       return result;
