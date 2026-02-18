@@ -660,7 +660,7 @@ const ListNetworkPoliciesUI = ({
           data={policies}
           keyExtractor={(policy: NetworkPolicyListItem) => policy.id}
           selectedIndex={selectedIndex}
-          title={`network_policies[${totalCount}]`}
+          title={`network_policies[${hasMore ? `${totalCount}+` : totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -674,7 +674,7 @@ const ListNetworkPoliciesUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {totalCount}
+            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -692,7 +692,7 @@ const ListNetworkPoliciesUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of {totalPages}
+                  Page {currentPage + 1} of {hasMore ? `${totalPages}+` : totalPages}
                 </Text>
               )}
             </>
@@ -702,7 +702,7 @@ const ListNetworkPoliciesUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {startIndex + 1}-{endIndex} of {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>

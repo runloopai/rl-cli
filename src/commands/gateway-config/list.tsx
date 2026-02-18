@@ -630,7 +630,7 @@ const ListGatewayConfigsUI = ({
           data={configs}
           keyExtractor={(config: GatewayConfigListItem) => config.id}
           selectedIndex={selectedIndex}
-          title={`gateway_configs[${totalCount}]`}
+          title={`gateway_configs[${hasMore ? `${totalCount}+` : totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -645,7 +645,7 @@ const ListGatewayConfigsUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {totalCount}
+            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -663,7 +663,7 @@ const ListGatewayConfigsUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of {totalPages}
+                  Page {currentPage + 1} of {hasMore ? `${totalPages}+` : totalPages}
                 </Text>
               )}
             </>
@@ -673,7 +673,7 @@ const ListGatewayConfigsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {startIndex + 1}-{endIndex} of {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>
