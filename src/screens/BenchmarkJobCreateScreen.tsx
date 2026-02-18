@@ -513,7 +513,10 @@ export function BenchmarkJobCreateScreen({
       } else {
         // Parse comma-separated model names: one per agent, or single value applied to all
         const modelNamesParsed = formData.modelNamesInput
-          ? formData.modelNamesInput.split(",").map((s) => s.trim()).filter(Boolean)
+          ? formData.modelNamesInput
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
           : [];
         const applyModelName = (index: number): string | undefined => {
           if (modelNamesParsed.length === 0) return undefined;
