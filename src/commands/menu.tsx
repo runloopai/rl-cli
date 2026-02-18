@@ -44,6 +44,15 @@ export async function runMainMenu(
   enterAlternateScreenBuffer();
   clearScreen(); // Ensure cursor is at top-left before Ink renders
 
+  // WORKAROUND for Bun: Manually resume stdin as Bun doesn't do it automatically
+  // See: https://github.com/oven-sh/bun/issues/6862
+  // This is required for Ink's useInput hook to work properly with Bun
+  // Safe to call in Node.js too - it's idempotent
+  const globalWithBun = globalThis as typeof globalThis & { Bun?: unknown };
+  if (globalWithBun.Bun) {
+    process.stdin.resume();
+  }
+
   try {
     const { waitUntilExit } = render(
       <App

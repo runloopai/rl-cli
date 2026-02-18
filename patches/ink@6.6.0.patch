@@ -1,0 +1,34 @@
+diff --git a/build/reconciler.js b/build/reconciler.js
+index dbcad54d70b0870a469eb5767bae375f6804eb36..f75658d49a219a813d99ba4e7d8bc7003d2be508 100644
+--- a/build/reconciler.js
++++ b/build/reconciler.js
+@@ -8,27 +8,8 @@ import applyStyles from './styles.js';
+ // We need to conditionally perform devtools connection to avoid
+ // accidentally breaking other third-party code.
+ // See https://github.com/vadimdemedes/ink/issues/384
+-if (process.env['DEV'] === 'true') {
+-    try {
+-        await import('./devtools.js');
+-    }
+-    catch (error) {
+-        if (error.code === 'ERR_MODULE_NOT_FOUND') {
+-            console.warn(`
+-The environment variable DEV is set to true, so Ink tried to import \`react-devtools-core\`,
+-but this failed as it was not installed. Debugging with React Devtools requires it.
+-
+-To install use this command:
+-
+-$ npm install --save-dev react-devtools-core
+-				`.trim() + '\n');
+-        }
+-        else {
+-            // eslint-disable-next-line @typescript-eslint/only-throw-error
+-            throw error;
+-        }
+-    }
+-}
++// Devtools block removed for Bun compile: avoid top-level await and optional
++// react-devtools-core dependency. Set DEV=true and use runtime (no --compile) for devtools.
+ const diff = (before, after) => {
+     if (before === after) {
+         return;
