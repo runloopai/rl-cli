@@ -35,6 +35,7 @@ type FormField =
   | "benchmark"
   | "scenarios"
   | "agents"
+  | "model_names"
   | "name"
   | "agent_timeout"
   | "concurrent_trials"
@@ -48,6 +49,8 @@ interface FormData {
   scenarioNames: string[];
   agentIds: string[];
   agentNames: string[];
+  /** Comma-separated model names (one per agent, or one value applied to all) */
+  modelNamesInput: string;
   name: string;
   agentTimeout: string;
   concurrentTrials: string;
@@ -169,17 +172,35 @@ export function BenchmarkJobCreateScreen({
   const [currentField, setCurrentField] =
     React.useState<FormField>(initialField);
 
-  const [formData, setFormData] = React.useState<FormData>({
-    sourceType: initialSourceType,
-    benchmarkId: initialBenchmarkIds || "",
-    benchmarkName: "",
-    scenarioIds: initialScenarioIds ? initialScenarioIds.split(",") : [],
-    scenarioNames: [],
-    agentIds: cloneAgentIds ? cloneAgentIds.split(",") : [],
-    agentNames: cloneAgentNames ? cloneAgentNames.split(",") : [],
-    name: cloneJobName ? `${cloneJobName} (clone)` : "",
-    agentTimeout: cloneAgentTimeout || "",
-    concurrentTrials: cloneConcurrentTrials || "1",
+  const [formData, setFormData] = React.useState<FormData>(() => {
+    let modelNamesInput = "";
+    try {
+      if (cloneAgentConfigs) {
+        const arr = JSON.parse(cloneAgentConfigs) as Array<{
+          modelName?: string | null;
+          model_name?: string | null;
+        }>;
+        modelNamesInput = arr
+          .map((a) => a.modelName ?? a.model_name ?? "")
+          .filter(Boolean)
+          .join(", ");
+      }
+    } catch {
+      // ignore invalid JSON
+    }
+    return {
+      sourceType: initialSourceType,
+      benchmarkId: initialBenchmarkIds || "",
+      benchmarkName: "",
+      scenarioIds: initialScenarioIds ? initialScenarioIds.split(",") : [],
+      scenarioNames: [],
+      agentIds: cloneAgentIds ? cloneAgentIds.split(",") : [],
+      agentNames: cloneAgentNames ? cloneAgentNames.split(",") : [],
+      modelNamesInput,
+      name: cloneJobName ? `${cloneJobName} (clone)` : "",
+      agentTimeout: cloneAgentTimeout || "",
+      concurrentTrials: cloneConcurrentTrials || "1",
+    };
   });
 
   const [createdJob, setCreatedJob] = React.useState<BenchmarkJob | null>(null);
@@ -266,6 +287,13 @@ export function BenchmarkJobCreateScreen({
       type: "picker",
       required: true,
       description: "Select one or more agents to run",
+    },
+    {
+      key: "model_names",
+      label: "Model names (comma-separated, optional)",
+      type: "text",
+      placeholder: "e.g. claude-3-5-sonnet, gpt-4o",
+      description: "One per agent, or one value applied to all",
     },
     {
       key: "name",
@@ -483,12 +511,25 @@ export function BenchmarkJobCreateScreen({
         // Use the full cloned configs
         agentConfigs = JSON.parse(cloneAgentConfigs);
       } else {
+        // Parse comma-separated model names: one per agent, or single value applied to all
+        const modelNamesParsed = formData.modelNamesInput
+          ? formData.modelNamesInput.split(",").map((s) => s.trim()).filter(Boolean)
+          : [];
+        const applyModelName = (index: number): string | undefined => {
+          if (modelNamesParsed.length === 0) return undefined;
+          if (modelNamesParsed.length === 1) return modelNamesParsed[0];
+          return modelNamesParsed[index] ?? undefined;
+        };
+
         // Build agent configs from form data (backward compatibility)
         agentConfigs = formData.agentIds.map((agentId, index) => {
           const config: AgentConfig = {
             name: formData.agentNames[index],
             agentId: agentId,
           };
+
+          const modelName = applyModelName(index);
+          if (modelName) config.modelName = modelName;
 
           if (formData.agentTimeout) {
             const timeout = parseInt(formData.agentTimeout, 10);
@@ -706,6 +747,8 @@ export function BenchmarkJobCreateScreen({
         if (formData.agentNames.length === 0) return "";
         if (formData.agentNames.length === 1) return formData.agentNames[0];
         return `${formData.agentNames.length} agents selected`;
+      case "model_names":
+        return formData.modelNamesInput;
       case "name":
         return formData.name;
       case "agent_timeout":
@@ -837,6 +880,11 @@ export function BenchmarkJobCreateScreen({
                       onChange={(val) => {
                         if (field.key === "name") {
                           setFormData((prev) => ({ ...prev, name: val }));
+                        } else if (field.key === "model_names") {
+                          setFormData((prev) => ({
+                            ...prev,
+                            modelNamesInput: val,
+                          }));
                         } else if (field.key === "agent_timeout") {
                           setFormData((prev) => ({
                             ...prev,

@@ -328,7 +328,10 @@ export function Router() {
         <BenchmarkJobDetailScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "benchmark-job-create" && (
-        <BenchmarkJobCreateScreen key={currentScreen} {...params} />
+        <BenchmarkJobCreateScreen
+          key={`benchmark-job-create-${params.cloneFromJobId ?? "new"}`}
+          {...params}
+        />
       )}
       {!KNOWN_SCREENS.has(currentScreen) && (
         <UnknownScreen key={currentScreen} screenName={currentScreen} />
