@@ -179,7 +179,7 @@ const ListBlueprintsUI = ({
       !executingOperation &&
       !showDeleteConfirm &&
       !search.searchMode,
-    deps: [PAGE_SIZE, search.submittedSearchQuery],
+    deps: [search.submittedSearchQuery],
   });
 
   // Memoize columns array
@@ -624,10 +624,18 @@ const ListBlueprintsUI = ({
         bindings: {
           up: () => {
             if (selectedIndex > 0) setSelectedIndex(selectedIndex - 1);
+            else if (!loading && !navigating && hasPrev) {
+              prevPage();
+              setSelectedIndex(blueprints.length - 1);
+            }
           },
           down: () => {
             if (selectedIndex < blueprints.length - 1)
               setSelectedIndex(selectedIndex + 1);
+            else if (!loading && !navigating && hasMore) {
+              nextPage();
+              setSelectedIndex(0);
+            }
           },
           n: goToNextPage,
           right: goToNextPage,

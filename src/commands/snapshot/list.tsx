@@ -175,7 +175,7 @@ const ListSnapshotsUI = ({
       !showCreateDevbox &&
       !showDeleteConfirm &&
       !search.searchMode,
-    deps: [devboxId, PAGE_SIZE, search.submittedSearchQuery],
+    deps: [devboxId, search.submittedSearchQuery],
   });
 
   // Operations for snapshots
@@ -379,8 +379,26 @@ const ListSnapshotsUI = ({
     // Handle list view navigation
     if (key.upArrow && selectedIndex > 0) {
       setSelectedIndex(selectedIndex - 1);
+    } else if (
+      key.upArrow &&
+      selectedIndex === 0 &&
+      !loading &&
+      !navigating &&
+      hasPrev
+    ) {
+      prevPage();
+      setSelectedIndex(pageSnapshots - 1);
     } else if (key.downArrow && selectedIndex < pageSnapshots - 1) {
       setSelectedIndex(selectedIndex + 1);
+    } else if (
+      key.downArrow &&
+      selectedIndex === pageSnapshots - 1 &&
+      !loading &&
+      !navigating &&
+      hasMore
+    ) {
+      nextPage();
+      setSelectedIndex(0);
     } else if (
       (input === "n" || key.rightArrow) &&
       !loading &&
