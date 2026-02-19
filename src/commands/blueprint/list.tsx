@@ -984,6 +984,7 @@ const ListBlueprintsUI = ({
 
 interface ListBlueprintsOptions {
   name?: string;
+  limit?: string;
   output?: string;
 }
 
@@ -994,23 +995,45 @@ export async function listBlueprints(options: ListBlueprintsOptions = {}) {
   try {
     const client = getClient();
 
-    // Build query params
-    const queryParams: Record<string, unknown> = {
-      limit: DEFAULT_PAGE_SIZE,
-    };
-    if (options.name) {
-      queryParams.name = options.name;
-    }
+    const maxResults = options.limit ? parseInt(options.limit, 10) : Infinity;
+    const allBlueprints: unknown[] = [];
+    let startingAfter: string | undefined;
 
-    // Fetch blueprints
-    const page = (await client.blueprints.list(
-      queryParams,
-    )) as BlueprintsCursorIDPage<{ id: string }>;
+    do {
+      const remaining = maxResults - allBlueprints.length;
+      // Build query params
+      const queryParams: Record<string, unknown> = {
+        limit: Math.min(DEFAULT_PAGE_SIZE, remaining),
+      };
+      if (options.name) {
+        queryParams.name = options.name;
+      }
+      if (startingAfter) {
+        queryParams.starting_after = startingAfter;
+      }
 
-    // Extract blueprints array
-    const blueprints = page.blueprints || [];
+      // Fetch one page
+      const page = (await client.blueprints.list(
+        queryParams,
+      )) as BlueprintsCursorIDPage<{ id: string }>;
 
-    output(blueprints, { format: options.output, defaultFormat: "json" });
+      const pageBlueprints = page.blueprints || [];
+      allBlueprints.push(...pageBlueprints);
+
+      if (
+        page.has_more &&
+        pageBlueprints.length > 0 &&
+        allBlueprints.length < maxResults
+      ) {
+        startingAfter = (
+          pageBlueprints[pageBlueprints.length - 1] as { id: string }
+        ).id;
+      } else {
+        startingAfter = undefined;
+      }
+    } while (startingAfter !== undefined);
+
+    output(allBlueprints, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to list blueprints", error);
   }

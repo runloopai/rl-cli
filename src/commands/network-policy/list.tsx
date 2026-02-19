@@ -26,6 +26,7 @@ import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
 
 interface ListOptions {
   name?: string;
+  limit?: string;
   output?: string;
 }
 
@@ -775,23 +776,45 @@ export async function listNetworkPolicies(options: ListOptions = {}) {
   try {
     const client = getClient();
 
-    // Build query params
-    const queryParams: Record<string, unknown> = {
-      limit: DEFAULT_PAGE_SIZE,
-    };
-    if (options.name) {
-      queryParams.name = options.name;
-    }
+    const maxResults = options.limit ? parseInt(options.limit, 10) : Infinity;
+    const allPolicies: unknown[] = [];
+    let startingAfter: string | undefined;
 
-    // Fetch network policies
-    const page = (await client.networkPolicies.list(
-      queryParams,
-    )) as NetworkPoliciesCursorIDPage<{ id: string }>;
+    do {
+      const remaining = maxResults - allPolicies.length;
+      // Build query params
+      const queryParams: Record<string, unknown> = {
+        limit: Math.min(DEFAULT_PAGE_SIZE, remaining),
+      };
+      if (options.name) {
+        queryParams.name = options.name;
+      }
+      if (startingAfter) {
+        queryParams.starting_after = startingAfter;
+      }
 
-    // Extract network policies array
-    const networkPolicies = page.network_policies || [];
+      // Fetch one page
+      const page = (await client.networkPolicies.list(
+        queryParams,
+      )) as NetworkPoliciesCursorIDPage<{ id: string }>;
 
-    output(networkPolicies, { format: options.output, defaultFormat: "json" });
+      const pagePolicies = page.network_policies || [];
+      allPolicies.push(...pagePolicies);
+
+      if (
+        page.has_more &&
+        pagePolicies.length > 0 &&
+        allPolicies.length < maxResults
+      ) {
+        startingAfter = (
+          pagePolicies[pagePolicies.length - 1] as { id: string }
+        ).id;
+      } else {
+        startingAfter = undefined;
+      }
+    } while (startingAfter !== undefined);
+
+    output(allPolicies, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to list network policies", error);
   }

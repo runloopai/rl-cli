@@ -359,6 +359,7 @@ export function createProgram(): Command {
     .command("list")
     .description("List all snapshots")
     .option("-d, --devbox <id>", "Filter by devbox ID")
+    .option("-l, --limit <n>", "Max results", "20")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: json)",
@@ -446,6 +447,7 @@ export function createProgram(): Command {
     .command("list")
     .description("List all blueprints")
     .option("-n, --name <name>", "Filter by blueprint name")
+    .option("-l, --limit <n>", "Max results", "20")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: json)",

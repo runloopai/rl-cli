@@ -27,6 +27,7 @@ import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
 
 interface ListOptions {
   devbox?: string;
+  limit?: string;
   output?: string;
 }
 
@@ -688,33 +689,56 @@ export async function listSnapshots(options: ListOptions) {
   try {
     const client = getClient();
 
-    // Build query params
-    const queryParams: Record<string, unknown> = {
-      limit: DEFAULT_PAGE_SIZE,
-    };
-    if (options.devbox) {
-      queryParams.devbox_id = options.devbox;
-    }
+    const maxResults = options.limit ? parseInt(options.limit, 10) : Infinity;
+    const allSnapshots: ReturnType<typeof mapSnapshot>[] = [];
+    let startingAfter: string | undefined;
 
-    // Fetch snapshots
-    const page = (await client.devboxes.listDiskSnapshots(
-      queryParams,
-    )) as DiskSnapshotsCursorIDPage<DevboxSnapshotView>;
+    do {
+      const remaining = maxResults - allSnapshots.length;
+      // Build query params
+      const queryParams: Record<string, unknown> = {
+        limit: Math.min(DEFAULT_PAGE_SIZE, remaining),
+      };
+      if (options.devbox) {
+        queryParams.devbox_id = options.devbox;
+      }
+      if (startingAfter) {
+        queryParams.starting_after = startingAfter;
+      }
 
-    // Extract snapshots array and strip to plain objects to avoid
-    // camelCase aliases added by the API client library
-    const snapshots = (page.snapshots || []).map((s) => ({
-      id: s.id,
-      name: s.name ?? undefined,
-      create_time_ms: s.create_time_ms,
-      metadata: s.metadata,
-      source_devbox_id: s.source_devbox_id,
-      source_blueprint_id: s.source_blueprint_id ?? undefined,
-      commit_message: s.commit_message ?? undefined,
-    }));
+      // Fetch one page
+      const page = (await client.devboxes.listDiskSnapshots(
+        queryParams,
+      )) as DiskSnapshotsCursorIDPage<DevboxSnapshotView>;
 
-    output(snapshots, { format: options.output, defaultFormat: "json" });
+      const pageSnapshots = page.snapshots || [];
+      allSnapshots.push(...pageSnapshots.map(mapSnapshot));
+
+      if (
+        page.has_more &&
+        pageSnapshots.length > 0 &&
+        allSnapshots.length < maxResults
+      ) {
+        startingAfter = pageSnapshots[pageSnapshots.length - 1].id;
+      } else {
+        startingAfter = undefined;
+      }
+    } while (startingAfter !== undefined);
+
+    output(allSnapshots, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to list snapshots", error);
   }
+}
+
+function mapSnapshot(s: DevboxSnapshotView) {
+  return {
+    id: s.id,
+    name: s.name ?? undefined,
+    create_time_ms: s.create_time_ms,
+    metadata: s.metadata,
+    source_devbox_id: s.source_devbox_id,
+    source_blueprint_id: s.source_blueprint_id ?? undefined,
+    commit_message: s.commit_message ?? undefined,
+  };
 }

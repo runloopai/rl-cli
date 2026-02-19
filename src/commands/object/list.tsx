@@ -30,6 +30,7 @@ interface ListOptions {
   contentType?: string;
   state?: string;
   public?: boolean;
+  limit?: string;
   output?: string;
 }
 
@@ -817,30 +818,53 @@ export async function listObjects(options: ListOptions) {
   try {
     const client = getClient();
 
-    // Build query params
-    const queryParams: Record<string, unknown> = {
-      limit: DEFAULT_PAGE_SIZE,
-    };
-    if (options.name) {
-      queryParams.name = options.name;
-    }
-    if (options.contentType) {
-      queryParams.content_type = options.contentType;
-    }
-    if (options.state) {
-      queryParams.state = options.state;
-    }
-    if (options.public !== undefined) {
-      queryParams.is_public = options.public;
-    }
+    const maxResults = options.limit ? parseInt(options.limit, 10) : Infinity;
+    const allObjects: unknown[] = [];
+    let startingAfter: string | undefined;
 
-    // Fetch objects
-    const result = await client.objects.list(queryParams);
+    do {
+      const remaining = maxResults - allObjects.length;
+      // Build query params
+      const queryParams: Record<string, unknown> = {
+        limit: Math.min(DEFAULT_PAGE_SIZE, remaining),
+      };
+      if (options.name) {
+        queryParams.name = options.name;
+      }
+      if (options.contentType) {
+        queryParams.content_type = options.contentType;
+      }
+      if (options.state) {
+        queryParams.state = options.state;
+      }
+      if (options.public !== undefined) {
+        queryParams.is_public = options.public;
+      }
+      if (startingAfter) {
+        queryParams.starting_after = startingAfter;
+      }
 
-    // Extract objects array
-    const objects = result.objects || [];
+      // Fetch one page
+      const result = await client.objects.list(queryParams);
+      const pageResult = result as unknown as {
+        objects?: { id: string }[];
+        has_more?: boolean;
+      };
+      const pageObjects = pageResult.objects || [];
+      allObjects.push(...pageObjects);
 
-    output(objects, { format: options.output, defaultFormat: "json" });
+      if (
+        pageResult.has_more &&
+        pageObjects.length > 0 &&
+        allObjects.length < maxResults
+      ) {
+        startingAfter = pageObjects[pageObjects.length - 1].id;
+      } else {
+        startingAfter = undefined;
+      }
+    } while (startingAfter !== undefined);
+
+    output(allObjects, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to list storage objects", error);
   }

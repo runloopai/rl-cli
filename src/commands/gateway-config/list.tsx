@@ -26,6 +26,7 @@ import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
 
 interface ListOptions {
   name?: string;
+  limit?: string;
   output?: string;
 }
 
@@ -746,23 +747,44 @@ export async function listGatewayConfigs(options: ListOptions = {}) {
   try {
     const client = getClient();
 
-    // Build query params
-    const queryParams: Record<string, unknown> = {
-      limit: DEFAULT_PAGE_SIZE,
-    };
-    if (options.name) {
-      queryParams.name = options.name;
-    }
+    const maxResults = options.limit ? parseInt(options.limit, 10) : Infinity;
+    const allConfigs: unknown[] = [];
+    let startingAfter: string | undefined;
 
-    // Fetch gateway configs
-    const page = (await client.gatewayConfigs.list(
-      queryParams,
-    )) as GatewayConfigsCursorIDPage<{ id: string }>;
+    do {
+      const remaining = maxResults - allConfigs.length;
+      // Build query params
+      const queryParams: Record<string, unknown> = {
+        limit: Math.min(DEFAULT_PAGE_SIZE, remaining),
+      };
+      if (options.name) {
+        queryParams.name = options.name;
+      }
+      if (startingAfter) {
+        queryParams.starting_after = startingAfter;
+      }
 
-    // Extract gateway configs array
-    const gatewayConfigs = page.gateway_configs || [];
+      // Fetch one page
+      const page = (await client.gatewayConfigs.list(
+        queryParams,
+      )) as GatewayConfigsCursorIDPage<{ id: string }>;
 
-    output(gatewayConfigs, { format: options.output, defaultFormat: "json" });
+      const pageConfigs = page.gateway_configs || [];
+      allConfigs.push(...pageConfigs);
+
+      if (
+        page.has_more &&
+        pageConfigs.length > 0 &&
+        allConfigs.length < maxResults
+      ) {
+        startingAfter = (pageConfigs[pageConfigs.length - 1] as { id: string })
+          .id;
+      } else {
+        startingAfter = undefined;
+      }
+    } while (startingAfter !== undefined);
+
+    output(allConfigs, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to list gateway configs", error);
   }

@@ -798,23 +798,45 @@ export async function listDevboxes(options: ListOptions) {
   try {
     const client = getClient();
 
-    // Build query params
-    const queryParams: Record<string, unknown> = {
-      limit: options.limit ? parseInt(options.limit, 10) : DEFAULT_PAGE_SIZE,
-    };
-    if (options.status) {
-      queryParams.status = options.status;
-    }
+    const maxResults = options.limit ? parseInt(options.limit, 10) : Infinity;
+    const allDevboxes: unknown[] = [];
+    let startingAfter: string | undefined;
 
-    // Fetch devboxes
-    const page = (await client.devboxes.list(
-      queryParams,
-    )) as DevboxesCursorIDPage<{ id: string }>;
+    do {
+      const remaining = maxResults - allDevboxes.length;
+      // Build query params
+      const queryParams: Record<string, unknown> = {
+        limit: Math.min(DEFAULT_PAGE_SIZE, remaining),
+      };
+      if (options.status) {
+        queryParams.status = options.status;
+      }
+      if (startingAfter) {
+        queryParams.starting_after = startingAfter;
+      }
 
-    // Extract devboxes array
-    const devboxes = page.devboxes || [];
+      // Fetch one page
+      const page = (await client.devboxes.list(
+        queryParams,
+      )) as DevboxesCursorIDPage<{ id: string }>;
 
-    output(devboxes, { format: options.output, defaultFormat: "json" });
+      const pageDevboxes = page.devboxes || [];
+      allDevboxes.push(...pageDevboxes);
+
+      if (
+        page.has_more &&
+        pageDevboxes.length > 0 &&
+        allDevboxes.length < maxResults
+      ) {
+        startingAfter = (
+          pageDevboxes[pageDevboxes.length - 1] as { id: string }
+        ).id;
+      } else {
+        startingAfter = undefined;
+      }
+    } while (startingAfter !== undefined);
+
+    output(allDevboxes, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to list devboxes", error);
   }
