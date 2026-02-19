@@ -12,7 +12,7 @@ import type { Column } from "../../components/Table.js";
 import { Table, createTextColumn } from "../../components/Table.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
 import { SearchBar } from "../../components/SearchBar.js";
-import { output, outputError } from "../../utils/output.js";
+import { output, outputError, parseLimit } from "../../utils/output.js";
 import { DevboxDetailPage } from "../../components/DevboxDetailPage.js";
 import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
 import { ResourceActionsMenu } from "../../components/ResourceActionsMenu.js";
@@ -806,7 +806,7 @@ export async function listDevboxes(options: ListOptions) {
   try {
     const client = getClient();
 
-    const maxResults = options.limit ? parseInt(options.limit, 10) : Infinity;
+    const maxResults = parseLimit(options.limit);
     const allDevboxes: unknown[] = [];
     let startingAfter: string | undefined;
 

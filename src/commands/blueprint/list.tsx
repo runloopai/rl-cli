@@ -15,7 +15,7 @@ import { Operation } from "../../components/OperationsMenu.js";
 import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
 import { SearchBar } from "../../components/SearchBar.js";
-import { output, outputError } from "../../utils/output.js";
+import { output, outputError, parseLimit } from "../../utils/output.js";
 import { getBlueprintUrl } from "../../utils/url.js";
 import { colors } from "../../utils/theme.js";
 import { getStatusDisplay } from "../../components/StatusBadge.js";
@@ -1003,7 +1003,7 @@ export async function listBlueprints(options: ListBlueprintsOptions = {}) {
   try {
     const client = getClient();
 
-    const maxResults = options.limit ? parseInt(options.limit, 10) : Infinity;
+    const maxResults = parseLimit(options.limit);
     const allBlueprints: unknown[] = [];
     let startingAfter: string | undefined;
 

@@ -14,7 +14,7 @@ import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { Operation } from "../../components/OperationsMenu.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
 import { SearchBar } from "../../components/SearchBar.js";
-import { output, outputError } from "../../utils/output.js";
+import { output, outputError, parseLimit } from "../../utils/output.js";
 import { colors } from "../../utils/theme.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
@@ -765,7 +765,7 @@ export async function listGatewayConfigs(options: ListOptions = {}) {
   try {
     const client = getClient();
 
-    const maxResults = options.limit ? parseInt(options.limit, 10) : Infinity;
+    const maxResults = parseLimit(options.limit);
     const allConfigs: unknown[] = [];
     let startingAfter: string | undefined;
 
