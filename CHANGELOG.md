@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.0](https://github.com/runloopai/rl-cli/compare/v1.10.0...v1.11.0) (2026-02-19)
+
+
+### Features
+
+* add model name config in Benchmark Jobs ([#118](https://github.com/runloopai/rl-cli/issues/118)) ([08a67c7](https://github.com/runloopai/rl-cli/commit/08a67c760515aae5f06652fedaa84554cea44485))
+
 ## [1.10.0](https://github.com/runloopai/rl-cli/compare/v1.9.0...v1.10.0) (2026-02-14)
 
 
