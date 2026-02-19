@@ -14,7 +14,7 @@ import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { Operation } from "../../components/OperationsMenu.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
 import { SearchBar } from "../../components/SearchBar.js";
-import { output, outputError } from "../../utils/output.js";
+import { output, outputError, parseLimit } from "../../utils/output.js";
 import { colors } from "../../utils/theme.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
@@ -26,6 +26,7 @@ import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
 
 interface ListOptions {
   name?: string;
+  limit?: string;
   output?: string;
 }
 
@@ -162,7 +163,7 @@ const ListGatewayConfigsUI = ({
       const result = {
         items: pageConfigs,
         hasMore: page.has_more || false,
-        totalCount: page.total_count || pageConfigs.length,
+        totalCount: pageConfigs.length,
       };
 
       return result;
@@ -195,7 +196,7 @@ const ListGatewayConfigsUI = ({
       !showEditConfig &&
       !showDeleteConfirm &&
       !search.searchMode,
-    deps: [PAGE_SIZE, search.submittedSearchQuery],
+    deps: [search.submittedSearchQuery],
   });
 
   // Operations for a specific gateway config (shown in popup)
@@ -428,8 +429,26 @@ const ListGatewayConfigsUI = ({
     // Handle list view navigation
     if (key.upArrow && selectedIndex > 0) {
       setSelectedIndex(selectedIndex - 1);
+    } else if (
+      key.upArrow &&
+      selectedIndex === 0 &&
+      !loading &&
+      !navigating &&
+      hasPrev
+    ) {
+      prevPage();
+      setSelectedIndex(pageConfigs - 1);
     } else if (key.downArrow && selectedIndex < pageConfigs - 1) {
       setSelectedIndex(selectedIndex + 1);
+    } else if (
+      key.downArrow &&
+      selectedIndex === pageConfigs - 1 &&
+      !loading &&
+      !navigating &&
+      hasMore
+    ) {
+      nextPage();
+      setSelectedIndex(0);
     } else if (
       (input === "n" || key.rightArrow) &&
       !loading &&
@@ -630,7 +649,7 @@ const ListGatewayConfigsUI = ({
           data={configs}
           keyExtractor={(config: GatewayConfigListItem) => config.id}
           selectedIndex={selectedIndex}
-          title={`gateway_configs[${totalCount}]`}
+          title={`gateway_configs[${hasMore ? `${totalCount}+` : totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -645,7 +664,7 @@ const ListGatewayConfigsUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {totalCount}
+            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -663,7 +682,8 @@ const ListGatewayConfigsUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of {totalPages}
+                  Page {currentPage + 1} of{" "}
+                  {hasMore ? `${totalPages}+` : totalPages}
                 </Text>
               )}
             </>
@@ -673,7 +693,8 @@ const ListGatewayConfigsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {startIndex + 1}-{endIndex} of{" "}
+            {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>
@@ -744,23 +765,44 @@ export async function listGatewayConfigs(options: ListOptions = {}) {
   try {
     const client = getClient();
 
-    // Build query params
-    const queryParams: Record<string, unknown> = {
-      limit: DEFAULT_PAGE_SIZE,
-    };
-    if (options.name) {
-      queryParams.name = options.name;
-    }
+    const maxResults = parseLimit(options.limit);
+    const allConfigs: unknown[] = [];
+    let startingAfter: string | undefined;
 
-    // Fetch gateway configs
-    const page = (await client.gatewayConfigs.list(
-      queryParams,
-    )) as GatewayConfigsCursorIDPage<{ id: string }>;
+    do {
+      const remaining = maxResults - allConfigs.length;
+      // Build query params
+      const queryParams: Record<string, unknown> = {
+        limit: Math.min(DEFAULT_PAGE_SIZE, remaining),
+      };
+      if (options.name) {
+        queryParams.name = options.name;
+      }
+      if (startingAfter) {
+        queryParams.starting_after = startingAfter;
+      }
 
-    // Extract gateway configs array
-    const gatewayConfigs = page.gateway_configs || [];
+      // Fetch one page
+      const page = (await client.gatewayConfigs.list(
+        queryParams,
+      )) as GatewayConfigsCursorIDPage<{ id: string }>;
 
-    output(gatewayConfigs, { format: options.output, defaultFormat: "json" });
+      const pageConfigs = page.gateway_configs || [];
+      allConfigs.push(...pageConfigs);
+
+      if (
+        page.has_more &&
+        pageConfigs.length > 0 &&
+        allConfigs.length < maxResults
+      ) {
+        startingAfter = (pageConfigs[pageConfigs.length - 1] as { id: string })
+          .id;
+      } else {
+        startingAfter = undefined;
+      }
+    } while (startingAfter !== undefined);
+
+    output(allConfigs, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to list gateway configs", error);
   }

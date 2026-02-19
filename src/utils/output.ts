@@ -11,6 +11,24 @@ import { processUtils } from "./processUtils.js";
 
 export type OutputFormat = "text" | "json" | "yaml";
 
+/**
+ * Parse a --limit option string into a max results number.
+ * - undefined or "0" → Infinity (unlimited)
+ * - positive integer string → that number
+ * - negative integer → Infinity (treat as unlimited)
+ * - non-numeric non-empty string → throws an error
+ */
+export function parseLimit(limit: string | undefined): number {
+  if (!limit || limit.trim() === "") return Infinity;
+  const trimmed = limit.trim();
+  if (!/^-?\d+$/.test(trimmed)) {
+    throw new Error(`Invalid --limit value: "${limit}". Must be an integer.`);
+  }
+  const n = parseInt(trimmed, 10);
+  if (n <= 0) return Infinity;
+  return n;
+}
+
 export interface OutputOptions {
   output?: string;
 }

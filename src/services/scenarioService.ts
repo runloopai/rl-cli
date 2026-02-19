@@ -47,7 +47,7 @@ export async function listScenarios(
 
   return {
     scenarios,
-    totalCount: page.total_count || scenarios.length,
+    totalCount: scenarios.length,
     hasMore: page.has_more || false,
   };
 }

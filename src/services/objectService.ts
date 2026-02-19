@@ -77,13 +77,12 @@ export async function listObjects(
   // Access pagination properties from the result
   const pageResult = result as unknown as {
     objects: unknown[];
-    total_count?: number;
     has_more?: boolean;
   };
 
   return {
     objects,
-    totalCount: pageResult.total_count || objects.length,
+    totalCount: objects.length,
     hasMore: pageResult.has_more || false,
   };
 }

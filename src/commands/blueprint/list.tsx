@@ -15,7 +15,7 @@ import { Operation } from "../../components/OperationsMenu.js";
 import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
 import { SearchBar } from "../../components/SearchBar.js";
-import { output, outputError } from "../../utils/output.js";
+import { output, outputError, parseLimit } from "../../utils/output.js";
 import { getBlueprintUrl } from "../../utils/url.js";
 import { colors } from "../../utils/theme.js";
 import { getStatusDisplay } from "../../components/StatusBadge.js";
@@ -148,7 +148,7 @@ const ListBlueprintsUI = ({
       const result = {
         items: pageBlueprints,
         hasMore: page.has_more || false,
-        totalCount: page.total_count || pageBlueprints.length,
+        totalCount: pageBlueprints.length,
       };
 
       return result;
@@ -179,7 +179,7 @@ const ListBlueprintsUI = ({
       !executingOperation &&
       !showDeleteConfirm &&
       !search.searchMode,
-    deps: [PAGE_SIZE, search.submittedSearchQuery],
+    deps: [search.submittedSearchQuery],
   });
 
   // Memoize columns array
@@ -624,10 +624,18 @@ const ListBlueprintsUI = ({
         bindings: {
           up: () => {
             if (selectedIndex > 0) setSelectedIndex(selectedIndex - 1);
+            else if (!loading && !navigating && hasPrev) {
+              prevPage();
+              setSelectedIndex(blueprints.length - 1);
+            }
           },
           down: () => {
             if (selectedIndex < blueprints.length - 1)
               setSelectedIndex(selectedIndex + 1);
+            else if (!loading && !navigating && hasMore) {
+              nextPage();
+              setSelectedIndex(0);
+            }
           },
           n: goToNextPage,
           right: goToNextPage,
@@ -875,7 +883,7 @@ const ListBlueprintsUI = ({
           data={blueprints}
           keyExtractor={(blueprint: BlueprintListItem) => blueprint.id}
           selectedIndex={selectedIndex}
-          title={`blueprints[${totalCount}]`}
+          title={`blueprints[${hasMore ? `${totalCount}+` : totalCount}]`}
           columns={blueprintColumns}
           emptyState={
             <Text color={colors.textDim}>
@@ -889,7 +897,7 @@ const ListBlueprintsUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {totalCount}
+            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -907,7 +915,8 @@ const ListBlueprintsUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of {totalPages}
+                  Page {currentPage + 1} of{" "}
+                  {hasMore ? `${totalPages}+` : totalPages}
                 </Text>
               )}
             </>
@@ -917,7 +926,8 @@ const ListBlueprintsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {startIndex + 1}-{endIndex} of{" "}
+            {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>
@@ -982,6 +992,7 @@ const ListBlueprintsUI = ({
 
 interface ListBlueprintsOptions {
   name?: string;
+  limit?: string;
   output?: string;
 }
 
@@ -992,23 +1003,45 @@ export async function listBlueprints(options: ListBlueprintsOptions = {}) {
   try {
     const client = getClient();
 
-    // Build query params
-    const queryParams: Record<string, unknown> = {
-      limit: DEFAULT_PAGE_SIZE,
-    };
-    if (options.name) {
-      queryParams.name = options.name;
-    }
+    const maxResults = parseLimit(options.limit);
+    const allBlueprints: unknown[] = [];
+    let startingAfter: string | undefined;
 
-    // Fetch blueprints
-    const page = (await client.blueprints.list(
-      queryParams,
-    )) as BlueprintsCursorIDPage<{ id: string }>;
+    do {
+      const remaining = maxResults - allBlueprints.length;
+      // Build query params
+      const queryParams: Record<string, unknown> = {
+        limit: Math.min(DEFAULT_PAGE_SIZE, remaining),
+      };
+      if (options.name) {
+        queryParams.name = options.name;
+      }
+      if (startingAfter) {
+        queryParams.starting_after = startingAfter;
+      }
 
-    // Extract blueprints array
-    const blueprints = page.blueprints || [];
+      // Fetch one page
+      const page = (await client.blueprints.list(
+        queryParams,
+      )) as BlueprintsCursorIDPage<{ id: string }>;
 
-    output(blueprints, { format: options.output, defaultFormat: "json" });
+      const pageBlueprints = page.blueprints || [];
+      allBlueprints.push(...pageBlueprints);
+
+      if (
+        page.has_more &&
+        pageBlueprints.length > 0 &&
+        allBlueprints.length < maxResults
+      ) {
+        startingAfter = (
+          pageBlueprints[pageBlueprints.length - 1] as { id: string }
+        ).id;
+      } else {
+        startingAfter = undefined;
+      }
+    } while (startingAfter !== undefined);
+
+    output(allBlueprints, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to list blueprints", error);
   }

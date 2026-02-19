@@ -90,7 +90,7 @@ export async function listSnapshots(
 
   const result = {
     snapshots,
-    totalCount: page.total_count || snapshots.length,
+    totalCount: snapshots.length,
     hasMore: page.has_more || false,
   };
 

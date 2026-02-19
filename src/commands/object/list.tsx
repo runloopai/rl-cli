@@ -15,7 +15,7 @@ import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { Operation } from "../../components/OperationsMenu.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
 import { SearchBar } from "../../components/SearchBar.js";
-import { output, outputError } from "../../utils/output.js";
+import { output, outputError, parseLimit } from "../../utils/output.js";
 import { colors } from "../../utils/theme.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
@@ -30,6 +30,7 @@ interface ListOptions {
   contentType?: string;
   state?: string;
   public?: boolean;
+  limit?: string;
   output?: string;
 }
 
@@ -172,14 +173,13 @@ const ListObjectsUI = ({
       // Access pagination properties from the result
       const pageResult = result as unknown as {
         objects: unknown[];
-        total_count?: number;
         has_more?: boolean;
       };
 
       return {
         items: pageObjects,
         hasMore: pageResult.has_more || false,
-        totalCount: pageResult.total_count || pageObjects.length,
+        totalCount: pageObjects.length,
       };
     },
     [search.submittedSearchQuery],
@@ -209,7 +209,7 @@ const ListObjectsUI = ({
       !showDownloadPrompt &&
       !showDeleteConfirm &&
       !search.searchMode,
-    deps: [PAGE_SIZE, search.submittedSearchQuery],
+    deps: [search.submittedSearchQuery],
   });
 
   // Operations for objects
@@ -499,8 +499,26 @@ const ListObjectsUI = ({
     // Handle list view navigation
     if (key.upArrow && selectedIndex > 0) {
       setSelectedIndex(selectedIndex - 1);
+    } else if (
+      key.upArrow &&
+      selectedIndex === 0 &&
+      !loading &&
+      !navigating &&
+      hasPrev
+    ) {
+      prevPage();
+      setSelectedIndex(pageObjects - 1);
     } else if (key.downArrow && selectedIndex < pageObjects - 1) {
       setSelectedIndex(selectedIndex + 1);
+    } else if (
+      key.downArrow &&
+      selectedIndex === pageObjects - 1 &&
+      !loading &&
+      !navigating &&
+      hasMore
+    ) {
+      nextPage();
+      setSelectedIndex(0);
     } else if (
       (input === "n" || key.rightArrow) &&
       !loading &&
@@ -706,7 +724,7 @@ const ListObjectsUI = ({
           data={objects}
           keyExtractor={(obj: ObjectListItem) => obj.id}
           selectedIndex={selectedIndex}
-          title={`storage_objects[${totalCount}]`}
+          title={`storage_objects[${hasMore ? `${totalCount}+` : totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -721,7 +739,7 @@ const ListObjectsUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {totalCount}
+            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -739,7 +757,8 @@ const ListObjectsUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of {totalPages}
+                  Page {currentPage + 1} of{" "}
+                  {hasMore ? `${totalPages}+` : totalPages}
                 </Text>
               )}
             </>
@@ -749,7 +768,8 @@ const ListObjectsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {startIndex + 1}-{endIndex} of{" "}
+            {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>
@@ -816,30 +836,53 @@ export async function listObjects(options: ListOptions) {
   try {
     const client = getClient();
 
-    // Build query params
-    const queryParams: Record<string, unknown> = {
-      limit: DEFAULT_PAGE_SIZE,
-    };
-    if (options.name) {
-      queryParams.name = options.name;
-    }
-    if (options.contentType) {
-      queryParams.content_type = options.contentType;
-    }
-    if (options.state) {
-      queryParams.state = options.state;
-    }
-    if (options.public !== undefined) {
-      queryParams.is_public = options.public;
-    }
+    const maxResults = parseLimit(options.limit);
+    const allObjects: unknown[] = [];
+    let startingAfter: string | undefined;
 
-    // Fetch objects
-    const result = await client.objects.list(queryParams);
+    do {
+      const remaining = maxResults - allObjects.length;
+      // Build query params
+      const queryParams: Record<string, unknown> = {
+        limit: Math.min(DEFAULT_PAGE_SIZE, remaining),
+      };
+      if (options.name) {
+        queryParams.name = options.name;
+      }
+      if (options.contentType) {
+        queryParams.content_type = options.contentType;
+      }
+      if (options.state) {
+        queryParams.state = options.state;
+      }
+      if (options.public !== undefined) {
+        queryParams.is_public = options.public;
+      }
+      if (startingAfter) {
+        queryParams.starting_after = startingAfter;
+      }
 
-    // Extract objects array
-    const objects = result.objects || [];
+      // Fetch one page
+      const result = await client.objects.list(queryParams);
+      const pageResult = result as unknown as {
+        objects?: { id: string }[];
+        has_more?: boolean;
+      };
+      const pageObjects = pageResult.objects || [];
+      allObjects.push(...pageObjects);
 
-    output(objects, { format: options.output, defaultFormat: "json" });
+      if (
+        pageResult.has_more &&
+        pageObjects.length > 0 &&
+        allObjects.length < maxResults
+      ) {
+        startingAfter = pageObjects[pageObjects.length - 1].id;
+      } else {
+        startingAfter = undefined;
+      }
+    } while (startingAfter !== undefined);
+
+    output(allObjects, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to list storage objects", error);
   }

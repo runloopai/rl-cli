@@ -15,7 +15,7 @@ import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { Operation } from "../../components/OperationsMenu.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
 import { SearchBar } from "../../components/SearchBar.js";
-import { output, outputError } from "../../utils/output.js";
+import { output, outputError, parseLimit } from "../../utils/output.js";
 import { colors } from "../../utils/theme.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
@@ -27,6 +27,7 @@ import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
 
 interface ListOptions {
   devbox?: string;
+  limit?: string;
   output?: string;
 }
 
@@ -142,7 +143,7 @@ const ListSnapshotsUI = ({
       const result = {
         items: pageSnapshots,
         hasMore: page.has_more || false,
-        totalCount: page.total_count || pageSnapshots.length,
+        totalCount: pageSnapshots.length,
       };
 
       return result;
@@ -174,7 +175,7 @@ const ListSnapshotsUI = ({
       !showCreateDevbox &&
       !showDeleteConfirm &&
       !search.searchMode,
-    deps: [devboxId, PAGE_SIZE, search.submittedSearchQuery],
+    deps: [devboxId, search.submittedSearchQuery],
   });
 
   // Operations for snapshots
@@ -378,8 +379,26 @@ const ListSnapshotsUI = ({
     // Handle list view navigation
     if (key.upArrow && selectedIndex > 0) {
       setSelectedIndex(selectedIndex - 1);
+    } else if (
+      key.upArrow &&
+      selectedIndex === 0 &&
+      !loading &&
+      !navigating &&
+      hasPrev
+    ) {
+      prevPage();
+      setSelectedIndex(pageSnapshots - 1);
     } else if (key.downArrow && selectedIndex < pageSnapshots - 1) {
       setSelectedIndex(selectedIndex + 1);
+    } else if (
+      key.downArrow &&
+      selectedIndex === pageSnapshots - 1 &&
+      !loading &&
+      !navigating &&
+      hasMore
+    ) {
+      nextPage();
+      setSelectedIndex(0);
     } else if (
       (input === "n" || key.rightArrow) &&
       !loading &&
@@ -576,7 +595,7 @@ const ListSnapshotsUI = ({
           data={snapshots}
           keyExtractor={(snapshot: SnapshotListItem) => snapshot.id}
           selectedIndex={selectedIndex}
-          title={`snapshots[${totalCount}]`}
+          title={`snapshots[${hasMore ? `${totalCount}+` : totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -591,7 +610,7 @@ const ListSnapshotsUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {totalCount}
+            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -609,7 +628,8 @@ const ListSnapshotsUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of {totalPages}
+                  Page {currentPage + 1} of{" "}
+                  {hasMore ? `${totalPages}+` : totalPages}
                 </Text>
               )}
             </>
@@ -619,7 +639,8 @@ const ListSnapshotsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {startIndex + 1}-{endIndex} of{" "}
+            {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>
@@ -686,33 +707,56 @@ export async function listSnapshots(options: ListOptions) {
   try {
     const client = getClient();
 
-    // Build query params
-    const queryParams: Record<string, unknown> = {
-      limit: DEFAULT_PAGE_SIZE,
-    };
-    if (options.devbox) {
-      queryParams.devbox_id = options.devbox;
-    }
+    const maxResults = parseLimit(options.limit);
+    const allSnapshots: ReturnType<typeof mapSnapshot>[] = [];
+    let startingAfter: string | undefined;
 
-    // Fetch snapshots
-    const page = (await client.devboxes.listDiskSnapshots(
-      queryParams,
-    )) as DiskSnapshotsCursorIDPage<DevboxSnapshotView>;
+    do {
+      const remaining = maxResults - allSnapshots.length;
+      // Build query params
+      const queryParams: Record<string, unknown> = {
+        limit: Math.min(DEFAULT_PAGE_SIZE, remaining),
+      };
+      if (options.devbox) {
+        queryParams.devbox_id = options.devbox;
+      }
+      if (startingAfter) {
+        queryParams.starting_after = startingAfter;
+      }
 
-    // Extract snapshots array and strip to plain objects to avoid
-    // camelCase aliases added by the API client library
-    const snapshots = (page.snapshots || []).map((s) => ({
-      id: s.id,
-      name: s.name ?? undefined,
-      create_time_ms: s.create_time_ms,
-      metadata: s.metadata,
-      source_devbox_id: s.source_devbox_id,
-      source_blueprint_id: s.source_blueprint_id ?? undefined,
-      commit_message: s.commit_message ?? undefined,
-    }));
+      // Fetch one page
+      const page = (await client.devboxes.listDiskSnapshots(
+        queryParams,
+      )) as DiskSnapshotsCursorIDPage<DevboxSnapshotView>;
 
-    output(snapshots, { format: options.output, defaultFormat: "json" });
+      const pageSnapshots = page.snapshots || [];
+      allSnapshots.push(...pageSnapshots.map(mapSnapshot));
+
+      if (
+        page.has_more &&
+        pageSnapshots.length > 0 &&
+        allSnapshots.length < maxResults
+      ) {
+        startingAfter = pageSnapshots[pageSnapshots.length - 1].id;
+      } else {
+        startingAfter = undefined;
+      }
+    } while (startingAfter !== undefined);
+
+    output(allSnapshots, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to list snapshots", error);
   }
+}
+
+function mapSnapshot(s: DevboxSnapshotView) {
+  return {
+    id: s.id,
+    name: s.name ?? undefined,
+    create_time_ms: s.create_time_ms,
+    metadata: s.metadata,
+    source_devbox_id: s.source_devbox_id,
+    source_blueprint_id: s.source_blueprint_id ?? undefined,
+    commit_message: s.commit_message ?? undefined,
+  };
 }

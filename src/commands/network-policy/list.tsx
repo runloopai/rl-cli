@@ -14,7 +14,7 @@ import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { Operation } from "../../components/OperationsMenu.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
 import { SearchBar } from "../../components/SearchBar.js";
-import { output, outputError } from "../../utils/output.js";
+import { output, outputError, parseLimit } from "../../utils/output.js";
 import { colors } from "../../utils/theme.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
@@ -26,6 +26,7 @@ import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
 
 interface ListOptions {
   name?: string;
+  limit?: string;
   output?: string;
 }
 
@@ -173,7 +174,7 @@ const ListNetworkPoliciesUI = ({
       const result = {
         items: pagePolicies,
         hasMore: page.has_more || false,
-        totalCount: page.total_count || pagePolicies.length,
+        totalCount: pagePolicies.length,
       };
 
       return result;
@@ -206,7 +207,7 @@ const ListNetworkPoliciesUI = ({
       !showEditPolicy &&
       !showDeleteConfirm &&
       !search.searchMode,
-    deps: [PAGE_SIZE, search.submittedSearchQuery],
+    deps: [search.submittedSearchQuery],
   });
 
   // Operations for a specific network policy (shown in popup)
@@ -461,8 +462,26 @@ const ListNetworkPoliciesUI = ({
     // Handle list view navigation
     if (key.upArrow && selectedIndex > 0) {
       setSelectedIndex(selectedIndex - 1);
+    } else if (
+      key.upArrow &&
+      selectedIndex === 0 &&
+      !loading &&
+      !navigating &&
+      hasPrev
+    ) {
+      prevPage();
+      setSelectedIndex(pagePolicies - 1);
     } else if (key.downArrow && selectedIndex < pagePolicies - 1) {
       setSelectedIndex(selectedIndex + 1);
+    } else if (
+      key.downArrow &&
+      selectedIndex === pagePolicies - 1 &&
+      !loading &&
+      !navigating &&
+      hasMore
+    ) {
+      nextPage();
+      setSelectedIndex(0);
     } else if (
       (input === "n" || key.rightArrow) &&
       !loading &&
@@ -660,7 +679,7 @@ const ListNetworkPoliciesUI = ({
           data={policies}
           keyExtractor={(policy: NetworkPolicyListItem) => policy.id}
           selectedIndex={selectedIndex}
-          title={`network_policies[${totalCount}]`}
+          title={`network_policies[${hasMore ? `${totalCount}+` : totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -674,7 +693,7 @@ const ListNetworkPoliciesUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {totalCount}
+            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -692,7 +711,8 @@ const ListNetworkPoliciesUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of {totalPages}
+                  Page {currentPage + 1} of{" "}
+                  {hasMore ? `${totalPages}+` : totalPages}
                 </Text>
               )}
             </>
@@ -702,7 +722,8 @@ const ListNetworkPoliciesUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {startIndex + 1}-{endIndex} of{" "}
+            {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>
@@ -773,23 +794,45 @@ export async function listNetworkPolicies(options: ListOptions = {}) {
   try {
     const client = getClient();
 
-    // Build query params
-    const queryParams: Record<string, unknown> = {
-      limit: DEFAULT_PAGE_SIZE,
-    };
-    if (options.name) {
-      queryParams.name = options.name;
-    }
+    const maxResults = parseLimit(options.limit);
+    const allPolicies: unknown[] = [];
+    let startingAfter: string | undefined;
 
-    // Fetch network policies
-    const page = (await client.networkPolicies.list(
-      queryParams,
-    )) as NetworkPoliciesCursorIDPage<{ id: string }>;
+    do {
+      const remaining = maxResults - allPolicies.length;
+      // Build query params
+      const queryParams: Record<string, unknown> = {
+        limit: Math.min(DEFAULT_PAGE_SIZE, remaining),
+      };
+      if (options.name) {
+        queryParams.name = options.name;
+      }
+      if (startingAfter) {
+        queryParams.starting_after = startingAfter;
+      }
 
-    // Extract network policies array
-    const networkPolicies = page.network_policies || [];
+      // Fetch one page
+      const page = (await client.networkPolicies.list(
+        queryParams,
+      )) as NetworkPoliciesCursorIDPage<{ id: string }>;
 
-    output(networkPolicies, { format: options.output, defaultFormat: "json" });
+      const pagePolicies = page.network_policies || [];
+      allPolicies.push(...pagePolicies);
+
+      if (
+        page.has_more &&
+        pagePolicies.length > 0 &&
+        allPolicies.length < maxResults
+      ) {
+        startingAfter = (
+          pagePolicies[pagePolicies.length - 1] as { id: string }
+        ).id;
+      } else {
+        startingAfter = undefined;
+      }
+    } while (startingAfter !== undefined);
+
+    output(allPolicies, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to list network policies", error);
   }

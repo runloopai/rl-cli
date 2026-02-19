@@ -79,7 +79,7 @@ export async function listBlueprints(
 
   const result = {
     blueprints,
-    totalCount: page.total_count || blueprints.length,
+    totalCount: blueprints.length,
     hasMore: page.has_more || false,
   };
 

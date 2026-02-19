@@ -130,7 +130,7 @@ export async function listDevboxes(
 
   const result = {
     devboxes,
-    totalCount: page.total_count || devboxes.length,
+    totalCount: devboxes.length,
     hasMore: page.has_more || false,
   };
 

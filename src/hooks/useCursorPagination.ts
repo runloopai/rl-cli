@@ -101,6 +101,7 @@ export function useCursorPagination<T>(
   const [currentPage, setCurrentPage] = React.useState(0);
   const [hasMore, setHasMore] = React.useState(false);
   const [totalCount, setTotalCount] = React.useState(0);
+  const maxTotalCountRef = React.useRef(0);
 
   // Cursor history: cursorHistory[N] = last item ID of page N
   // Used to determine startingAt for page N+1
@@ -190,9 +191,12 @@ export function useCursorPagination<T>(
 
         // Update pagination state
         setHasMore(result.hasMore);
-        if (result.totalCount !== undefined) {
-          setTotalCount(result.totalCount);
-        }
+        // Compute cumulative total: items seen on all previous pages + current page.
+        // Use a high-water mark so the count never decreases when navigating back.
+        const computed = page * pageSizeRef.current + result.items.length;
+        const newTotal = Math.max(computed, maxTotalCountRef.current);
+        maxTotalCountRef.current = newTotal;
+        setTotalCount(newTotal);
       } catch (err) {
         if (!isMountedRef.current) return;
         setError(err as Error);
@@ -212,6 +216,7 @@ export function useCursorPagination<T>(
   React.useEffect(() => {
     // Clear cursor history when deps change
     cursorHistoryRef.current = [];
+    maxTotalCountRef.current = 0;
     setCurrentPage(0);
     setItems([]);
     setHasMore(false);

@@ -13,7 +13,7 @@ import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { Operation } from "../../components/OperationsMenu.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
 import { SearchBar } from "../../components/SearchBar.js";
-import { output, outputError } from "../../utils/output.js";
+import { output, outputError, parseLimit } from "../../utils/output.js";
 import { colors } from "../../utils/theme.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
@@ -167,7 +167,7 @@ const ListSecretsUI = ({
       !executingOperation &&
       !showDeleteConfirm &&
       !search.searchMode,
-    deps: [PAGE_SIZE, search.submittedSearchQuery],
+    deps: [search.submittedSearchQuery],
   });
 
   // Operations for a specific secret (shown in popup)
@@ -339,8 +339,26 @@ const ListSecretsUI = ({
     // Handle list view navigation
     if (key.upArrow && selectedIndex > 0) {
       setSelectedIndex(selectedIndex - 1);
+    } else if (
+      key.upArrow &&
+      selectedIndex === 0 &&
+      !loading &&
+      !navigating &&
+      hasPrev
+    ) {
+      prevPage();
+      setSelectedIndex(pageSecrets - 1);
     } else if (key.downArrow && selectedIndex < pageSecrets - 1) {
       setSelectedIndex(selectedIndex + 1);
+    } else if (
+      key.downArrow &&
+      selectedIndex === pageSecrets - 1 &&
+      !loading &&
+      !navigating &&
+      hasMore
+    ) {
+      nextPage();
+      setSelectedIndex(0);
     } else if (
       (input === "n" || key.rightArrow) &&
       !loading &&
@@ -525,7 +543,7 @@ const ListSecretsUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {totalCount}
+            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -543,7 +561,8 @@ const ListSecretsUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of {totalPages}
+                  Page {currentPage + 1} of{" "}
+                  {hasMore ? `${totalPages}+` : totalPages}
                 </Text>
               )}
             </>
@@ -553,7 +572,8 @@ const ListSecretsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {startIndex + 1}-{endIndex} of{" "}
+            {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>
@@ -619,18 +639,39 @@ export async function listSecrets(options: ListOptions = {}) {
   try {
     const client = getClient();
 
-    const limit = options.limit
-      ? parseInt(options.limit, 10)
-      : DEFAULT_PAGE_SIZE;
+    const maxResults = parseLimit(options.limit);
+    const allSecrets: unknown[] = [];
+    let startingAfter: string | undefined;
 
-    // Fetch secrets
-    const result = await client.secrets.list({ limit });
+    do {
+      const remaining = maxResults - allSecrets.length;
+      const queryParams: Record<string, unknown> = {
+        limit: Math.min(DEFAULT_PAGE_SIZE, remaining),
+      };
+      if (startingAfter) {
+        queryParams.starting_after = startingAfter;
+      }
 
-    // Extract secrets array
-    const secrets = result.secrets || [];
+      const result = await client.secrets.list(queryParams);
+      const pageResult = result as unknown as {
+        secrets?: { id: string }[];
+        has_more?: boolean;
+      };
+      const pageSecrets = pageResult.secrets || [];
+      allSecrets.push(...pageSecrets);
 
-    // Default: output JSON for lists
-    output(secrets, { format: options.output, defaultFormat: "json" });
+      if (
+        pageResult.has_more &&
+        pageSecrets.length > 0 &&
+        allSecrets.length < maxResults
+      ) {
+        startingAfter = pageSecrets[pageSecrets.length - 1].id;
+      } else {
+        startingAfter = undefined;
+      }
+    } while (startingAfter !== undefined);
+
+    output(allSecrets, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to list secrets", error);
   }

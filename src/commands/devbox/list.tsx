@@ -12,7 +12,7 @@ import type { Column } from "../../components/Table.js";
 import { Table, createTextColumn } from "../../components/Table.js";
 import { formatTimeAgo } from "../../components/ResourceListView.js";
 import { SearchBar } from "../../components/SearchBar.js";
-import { output, outputError } from "../../utils/output.js";
+import { output, outputError, parseLimit } from "../../utils/output.js";
 import { DevboxDetailPage } from "../../components/DevboxDetailPage.js";
 import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
 import { ResourceActionsMenu } from "../../components/ResourceActionsMenu.js";
@@ -117,7 +117,7 @@ const ListDevboxesUI = ({
       const result = {
         items: pageDevboxes,
         hasMore: page.has_more || false,
-        totalCount: page.total_count || pageDevboxes.length,
+        totalCount: pageDevboxes.length,
       };
 
       return result;
@@ -148,7 +148,7 @@ const ListDevboxesUI = ({
       !showActions &&
       !showPopup &&
       !search.searchMode,
-    deps: [status, search.submittedSearchQuery, PAGE_SIZE],
+    deps: [status, search.submittedSearchQuery],
   });
 
   // Sync devboxes to store for detail screen
@@ -559,10 +559,18 @@ const ListDevboxesUI = ({
         bindings: {
           up: () => {
             if (selectedIndex > 0) setSelectedIndex(selectedIndex - 1);
+            else if (!loading && !navigating && hasPrev) {
+              prevPage();
+              setSelectedIndex(devboxes.length - 1);
+            }
           },
           down: () => {
             if (selectedIndex < devboxes.length - 1)
               setSelectedIndex(selectedIndex + 1);
+            else if (!loading && !navigating && hasMore) {
+              nextPage();
+              setSelectedIndex(0);
+            }
           },
           n: goToNextPage,
           right: goToNextPage,
@@ -712,7 +720,7 @@ const ListDevboxesUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {totalCount}
+            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -730,7 +738,8 @@ const ListDevboxesUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of {totalPages}
+                  Page {currentPage + 1} of{" "}
+                  {hasMore ? `${totalPages}+` : totalPages}
                 </Text>
               )}
             </>
@@ -740,7 +749,8 @@ const ListDevboxesUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {startIndex + 1}-{endIndex} of{" "}
+            {hasMore ? `${totalCount}+` : totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>
@@ -796,23 +806,45 @@ export async function listDevboxes(options: ListOptions) {
   try {
     const client = getClient();
 
-    // Build query params
-    const queryParams: Record<string, unknown> = {
-      limit: options.limit ? parseInt(options.limit, 10) : DEFAULT_PAGE_SIZE,
-    };
-    if (options.status) {
-      queryParams.status = options.status;
-    }
+    const maxResults = parseLimit(options.limit);
+    const allDevboxes: unknown[] = [];
+    let startingAfter: string | undefined;
 
-    // Fetch devboxes
-    const page = (await client.devboxes.list(
-      queryParams,
-    )) as DevboxesCursorIDPage<{ id: string }>;
+    do {
+      const remaining = maxResults - allDevboxes.length;
+      // Build query params
+      const queryParams: Record<string, unknown> = {
+        limit: Math.min(DEFAULT_PAGE_SIZE, remaining),
+      };
+      if (options.status) {
+        queryParams.status = options.status;
+      }
+      if (startingAfter) {
+        queryParams.starting_after = startingAfter;
+      }
 
-    // Extract devboxes array
-    const devboxes = page.devboxes || [];
+      // Fetch one page
+      const page = (await client.devboxes.list(
+        queryParams,
+      )) as DevboxesCursorIDPage<{ id: string }>;
 
-    output(devboxes, { format: options.output, defaultFormat: "json" });
+      const pageDevboxes = page.devboxes || [];
+      allDevboxes.push(...pageDevboxes);
+
+      if (
+        page.has_more &&
+        pageDevboxes.length > 0 &&
+        allDevboxes.length < maxResults
+      ) {
+        startingAfter = (
+          pageDevboxes[pageDevboxes.length - 1] as { id: string }
+        ).id;
+      } else {
+        startingAfter = undefined;
+      }
+    } while (startingAfter !== undefined);
+
+    output(allDevboxes, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to list devboxes", error);
   }
