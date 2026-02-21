@@ -171,6 +171,13 @@ rli mcp start                            # Start the MCP server
 rli mcp install                          # Install Runloop MCP server configurat...
 ```
 
+### Cartridge Commands (alias: `c`)
+
+```bash
+rli cartridge validate <file>            # Validate a cartridge against cloud state
+rli cartridge launch <file>              # Launch a devbox from a cartridge
+```
+
 
 ## MCP Server (AI Integration)
 
