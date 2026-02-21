@@ -78,7 +78,12 @@ export interface GatewayConfigInline {
 }
 
 export interface ResolvedReference {
-  type: "blueprint" | "snapshot" | "secret" | "network_policy" | "gateway_config";
+  type:
+    | "blueprint"
+    | "snapshot"
+    | "secret"
+    | "network_policy"
+    | "gateway_config";
   cartridgeName: string;
   resolvedId: string | null;
   found: boolean;

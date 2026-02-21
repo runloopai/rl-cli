@@ -70,7 +70,8 @@ export async function applyCartridge(
     for (const [envPrefix, gwDef] of Object.entries(cartridge.gateways)) {
       let configId: string;
       if (typeof gwDef.config === "string") {
-        configId = resolvedIds.get(`gateway_config:${gwDef.config}`) || gwDef.config;
+        configId =
+          resolvedIds.get(`gateway_config:${gwDef.config}`) || gwDef.config;
       } else {
         const inline = gwDef.config as GatewayConfigInline;
         const existingId = resolvedIds.get(
@@ -148,7 +149,10 @@ export async function applyCartridge(
   }
 
   // Code mounts
-  if (cartridge.launch?.code_mounts && cartridge.launch.code_mounts.length > 0) {
+  if (
+    cartridge.launch?.code_mounts &&
+    cartridge.launch.code_mounts.length > 0
+  ) {
     createRequest.code_mounts = cartridge.launch.code_mounts;
   }
 
