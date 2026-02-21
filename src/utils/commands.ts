@@ -951,5 +951,36 @@ export function createProgram(): Command {
       }
     });
 
+  // Cartridge commands
+  const cartridge = program
+    .command("cartridge")
+    .description("Manage cartridge configurations")
+    .alias("c");
+
+  cartridge
+    .command("validate <file>")
+    .description("Validate a cartridge against cloud state")
+    .option("--json", "Output as JSON")
+    .action(async (file: string, options: { json?: boolean }) => {
+      const { validateCartridge } = await import("../cartridge/command.js");
+      await validateCartridge(file, options);
+    });
+
+  cartridge
+    .command("launch <file>")
+    .description("Launch a devbox from a cartridge")
+    .option("--dry-run", "Show what would happen without doing it")
+    .option("--locked-only", "Only accept locked cartridges")
+    .option("-o, --output [format]", "Output format: text|json")
+    .action(
+      async (
+        file: string,
+        options: { dryRun?: boolean; lockedOnly?: boolean; output?: string },
+      ) => {
+        const { launchCartridge } = await import("../cartridge/command.js");
+        await launchCartridge(file, options);
+      },
+    );
+
   return program;
 }

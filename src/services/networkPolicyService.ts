@@ -101,6 +101,29 @@ export async function getNetworkPolicy(id: string): Promise<NetworkPolicy> {
 }
 
 /**
+ * Get a single network policy by ID or name
+ */
+export async function getNetworkPolicyByIdOrName(
+  idOrName: string,
+): Promise<NetworkPolicy | null> {
+  if (idOrName.startsWith("np_")) {
+    try {
+      return await getNetworkPolicy(idOrName);
+    } catch {
+      return null;
+    }
+  }
+
+  const result = await listNetworkPolicies({
+    limit: 100,
+    search: idOrName,
+  });
+
+  const match = result.networkPolicies.find((p) => p.name === idOrName);
+  return match ?? null;
+}
+
+/**
  * Delete a network policy
  */
 export async function deleteNetworkPolicy(id: string): Promise<void> {

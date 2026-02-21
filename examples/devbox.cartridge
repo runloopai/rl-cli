@@ -1,0 +1,10 @@
+kind: devbox
+name: cartridge-test
+blueprint: default
+resources:
+  size: SMALL
+launch:
+  entrypoint: /bin/bash
+  env:
+    TEST: "true"
+  ports: [8080]
