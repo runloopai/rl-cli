@@ -383,6 +383,7 @@ export function SnapshotDetailScreen({
       onBack={goBack}
       buildDetailLines={buildDetailLines}
       pollResource={snapshot.status === "pending" ? pollSnapshot : undefined}
+      onPollUpdate={setFetchedSnapshot}
     />
   );
 }

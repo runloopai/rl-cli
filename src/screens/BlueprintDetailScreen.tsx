@@ -571,6 +571,7 @@ export function BlueprintDetailScreen({
           ? pollBlueprint
           : undefined
       }
+      onPollUpdate={setFetchedBlueprint}
     />
   );
 }

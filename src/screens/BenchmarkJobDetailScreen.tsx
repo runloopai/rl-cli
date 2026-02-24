@@ -946,6 +946,7 @@ export function BenchmarkJobDetailScreen({
       onBack={goBack}
       buildDetailLines={buildDetailLines}
       pollResource={isRunning ? pollJob : undefined}
+      onPollUpdate={setFetchedJob}
       breadcrumbPrefix={[{ label: "Home" }]}
     />
   );

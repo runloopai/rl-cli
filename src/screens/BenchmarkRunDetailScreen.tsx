@@ -662,6 +662,7 @@ export function BenchmarkRunDetailScreen({
       onBack={goBack}
       buildDetailLines={buildDetailLines}
       pollResource={isRunning ? pollRun : undefined}
+      onPollUpdate={setFetchedRun}
       breadcrumbPrefix={[{ label: "Home" }, { label: "Benchmarks" }]}
     />
   );

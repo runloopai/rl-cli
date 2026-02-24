@@ -57,6 +57,7 @@ export function ResourceDetailPage<T>({
   buildDetailLines,
   additionalContent,
   pollResource,
+  onPollUpdate,
   pollInterval = 3000,
 }: ResourceDetailPageProps<T>) {
   const isMounted = React.useRef(true);
@@ -73,6 +74,11 @@ export function ResourceDetailPage<T>({
   // Local state for resource data (updated by polling)
   const [currentResource, setCurrentResource] = React.useState(initialResource);
   const [copyStatus, setCopyStatus] = React.useState<string | null>(null);
+
+  // Keep local resource in sync when parent provides fresher data.
+  React.useEffect(() => {
+    setCurrentResource(initialResource);
+  }, [initialResource]);
 
   // Copy to clipboard with status feedback
   const handleCopy = React.useCallback(async (text: string) => {
@@ -114,6 +120,7 @@ export function ResourceDetailPage<T>({
           const updatedResource = await pollResource();
           if (isMounted.current) {
             setCurrentResource(updatedResource);
+            onPollUpdate?.(updatedResource);
           }
         } catch {
           // Silently ignore polling errors
@@ -122,7 +129,7 @@ export function ResourceDetailPage<T>({
     }, pollInterval);
 
     return () => clearInterval(interval);
-  }, [pollResource, pollInterval, showDetailedInfo]);
+  }, [pollResource, pollInterval, showDetailedInfo, onPollUpdate]);
 
   // Calculate viewport for detailed info view
   const detailViewport = useViewportHeight({ overhead: 18, minHeight: 10 });
