@@ -625,6 +625,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
       onBack={goBack}
       buildDetailLines={buildDetailLines}
       pollResource={pollObject}
+      onPollUpdate={setFetchedObject}
     />
   );
 }

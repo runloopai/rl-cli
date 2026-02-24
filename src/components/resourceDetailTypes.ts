@@ -113,6 +113,8 @@ export interface ResourceDetailPageProps<T> {
   additionalContent?: React.ReactNode;
   /** Optional: Polling function to refresh resource data */
   pollResource?: () => Promise<T>;
+  /** Optional: Called whenever polling returns a fresh resource */
+  onPollUpdate?: (resource: T) => void;
   /** Polling interval in ms (default: 3000) */
   pollInterval?: number;
 }

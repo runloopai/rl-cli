@@ -370,6 +370,7 @@ export function ScenarioRunDetailScreen({
       onBack={goBack}
       buildDetailLines={buildDetailLines}
       pollResource={isRunning ? pollRun : undefined}
+      onPollUpdate={setFetchedRun}
       breadcrumbPrefix={breadcrumbPrefix}
     />
   );
