@@ -14,7 +14,6 @@ import {
 } from "./ResourceDetailPage.js";
 import { getDevboxUrl } from "../utils/url.js";
 import { colors } from "../utils/theme.js";
-import { getDevbox } from "../services/devboxService.js";
 import { formatTimeAgo } from "../utils/time.js";
 import type { Devbox } from "../store/devboxStore.js";
 
@@ -24,14 +23,13 @@ interface DevboxDetailPageProps {
 }
 
 export const DevboxDetailPage = ({
-  devbox: initialDevbox,
+  devbox,
   onBack,
 }: DevboxDetailPageProps) => {
   const [showActions, setShowActions] = React.useState(false);
   const [selectedOperationKey, setSelectedOperationKey] = React.useState<
     string | null
   >(null);
-  const [currentDevbox, setCurrentDevbox] = React.useState(initialDevbox);
 
   // All possible operations for devboxes
   const allOperations: ResourceOperation[] = [
@@ -751,24 +749,18 @@ export const DevboxDetailPage = ({
   };
 
   // Polling function
-  const pollDevbox = React.useCallback(async () => {
-    const updated = await getDevbox(initialDevbox.id);
-    setCurrentDevbox(updated);
-    return updated;
-  }, [initialDevbox.id]);
-
   // Show DevboxActionsMenu when an action is selected
   if (showActions) {
     return (
       <DevboxActionsMenu
-        devbox={currentDevbox}
+        devbox={devbox}
         onBack={() => {
           setShowActions(false);
           setSelectedOperationKey(null);
         }}
         breadcrumbItems={[
           { label: "Devboxes" },
-          { label: currentDevbox.name || currentDevbox.id },
+          { label: devbox.name || devbox.id },
         ]}
         initialOperation={selectedOperationKey || undefined}
         skipOperationsMenu={true}
@@ -776,35 +768,25 @@ export const DevboxDetailPage = ({
     );
   }
 
-  // Determine if we should poll based on status
-  const shouldPoll =
-    currentDevbox.status === "running" ||
-    currentDevbox.status === "provisioning" ||
-    currentDevbox.status === "initializing" ||
-    currentDevbox.status === "resuming" ||
-    currentDevbox.status === "suspending";
-
   return (
     <ResourceDetailPage
-      resource={currentDevbox}
+      resource={devbox}
       resourceType="Devboxes"
       getDisplayName={(d) => d.name || d.id}
       getId={(d) => d.id}
       getStatus={(d) => d.status}
       getUrl={(d) => getDevboxUrl(d.id)}
-      detailSections={buildDetailSections(currentDevbox)}
-      operations={getFilteredOperations(currentDevbox)}
+      detailSections={buildDetailSections(devbox)}
+      operations={getFilteredOperations(devbox)}
       onOperation={handleOperation}
       onBack={onBack}
       buildDetailLines={buildDetailLines}
       additionalContent={
         <StateHistory
-          stateTransitions={currentDevbox.state_transitions}
-          shutdownReason={currentDevbox.shutdown_reason ?? undefined}
+          stateTransitions={devbox.state_transitions}
+          shutdownReason={devbox.shutdown_reason ?? undefined}
         />
       }
-      pollResource={shouldPoll ? pollDevbox : undefined}
-      pollInterval={3000}
     />
   );
 };

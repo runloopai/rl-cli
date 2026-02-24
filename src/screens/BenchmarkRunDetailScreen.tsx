@@ -21,6 +21,7 @@ import {
   getBenchmarkRun,
   listScenarioRuns,
 } from "../services/benchmarkService.js";
+import { useResourceDetail } from "../hooks/useResourceDetail.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
@@ -42,51 +43,18 @@ export function BenchmarkRunDetailScreen({
   const { goBack, navigate } = useNavigation();
   const benchmarkRuns = useBenchmarkStore((state) => state.benchmarkRuns);
 
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<Error | null>(null);
-  const [fetchedRun, setFetchedRun] = React.useState<BenchmarkRun | null>(null);
-  const [scenarioRuns, setScenarioRuns] = React.useState<ScenarioRun[]>([]);
-  const [scenarioRunsLoading, setScenarioRunsLoading] = React.useState(false);
-
-  // Find run in store first
   const runFromStore = benchmarkRuns.find((r) => r.id === benchmarkRunId);
 
-  // Polling function
-  const pollRun = React.useCallback(async () => {
-    if (!benchmarkRunId) return null as unknown as BenchmarkRun;
+  const { data: run, loading, error } = useResourceDetail<BenchmarkRun>({
+    id: benchmarkRunId,
+    fetch: getBenchmarkRun,
+    initialData: runFromStore ?? undefined,
+    pollInterval: 3000,
+    shouldPoll: (r) => r.state === "running",
+  });
 
-    // Also refresh scenario runs when polling
-    listScenarioRuns({
-      limit: 10,
-      benchmarkRunId,
-    })
-      .then((result) => {
-        setScenarioRuns(result.scenarioRuns);
-      })
-      .catch(() => {
-        // Silently fail for scenario runs
-      });
-
-    return getBenchmarkRun(benchmarkRunId);
-  }, [benchmarkRunId]);
-
-  // Fetch run from API if not in store
-  React.useEffect(() => {
-    if (benchmarkRunId && !loading && !fetchedRun) {
-      setLoading(true);
-      setError(null);
-
-      getBenchmarkRun(benchmarkRunId)
-        .then((run) => {
-          setFetchedRun(run);
-          setLoading(false);
-        })
-        .catch((err) => {
-          setError(err as Error);
-          setLoading(false);
-        });
-    }
-  }, [benchmarkRunId, loading, fetchedRun]);
+  const [scenarioRuns, setScenarioRuns] = React.useState<ScenarioRun[]>([]);
+  const [scenarioRunsLoading, setScenarioRunsLoading] = React.useState(false);
 
   // Fetch scenario runs for this benchmark run
   React.useEffect(() => {
@@ -107,9 +75,6 @@ export function BenchmarkRunDetailScreen({
         });
     }
   }, [benchmarkRunId, scenarioRunsLoading, scenarioRuns.length]);
-
-  // Use fetched run for full details, fall back to store for basic display
-  const run = fetchedRun || runFromStore;
 
   // Auto-refresh scenario runs every 5 seconds if benchmark run is running
   React.useEffect(() => {
@@ -646,9 +611,6 @@ export function BenchmarkRunDetailScreen({
     return lines;
   };
 
-  // Check if run is still in progress for polling
-  const isRunning = run.state === "running";
-
   return (
     <ResourceDetailPage
       resource={run}
@@ -661,7 +623,6 @@ export function BenchmarkRunDetailScreen({
       onOperation={handleOperation}
       onBack={goBack}
       buildDetailLines={buildDetailLines}
-      pollResource={isRunning ? pollRun : undefined}
       breadcrumbPrefix={[{ label: "Home" }, { label: "Benchmarks" }]}
     />
   );

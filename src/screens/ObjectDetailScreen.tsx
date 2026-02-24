@@ -24,6 +24,7 @@ import {
   deleteObject,
   formatFileSize,
 } from "../services/objectService.js";
+import { useResourceDetail } from "../hooks/useResourceDetail.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { SuccessMessage } from "../components/SuccessMessage.js";
@@ -39,11 +40,18 @@ interface ObjectDetailScreenProps {
 export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   const { goBack } = useNavigation();
   const objects = useObjectStore((state) => state.objects);
+  const objectFromStore = objects.find((o) => o.id === objectId);
 
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<Error | null>(null);
-  const [fetchedObject, setFetchedObject] =
-    React.useState<StorageObjectView | null>(null);
+  const {
+    data: storageObject,
+    error,
+  } = useResourceDetail<StorageObjectView>({
+    id: objectId,
+    fetch: getObject,
+    initialData: objectFromStore ?? undefined,
+    pollInterval: 3000,
+  });
+
   const [deleting, setDeleting] = React.useState(false);
   const [showDownloadPrompt, setShowDownloadPrompt] = React.useState(false);
   const [downloadPath, setDownloadPath] = React.useState("");
@@ -53,37 +61,8 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   );
   const [downloadError, setDownloadError] = React.useState<Error | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
-
-  // Find object in store first
-  const objectFromStore = objects.find((o) => o.id === objectId);
-
-  // Polling function - must be defined before any early returns (Rules of Hooks)
-  const pollObject = React.useCallback(async () => {
-    if (!objectId) return null as unknown as StorageObjectView;
-    return getObject(objectId);
-  }, [objectId]);
-
-  // Fetch object from API if not in store or missing full details
-  React.useEffect(() => {
-    if (objectId && !loading && !fetchedObject) {
-      // Always fetch full details since store may only have basic info
-      setLoading(true);
-      setError(null);
-
-      getObject(objectId)
-        .then((obj) => {
-          setFetchedObject(obj);
-          setLoading(false);
-        })
-        .catch((err) => {
-          setError(err as Error);
-          setLoading(false);
-        });
-    }
-  }, [objectId, loading, fetchedObject]);
-
-  // Use fetched object for full details, fall back to store for basic display
-  const storageObject = fetchedObject || objectFromStore;
+  const [operationError, setOperationError] = React.useState<Error | null>(null);
+  const displayError = error ?? operationError;
 
   // Handle download submission
   const handleDownloadSubmit = React.useCallback(async () => {
@@ -159,7 +138,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   }
 
   // Show error state if fetch failed
-  if (error && !storageObject) {
+  if (displayError && !storageObject) {
     return (
       <>
         <Breadcrumb
@@ -168,7 +147,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
             { label: "Error", active: true },
           ]}
         />
-        <ErrorMessage message="Failed to load object details" error={error} />
+        <ErrorMessage message="Failed to load object details" error={displayError} />
       </>
     );
   }
@@ -350,7 +329,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
       await deleteObject(storageObject.id);
       goBack();
     } catch (err) {
-      setError(err as Error);
+      setOperationError(err as Error);
       setDeleting(false);
     }
   };
@@ -624,7 +603,6 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
       onOperation={handleOperation}
       onBack={goBack}
       buildDetailLines={buildDetailLines}
-      pollResource={pollObject}
     />
   );
 }

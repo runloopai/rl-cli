@@ -43,7 +43,7 @@ const truncateString = (str: string, maxLength: number): string => {
 };
 
 export function ResourceDetailPage<T>({
-  resource: initialResource,
+  resource,
   resourceType,
   getDisplayName,
   getId,
@@ -56,8 +56,6 @@ export function ResourceDetailPage<T>({
   onBack,
   buildDetailLines,
   additionalContent,
-  pollResource,
-  pollInterval = 3000,
 }: ResourceDetailPageProps<T>) {
   const isMounted = React.useRef(true);
   const { navigate } = useNavigation();
@@ -70,8 +68,6 @@ export function ResourceDetailPage<T>({
     };
   }, []);
 
-  // Local state for resource data (updated by polling)
-  const [currentResource, setCurrentResource] = React.useState(initialResource);
   const [copyStatus, setCopyStatus] = React.useState<string | null>(null);
 
   // Copy to clipboard with status feedback
@@ -104,32 +100,12 @@ export function ResourceDetailPage<T>({
     }
   }, [totalSelectableItems, selectedIndex]);
 
-  // Background polling for resource details
-  React.useEffect(() => {
-    if (!pollResource || showDetailedInfo) return;
-
-    const interval = setInterval(async () => {
-      if (isMounted.current) {
-        try {
-          const updatedResource = await pollResource();
-          if (isMounted.current) {
-            setCurrentResource(updatedResource);
-          }
-        } catch {
-          // Silently ignore polling errors
-        }
-      }
-    }, pollInterval);
-
-    return () => clearInterval(interval);
-  }, [pollResource, pollInterval, showDetailedInfo]);
-
   // Calculate viewport for detailed info view
   const detailViewport = useViewportHeight({ overhead: 18, minHeight: 10 });
 
-  const displayName = getDisplayName(currentResource);
-  const resourceId = getId(currentResource);
-  const status = getStatus(currentResource);
+  const displayName = getDisplayName(resource);
+  const resourceId = getId(resource);
+  const status = getStatus(resource);
 
   // Execute a field action
   const executeFieldAction = React.useCallback(
@@ -152,8 +128,8 @@ export function ResourceDetailPage<T>({
 
   const handleOpenInBrowser = React.useCallback(() => {
     if (!getUrl) return;
-    openUrlInBrowser(getUrl(currentResource));
-  }, [getUrl, currentResource]);
+    openUrlInBrowser(getUrl(resource));
+  }, [getUrl, resource]);
 
   const exitDetailedInfo = React.useCallback(() => {
     setShowDetailedInfo(false);
@@ -169,7 +145,7 @@ export function ResourceDetailPage<T>({
     } else {
       const op = operations[operationIndex];
       if (op) {
-        onOperation(op.key, currentResource);
+        onOperation(op.key, resource);
       }
     }
   }, [
@@ -178,7 +154,7 @@ export function ResourceDetailPage<T>({
     selectedIndex,
     operationIndex,
     operations,
-    currentResource,
+    resource,
     executeFieldAction,
     onOperation,
   ]);
@@ -200,7 +176,7 @@ export function ResourceDetailPage<T>({
         bindings: {
           q: onBack,
           escape: onBack,
-          c: () => handleCopy(getId(currentResource)),
+          c: () => handleCopy(getId(resource)),
           ...(buildDetailLines
             ? {
                 i: () => {
@@ -226,7 +202,7 @@ export function ResourceDetailPage<T>({
           );
           if (matchedOpIndex !== -1) {
             setSelectedIndex(actionableFields.length + matchedOpIndex);
-            onOperation(operations[matchedOpIndex].key, currentResource);
+            onOperation(operations[matchedOpIndex].key, resource);
           }
         },
       },
@@ -236,7 +212,7 @@ export function ResourceDetailPage<T>({
       detailScroll,
       exitDetailedInfo,
       onBack,
-      currentResource,
+      resource,
       buildDetailLines,
       selectedIndex,
       totalSelectableItems,
@@ -256,7 +232,7 @@ export function ResourceDetailPage<T>({
   if (showDetailedInfo && buildDetailLines) {
     return (
       <DetailedInfoView
-        detailLines={buildDetailLines(currentResource)}
+        detailLines={buildDetailLines(resource)}
         scrollOffset={detailScroll}
         viewportHeight={detailViewport.viewportHeight}
         displayName={displayName}

@@ -7,6 +7,7 @@ import { useNavigation } from "../store/navigationStore.js";
 import { useDevboxStore, type Devbox } from "../store/devboxStore.js";
 import { DevboxDetailPage } from "../components/DevboxDetailPage.js";
 import { getDevbox } from "../services/devboxService.js";
+import { useResourceDetail } from "../hooks/useResourceDetail.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
@@ -19,36 +20,27 @@ export function DevboxDetailScreen({ devboxId }: DevboxDetailScreenProps) {
   const { goBack } = useNavigation();
   const devboxes = useDevboxStore((state) => state.devboxes);
   const setDevboxesInStore = useDevboxStore((state) => state.setDevboxes);
-
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<Error | null>(null);
-  const [fetchedDevbox, setFetchedDevbox] = React.useState<Devbox | null>(null);
-
-  // Find devbox in store first
   const devboxFromStore = devboxes.find((d) => d.id === devboxId);
 
-  // Fetch devbox from API if not in store
+  const { data: devbox, loading, error } = useResourceDetail<Devbox>({
+    id: devboxId,
+    fetch: getDevbox,
+    initialData: devboxFromStore ?? undefined,
+    pollInterval: 3000,
+    shouldPoll: (d) =>
+      d.status === "running" ||
+      d.status === "provisioning" ||
+      d.status === "initializing" ||
+      d.status === "resuming" ||
+      d.status === "suspending",
+  });
+
+  // Cache fetched devbox in store for list/other screens
   React.useEffect(() => {
-    if (!devboxFromStore && devboxId && !loading && !fetchedDevbox) {
-      setLoading(true);
-      setError(null);
-
-      getDevbox(devboxId)
-        .then((devbox) => {
-          setFetchedDevbox(devbox);
-          // Cache it in store for future access
-          setDevboxesInStore([devbox]);
-          setLoading(false);
-        })
-        .catch((err) => {
-          setError(err as Error);
-          setLoading(false);
-        });
+    if (devbox) {
+      setDevboxesInStore([devbox]);
     }
-  }, [devboxFromStore, devboxId, loading, fetchedDevbox, setDevboxesInStore]);
-
-  // Use devbox from store or fetched devbox
-  const devbox = devboxFromStore || fetchedDevbox;
+  }, [devbox, setDevboxesInStore]);
 
   // Show loading state while fetching or before fetch starts
   if (!devbox && devboxId && !error) {
@@ -63,7 +55,7 @@ export function DevboxDetailScreen({ devboxId }: DevboxDetailScreenProps) {
   }
 
   // Show error state if fetch failed
-  if (error) {
+  if (error && !devbox) {
     return (
       <>
         <Breadcrumb
