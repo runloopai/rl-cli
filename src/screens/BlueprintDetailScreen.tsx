@@ -46,7 +46,9 @@ export function BlueprintDetailScreen({
 
   const [deleting, setDeleting] = React.useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
-  const [operationError, setOperationError] = React.useState<Error | null>(null);
+  const [operationError, setOperationError] = React.useState<Error | null>(
+    null,
+  );
   const displayError = error ?? operationError;
 
   // Show loading state while fetching or before fetch starts

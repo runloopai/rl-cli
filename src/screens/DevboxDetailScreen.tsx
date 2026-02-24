@@ -22,7 +22,11 @@ export function DevboxDetailScreen({ devboxId }: DevboxDetailScreenProps) {
   const setDevboxesInStore = useDevboxStore((state) => state.setDevboxes);
   const devboxFromStore = devboxes.find((d) => d.id === devboxId);
 
-  const { data: devbox, loading, error } = useResourceDetail<Devbox>({
+  const {
+    data: devbox,
+    loading,
+    error,
+  } = useResourceDetail<Devbox>({
     id: devboxId,
     fetch: getDevbox,
     initialData: devboxFromStore ?? undefined,

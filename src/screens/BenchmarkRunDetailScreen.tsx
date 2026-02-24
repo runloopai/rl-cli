@@ -45,7 +45,11 @@ export function BenchmarkRunDetailScreen({
 
   const runFromStore = benchmarkRuns.find((r) => r.id === benchmarkRunId);
 
-  const { data: run, loading, error } = useResourceDetail<BenchmarkRun>({
+  const {
+    data: run,
+    loading,
+    error,
+  } = useResourceDetail<BenchmarkRun>({
     id: benchmarkRunId,
     fetch: getBenchmarkRun,
     initialData: runFromStore ?? undefined,

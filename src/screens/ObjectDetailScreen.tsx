@@ -42,10 +42,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   const objects = useObjectStore((state) => state.objects);
   const objectFromStore = objects.find((o) => o.id === objectId);
 
-  const {
-    data: storageObject,
-    error,
-  } = useResourceDetail<StorageObjectView>({
+  const { data: storageObject, error } = useResourceDetail<StorageObjectView>({
     id: objectId,
     fetch: getObject,
     initialData: objectFromStore ?? undefined,
@@ -61,7 +58,9 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   );
   const [downloadError, setDownloadError] = React.useState<Error | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
-  const [operationError, setOperationError] = React.useState<Error | null>(null);
+  const [operationError, setOperationError] = React.useState<Error | null>(
+    null,
+  );
   const displayError = error ?? operationError;
 
   // Handle download submission
@@ -147,7 +146,10 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
             { label: "Error", active: true },
           ]}
         />
-        <ErrorMessage message="Failed to load object details" error={displayError} />
+        <ErrorMessage
+          message="Failed to load object details"
+          error={displayError}
+        />
       </>
     );
   }

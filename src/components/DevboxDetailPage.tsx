@@ -22,10 +22,7 @@ interface DevboxDetailPageProps {
   onBack: () => void;
 }
 
-export const DevboxDetailPage = ({
-  devbox,
-  onBack,
-}: DevboxDetailPageProps) => {
+export const DevboxDetailPage = ({ devbox, onBack }: DevboxDetailPageProps) => {
   const [showActions, setShowActions] = React.useState(false);
   const [selectedOperationKey, setSelectedOperationKey] = React.useState<
     string | null

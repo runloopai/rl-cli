@@ -35,7 +35,11 @@ export function BenchmarkJobDetailScreen({
   const benchmarkJobs = useBenchmarkJobStore((state) => state.benchmarkJobs);
   const jobFromStore = benchmarkJobs.find((j) => j.id === benchmarkJobId);
 
-  const { data: job, loading, error } = useResourceDetail<BenchmarkJob>({
+  const {
+    data: job,
+    loading,
+    error,
+  } = useResourceDetail<BenchmarkJob>({
     id: benchmarkJobId,
     fetch: getBenchmarkJob,
     initialData: jobFromStore ?? undefined,

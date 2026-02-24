@@ -36,7 +36,11 @@ export function ScenarioRunDetailScreen({
   const scenarioRuns = useBenchmarkStore((state) => state.scenarioRuns);
   const runFromStore = scenarioRuns.find((r) => r.id === scenarioRunId);
 
-  const { data: run, loading, error } = useResourceDetail<ScenarioRun>({
+  const {
+    data: run,
+    loading,
+    error,
+  } = useResourceDetail<ScenarioRun>({
     id: scenarioRunId,
     fetch: getScenarioRun,
     initialData: runFromStore ?? undefined,

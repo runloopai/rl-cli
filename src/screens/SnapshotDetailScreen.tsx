@@ -32,7 +32,11 @@ export function SnapshotDetailScreen({
   const snapshots = useSnapshotStore((state) => state.snapshots);
   const snapshotFromStore = snapshots.find((s) => s.id === snapshotId);
 
-  const { data: snapshot, loading, error } = useResourceDetail<Snapshot>({
+  const {
+    data: snapshot,
+    loading,
+    error,
+  } = useResourceDetail<Snapshot>({
     id: snapshotId,
     fetch: getSnapshot,
     initialData: snapshotFromStore ?? undefined,
@@ -42,7 +46,9 @@ export function SnapshotDetailScreen({
 
   const [deleting, setDeleting] = React.useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
-  const [operationError, setOperationError] = React.useState<Error | null>(null);
+  const [operationError, setOperationError] = React.useState<Error | null>(
+    null,
+  );
   const displayError = error ?? operationError;
 
   // Show loading state while fetching or before fetch starts
@@ -67,7 +73,10 @@ export function SnapshotDetailScreen({
         <Breadcrumb
           items={[{ label: "Snapshots" }, { label: "Error", active: true }]}
         />
-        <ErrorMessage message="Failed to load snapshot details" error={displayError} />
+        <ErrorMessage
+          message="Failed to load snapshot details"
+          error={displayError}
+        />
       </>
     );
   }
