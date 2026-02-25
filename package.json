@@ -26,6 +26,7 @@
     "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage",
     "test:components": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.components.config.js --coverage --forceExit",
     "test:e2e": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.e2e.config.js --forceExit",
+    "test:router": "NODE_OPTIONS='--experimental-vm-modules' jest --config jest.router.config.js --forceExit",
     "docs:commands": "pnpm run build && node scripts/generate-command-docs.js",
     "prepare": "husky"
   },

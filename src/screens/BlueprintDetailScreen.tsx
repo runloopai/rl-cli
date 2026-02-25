@@ -174,6 +174,14 @@ export function BlueprintDetailScreen({
         value: lp.required_services.join(", "),
       });
     }
+    if (lp.launch_commands && lp.launch_commands.length > 0) {
+      lp.launch_commands.forEach((cmd, idx) => {
+        lpFields.push({
+          label: `Launch ${idx + 1}`,
+          value: cmd,
+        });
+      });
+    }
 
     if (lpFields.length > 0) {
       detailSections.push({
@@ -185,7 +193,7 @@ export function BlueprintDetailScreen({
     }
   }
 
-  // Setup section
+  // Setup section – show actual setup commands, dockerfile summary, and file mount paths
   const params = blueprint.parameters;
   if (params) {
     const setupFields = [];
@@ -200,15 +208,19 @@ export function BlueprintDetailScreen({
       params.system_setup_commands &&
       params.system_setup_commands.length > 0
     ) {
-      setupFields.push({
-        label: "Setup Commands",
-        value: `${params.system_setup_commands.length} commands`,
+      params.system_setup_commands.forEach((cmd, idx) => {
+        setupFields.push({
+          label: `Command ${idx + 1}`,
+          value: cmd,
+        });
       });
     }
     if (params.file_mounts && Object.keys(params.file_mounts).length > 0) {
-      setupFields.push({
-        label: "File Mounts",
-        value: `${Object.keys(params.file_mounts).length} mounts`,
+      Object.entries(params.file_mounts).forEach(([path]) => {
+        setupFields.push({
+          label: "Mount",
+          value: path,
+        });
       });
     }
 

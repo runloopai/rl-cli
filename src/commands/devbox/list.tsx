@@ -18,7 +18,7 @@ import { DevboxCreatePage } from "../../components/DevboxCreatePage.js";
 import { ResourceActionsMenu } from "../../components/ResourceActionsMenu.js";
 import { ActionsPopup } from "../../components/ActionsPopup.js";
 import { getDevboxUrl } from "../../utils/url.js";
-import { useViewportHeight } from "../../hooks/useViewportHeight.js";
+import { useVerticalLayout } from "../../hooks/useVerticalLayout.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
 import { useListSearch } from "../../hooks/useListSearch.js";
@@ -66,21 +66,15 @@ const ListDevboxesUI = ({
   // Get devbox store setter to sync data for detail screen
   const setDevboxesInStore = useDevboxStore((state) => state.setDevboxes);
 
-  // Calculate overhead for viewport height:
-  // - Breadcrumb (3 lines + marginBottom): 4 lines
-  // - Search bar (if visible, 1 line + marginBottom): 2 lines
-  // - Table (title + top border + header + bottom border): 4 lines
-  // - Stats bar (marginTop + content): 2 lines
-  // - Help bar (marginTop + content): 2 lines
-  // - Safety buffer for edge cases: 1 line
-  // Total: 13 lines base + 2 if searching
-  const overhead = 13 + search.getSearchOverhead();
-  const { viewportHeight, terminalWidth } = useViewportHeight({
-    overhead,
-    minHeight: 5,
+  // Vertical layout: single source of truth for content lines and chrome modes
+  const hasSearch = search.searchMode || !!search.submittedSearchQuery;
+  const layout = useVerticalLayout({
+    screenType: "list",
+    hasSearch,
   });
 
-  const PAGE_SIZE = viewportHeight;
+  const PAGE_SIZE = Math.max(1, layout.contentLines);
+  const terminalWidth = layout.terminalWidth;
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
@@ -669,7 +663,10 @@ const ListDevboxesUI = ({
   if (loading && devboxes.length === 0) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
+        <Breadcrumb
+          items={[{ label: "Devboxes", active: true }]}
+          compactMode={layout.breadcrumbMode}
+        />
         <SpinnerComponent message="Loading..." />
       </>
     );
@@ -678,7 +675,10 @@ const ListDevboxesUI = ({
   if (error) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
+        <Breadcrumb
+          items={[{ label: "Devboxes", active: true }]}
+          compactMode={layout.breadcrumbMode}
+        />
         <ErrorMessage message="Failed to list devboxes" error={error} />
       </>
     );
@@ -687,7 +687,10 @@ const ListDevboxesUI = ({
   // Main list view
   return (
     <>
-      <Breadcrumb items={[{ label: "Devboxes", active: true }]} />
+      <Breadcrumb
+        items={[{ label: "Devboxes", active: true }]}
+        compactMode={layout.breadcrumbMode}
+      />
 
       {/* Search bar */}
       <SearchBar
@@ -781,6 +784,7 @@ const ListDevboxesUI = ({
       {/* Help Bar */}
       <NavigationTips
         showArrows
+        displayMode={layout.navTipsMode}
         tips={[
           {
             icon: `${figures.arrowLeft}${figures.arrowRight}`,
