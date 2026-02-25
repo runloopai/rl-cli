@@ -40,6 +40,8 @@ interface NetworkPolicyListItem {
   egress: {
     allow_all: boolean;
     allow_devbox_to_devbox: boolean;
+    allow_ai_gateway: boolean;
+    allow_mcp_gateway: boolean;
     allowed_hostnames: string[];
   };
 }
@@ -165,6 +167,8 @@ const ListNetworkPoliciesUI = ({
             egress: {
               allow_all: p.egress.allow_all,
               allow_devbox_to_devbox: p.egress.allow_devbox_to_devbox,
+              allow_ai_gateway: p.egress.allow_ai_gateway,
+              allow_mcp_gateway: p.egress.allow_mcp_gateway,
               allowed_hostnames: [...(p.egress.allowed_hostnames || [])],
             },
           });

@@ -28,7 +28,7 @@ export async function createNetworkPolicy(options: CreateOptions) {
       allow_ai_gateway: options.allowAiGateway ?? false,
       allow_mcp_gateway: options.allowMcpGateway ?? false,
       allowed_hostnames: options.allowedHostnames ?? [],
-    } as any);
+    });
 
     // Default: just output the ID for easy scripting
     if (!options.output || options.output === "text") {

@@ -9,15 +9,6 @@ import type {
 } from "@runloop/api-client/resources/network-policies";
 import type { NetworkPoliciesCursorIDPage } from "@runloop/api-client/pagination";
 
-// Extended egress type with new gateway flags
-export interface ExtendedEgress {
-  allow_all: boolean;
-  allow_devbox_to_devbox: boolean;
-  allow_ai_gateway: boolean;
-  allow_mcp_gateway: boolean;
-  allowed_hostnames: string[];
-}
-
 export interface ListNetworkPoliciesOptions {
   limit: number;
   startingAfter?: string;
@@ -73,10 +64,10 @@ export async function listNetworkPolicies(
         egress: {
           allow_all: p.egress.allow_all,
           allow_devbox_to_devbox: p.egress.allow_devbox_to_devbox,
-          allow_ai_gateway: (p.egress as any).allow_ai_gateway ?? false,
-          allow_mcp_gateway: (p.egress as any).allow_mcp_gateway ?? false,
+          allow_ai_gateway: p.egress.allow_ai_gateway,
+          allow_mcp_gateway: p.egress.allow_mcp_gateway,
           allowed_hostnames: p.egress.allowed_hostnames || [],
-        } as any,
+        },
       });
     });
   }
@@ -106,10 +97,10 @@ export async function getNetworkPolicy(id: string): Promise<NetworkPolicy> {
     egress: {
       allow_all: policy.egress.allow_all,
       allow_devbox_to_devbox: policy.egress.allow_devbox_to_devbox,
-      allow_ai_gateway: (policy.egress as any).allow_ai_gateway ?? false,
-      allow_mcp_gateway: (policy.egress as any).allow_mcp_gateway ?? false,
+      allow_ai_gateway: policy.egress.allow_ai_gateway,
+      allow_mcp_gateway: policy.egress.allow_mcp_gateway,
       allowed_hostnames: policy.egress.allowed_hostnames || [],
-    } as any,
+    },
   };
 }
 
@@ -138,7 +129,7 @@ export async function createNetworkPolicy(
   params: CreateNetworkPolicyParams,
 ): Promise<NetworkPolicy> {
   const client = getClient();
-  const policy = await client.networkPolicies.create(params as any);
+  const policy = await client.networkPolicies.create(params);
 
   return {
     id: policy.id,
@@ -149,10 +140,10 @@ export async function createNetworkPolicy(
     egress: {
       allow_all: policy.egress.allow_all,
       allow_devbox_to_devbox: policy.egress.allow_devbox_to_devbox,
-      allow_ai_gateway: (policy.egress as any).allow_ai_gateway ?? false,
-      allow_mcp_gateway: (policy.egress as any).allow_mcp_gateway ?? false,
+      allow_ai_gateway: policy.egress.allow_ai_gateway,
+      allow_mcp_gateway: policy.egress.allow_mcp_gateway,
       allowed_hostnames: policy.egress.allowed_hostnames || [],
-    } as any,
+    },
   };
 }
 
@@ -174,7 +165,7 @@ export async function updateNetworkPolicy(
   params: UpdateNetworkPolicyParams,
 ): Promise<NetworkPolicy> {
   const client = getClient();
-  const policy = await client.networkPolicies.update(id, params as any);
+  const policy = await client.networkPolicies.update(id, params);
 
   return {
     id: policy.id,
@@ -185,9 +176,9 @@ export async function updateNetworkPolicy(
     egress: {
       allow_all: policy.egress.allow_all,
       allow_devbox_to_devbox: policy.egress.allow_devbox_to_devbox,
-      allow_ai_gateway: (policy.egress as any).allow_ai_gateway ?? false,
-      allow_mcp_gateway: (policy.egress as any).allow_mcp_gateway ?? false,
+      allow_ai_gateway: policy.egress.allow_ai_gateway,
+      allow_mcp_gateway: policy.egress.allow_mcp_gateway,
       allowed_hostnames: policy.egress.allowed_hostnames || [],
-    } as any,
+    },
   };
 }
