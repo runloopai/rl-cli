@@ -57,8 +57,11 @@ const HEIGHT_MINIMAL_CHROME = 18; // Below this, detail uses minimal top so noth
 const BREADCRUMB_FULL_MIN_WIDTH = 70;
 const BREADCRUMB_COMPACT_MIN_WIDTH = 45;
 
-/** Max action rows to show before "View rest"; smaller on short terminals so sections get space. */
+/** Max action rows to show before "View rest"; when plenty of height, show all; otherwise cap to save space. */
+const HEIGHT_SHOW_ALL_ACTIONS = 42; // Above this, show all actions (no "View rest of Actions")
+
 function getMaxVisibleActionsFromHeight(terminalHeight: number): number {
+  if (terminalHeight >= HEIGHT_SHOW_ALL_ACTIONS) return 99; // Effectively show all
   if (terminalHeight < HEIGHT_FORCE_COMPACT) return 2;
   if (terminalHeight < 35) return 3;
   return 4;
@@ -70,6 +73,16 @@ function getBreadcrumbModeFromWidth(
   if (terminalWidth >= BREADCRUMB_FULL_MIN_WIDTH) return "full";
   if (terminalWidth >= BREADCRUMB_COMPACT_MIN_WIDTH) return "compact";
   return "minimal";
+}
+
+/** Breadcrumb mode: when height is small, use a smaller breadcrumb to save vertical space. */
+function getBreadcrumbMode(
+  terminalWidth: number,
+  terminalHeight: number,
+): BreadcrumbCompactMode {
+  if (terminalHeight < HEIGHT_FORCE_MINIMAL) return "minimal";
+  if (terminalHeight < HEIGHT_FORCE_COMPACT) return "compact";
+  return getBreadcrumbModeFromWidth(terminalWidth);
 }
 
 function getChromeLines(
@@ -85,7 +98,9 @@ function getChromeLines(
     case "detail": {
       // Very small height: use minimal chrome count so top is never cut off
       const useMinimalChrome = terminalHeight < HEIGHT_MINIMAL_CHROME;
-      const baseChrome = useMinimalChrome ? 5 : 18; // 5 = breadcrumb + title + actions hint + nav + margin
+      // Breadcrumb in full mode has border = 3 lines; compact/minimal = 1 line + margin. Title ~4, nav ~2.
+      // Reserve for full breadcrumb so top is never cut: 3 + 4 + 2 = 9, plus 2 buffer = 11.
+      const baseChrome = useMinimalChrome ? 5 : 11;
       const cap =
         maxVisibleActions ?? getMaxVisibleActionsFromHeight(terminalHeight);
       const actionsRows =
@@ -162,7 +177,7 @@ export function useVerticalLayout(
     terminalHeight,
   );
   const contentLines = Math.max(0, terminalHeight - chromeLines);
-  const breadcrumbMode = getBreadcrumbModeFromWidth(terminalWidth);
+  const breadcrumbMode = getBreadcrumbMode(terminalWidth, terminalHeight);
   const navTipsMode = getNavTipsModeFromHeight(terminalHeight);
   const minimalChrome =
     screenType === "detail" && terminalHeight < HEIGHT_MINIMAL_CHROME;

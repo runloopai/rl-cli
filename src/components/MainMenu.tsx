@@ -9,6 +9,7 @@ import { colors } from "../utils/theme.js";
 import { execCommand } from "../utils/exec.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { useUpdateCheck } from "../hooks/useUpdateCheck.js";
+import { useVerticalLayout } from "../hooks/useVerticalLayout.js";
 import { useBetaFeatures } from "../store/betaFeatureStore.js";
 import type { BetaFeature } from "../store/betaFeatureStore.js";
 
@@ -140,6 +141,8 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
 
   const terminalHeight = terminalDimensions.height;
   const terminalWidth = terminalDimensions.width;
+
+  const layout = useVerticalLayout({ screenType: "menu" });
   const isNarrow = terminalWidth < 70;
 
   // Check for updates
@@ -267,6 +270,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
         <Breadcrumb
           items={[{ label: "Home", active: true }]}
           showVersionCheck={true}
+          compactMode={layout.breadcrumbMode}
         />
         <Box paddingX={2}>
           <Text color={colors.primary} bold>
@@ -314,6 +318,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
         <Breadcrumb
           items={[{ label: "Home", active: true }]}
           showVersionCheck={true}
+          compactMode={layout.breadcrumbMode}
         />
         <Box paddingX={2} marginBottom={1}>
           <Text color={colors.primary} bold>
@@ -370,6 +375,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       <Breadcrumb
         items={[{ label: "Home", active: true }]}
         showVersionCheck={true}
+        compactMode={layout.breadcrumbMode}
       />
 
       <Banner />
