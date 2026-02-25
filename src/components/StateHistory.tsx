@@ -85,9 +85,7 @@ export function processStateTransitions(
   const result: ProcessedTransition[] = [];
   for (let idx = 0; idx < stateTransitions.length; idx++) {
     const transition = stateTransitions[idx];
-    const transitionTime = transition.transition_time_ms as
-      | number
-      | undefined;
+    const transitionTime = transition.transition_time_ms as number | undefined;
     if (transitionTime == null) continue;
     let duration = 0;
     if (idx === stateTransitions.length - 1) {
@@ -120,8 +118,7 @@ function renderStateRow(
   const isTerminalState = TERMINAL_STATES.includes(
     state.status as DevboxStatus,
   );
-  const showDuration =
-    state.duration > 0 && !(isLastState && isTerminalState);
+  const showDuration = state.duration > 0 && !(isLastState && isTerminalState);
   const isShutdownState = state.status === "shutdown";
 
   return (
@@ -142,7 +139,10 @@ function renderStateRow(
         {showDuration && (
           <Text>
             {" "}
-            • Duration: <Text color={colors.secondary}>{formatDuration(state.duration)}</Text>
+            • Duration:{" "}
+            <Text color={colors.secondary}>
+              {formatDuration(state.duration)}
+            </Text>
           </Text>
         )}
       </Text>
@@ -172,11 +172,7 @@ export function buildStateHistorySection(
 
   const fields = processed.map((state, idx) => ({
     label: "",
-    value: renderStateRow(
-      state,
-      idx === processed.length - 1,
-      shutdownReason,
-    ),
+    value: renderStateRow(state, idx === processed.length - 1, shutdownReason),
   }));
 
   return {
@@ -212,11 +208,7 @@ export const StateHistory = ({
       <Box flexDirection="column" paddingLeft={2}>
         {lastFive.map((state, idx) => (
           <React.Fragment key={state.transitionTime}>
-            {renderStateRow(
-              state,
-              idx === lastFive.length - 1,
-              shutdownReason,
-            )}
+            {renderStateRow(state, idx === lastFive.length - 1, shutdownReason)}
           </React.Fragment>
         ))}
       </Box>

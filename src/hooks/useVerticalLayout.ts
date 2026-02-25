@@ -64,7 +64,9 @@ function getMaxVisibleActionsFromHeight(terminalHeight: number): number {
   return 4;
 }
 
-function getBreadcrumbModeFromWidth(terminalWidth: number): BreadcrumbCompactMode {
+function getBreadcrumbModeFromWidth(
+  terminalWidth: number,
+): BreadcrumbCompactMode {
   if (terminalWidth >= BREADCRUMB_FULL_MIN_WIDTH) return "full";
   if (terminalWidth >= BREADCRUMB_COMPACT_MIN_WIDTH) return "compact";
   return "minimal";
@@ -115,10 +117,8 @@ function getNavTipsModeFromHeight(terminalHeight: number): NavTipsMode {
 function getSafeTerminalSize(
   stdout: { columns?: number; rows?: number } | undefined,
 ): { width: number; height: number } {
-  const width =
-    stdout?.columns && stdout.columns > 0 ? stdout.columns : 80;
-  const height =
-    stdout?.rows && stdout.rows > 0 ? stdout.rows : 24;
+  const width = stdout?.columns && stdout.columns > 0 ? stdout.columns : 80;
+  const height = stdout?.rows && stdout.rows > 0 ? stdout.rows : 24;
   return {
     width: Math.max(40, Math.min(300, width)),
     height: Math.max(10, Math.min(200, height)),
@@ -134,9 +134,7 @@ export function useVerticalLayout(
 ): VerticalLayoutResult {
   const { screenType } = options;
   const { stdout } = useStdout();
-  const [size, setSize] = React.useState(() =>
-    getSafeTerminalSize(stdout),
-  );
+  const [size, setSize] = React.useState(() => getSafeTerminalSize(stdout));
 
   React.useEffect(() => {
     if (!stdout) return;
@@ -155,10 +153,14 @@ export function useVerticalLayout(
     (screenType === "detail"
       ? getMaxVisibleActionsFromHeight(terminalHeight)
       : 4);
-  const chromeLines = getChromeLines(screenType, {
-    ...options,
-    maxVisibleActions,
-  }, terminalHeight);
+  const chromeLines = getChromeLines(
+    screenType,
+    {
+      ...options,
+      maxVisibleActions,
+    },
+    terminalHeight,
+  );
   const contentLines = Math.max(0, terminalHeight - chromeLines);
   const breadcrumbMode = getBreadcrumbModeFromWidth(terminalWidth);
   const navTipsMode = getNavTipsModeFromHeight(terminalHeight);

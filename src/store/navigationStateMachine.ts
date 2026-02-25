@@ -41,7 +41,10 @@ export function navigate(
   return {
     currentScreen: screen,
     params,
-    history: [...state.history, { screen: state.currentScreen, params: state.params }],
+    history: [
+      ...state.history,
+      { screen: state.currentScreen, params: state.params },
+    ],
   };
 }
 

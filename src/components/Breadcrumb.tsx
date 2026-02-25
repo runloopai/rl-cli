@@ -49,8 +49,7 @@ export const Breadcrumb = ({
   React.useEffect(() => {
     if (!stdout) return;
     const handleResize = () => {
-      const w =
-        stdout.columns && stdout.columns > 0 ? stdout.columns : 80;
+      const w = stdout.columns && stdout.columns > 0 ? stdout.columns : 80;
       setTerminalWidth(w);
     };
     stdout.on("resize", handleResize);
@@ -116,9 +115,7 @@ export const Breadcrumb = ({
               (dev)
             </Text>
           )}
-          {displayItems.length > 0 && (
-            <Text color={colors.textDim}> › </Text>
-          )}
+          {displayItems.length > 0 && <Text color={colors.textDim}> › </Text>}
           {displayItems.map((item, index) => (
             <React.Fragment key={index}>
               <Text color={item.active ? colors.primary : colors.textDim}>

@@ -72,10 +72,7 @@ export function SectionDetailView({
   displayName,
   breadcrumbPrefix = [],
 }: SectionDetailViewProps) {
-  const detailLines = React.useMemo(
-    () => sectionToLines(section),
-    [section],
-  );
+  const detailLines = React.useMemo(() => sectionToLines(section), [section]);
   const maxScroll = Math.max(0, detailLines.length - viewportHeight);
   const actualScroll = Math.min(scrollOffset, maxScroll);
   const visibleLines = detailLines.slice(

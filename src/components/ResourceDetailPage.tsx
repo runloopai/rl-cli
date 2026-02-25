@@ -64,10 +64,9 @@ function allocateSectionLines(
   const visibleFieldCount: number[] = [];
   const sectionViewRefs: SectionViewRef[] = [];
 
-  const fieldCounts = detailSections.map((s) =>
-    s.fields.filter(
-      (f) => f.value !== undefined && f.value !== null,
-    ).length,
+  const fieldCounts = detailSections.map(
+    (s) =>
+      s.fields.filter((f) => f.value !== undefined && f.value !== null).length,
   );
 
   if (linesAvailable <= 0) {
@@ -123,7 +122,8 @@ function allocateSectionLines(
     const guaranteed = perSectionTake.get(i) ?? 0;
     const take = Math.min(
       want,
-      guaranteed + Math.min(Math.max(0, want - guaranteed), fieldLinesAvailable),
+      guaranteed +
+        Math.min(Math.max(0, want - guaranteed), fieldLinesAvailable),
     );
     visibleFieldCount.push(take);
     fieldLinesAvailable -= Math.max(0, take - guaranteed);
@@ -180,7 +180,8 @@ export function ResourceDetailPage<T>({
   >(null);
   const [sectionScroll, setSectionScroll] = React.useState(0);
   const [showActionsList, setShowActionsList] = React.useState(false);
-  const [actionsListSelectedIndex, setActionsListSelectedIndex] = React.useState(0);
+  const [actionsListSelectedIndex, setActionsListSelectedIndex] =
+    React.useState(0);
 
   // Vertical layout first so we have maxVisibleActions (responsive to terminal height)
   const layout = useVerticalLayout({
@@ -227,8 +228,7 @@ export function ResourceDetailPage<T>({
   );
   const totalSelectableItems =
     actionableFields.length + sectionViewRefs.length + displayedOperationCount;
-  const operationsStartIndex =
-    actionableFields.length + sectionViewRefs.length;
+  const operationsStartIndex = actionableFields.length + sectionViewRefs.length;
   // Default selection: first operation (skip links and section refs)
   const [selectedIndex, setSelectedIndex] = React.useState(
     totalSelectableItems > 0
@@ -245,17 +245,17 @@ export function ResourceDetailPage<T>({
 
   // If we're in section detail but that section no longer exists, return to main view
   React.useEffect(() => {
-    if (
-      showSectionDetail !== null &&
-      !detailSections[showSectionDetail]
-    ) {
+    if (showSectionDetail !== null && !detailSections[showSectionDetail]) {
       setShowSectionDetail(null);
       setSectionScroll(0);
     }
   }, [showSectionDetail, detailSections]);
 
   // Section detail viewport height (same as detailed info)
-  const sectionDetailViewport = useViewportHeight({ overhead: 18, minHeight: 10 });
+  const sectionDetailViewport = useViewportHeight({
+    overhead: 18,
+    minHeight: 10,
+  });
 
   const displayName = getDisplayName(resource);
   const resourceId = getId(resource);
@@ -307,10 +307,17 @@ export function ResourceDetailPage<T>({
       if (ref) {
         executeFieldAction(ref.action);
       }
-    } else if (isOnSectionRef && sectionRefIndex >= 0 && sectionViewRefs[sectionRefIndex]) {
+    } else if (
+      isOnSectionRef &&
+      sectionRefIndex >= 0 &&
+      sectionViewRefs[sectionRefIndex]
+    ) {
       setShowSectionDetail(sectionViewRefs[sectionRefIndex].sectionIndex);
       setSectionScroll(0);
-    } else if (hasViewRestOfActions && operationIndex === actionsOpenListIndex) {
+    } else if (
+      hasViewRestOfActions &&
+      operationIndex === actionsOpenListIndex
+    ) {
       setShowActionsList(true);
       setActionsListSelectedIndex(0);
     } else {
@@ -555,7 +562,10 @@ export function ResourceDetailPage<T>({
       {minimalChrome ? (
         <Box flexDirection="row" paddingX={1}>
           <Text color={colors.primary} bold>
-            {truncateString(displayName, Math.max(12, layout.terminalWidth - 20))}
+            {truncateString(
+              displayName,
+              Math.max(12, layout.terminalWidth - 20),
+            )}
           </Text>
           <Text color={colors.textDim}> • </Text>
           <StatusBadge status={status} fullText />
@@ -592,9 +602,7 @@ export function ResourceDetailPage<T>({
           ? sectionViewRefs.findIndex((r) => r.sectionIndex === sectionIndex)
           : -1;
         const viewSectionSelectIndex =
-          sectionRefIdx >= 0
-            ? actionableFields.length + sectionRefIdx
-            : -1;
+          sectionRefIdx >= 0 ? actionableFields.length + sectionRefIdx : -1;
         const isViewSectionSelected =
           viewSectionSelectIndex >= 0 &&
           selectedIndex === viewSectionSelectIndex;
@@ -633,9 +641,7 @@ export function ResourceDetailPage<T>({
                       {isActionable ? (
                         <Text
                           color={
-                            isFieldSelected
-                              ? colors.primary
-                              : colors.textDim
+                            isFieldSelected ? colors.primary : colors.textDim
                           }
                         >
                           {isFieldSelected ? figures.pointer : " "}{" "}
@@ -720,9 +726,7 @@ export function ResourceDetailPage<T>({
                 }
                 bold={selectedIndex === operationsStartIndex}
               >
-                {selectedIndex === operationsStartIndex
-                  ? figures.pointer
-                  : " "}{" "}
+                {selectedIndex === operationsStartIndex ? figures.pointer : " "}{" "}
                 Actions… [Enter: open list]
               </Text>
             </Box>
@@ -737,7 +741,9 @@ export function ResourceDetailPage<T>({
                     index + operationsStartIndex === selectedIndex;
                   return (
                     <Box key={op.key}>
-                      <Text color={isSelected ? colors.primary : colors.textDim}>
+                      <Text
+                        color={isSelected ? colors.primary : colors.textDim}
+                      >
                         {isSelected ? figures.pointer : " "}{" "}
                       </Text>
                       <Text
@@ -757,15 +763,18 @@ export function ResourceDetailPage<T>({
                   <Box>
                     <Text
                       color={
-                        operationsStartIndex + actionsOpenListIndex === selectedIndex
+                        operationsStartIndex + actionsOpenListIndex ===
+                        selectedIndex
                           ? colors.primary
                           : colors.textDim
                       }
                       bold={
-                        operationsStartIndex + actionsOpenListIndex === selectedIndex
+                        operationsStartIndex + actionsOpenListIndex ===
+                        selectedIndex
                       }
                     >
-                      {operationsStartIndex + actionsOpenListIndex === selectedIndex
+                      {operationsStartIndex + actionsOpenListIndex ===
+                      selectedIndex
                         ? figures.pointer
                         : " "}{" "}
                       View rest of Actions
