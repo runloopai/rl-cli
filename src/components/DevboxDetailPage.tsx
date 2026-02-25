@@ -6,7 +6,7 @@ import React from "react";
 import { Text } from "ink";
 import figures from "figures";
 import { DevboxActionsMenu } from "./DevboxActionsMenu.js";
-import { StateHistory } from "./StateHistory.js";
+import { buildStateHistorySection } from "./StateHistory.js";
 import {
   ResourceDetailPage,
   type DetailSection,
@@ -364,6 +364,15 @@ export const DevboxDetailPage = ({ devbox, onBack }: DevboxDetailPageProps) => {
           },
         ],
       });
+    }
+
+    // State History section (under same section control as Details/Metadata - truncates when viewport is small)
+    const stateHistorySection = buildStateHistorySection(
+      devbox.state_transitions,
+      devbox.shutdown_reason ?? undefined,
+    );
+    if (stateHistorySection) {
+      sections.push(stateHistorySection);
     }
 
     return sections;
@@ -778,12 +787,6 @@ export const DevboxDetailPage = ({ devbox, onBack }: DevboxDetailPageProps) => {
       onOperation={handleOperation}
       onBack={onBack}
       buildDetailLines={buildDetailLines}
-      additionalContent={
-        <StateHistory
-          stateTransitions={devbox.state_transitions}
-          shutdownReason={devbox.shutdown_reason ?? undefined}
-        />
-      }
     />
   );
 };

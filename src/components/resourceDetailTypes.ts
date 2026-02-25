@@ -59,6 +59,14 @@ export interface ActionableFieldRef {
   action: DetailFieldAction;
 }
 
+/** Reference to a section that can be opened in the section detail view (truncated or hidden). */
+export interface SectionViewRef {
+  sectionIndex: number;
+  section: DetailSection;
+  /** True if at least some fields are visible in the main view (partial truncation). */
+  partiallyVisible: boolean;
+}
+
 /**
  * Walk all sections and collect fields that have an action defined.
  * Returns a flat list of references preserving section/field indices

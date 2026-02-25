@@ -31,9 +31,11 @@ export interface NavigationTipsProps {
   paddingX?: number;
   /** Margin on top */
   marginTop?: number;
+  /** When set (e.g. from useVerticalLayout), overrides width-based mode so layout fits vertically */
+  displayMode?: DisplayMode;
 }
 
-type DisplayMode = "full" | "compact" | "keysOnly";
+export type DisplayMode = "full" | "compact" | "keysOnly";
 
 /**
  * Map of common labels to their compact versions
@@ -51,6 +53,8 @@ const COMPACT_LABELS: Record<string, string> = {
   Continue: "OK",
   Back: "Back",
   Quit: "Quit",
+  "Back/Quit": "Quit",
+  "q/Ctrl+C": "q",
   Search: "Find",
   Actions: "Act",
   Create: "New",
@@ -155,6 +159,7 @@ export const NavigationTips = ({
   arrowLabel = "Navigate",
   paddingX = 1,
   marginTop = 1,
+  displayMode: displayModeProp,
 }: NavigationTipsProps) => {
   const { stdout } = useStdout();
 
@@ -204,36 +209,33 @@ export const NavigationTips = ({
   // Calculate available width (terminal width minus padding)
   const availableWidth = terminalWidth - paddingX * 2;
 
-  // Determine the best display mode that fits
   const fullSeparator = " • ";
   const compactSeparator = "  ";
   const keysOnlySeparator = " ";
 
-  let mode: DisplayMode = "full";
-  let separator = fullSeparator;
+  // Start from allocator hint (height-based) if provided, otherwise full
+  const preferredMode: DisplayMode =
+    displayModeProp !== undefined ? displayModeProp : "full";
 
-  const fullWidth = calculateWidth(allTips, "full", fullSeparator);
-  if (fullWidth > availableWidth) {
-    // Try compact mode with shorter separator
-    const compactWidth = calculateWidth(allTips, "compact", compactSeparator);
-    if (compactWidth <= availableWidth) {
+  // Pick a mode that fits width so the line never wraps; downgrade from preferred if needed
+  let mode: DisplayMode = preferredMode;
+  let separator =
+    mode === "full"
+      ? fullSeparator
+      : mode === "compact"
+        ? compactSeparator
+        : keysOnlySeparator;
+
+  const widthFor = (m: DisplayMode, sep: string) =>
+    calculateWidth(allTips, m, sep);
+
+  if (widthFor(mode, separator) > availableWidth) {
+    if (widthFor("compact", compactSeparator) <= availableWidth) {
       mode = "compact";
       separator = compactSeparator;
     } else {
-      // Fall back to keys-only mode
-      const keysOnlyWidth = calculateWidth(
-        allTips,
-        "keysOnly",
-        keysOnlySeparator,
-      );
-      if (keysOnlyWidth <= availableWidth) {
-        mode = "keysOnly";
-        separator = keysOnlySeparator;
-      } else {
-        // Even keys-only doesn't fit, use it anyway (best we can do)
-        mode = "keysOnly";
-        separator = keysOnlySeparator;
-      }
+      mode = "keysOnly";
+      separator = keysOnlySeparator;
     }
   }
 

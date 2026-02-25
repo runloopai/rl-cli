@@ -1,4 +1,14 @@
 import React from "react";
+import {
+  getInitialState,
+  navigate as navNavigate,
+  push as navPush,
+  replace as navReplace,
+  goBack as navGoBack,
+  reset as navReset,
+  canGoBack as navCanGoBack,
+} from "./navigationStateMachine.js";
+import type { NavigationState } from "./navigationStateMachine.js";
 
 export type ScreenName =
   | "menu"
@@ -86,92 +96,56 @@ const NavigationContext = React.createContext<NavigationContextValue | null>(
 export interface NavigationProviderProps {
   initialScreen?: ScreenName;
   initialParams?: RouteParams;
+  /** For tests: set full history stack. */
+  initialHistory?: Array<{ screen: ScreenName; params: RouteParams }>;
   children: React.ReactNode;
 }
 
 export function NavigationProvider({
   initialScreen = "menu",
   initialParams = {},
+  initialHistory,
   children,
 }: NavigationProviderProps) {
-  // Use a single state object to avoid timing issues
-  const [state, setState] = React.useState({
-    currentScreen: initialScreen,
-    params: initialParams,
-    history: [] as Array<{ screen: ScreenName; params: RouteParams }>,
-  });
+  const [state, setState] = React.useState<NavigationState>(() =>
+    getInitialState({
+      initialScreen,
+      initialParams,
+      initialHistory,
+    }),
+  );
 
   const navigate = React.useCallback(
     (screen: ScreenName, newParams: RouteParams = {}) => {
-      setState((prev) => ({
-        currentScreen: screen,
-        params: newParams,
-        history: [
-          ...prev.history,
-          { screen: prev.currentScreen, params: prev.params },
-        ],
-      }));
+      setState((prev) => navNavigate(prev, screen, newParams));
     },
     [],
   );
 
   const push = React.useCallback(
     (screen: ScreenName, newParams: RouteParams = {}) => {
-      setState((prev) => ({
-        currentScreen: screen,
-        params: newParams,
-        history: [
-          ...prev.history,
-          { screen: prev.currentScreen, params: prev.params },
-        ],
-      }));
+      setState((prev) => navPush(prev, screen, newParams));
     },
     [],
   );
 
   const replace = React.useCallback(
     (screen: ScreenName, newParams: RouteParams = {}) => {
-      setState((prev) => ({
-        ...prev,
-        currentScreen: screen,
-        params: newParams,
-      }));
+      setState((prev) => navReplace(prev, screen, newParams));
     },
     [],
   );
 
   const goBack = React.useCallback(() => {
-    setState((prev) => {
-      if (prev.history.length > 0) {
-        const newHistory = [...prev.history];
-        const previousScreen = newHistory.pop();
-
-        return {
-          currentScreen: previousScreen!.screen,
-          params: previousScreen!.params,
-          history: newHistory,
-        };
-      } else {
-        // If no history, go to menu
-        return {
-          currentScreen: "menu",
-          params: {},
-          history: [],
-        };
-      }
-    });
+    setState((prev) => navGoBack(prev));
   }, []);
 
   const reset = React.useCallback(() => {
-    setState({
-      currentScreen: "menu",
-      params: {},
-      history: [],
-    });
+    setState((prev) => navReset(prev));
   }, []);
 
   const canGoBack = React.useCallback(
-    () => state.history.length > 0,
+    () => navCanGoBack(state),
     [state.history.length],
   );
 
