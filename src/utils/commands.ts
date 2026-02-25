@@ -712,6 +712,8 @@ export function createProgram(): Command {
     .option("--description <description>", "Policy description")
     .option("--allow-all", "Allow all egress traffic")
     .option("--allow-devbox-to-devbox", "Allow devbox-to-devbox communication")
+    .option("--allow-ai-gateway", "Allow AI gateway access")
+    .option("--allow-mcp-gateway", "Allow MCP gateway access")
     .option(
       "--allowed-hostnames <hostnames...>",
       "List of allowed hostnames for egress",

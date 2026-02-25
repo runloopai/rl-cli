@@ -332,6 +332,20 @@ export function NetworkPolicyDetailScreen({
         {np.egress.allow_devbox_to_devbox ? "Yes" : "No"}
       </Text>,
     );
+    lines.push(
+      <Text key="egress-ai-gateway" dimColor>
+        {" "}
+        Allow AI Gateway:{" "}
+        {(np.egress as any).allow_ai_gateway ? "Yes" : "No"}
+      </Text>,
+    );
+    lines.push(
+      <Text key="egress-mcp-gateway" dimColor>
+        {" "}
+        Allow MCP Gateway:{" "}
+        {(np.egress as any).allow_mcp_gateway ? "Yes" : "No"}
+      </Text>,
+    );
     lines.push(<Text key="egress-space"> </Text>);
 
     // Allowed Hostnames
