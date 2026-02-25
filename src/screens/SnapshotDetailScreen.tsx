@@ -14,6 +14,7 @@ import {
   type ResourceOperation,
 } from "../components/ResourceDetailPage.js";
 import { getSnapshot, deleteSnapshot } from "../services/snapshotService.js";
+import { useResourceDetail } from "../hooks/useResourceDetail.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
@@ -29,45 +30,26 @@ export function SnapshotDetailScreen({
 }: SnapshotDetailScreenProps) {
   const { goBack, navigate } = useNavigation();
   const snapshots = useSnapshotStore((state) => state.snapshots);
-
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<Error | null>(null);
-  const [fetchedSnapshot, setFetchedSnapshot] = React.useState<Snapshot | null>(
-    null,
-  );
-  const [deleting, setDeleting] = React.useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
-
-  // Find snapshot in store first
   const snapshotFromStore = snapshots.find((s) => s.id === snapshotId);
 
-  // Polling function - must be defined before any early returns (Rules of Hooks)
-  const pollSnapshot = React.useCallback(async () => {
-    if (!snapshotId) return null as unknown as Snapshot;
-    return getSnapshot(snapshotId);
-  }, [snapshotId]);
+  const {
+    data: snapshot,
+    loading,
+    error,
+  } = useResourceDetail<Snapshot>({
+    id: snapshotId,
+    fetch: getSnapshot,
+    initialData: snapshotFromStore ?? undefined,
+    pollInterval: 3000,
+    shouldPoll: (s) => s.status === "pending",
+  });
 
-  // Fetch snapshot from API if not in store or missing full details
-  React.useEffect(() => {
-    if (snapshotId && !loading && !fetchedSnapshot) {
-      // Always fetch full details since store may only have basic info
-      setLoading(true);
-      setError(null);
-
-      getSnapshot(snapshotId)
-        .then((snapshot) => {
-          setFetchedSnapshot(snapshot);
-          setLoading(false);
-        })
-        .catch((err) => {
-          setError(err as Error);
-          setLoading(false);
-        });
-    }
-  }, [snapshotId, loading, fetchedSnapshot]);
-
-  // Use fetched snapshot for full details, fall back to store for basic display
-  const snapshot = fetchedSnapshot || snapshotFromStore;
+  const [deleting, setDeleting] = React.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const [operationError, setOperationError] = React.useState<Error | null>(
+    null,
+  );
+  const displayError = error ?? operationError;
 
   // Show loading state while fetching or before fetch starts
   if (!snapshot && snapshotId && !error) {
@@ -85,13 +67,16 @@ export function SnapshotDetailScreen({
   }
 
   // Show error state if fetch failed
-  if (error && !snapshot) {
+  if (displayError && !snapshot) {
     return (
       <>
         <Breadcrumb
           items={[{ label: "Snapshots" }, { label: "Error", active: true }]}
         />
-        <ErrorMessage message="Failed to load snapshot details" error={error} />
+        <ErrorMessage
+          message="Failed to load snapshot details"
+          error={displayError}
+        />
       </>
     );
   }
@@ -223,7 +208,7 @@ export function SnapshotDetailScreen({
       await deleteSnapshot(snapshot.id);
       goBack();
     } catch (err) {
-      setError(err as Error);
+      setOperationError(err as Error);
       setDeleting(false);
     }
   };
@@ -382,8 +367,6 @@ export function SnapshotDetailScreen({
       onOperation={handleOperation}
       onBack={goBack}
       buildDetailLines={buildDetailLines}
-      pollResource={snapshot.status === "pending" ? pollSnapshot : undefined}
-      onPollUpdate={setFetchedSnapshot}
     />
   );
 }

@@ -15,6 +15,7 @@ import {
 } from "../components/ResourceDetailPage.js";
 import { getBlueprint } from "../services/blueprintService.js";
 import { getClient } from "../utils/client.js";
+import { useResourceDetail } from "../hooks/useResourceDetail.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
@@ -30,44 +31,25 @@ export function BlueprintDetailScreen({
 }: BlueprintDetailScreenProps) {
   const { goBack, navigate } = useNavigation();
   const blueprints = useBlueprintStore((state) => state.blueprints);
-
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<Error | null>(null);
-  const [fetchedBlueprint, setFetchedBlueprint] =
-    React.useState<Blueprint | null>(null);
-  const [deleting, setDeleting] = React.useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
-
-  // Find blueprint in store first
   const blueprintFromStore = blueprints.find((b) => b.id === blueprintId);
 
-  // Polling function - must be defined before any early returns (Rules of Hooks)
-  const pollBlueprint = React.useCallback(async () => {
-    if (!blueprintId) return null as unknown as Blueprint;
-    return getBlueprint(blueprintId);
-  }, [blueprintId]);
+  const { data: blueprint, error } = useResourceDetail<Blueprint>({
+    id: blueprintId,
+    fetch: getBlueprint,
+    initialData: blueprintFromStore ?? undefined,
+    pollInterval: 3000,
+    shouldPoll: (bp) =>
+      bp.status === "queued" ||
+      bp.status === "provisioning" ||
+      bp.status === "building",
+  });
 
-  // Fetch blueprint from API if not in store or missing full details
-  React.useEffect(() => {
-    if (blueprintId && !loading && !fetchedBlueprint) {
-      // Always fetch full details since store may only have basic info
-      setLoading(true);
-      setError(null);
-
-      getBlueprint(blueprintId)
-        .then((blueprint) => {
-          setFetchedBlueprint(blueprint);
-          setLoading(false);
-        })
-        .catch((err) => {
-          setError(err as Error);
-          setLoading(false);
-        });
-    }
-  }, [blueprintId, loading, fetchedBlueprint]);
-
-  // Use fetched blueprint for full details, fall back to store for basic display
-  const blueprint = fetchedBlueprint || blueprintFromStore;
+  const [deleting, setDeleting] = React.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const [operationError, setOperationError] = React.useState<Error | null>(
+    null,
+  );
+  const displayError = error ?? operationError;
 
   // Show loading state while fetching or before fetch starts
   if (!blueprint && blueprintId && !error) {
@@ -85,7 +67,7 @@ export function BlueprintDetailScreen({
   }
 
   // Show error state if fetch failed
-  if (error && !blueprint) {
+  if (displayError && !blueprint) {
     return (
       <>
         <Breadcrumb
@@ -93,7 +75,7 @@ export function BlueprintDetailScreen({
         />
         <ErrorMessage
           message="Failed to load blueprint details"
-          error={error}
+          error={displayError}
         />
       </>
     );
@@ -307,7 +289,7 @@ export function BlueprintDetailScreen({
       await client.blueprints.delete(blueprint.id);
       goBack();
     } catch (err) {
-      setError(err as Error);
+      setOperationError(err as Error);
       setDeleting(false);
     }
   };
@@ -564,14 +546,6 @@ export function BlueprintDetailScreen({
       onOperation={handleOperation}
       onBack={goBack}
       buildDetailLines={buildDetailLines}
-      pollResource={
-        blueprint.status === "queued" ||
-        blueprint.status === "provisioning" ||
-        blueprint.status === "building"
-          ? pollBlueprint
-          : undefined
-      }
-      onPollUpdate={setFetchedBlueprint}
     />
   );
 }

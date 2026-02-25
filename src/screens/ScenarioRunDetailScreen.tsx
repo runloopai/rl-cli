@@ -17,6 +17,7 @@ import {
   type ResourceOperation,
 } from "../components/ResourceDetailPage.js";
 import { getScenarioRun } from "../services/benchmarkService.js";
+import { useResourceDetail } from "../hooks/useResourceDetail.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb, type BreadcrumbItem } from "../components/Breadcrumb.js";
@@ -33,40 +34,19 @@ export function ScenarioRunDetailScreen({
 }: ScenarioRunDetailScreenProps) {
   const { goBack, navigate } = useNavigation();
   const scenarioRuns = useBenchmarkStore((state) => state.scenarioRuns);
-
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<Error | null>(null);
-  const [fetchedRun, setFetchedRun] = React.useState<ScenarioRun | null>(null);
-
-  // Find run in store first
   const runFromStore = scenarioRuns.find((r) => r.id === scenarioRunId);
 
-  // Polling function
-  const pollRun = React.useCallback(async () => {
-    if (!scenarioRunId) return null as unknown as ScenarioRun;
-    return getScenarioRun(scenarioRunId);
-  }, [scenarioRunId]);
-
-  // Fetch run from API if not in store
-  React.useEffect(() => {
-    if (scenarioRunId && !loading && !fetchedRun) {
-      setLoading(true);
-      setError(null);
-
-      getScenarioRun(scenarioRunId)
-        .then((run) => {
-          setFetchedRun(run);
-          setLoading(false);
-        })
-        .catch((err) => {
-          setError(err as Error);
-          setLoading(false);
-        });
-    }
-  }, [scenarioRunId, loading, fetchedRun]);
-
-  // Use fetched run for full details, fall back to store for basic display
-  const run = fetchedRun || runFromStore;
+  const {
+    data: run,
+    loading,
+    error,
+  } = useResourceDetail<ScenarioRun>({
+    id: scenarioRunId,
+    fetch: getScenarioRun,
+    initialData: runFromStore ?? undefined,
+    pollInterval: 3000,
+    shouldPoll: (r) => r.state === "running" || r.state === "scoring",
+  });
 
   // Build breadcrumb items
   const buildBreadcrumbItems = (
@@ -345,9 +325,6 @@ export function ScenarioRunDetailScreen({
     return lines;
   };
 
-  // Check if run is still in progress for polling
-  const isRunning = run.state === "running" || run.state === "scoring";
-
   // Build breadcrumb prefix
   const breadcrumbPrefix = [{ label: "Home" }, { label: "Benchmarks" }];
   if (benchmarkRunId) {
@@ -369,8 +346,6 @@ export function ScenarioRunDetailScreen({
       onOperation={handleOperation}
       onBack={goBack}
       buildDetailLines={buildDetailLines}
-      pollResource={isRunning ? pollRun : undefined}
-      onPollUpdate={setFetchedRun}
       breadcrumbPrefix={breadcrumbPrefix}
     />
   );

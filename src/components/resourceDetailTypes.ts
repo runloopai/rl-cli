@@ -111,10 +111,4 @@ export interface ResourceDetailPageProps<T> {
   buildDetailLines?: (resource: T) => React.ReactElement[];
   /** Optional: Additional content to render after details section */
   additionalContent?: React.ReactNode;
-  /** Optional: Polling function to refresh resource data */
-  pollResource?: () => Promise<T>;
-  /** Optional: Called whenever polling returns a fresh resource */
-  onPollUpdate?: (resource: T) => void;
-  /** Polling interval in ms (default: 3000) */
-  pollInterval?: number;
 }

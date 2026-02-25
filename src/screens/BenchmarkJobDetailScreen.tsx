@@ -18,6 +18,7 @@ import {
 } from "../components/ResourceDetailPage.js";
 import { getBenchmarkJob } from "../services/benchmarkJobService.js";
 import { getBenchmarkRun } from "../services/benchmarkService.js";
+import { useResourceDetail } from "../hooks/useResourceDetail.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
@@ -32,43 +33,26 @@ export function BenchmarkJobDetailScreen({
 }: BenchmarkJobDetailScreenProps) {
   const { goBack, navigate } = useNavigation();
   const benchmarkJobs = useBenchmarkJobStore((state) => state.benchmarkJobs);
+  const jobFromStore = benchmarkJobs.find((j) => j.id === benchmarkJobId);
 
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<Error | null>(null);
-  const [fetchedJob, setFetchedJob] = React.useState<BenchmarkJob | null>(null);
+  const {
+    data: job,
+    loading,
+    error,
+  } = useResourceDetail<BenchmarkJob>({
+    id: benchmarkJobId,
+    fetch: getBenchmarkJob,
+    initialData: jobFromStore ?? undefined,
+    pollInterval: 3000,
+    shouldPoll: (j) =>
+      j.state === "running" ||
+      j.state === "queued" ||
+      j.state === "initializing",
+  });
+
   const [runNames, setRunNames] = React.useState<Map<string, string>>(
     new Map(),
   );
-
-  // Find job in store first
-  const jobFromStore = benchmarkJobs.find((j) => j.id === benchmarkJobId);
-
-  // Polling function
-  const pollJob = React.useCallback(async () => {
-    if (!benchmarkJobId) return null as unknown as BenchmarkJob;
-    return getBenchmarkJob(benchmarkJobId);
-  }, [benchmarkJobId]);
-
-  // Fetch job from API if not in store
-  React.useEffect(() => {
-    if (benchmarkJobId && !loading && !fetchedJob) {
-      setLoading(true);
-      setError(null);
-
-      getBenchmarkJob(benchmarkJobId)
-        .then((job) => {
-          setFetchedJob(job);
-          setLoading(false);
-        })
-        .catch((err) => {
-          setError(err as Error);
-          setLoading(false);
-        });
-    }
-  }, [benchmarkJobId, loading, fetchedJob]);
-
-  // Use fetched job for full details, fall back to store for basic display
-  const job = fetchedJob || jobFromStore;
 
   // Fetch run names when job is loaded
   React.useEffect(() => {
@@ -927,12 +911,6 @@ export function BenchmarkJobDetailScreen({
     return lines;
   };
 
-  // Check if job is still in progress for polling
-  const isRunning =
-    job.state === "running" ||
-    job.state === "queued" ||
-    job.state === "initializing";
-
   return (
     <ResourceDetailPage
       resource={job}
@@ -945,8 +923,6 @@ export function BenchmarkJobDetailScreen({
       onOperation={handleOperation}
       onBack={goBack}
       buildDetailLines={buildDetailLines}
-      pollResource={isRunning ? pollJob : undefined}
-      onPollUpdate={setFetchedJob}
       breadcrumbPrefix={[{ label: "Home" }]}
     />
   );
