@@ -18,8 +18,8 @@ importers:
         specifier: ^1.26.0
         version: 1.26.0(zod@4.3.6)
       '@runloop/api-client':
-        specifier: 1.6.0
-        version: 1.6.0
+        specifier: 1.9.0
+        version: 1.9.0
       '@types/express':
         specifier: ^5.0.6
         version: 5.0.6
@@ -689,8 +689,8 @@ packages:
       '@cfworker/json-schema':
         optional: true
 
-  '@runloop/api-client@1.6.0':
-    resolution: {integrity: sha512-zoOfR45kImlBi/2vp56d/rrkXtxu24CoC36lTc6xLJx69LWJapg9gfCmrdhnCfgkOGhnu9BLx3P4fcuw8Egl2w==}
+  '@runloop/api-client@1.9.0':
+    resolution: {integrity: sha512-clj/Vf0d7/VW2gpVEJ9x1E32h1qjvLwWaiZFDurz107t8LIG2IxDzPeSC6cwgtBCa+RheTbMoU6QbZFrvT2xXQ==}
 
   '@sinclair/typebox@0.27.8':
     resolution: {integrity: sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==}
@@ -2811,6 +2811,7 @@ packages:
   tar@7.5.7:
     resolution: {integrity: sha512-fov56fJiRuThVFXD6o6/Q354S7pnWMJIVlDBYijsTNx6jKSE4pvrDTs6lUnmGvNyfJwFQQwWy3owKz1ucIhveQ==}
     engines: {node: '>=18'}
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   terminal-link@5.0.0:
     resolution: {integrity: sha512-qFAy10MTMwjzjU8U16YS4YoZD+NQLHzLssFMNqgravjbvIPNiqkGFR4yjhJfmY9R5OFU7+yHxc6y+uGHkKwLRA==}
@@ -3824,7 +3825,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@runloop/api-client@1.6.0':
+  '@runloop/api-client@1.9.0':
     dependencies:
       '@types/node': 18.19.130
       '@types/node-fetch': 2.6.13

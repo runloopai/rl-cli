@@ -35,6 +35,8 @@ type FormField =
   | "description"
   | "allow_all"
   | "allow_devbox_to_devbox"
+  | "allow_ai_gateway"
+  | "allow_mcp_gateway"
   | "allowed_hostnames";
 
 interface FormData {
@@ -42,6 +44,8 @@ interface FormData {
   description: string;
   allow_all: "Yes" | "No";
   allow_devbox_to_devbox: "Yes" | "No";
+  allow_ai_gateway: "Yes" | "No";
+  allow_mcp_gateway: "Yes" | "No";
   allowed_hostnames: string[];
 }
 
@@ -63,6 +67,10 @@ export const NetworkPolicyCreatePage = ({
         allow_devbox_to_devbox: initialPolicy.egress.allow_devbox_to_devbox
           ? "Yes"
           : "No",
+        allow_ai_gateway: initialPolicy.egress.allow_ai_gateway ? "Yes" : "No",
+        allow_mcp_gateway: initialPolicy.egress.allow_mcp_gateway
+          ? "Yes"
+          : "No",
         allowed_hostnames: initialPolicy.egress.allowed_hostnames || [],
       };
     }
@@ -71,6 +79,8 @@ export const NetworkPolicyCreatePage = ({
       description: "",
       allow_all: "No",
       allow_devbox_to_devbox: "No",
+      allow_ai_gateway: "No",
+      allow_mcp_gateway: "No",
       allowed_hostnames: [],
     };
   });
@@ -98,6 +108,16 @@ export const NetworkPolicyCreatePage = ({
     {
       key: "allow_devbox_to_devbox",
       label: "Allow Devbox-to-Devbox",
+      type: "select",
+    },
+    {
+      key: "allow_ai_gateway",
+      label: "Allow AI Gateway",
+      type: "select",
+    },
+    {
+      key: "allow_mcp_gateway",
+      label: "Allow MCP Gateway",
       type: "select",
     },
     { key: "allowed_hostnames", label: "Allowed Hostnames", type: "list" },
@@ -233,6 +253,8 @@ export const NetworkPolicyCreatePage = ({
         description?: string;
         allow_all?: boolean;
         allow_devbox_to_devbox?: boolean;
+        allow_ai_gateway?: boolean;
+        allow_mcp_gateway?: boolean;
         allowed_hostnames?: string[];
       } = {};
 
@@ -252,6 +274,8 @@ export const NetworkPolicyCreatePage = ({
 
       params.allow_all = formData.allow_all === "Yes";
       params.allow_devbox_to_devbox = formData.allow_devbox_to_devbox === "Yes";
+      params.allow_ai_gateway = formData.allow_ai_gateway === "Yes";
+      params.allow_mcp_gateway = formData.allow_mcp_gateway === "Yes";
 
       // For allowed_hostnames, always send the current list
       // (empty array means no hostnames allowed)

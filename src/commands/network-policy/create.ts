@@ -10,6 +10,8 @@ interface CreateOptions {
   description?: string;
   allowAll?: boolean;
   allowDevboxToDevbox?: boolean;
+  allowAiGateway?: boolean;
+  allowMcpGateway?: boolean;
   allowedHostnames?: string[];
   output?: string;
 }
@@ -23,6 +25,8 @@ export async function createNetworkPolicy(options: CreateOptions) {
       description: options.description,
       allow_all: options.allowAll ?? false,
       allow_devbox_to_devbox: options.allowDevboxToDevbox ?? false,
+      allow_ai_gateway: options.allowAiGateway ?? false,
+      allow_mcp_gateway: options.allowMcpGateway ?? false,
       allowed_hostnames: options.allowedHostnames ?? [],
     });
 
