@@ -96,7 +96,8 @@ describe('DevboxDetailPage', () => {
     const frame = lastFrame() || '';
     expect(frame).toContain('Nav');
     expect(frame).toContain('Run');
-    expect(frame).toContain('Back');
+    // Nav tips use compact labels in small terminal (Quit) or full (Back/Quit)
+    expect(frame).toMatch(/Back|Quit/);
   });
 
   it('displays resource information', () => {

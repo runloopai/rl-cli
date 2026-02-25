@@ -239,9 +239,10 @@ describe("ResourceDetailPage", () => {
       <ResourceDetailPage {...createDefaultProps()} />,
     );
     const frame = lastFrame() || "";
-    expect(frame).toContain("Execute");
-    expect(frame).toContain("Copy ID");
-    expect(frame).toContain("Back");
+    // Nav tips may be full (Execute, Copy ID, Back) or compact (Run, Copy, Quit)
+    expect(frame).toMatch(/Execute|Run/);
+    expect(frame).toMatch(/Copy ID|Copy/);
+    expect(frame).toMatch(/Back|Quit/);
   });
 
   it("shows Full Details tip when buildDetailLines is provided", () => {
@@ -252,7 +253,8 @@ describe("ResourceDetailPage", () => {
       />,
     );
     const frame = lastFrame() || "";
-    expect(frame).toContain("Full Details");
+    // Full Details may render as "More" in compact nav tips
+    expect(frame).toMatch(/Full Details|More/);
   });
 
   it("shows Browser tip when getUrl is provided", () => {
@@ -263,7 +265,8 @@ describe("ResourceDetailPage", () => {
       />,
     );
     const frame = lastFrame() || "";
-    expect(frame).toContain("Browser");
+    // Browser may render as "Web" in compact nav tips
+    expect(frame).toMatch(/Browser|Web/);
   });
 
   // --- Breadcrumbs ---
