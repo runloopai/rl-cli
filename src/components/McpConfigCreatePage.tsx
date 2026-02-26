@@ -209,15 +209,18 @@ export const McpConfigCreatePage = ({
     }
   };
 
+  const breadcrumbItems = isEditing
+    ? [
+        { label: "MCP Configs" },
+        { label: initialConfig?.name || initialConfig?.id || "Config" },
+        { label: "Update", active: true },
+      ]
+    : [{ label: "MCP Configs" }, { label: "Create", active: true }];
+
   if (result) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "MCP Configs" },
-            { label: isEditing ? "Update" : "Create", active: true },
-          ]}
-        />
+        <Breadcrumb items={breadcrumbItems} />
         <SuccessMessage
           message={`MCP config ${isEditing ? "updated" : "created"} successfully!`}
         />
@@ -254,12 +257,7 @@ export const McpConfigCreatePage = ({
   if (error) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "MCP Configs" },
-            { label: isEditing ? "Update" : "Create", active: true },
-          ]}
-        />
+        <Breadcrumb items={breadcrumbItems} />
         <ErrorMessage
           message={`Failed to ${isEditing ? "update" : "create"} MCP config`}
           error={error}
@@ -277,12 +275,7 @@ export const McpConfigCreatePage = ({
   if (creating) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "MCP Configs" },
-            { label: isEditing ? "Update" : "Create", active: true },
-          ]}
-        />
+        <Breadcrumb items={breadcrumbItems} />
         <SpinnerComponent
           message={`${isEditing ? "Updating" : "Creating"} MCP config...`}
         />
@@ -292,12 +285,7 @@ export const McpConfigCreatePage = ({
 
   return (
     <>
-      <Breadcrumb
-        items={[
-          { label: "MCP Configs" },
-          { label: isEditing ? "Update" : "Create", active: true },
-        ]}
-      />
+      <Breadcrumb items={breadcrumbItems} />
 
       <Box flexDirection="column" marginBottom={1}>
         {fields.map((field) => {

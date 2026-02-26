@@ -109,11 +109,11 @@ export function GatewayConfigDetailScreen({
       <>
         <Breadcrumb
           items={[
-            { label: "AI Gateway Configs" },
+            { label: "Agent Gateway Configs" },
             { label: "Loading...", active: true },
           ]}
         />
-        <SpinnerComponent message="Loading AI gateway config details..." />
+        <SpinnerComponent message="Loading Agent gateway config details..." />
       </>
     );
   }
@@ -124,12 +124,12 @@ export function GatewayConfigDetailScreen({
       <>
         <Breadcrumb
           items={[
-            { label: "AI Gateway Configs" },
+            { label: "Agent Gateway Configs" },
             { label: "Error", active: true },
           ]}
         />
         <ErrorMessage
-          message="Failed to load AI gateway config details"
+          message="Failed to load Agent gateway config details"
           error={error}
         />
         <NavigationTips tips={[{ key: "q/esc/Enter", label: "Go back" }]} />
@@ -143,13 +143,13 @@ export function GatewayConfigDetailScreen({
       <>
         <Breadcrumb
           items={[
-            { label: "AI Gateway Configs" },
+            { label: "Agent Gateway Configs" },
             { label: "Not Found", active: true },
           ]}
         />
         <ErrorMessage
-          message={`AI gateway config ${gatewayConfigId || "unknown"} not found`}
-          error={new Error("AI gateway config not found")}
+          message={`Agent gateway config ${gatewayConfigId || "unknown"} not found`}
+          error={new Error("Agent gateway config not found")}
         />
         <NavigationTips tips={[{ key: "q/esc/Enter", label: "Go back" }]} />
       </>
@@ -221,14 +221,14 @@ export function GatewayConfigDetailScreen({
   const operations: ResourceOperation[] = [
     {
       key: "edit",
-      label: "Edit AI Gateway Config",
+      label: "Edit Agent Gateway Config",
       color: colors.warning,
       icon: figures.pointer,
       shortcut: "e",
     },
     {
       key: "delete",
-      label: "Delete AI Gateway Config",
+      label: "Delete Agent Gateway Config",
       color: colors.error,
       icon: figures.cross,
       shortcut: "d",
@@ -272,7 +272,7 @@ export function GatewayConfigDetailScreen({
     // Core Information
     lines.push(
       <Text key="core-title" color={colors.warning} bold>
-        AI Gateway Config Details
+        Agent Gateway Config Details
       </Text>,
     );
     lines.push(
@@ -379,11 +379,11 @@ export function GatewayConfigDetailScreen({
   if (showDeleteConfirm && config) {
     return (
       <ConfirmationPrompt
-        title="Delete AI Gateway Config"
+        title="Delete Agent Gateway Config"
         message={`Are you sure you want to delete "${config.name || config.id}"?`}
-        details="This action cannot be undone. Any devboxes using this AI gateway config will no longer have access to it."
+        details="This action cannot be undone. Any devboxes using this Agent gateway config will no longer have access to it."
         breadcrumbItems={[
-          { label: "AI Gateway Configs" },
+          { label: "Agent Gateway Configs" },
           { label: config.name || config.id },
           { label: "Delete", active: true },
         ]}
@@ -399,12 +399,12 @@ export function GatewayConfigDetailScreen({
       <>
         <Breadcrumb
           items={[
-            { label: "AI Gateway Configs" },
+            { label: "Agent Gateway Configs" },
             { label: config.name || config.id },
             { label: "Deleting...", active: true },
           ]}
         />
-        <SpinnerComponent message="Deleting AI gateway config..." />
+        <SpinnerComponent message="Deleting Agent gateway config..." />
       </>
     );
   }
@@ -412,7 +412,7 @@ export function GatewayConfigDetailScreen({
   return (
     <ResourceDetailPage
       resource={config}
-      resourceType="AI Gateway Configs"
+      resourceType="Agent Gateway Configs"
       getDisplayName={(gc) => gc.name || gc.id}
       getId={(gc) => gc.id}
       getStatus={() => "active"} // Gateway configs don't have a status field

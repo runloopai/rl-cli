@@ -197,17 +197,24 @@ export const SecretCreatePage = ({
     }
   };
 
+  const breadcrumbItems = isUpdating
+    ? [
+        { label: "Settings" },
+        { label: "Secrets" },
+        { label: initialSecret?.name || initialSecret?.id || "Secret" },
+        { label: "Update", active: true },
+      ]
+    : [
+        { label: "Settings" },
+        { label: "Secrets" },
+        { label: "Create", active: true },
+      ];
+
   // Result screen
   if (result) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "Settings" },
-            { label: "Secrets" },
-            { label: isUpdating ? "Update" : "Create", active: true },
-          ]}
-        />
+        <Breadcrumb items={breadcrumbItems} />
         <SuccessMessage
           message={`Secret ${isUpdating ? "updated" : "created"} successfully!`}
         />
@@ -246,13 +253,7 @@ export const SecretCreatePage = ({
   if (error) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "Settings" },
-            { label: "Secrets" },
-            { label: isUpdating ? "Update" : "Create", active: true },
-          ]}
-        />
+        <Breadcrumb items={breadcrumbItems} />
         <ErrorMessage
           message={`Failed to ${isUpdating ? "update" : "create"} secret`}
           error={error}
@@ -271,13 +272,7 @@ export const SecretCreatePage = ({
   if (submitting) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "Settings" },
-            { label: "Secrets" },
-            { label: isUpdating ? "Update" : "Create", active: true },
-          ]}
-        />
+        <Breadcrumb items={breadcrumbItems} />
         <SpinnerComponent
           message={`${isUpdating ? "Updating" : "Creating"} secret...`}
         />
@@ -288,13 +283,7 @@ export const SecretCreatePage = ({
   // Form screen
   return (
     <>
-      <Breadcrumb
-        items={[
-          { label: "Settings" },
-          { label: "Secrets" },
-          { label: isUpdating ? "Update" : "Create", active: true },
-        ]}
-      />
+      <Breadcrumb items={breadcrumbItems} />
 
       <Box
         borderStyle="round"

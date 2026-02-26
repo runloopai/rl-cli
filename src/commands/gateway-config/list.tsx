@@ -210,13 +210,13 @@ const ListGatewayConfigsUI = ({
       },
       {
         key: "edit",
-        label: "Edit AI Gateway Config",
+        label: "Edit Agent Gateway Config",
         color: colors.warning,
         icon: figures.pointer,
       },
       {
         key: "delete",
-        label: "Delete AI Gateway Config",
+        label: "Delete Agent Gateway Config",
         color: colors.error,
         icon: figures.cross,
       },
@@ -320,7 +320,7 @@ const ListGatewayConfigsUI = ({
         case "delete":
           await client.gatewayConfigs.delete(config.id);
           setOperationResult(
-            `AI gateway config "${config.name}" deleted successfully`,
+            `Agent gateway config "${config.name}" deleted successfully`,
           );
           break;
       }
@@ -500,11 +500,11 @@ const ListGatewayConfigsUI = ({
   if (showDeleteConfirm && selectedConfig) {
     return (
       <ConfirmationPrompt
-        title="Delete AI Gateway Config"
+        title="Delete Agent Gateway Config"
         message={`Are you sure you want to delete "${selectedConfig.name}"?`}
-        details="This action cannot be undone. Any devboxes using this AI gateway config will no longer have access to it."
+        details="This action cannot be undone. Any devboxes using this Agent gateway config will no longer have access to it."
         breadcrumbItems={[
-          { label: "AI Gateway Configs" },
+          { label: "Agent Gateway Configs" },
           { label: selectedConfig.name || selectedConfig.id },
           { label: "Delete", active: true },
         ]}
@@ -530,7 +530,7 @@ const ListGatewayConfigsUI = ({
       <>
         <Breadcrumb
           items={[
-            { label: "AI Gateway Configs" },
+            { label: "Agent Gateway Configs" },
             {
               label: selectedConfig?.name || selectedConfig?.id || "Config",
             },
@@ -553,13 +553,13 @@ const ListGatewayConfigsUI = ({
       operations.find((o) => o.key === executingOperation)?.label ||
       "Operation";
     const messages: Record<string, string> = {
-      delete: "Deleting AI gateway config...",
+      delete: "Deleting Agent gateway config...",
     };
     return (
       <>
         <Breadcrumb
           items={[
-            { label: "AI Gateway Configs" },
+            { label: "Agent Gateway Configs" },
             { label: selectedConfig.name || selectedConfig.id },
             { label: operationLabel, active: true },
           ]}
@@ -608,8 +608,8 @@ const ListGatewayConfigsUI = ({
   if (loading && configs.length === 0) {
     return (
       <>
-        <Breadcrumb items={[{ label: "AI Gateway Configs", active: true }]} />
-        <SpinnerComponent message="Loading AI gateway configs..." />
+        <Breadcrumb items={[{ label: "Agent Gateway Configs", active: true }]} />
+        <SpinnerComponent message="Loading Agent gateway configs..." />
       </>
     );
   }
@@ -618,9 +618,9 @@ const ListGatewayConfigsUI = ({
   if (error) {
     return (
       <>
-        <Breadcrumb items={[{ label: "AI Gateway Configs", active: true }]} />
+        <Breadcrumb items={[{ label: "Agent Gateway Configs", active: true }]} />
         <ErrorMessage
-          message="Failed to list AI gateway configs"
+          message="Failed to list Agent gateway configs"
           error={error}
         />
       </>
@@ -630,7 +630,7 @@ const ListGatewayConfigsUI = ({
   // Main list view
   return (
     <>
-      <Breadcrumb items={[{ label: "AI Gateway Configs", active: true }]} />
+      <Breadcrumb items={[{ label: "Agent Gateway Configs", active: true }]} />
 
       {/* Search bar */}
       <SearchBar
@@ -640,7 +640,7 @@ const ListGatewayConfigsUI = ({
         resultCount={totalCount}
         onSearchChange={search.setSearchQuery}
         onSearchSubmit={search.submitSearch}
-        placeholder="Search AI gateway configs..."
+        placeholder="Search Agent gateway configs..."
       />
 
       {/* Table - hide when popup is shown */}
@@ -653,7 +653,7 @@ const ListGatewayConfigsUI = ({
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
-              {figures.info} No AI gateway configs found. Press [c] to create
+              {figures.info} No Agent gateway configs found. Press [c] to create
               one.
             </Text>
           }

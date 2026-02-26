@@ -90,8 +90,8 @@ export const GatewayConfigCreatePage = ({
     {
       key: "create",
       label: isEditing
-        ? "Update AI Gateway Config"
-        : "Create AI Gateway Config",
+        ? "Update Agent Gateway Config"
+        : "Create Agent Gateway Config",
       type: "action",
     },
     {
@@ -298,18 +298,21 @@ export const GatewayConfigCreatePage = ({
     }
   };
 
+  const breadcrumbItems = isEditing
+    ? [
+        { label: "Agent Gateway Configs" },
+        { label: initialConfig?.name || initialConfig?.id || "Config" },
+        { label: "Update", active: true },
+      ]
+    : [{ label: "Agent Gateway Configs" }, { label: "Create", active: true }];
+
   // Result screen
   if (result) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "AI Gateway Configs" },
-            { label: isEditing ? "Update" : "Create", active: true },
-          ]}
-        />
+        <Breadcrumb items={breadcrumbItems} />
         <SuccessMessage
-          message={`AI gateway config ${isEditing ? "updated" : "created"} successfully!`}
+          message={`Agent gateway config ${isEditing ? "updated" : "created"} successfully!`}
         />
         <Box marginLeft={2} flexDirection="column" marginTop={1}>
           <Box>
@@ -340,14 +343,9 @@ export const GatewayConfigCreatePage = ({
   if (error) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "AI Gateway Configs" },
-            { label: isEditing ? "Update" : "Create", active: true },
-          ]}
-        />
+        <Breadcrumb items={breadcrumbItems} />
         <ErrorMessage
-          message={`Failed to ${isEditing ? "update" : "create"} AI gateway config`}
+          message={`Failed to ${isEditing ? "update" : "create"} Agent gateway config`}
           error={error}
         />
         <NavigationTips
@@ -364,14 +362,9 @@ export const GatewayConfigCreatePage = ({
   if (creating) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "AI Gateway Configs" },
-            { label: isEditing ? "Update" : "Create", active: true },
-          ]}
-        />
+        <Breadcrumb items={breadcrumbItems} />
         <SpinnerComponent
-          message={`${isEditing ? "Updating" : "Creating"} AI gateway config...`}
+          message={`${isEditing ? "Updating" : "Creating"} Agent gateway config...`}
         />
       </>
     );
@@ -380,12 +373,7 @@ export const GatewayConfigCreatePage = ({
   // Form screen
   return (
     <>
-      <Breadcrumb
-        items={[
-          { label: "AI Gateway Configs" },
-          { label: isEditing ? "Update" : "Create", active: true },
-        ]}
-      />
+      <Breadcrumb items={breadcrumbItems} />
 
       <Box flexDirection="column" marginBottom={1}>
         {fields.map((field) => {
