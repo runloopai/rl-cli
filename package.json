@@ -99,7 +99,7 @@
   "devDependencies": {
     "@anthropic-ai/mcpb": "^2.1.2",
     "@types/jest": "^29.5.14",
-    "@types/node": "^22.19.7",
+    "@types/node": "^25.3.2",
     "@types/react": "^19.2.10",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",
