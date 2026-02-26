@@ -910,7 +910,7 @@ export function createProgram(): Command {
   const mcpConfig = program
     .command("mcp-config")
     .description("Manage MCP configurations")
-    .alias("mcp-cfg");
+    .alias("mcpc");
 
   mcpConfig
     .command("list")
