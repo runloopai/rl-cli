@@ -70,6 +70,10 @@ export function createProgram(): Command {
       "Gateway configurations (format: ENV_PREFIX=gateway_id_or_name,secret_id_or_name)",
     )
     .option(
+      "--mcp <specs...>",
+      "MCP configurations (format: mcp_config_id_or_name,secret_id_or_name)",
+    )
+    .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
     )
@@ -900,6 +904,92 @@ export function createProgram(): Command {
       const { deleteGatewayConfig } =
         await import("../commands/gateway-config/delete.js");
       await deleteGatewayConfig(id, options);
+    });
+
+  // MCP config commands
+  const mcpConfig = program
+    .command("mcp-config")
+    .description("Manage MCP configurations")
+    .alias("mcpc");
+
+  mcpConfig
+    .command("list")
+    .description("List MCP configurations")
+    .option("--name <name>", "Filter by name")
+    .option("--limit <n>", "Max results", "20")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: json)",
+    )
+    .action(async (options) => {
+      const { listMcpConfigs } = await import("../commands/mcp-config/list.js");
+      await listMcpConfigs(options);
+    });
+
+  mcpConfig
+    .command("create")
+    .description("Create a new MCP configuration")
+    .requiredOption("--name <name>", "MCP config name (required)")
+    .requiredOption("--endpoint <url>", "Target endpoint URL (required)")
+    .requiredOption(
+      "--allowed-tools <tools>",
+      "Allowed tool patterns, comma-separated (required, e.g. '*' or 'github.search_*,github.get_*')",
+    )
+    .option("--description <description>", "Description")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (options) => {
+      const { createMcpConfig } =
+        await import("../commands/mcp-config/create.js");
+      await createMcpConfig(options);
+    });
+
+  mcpConfig
+    .command("get <id>")
+    .description("Get MCP configuration details")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: json)",
+    )
+    .action(async (id, options) => {
+      const { getMcpConfig } = await import("../commands/mcp-config/get.js");
+      await getMcpConfig({ id, ...options });
+    });
+
+  mcpConfig
+    .command("update <id>")
+    .description("Update an MCP configuration")
+    .option("--name <name>", "New name")
+    .option("--endpoint <url>", "New endpoint URL")
+    .option(
+      "--allowed-tools <tools>",
+      "New allowed tool patterns, comma-separated",
+    )
+    .option("--description <description>", "New description")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (id, options) => {
+      const { updateMcpConfig } =
+        await import("../commands/mcp-config/update.js");
+      await updateMcpConfig({ id, ...options });
+    });
+
+  mcpConfig
+    .command("delete <id>")
+    .description("Delete an MCP configuration")
+    .alias("rm")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (id, options) => {
+      const { deleteMcpConfig } =
+        await import("../commands/mcp-config/delete.js");
+      await deleteMcpConfig(id, options);
     });
 
   // MCP server commands

@@ -164,6 +164,16 @@ rli gateway-config update <id>           # Update a gateway configuration
 rli gateway-config delete <id>           # Delete a gateway configuration
 ```
 
+### Mcp-config Commands (alias: `mcpc`)
+
+```bash
+rli mcp-config list                      # List MCP configurations
+rli mcp-config create                    # Create a new MCP configuration
+rli mcp-config get <id>                  # Get MCP configuration details
+rli mcp-config update <id>               # Update an MCP configuration
+rli mcp-config delete <id>               # Delete an MCP configuration
+```
+
 ### Mcp Commands
 
 ```bash
