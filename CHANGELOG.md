@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.2](https://github.com/runloopai/rl-cli/compare/v1.11.1...v1.11.2) (2026-02-26)
+
+
+### Bug Fixes
+
+* network policy create toggles and detail page for egress rules ([#129](https://github.com/runloopai/rl-cli/issues/129)) ([3e37035](https://github.com/runloopai/rl-cli/commit/3e37035d337a78b5c905836bfd6ac825ce0c3230))
+
 ## [1.11.1](https://github.com/runloopai/rl-cli/compare/v1.11.0...v1.11.1) (2026-02-26)
 
 
