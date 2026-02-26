@@ -67,7 +67,9 @@ export const NetworkPolicyCreatePage = ({
         allow_devbox_to_devbox: initialPolicy.egress.allow_devbox_to_devbox
           ? "Yes"
           : "No",
-        allow_agent_gateway: initialPolicy.egress.allow_agent_gateway ? "Yes" : "No",
+        allow_agent_gateway: initialPolicy.egress.allow_agent_gateway
+          ? "Yes"
+          : "No",
         allow_mcp_gateway: initialPolicy.egress.allow_mcp_gateway
           ? "Yes"
           : "No",
