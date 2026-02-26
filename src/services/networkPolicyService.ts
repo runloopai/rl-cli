@@ -64,7 +64,7 @@ export async function listNetworkPolicies(
         egress: {
           allow_all: p.egress.allow_all,
           allow_devbox_to_devbox: p.egress.allow_devbox_to_devbox,
-          allow_ai_gateway: p.egress.allow_ai_gateway,
+          allow_agent_gateway: p.egress.allow_agent_gateway,
           allow_mcp_gateway: p.egress.allow_mcp_gateway,
           allowed_hostnames: p.egress.allowed_hostnames || [],
         },
@@ -97,7 +97,7 @@ export async function getNetworkPolicy(id: string): Promise<NetworkPolicy> {
     egress: {
       allow_all: policy.egress.allow_all,
       allow_devbox_to_devbox: policy.egress.allow_devbox_to_devbox,
-      allow_ai_gateway: policy.egress.allow_ai_gateway,
+      allow_agent_gateway: policy.egress.allow_agent_gateway,
       allow_mcp_gateway: policy.egress.allow_mcp_gateway,
       allowed_hostnames: policy.egress.allowed_hostnames || [],
     },
@@ -120,7 +120,7 @@ export interface CreateNetworkPolicyParams {
   description?: string;
   allow_all?: boolean;
   allow_devbox_to_devbox?: boolean;
-  allow_ai_gateway?: boolean;
+  allow_agent_gateway?: boolean;
   allow_mcp_gateway?: boolean;
   allowed_hostnames?: string[];
 }
@@ -140,7 +140,7 @@ export async function createNetworkPolicy(
     egress: {
       allow_all: policy.egress.allow_all,
       allow_devbox_to_devbox: policy.egress.allow_devbox_to_devbox,
-      allow_ai_gateway: policy.egress.allow_ai_gateway,
+      allow_agent_gateway: policy.egress.allow_agent_gateway,
       allow_mcp_gateway: policy.egress.allow_mcp_gateway,
       allowed_hostnames: policy.egress.allowed_hostnames || [],
     },
@@ -155,7 +155,7 @@ export interface UpdateNetworkPolicyParams {
   description?: string;
   allow_all?: boolean;
   allow_devbox_to_devbox?: boolean;
-  allow_ai_gateway?: boolean;
+  allow_agent_gateway?: boolean;
   allow_mcp_gateway?: boolean;
   allowed_hostnames?: string[];
 }
@@ -176,7 +176,7 @@ export async function updateNetworkPolicy(
     egress: {
       allow_all: policy.egress.allow_all,
       allow_devbox_to_devbox: policy.egress.allow_devbox_to_devbox,
-      allow_ai_gateway: policy.egress.allow_ai_gateway,
+      allow_agent_gateway: policy.egress.allow_agent_gateway,
       allow_mcp_gateway: policy.egress.allow_mcp_gateway,
       allowed_hostnames: policy.egress.allowed_hostnames || [],
     },

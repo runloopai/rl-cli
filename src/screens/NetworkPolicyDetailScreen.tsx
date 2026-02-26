@@ -336,7 +336,7 @@ export function NetworkPolicyDetailScreen({
     lines.push(
       <Text key="egress-agent-gateway" dimColor>
         {" "}
-        Allow Agent Gateway: {np.egress.allow_ai_gateway ? "Yes" : "No"}
+        Allow Agent Gateway: {np.egress.allow_agent_gateway ? "Yes" : "No"}
       </Text>,
     );
     lines.push(
