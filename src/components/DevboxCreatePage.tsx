@@ -2689,9 +2689,7 @@ export const DevboxCreatePage = ({
                             : colors.textDim
                         }
                       >
-                        {mcpFormField === "mcpConfig"
-                          ? figures.pointer
-                          : " "}{" "}
+                        {mcpFormField === "mcpConfig" ? figures.pointer : " "}{" "}
                         MCP Config:{" "}
                       </Text>
                       {pendingMcpConfig ? (

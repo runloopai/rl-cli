@@ -280,9 +280,7 @@ export const DevboxDetailPage = ({ devbox, onBack }: DevboxDetailPageProps) => {
       Object.entries(devbox.gateway_specs).forEach(([envPrefix, spec]) => {
         detailFields.push({
           label: `Gateway (${envPrefix})`,
-          value: (
-            <Text color={colors.success}>{spec.gateway_config_id}</Text>
-          ),
+          value: <Text color={colors.success}>{spec.gateway_config_id}</Text>,
           action: {
             type: "navigate" as const,
             screen: "gateway-config-detail" as const,
@@ -298,9 +296,7 @@ export const DevboxDetailPage = ({ devbox, onBack }: DevboxDetailPageProps) => {
       devbox.mcp_specs.forEach((spec, idx) => {
         detailFields.push({
           label: `MCP Config${devbox.mcp_specs!.length > 1 ? ` ${idx + 1}` : ""}`,
-          value: (
-            <Text color={colors.success}>{spec.mcp_config_id}</Text>
-          ),
+          value: <Text color={colors.success}>{spec.mcp_config_id}</Text>,
           action: {
             type: "navigate" as const,
             screen: "mcp-config-detail" as const,

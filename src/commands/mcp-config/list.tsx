@@ -198,17 +198,12 @@ const ListMcpConfigsUI = ({
 
   const columns = React.useMemo(
     () => [
-      createTextColumn(
-        "id",
-        "ID",
-        (config: McpConfigListItem) => config.id,
-        {
-          width: idWidth + 1,
-          color: colors.idColor,
-          dimColor: false,
-          bold: false,
-        },
-      ),
+      createTextColumn("id", "ID", (config: McpConfigListItem) => config.id, {
+        width: idWidth + 1,
+        color: colors.idColor,
+        dimColor: false,
+        bold: false,
+      }),
       createTextColumn(
         "name",
         "Name",
@@ -561,10 +556,7 @@ const ListMcpConfigsUI = ({
     return (
       <>
         <Breadcrumb items={[{ label: "MCP Configs", active: true }]} />
-        <ErrorMessage
-          message="Failed to list MCP configs"
-          error={error}
-        />
+        <ErrorMessage message="Failed to list MCP configs" error={error} />
       </>
     );
   }
@@ -592,8 +584,7 @@ const ListMcpConfigsUI = ({
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
-              {figures.info} No MCP configs found. Press [c] to create
-              one.
+              {figures.info} No MCP configs found. Press [c] to create one.
             </Text>
           }
         />

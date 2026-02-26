@@ -25,7 +25,12 @@ interface McpConfigCreatePageProps {
   };
 }
 
-type FormField = "create" | "name" | "endpoint" | "allowed_tools" | "description";
+type FormField =
+  | "create"
+  | "name"
+  | "endpoint"
+  | "allowed_tools"
+  | "description";
 
 interface FormData {
   name: string;

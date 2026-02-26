@@ -6,20 +6,14 @@ import React from "react";
 import { Text, useInput } from "ink";
 import figures from "figures";
 import { useNavigation } from "../store/navigationStore.js";
-import {
-  useMcpConfigStore,
-  type McpConfig,
-} from "../store/mcpConfigStore.js";
+import { useMcpConfigStore, type McpConfig } from "../store/mcpConfigStore.js";
 import {
   ResourceDetailPage,
   formatTimestamp,
   type DetailSection,
   type ResourceOperation,
 } from "../components/ResourceDetailPage.js";
-import {
-  getMcpConfig,
-  deleteMcpConfig,
-} from "../services/mcpConfigService.js";
+import { getMcpConfig, deleteMcpConfig } from "../services/mcpConfigService.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
@@ -41,8 +35,9 @@ export function McpConfigDetailScreen({
 
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
-  const [fetchedConfig, setFetchedConfig] =
-    React.useState<McpConfig | null>(null);
+  const [fetchedConfig, setFetchedConfig] = React.useState<McpConfig | null>(
+    null,
+  );
   const [deleting, setDeleting] = React.useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const [showEditForm, setShowEditForm] = React.useState(false);
@@ -81,11 +76,7 @@ export function McpConfigDetailScreen({
     },
     {
       isActive:
-        !config &&
-        !loading &&
-        !showEditForm &&
-        !showDeleteConfirm &&
-        !deleting,
+        !config && !loading && !showEditForm && !showDeleteConfirm && !deleting,
     },
   );
 
@@ -107,18 +98,13 @@ export function McpConfigDetailScreen({
     return (
       <>
         <Breadcrumb
-          items={[
-            { label: "MCP Configs" },
-            { label: "Error", active: true },
-          ]}
+          items={[{ label: "MCP Configs" }, { label: "Error", active: true }]}
         />
         <ErrorMessage
           message="Failed to load MCP config details"
           error={error}
         />
-        <NavigationTips
-          tips={[{ key: "q/esc/Enter", label: "Go back" }]}
-        />
+        <NavigationTips tips={[{ key: "q/esc/Enter", label: "Go back" }]} />
       </>
     );
   }
@@ -136,9 +122,7 @@ export function McpConfigDetailScreen({
           message={`MCP config ${mcpConfigId || "unknown"} not found`}
           error={new Error("MCP config not found")}
         />
-        <NavigationTips
-          tips={[{ key: "q/esc/Enter", label: "Go back" }]}
-        />
+        <NavigationTips tips={[{ key: "q/esc/Enter", label: "Go back" }]} />
       </>
     );
   }
@@ -217,10 +201,7 @@ export function McpConfigDetailScreen({
     },
   ];
 
-  const handleOperation = async (
-    operation: string,
-    _resource: McpConfig,
-  ) => {
+  const handleOperation = async (operation: string, _resource: McpConfig) => {
     switch (operation) {
       case "edit":
         setShowEditForm(true);

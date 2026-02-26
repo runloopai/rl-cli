@@ -99,11 +99,7 @@ export function GatewayConfigDetailScreen({
     },
     {
       isActive:
-        !config &&
-        !loading &&
-        !showEditForm &&
-        !showDeleteConfirm &&
-        !deleting,
+        !config && !loading && !showEditForm && !showDeleteConfirm && !deleting,
     },
   );
 
@@ -136,9 +132,7 @@ export function GatewayConfigDetailScreen({
           message="Failed to load AI gateway config details"
           error={error}
         />
-        <NavigationTips
-          tips={[{ key: "q/esc/Enter", label: "Go back" }]}
-        />
+        <NavigationTips tips={[{ key: "q/esc/Enter", label: "Go back" }]} />
       </>
     );
   }
@@ -157,9 +151,7 @@ export function GatewayConfigDetailScreen({
           message={`AI gateway config ${gatewayConfigId || "unknown"} not found`}
           error={new Error("AI gateway config not found")}
         />
-        <NavigationTips
-          tips={[{ key: "q/esc/Enter", label: "Go back" }]}
-        />
+        <NavigationTips tips={[{ key: "q/esc/Enter", label: "Go back" }]} />
       </>
     );
   }
