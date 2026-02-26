@@ -25,7 +25,7 @@ export async function createNetworkPolicy(options: CreateOptions) {
       description: options.description,
       allow_all: options.allowAll ?? false,
       allow_devbox_to_devbox: options.allowDevboxToDevbox ?? false,
-      allow_ai_gateway: options.allowAgentGateway ?? false,
+      allow_agent_gateway: options.allowAgentGateway ?? false,
       allow_mcp_gateway: options.allowMcpGateway ?? false,
       allowed_hostnames: options.allowedHostnames ?? [],
     });
