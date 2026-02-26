@@ -922,8 +922,7 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: json)",
     )
     .action(async (options) => {
-      const { listMcpConfigs } =
-        await import("../commands/mcp-config/list.js");
+      const { listMcpConfigs } = await import("../commands/mcp-config/list.js");
       await listMcpConfigs(options);
     });
 
@@ -955,8 +954,7 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: json)",
     )
     .action(async (id, options) => {
-      const { getMcpConfig } =
-        await import("../commands/mcp-config/get.js");
+      const { getMcpConfig } = await import("../commands/mcp-config/get.js");
       await getMcpConfig({ id, ...options });
     });
 

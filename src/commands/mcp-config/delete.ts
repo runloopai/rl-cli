@@ -9,10 +9,7 @@ interface DeleteOptions {
   output?: string;
 }
 
-export async function deleteMcpConfig(
-  id: string,
-  options: DeleteOptions = {},
-) {
+export async function deleteMcpConfig(id: string, options: DeleteOptions = {}) {
   try {
     const client = getClient();
 
