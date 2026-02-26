@@ -194,6 +194,14 @@ export function NetworkPolicyDetailScreen({
     label: "Allow Devbox-to-Devbox",
     value: policy.egress.allow_devbox_to_devbox ? "Yes" : "No",
   });
+  egressFields.push({
+    label: "Allow Agent Gateway",
+    value: policy.egress.allow_agent_gateway ? "Yes" : "No",
+  });
+  egressFields.push({
+    label: "Allow MCP Gateway",
+    value: policy.egress.allow_mcp_gateway ? "Yes" : "No",
+  });
 
   if (
     policy.egress.allowed_hostnames &&

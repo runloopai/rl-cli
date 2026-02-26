@@ -158,6 +158,20 @@ export const NetworkPolicyCreatePage = ({
     currentField === "allow_devbox_to_devbox",
   );
 
+  const handleAgentGatewayNav = useFormSelectNavigation(
+    formData.allow_agent_gateway,
+    BOOLEAN_OPTIONS,
+    (value) => setFormData({ ...formData, allow_agent_gateway: value }),
+    currentField === "allow_agent_gateway",
+  );
+
+  const handleMcpGatewayNav = useFormSelectNavigation(
+    formData.allow_mcp_gateway,
+    BOOLEAN_OPTIONS,
+    (value) => setFormData({ ...formData, allow_mcp_gateway: value }),
+    currentField === "allow_mcp_gateway",
+  );
+
   // Main form input handler - active when not in hostnames expanded mode
   useInput(
     (input, key) => {
@@ -217,6 +231,8 @@ export const NetworkPolicyCreatePage = ({
       // Handle select field navigation
       if (handleAllowAllNav(input, key)) return;
       if (handleDevboxNav(input, key)) return;
+      if (handleAgentGatewayNav(input, key)) return;
+      if (handleMcpGatewayNav(input, key)) return;
 
       // Navigation between fields (up/down arrows and tab/shift+tab)
       if ((key.upArrow || (key.tab && key.shift)) && currentFieldIndex > 0) {
