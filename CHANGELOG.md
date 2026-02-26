@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.11.0](https://github.com/runloopai/rl-cli/compare/v1.10.0...v1.11.0) (2026-02-26)
+
+
+### Features
+
+* add model name config in Benchmark Jobs ([#118](https://github.com/runloopai/rl-cli/issues/118)) ([08a67c7](https://github.com/runloopai/rl-cli/commit/08a67c760515aae5f06652fedaa84554cea44485))
+* **devbox:** add mcp hub to cli ([#124](https://github.com/runloopai/rl-cli/issues/124)) ([02a1b5e](https://github.com/runloopai/rl-cli/commit/02a1b5e42361b1df91ef43a74bdd7a0ee1c3eee0))
+* network policy create flags ([#123](https://github.com/runloopai/rl-cli/issues/123)) ([8419b69](https://github.com/runloopai/rl-cli/commit/8419b6924c22370914043bd32b0eff67e7f9a359))
+
+
+### Bug Fixes
+
+* bug with detail page stale data ([#120](https://github.com/runloopai/rl-cli/issues/120)) ([148a7bc](https://github.com/runloopai/rl-cli/commit/148a7bc053d443226d94ba238fcd3f8988d31628))
+* detail pages sections for large things on small screens ([#122](https://github.com/runloopai/rl-cli/issues/122)) ([059673a](https://github.com/runloopai/rl-cli/commit/059673aa80a39061c7f86bd81524e8af991de754))
+* unified polling hook ([#121](https://github.com/runloopai/rl-cli/issues/121)) ([f014f2d](https://github.com/runloopai/rl-cli/commit/f014f2d18175c4c39fa8c4578628dbfd08888f41))
+
 ## [1.10.0](https://github.com/runloopai/rl-cli/compare/v1.9.0...v1.10.0) (2026-02-14)
 
 
