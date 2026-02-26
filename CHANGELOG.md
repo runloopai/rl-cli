@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.11.1](https://github.com/runloopai/rl-cli/compare/v1.11.0...v1.11.1) (2026-02-26)
+
+
+### Bug Fixes
+
+* cli commands for mcp configs ([#125](https://github.com/runloopai/rl-cli/issues/125)) ([f5b655c](https://github.com/runloopai/rl-cli/commit/f5b655c06ebf069039d21bb02dbecdf9c74b3686))
+* rename ai gateway ([#127](https://github.com/runloopai/rl-cli/issues/127)) ([3017c5f](https://github.com/runloopai/rl-cli/commit/3017c5fad03d428b119672e59b86c0c591a8dde6))
+* update for network policy field name change ([#128](https://github.com/runloopai/rl-cli/issues/128)) ([e8c2f98](https://github.com/runloopai/rl-cli/commit/e8c2f98dde98e37239ce1d1c271a4e870a686ac8))
+
 ## [1.11.0](https://github.com/runloopai/rl-cli/compare/v1.10.0...v1.11.0) (2026-02-26)
 
 
