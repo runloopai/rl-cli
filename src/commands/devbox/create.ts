@@ -25,6 +25,7 @@ interface CreateOptions {
   networkPolicy?: string;
   tunnel?: string;
   gateways?: string[];
+  mcp?: string[];
   output?: string;
 }
 
@@ -110,6 +111,29 @@ function parseGateways(
     };
   }
   return result;
+}
+
+function parseMcpSpecs(
+  specs: string[],
+): Array<{ mcp_config: string; secret: string }> {
+  return specs.map((spec) => {
+    const commaIndex = spec.indexOf(",");
+    if (commaIndex === -1) {
+      throw new Error(
+        `Invalid MCP spec format: ${spec}. Expected mcp_config_id_or_name,secret_id_or_name`,
+      );
+    }
+    const mcpConfig = spec.substring(0, commaIndex);
+    const secret = spec.substring(commaIndex + 1);
+
+    if (!mcpConfig || !secret) {
+      throw new Error(
+        `Invalid MCP spec format: ${spec}. Expected mcp_config_id_or_name,secret_id_or_name`,
+      );
+    }
+
+    return { mcp_config: mcpConfig, secret };
+  });
 }
 
 export async function createDevbox(options: CreateOptions = {}) {
@@ -231,6 +255,11 @@ export async function createDevbox(options: CreateOptions = {}) {
     // Handle gateways
     if (options.gateways && options.gateways.length > 0) {
       createRequest.gateways = parseGateways(options.gateways);
+    }
+
+    // Handle MCP configs
+    if (options.mcp && options.mcp.length > 0) {
+      createRequest.mcp = parseMcpSpecs(options.mcp);
     }
 
     if (Object.keys(launchParameters).length > 0) {
