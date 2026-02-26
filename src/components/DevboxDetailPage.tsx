@@ -275,6 +275,42 @@ export const DevboxDetailPage = ({ devbox, onBack }: DevboxDetailPageProps) => {
       });
     }
 
+    // Gateway Specs
+    if (devbox.gateway_specs && Object.keys(devbox.gateway_specs).length > 0) {
+      Object.entries(devbox.gateway_specs).forEach(([envPrefix, spec]) => {
+        detailFields.push({
+          label: `Gateway (${envPrefix})`,
+          value: (
+            <Text color={colors.success}>{spec.gateway_config_id}</Text>
+          ),
+          action: {
+            type: "navigate" as const,
+            screen: "gateway-config-detail" as const,
+            params: { gatewayConfigId: spec.gateway_config_id },
+            hint: "View Config",
+          },
+        });
+      });
+    }
+
+    // MCP Specs
+    if (devbox.mcp_specs && devbox.mcp_specs.length > 0) {
+      devbox.mcp_specs.forEach((spec, idx) => {
+        detailFields.push({
+          label: `MCP Config${devbox.mcp_specs!.length > 1 ? ` ${idx + 1}` : ""}`,
+          value: (
+            <Text color={colors.success}>{spec.mcp_config_id}</Text>
+          ),
+          action: {
+            type: "navigate" as const,
+            screen: "mcp-config-detail" as const,
+            params: { mcpConfigId: spec.mcp_config_id },
+            hint: "View Config",
+          },
+        });
+      });
+    }
+
     // Tunnel status - always show when running
     if (devbox.tunnel && devbox.tunnel.tunnel_key) {
       const tunnelKey = devbox.tunnel.tunnel_key;

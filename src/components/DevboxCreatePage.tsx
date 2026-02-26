@@ -29,12 +29,15 @@ import { listBlueprints } from "../services/blueprintService.js";
 import { listSnapshots } from "../services/snapshotService.js";
 import { listNetworkPolicies } from "../services/networkPolicyService.js";
 import { listGatewayConfigs } from "../services/gatewayConfigService.js";
+import { listMcpConfigs } from "../services/mcpConfigService.js";
 import type { Blueprint } from "../store/blueprintStore.js";
 import type { Snapshot } from "../store/snapshotStore.js";
 import type { NetworkPolicy } from "../store/networkPolicyStore.js";
 import type { GatewayConfig } from "../store/gatewayConfigStore.js";
+import type { McpConfig } from "../store/mcpConfigStore.js";
 import { SecretCreatePage } from "./SecretCreatePage.js";
 import { GatewayConfigCreatePage } from "./GatewayConfigCreatePage.js";
+import { McpConfigCreatePage } from "./McpConfigCreatePage.js";
 
 // Secret list interface for the picker
 interface SecretListItem {
@@ -63,7 +66,8 @@ type FormField =
   | "source"
   | "network_policy_id"
   | "tunnel_auth_mode"
-  | "gateways";
+  | "gateways"
+  | "mcpConfigs";
 
 // Gateway configuration for devbox
 interface GatewaySpec {
@@ -71,6 +75,15 @@ interface GatewaySpec {
   gateway: string; // gateway config ID or name
   gatewayName: string; // display name
   gatewayEndpoint: string; // endpoint URL
+  secret: string; // secret ID or name
+  secretName: string; // display name
+}
+
+// MCP configuration for devbox
+interface McpSpec {
+  mcpConfig: string; // MCP config ID or name
+  mcpConfigName: string; // display name
+  mcpConfigEndpoint: string; // endpoint URL
   secret: string; // secret ID or name
   secretName: string; // display name
 }
@@ -100,6 +113,7 @@ interface FormData {
   network_policy_id: string;
   tunnel_auth_mode: "none" | "open" | "authenticated";
   gateways: GatewaySpec[];
+  mcpConfigs: McpSpec[];
 }
 
 const architectures = ["arm64", "x86_64"] as const;
@@ -135,6 +149,7 @@ export const DevboxCreatePage = ({
     network_policy_id: "",
     tunnel_auth_mode: "none",
     gateways: [],
+    mcpConfigs: [],
   });
   const [metadataKey, setMetadataKey] = React.useState("");
   const [metadataValue, setMetadataValue] = React.useState("");
@@ -190,6 +205,32 @@ export const DevboxCreatePage = ({
   const gatewayFormFields = ["attach", "gateway", "envName", "secret"] as const;
   const gatewayFormFieldIndex = gatewayFormFields.indexOf(gatewayFormField);
 
+  // MCP config picker states
+  const [showMcpPicker, setShowMcpPicker] = React.useState(false);
+  const [showMcpSecretPicker, setShowMcpSecretPicker] = React.useState(false);
+  const [inMcpSection, setInMcpSection] = React.useState(false);
+  const [selectedMcpIndex, setSelectedMcpIndex] = React.useState(0);
+  const [pendingMcpConfig, setPendingMcpConfig] = React.useState<{
+    id: string;
+    name: string;
+    endpoint: string;
+  } | null>(null);
+  const [pendingMcpSecret, setPendingMcpSecret] = React.useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [showInlineMcpSecretCreate, setShowInlineMcpSecretCreate] =
+    React.useState(false);
+  const [showInlineMcpConfigCreate, setShowInlineMcpConfigCreate] =
+    React.useState(false);
+  const [mcpFormActive, setMcpFormActive] = React.useState(false);
+  const [mcpFormField, setMcpFormField] = React.useState<
+    "attach" | "mcpConfig" | "secret"
+  >("attach");
+
+  const mcpFormFields = ["attach", "mcpConfig", "secret"] as const;
+  const mcpFormFieldIndex = mcpFormFields.indexOf(mcpFormField);
+
   const baseFields: Array<{
     key: FormField;
     label: string;
@@ -242,7 +283,8 @@ export const DevboxCreatePage = ({
       | "action"
       | "picker"
       | "source"
-      | "gateways";
+      | "gateways"
+      | "mcpConfigs";
     placeholder?: string;
   }> = [
     {
@@ -274,6 +316,12 @@ export const DevboxCreatePage = ({
       label: "AI Gateway Configs (optional)",
       type: "gateways",
       placeholder: "Configure API credential proxying...",
+    },
+    {
+      key: "mcpConfigs",
+      label: "MCP Configs (optional)",
+      type: "mcpConfigs",
+      placeholder: "Configure MCP server connections...",
     },
     { key: "metadata", label: "Metadata (optional)", type: "metadata" },
   ];
@@ -372,6 +420,13 @@ export const DevboxCreatePage = ({
         return;
       }
 
+      // Enter key on mcpConfigs field to enter MCP section
+      if (currentField === "mcpConfigs" && key.return) {
+        setInMcpSection(true);
+        setSelectedMcpIndex(0);
+        return;
+      }
+
       // Enter key on source field to open the appropriate picker
       if (currentField === "source" && key.return) {
         // If something is already selected, open that type's picker to change it
@@ -433,13 +488,18 @@ export const DevboxCreatePage = ({
       isActive:
         !inMetadataSection &&
         !inGatewaySection &&
+        !inMcpSection &&
         !showBlueprintPicker &&
         !showSnapshotPicker &&
         !showNetworkPolicyPicker &&
         !showGatewayPicker &&
         !showSecretPicker &&
         !showInlineSecretCreate &&
-        !showInlineGatewayConfigCreate,
+        !showInlineGatewayConfigCreate &&
+        !showMcpPicker &&
+        !showMcpSecretPicker &&
+        !showInlineMcpSecretCreate &&
+        !showInlineMcpConfigCreate,
     },
   );
 
@@ -544,6 +604,57 @@ export const DevboxCreatePage = ({
     setGatewayFormField("attach");
     setSelectedGatewayIndex(0);
   }, [pendingGateway, pendingSecret, gatewayEnvPrefix]);
+
+  // Handle MCP config selection
+  const handleMcpSelect = React.useCallback((configs: McpConfig[]) => {
+    if (configs.length > 0) {
+      const config = configs[0];
+      const configName = config.name || config.id;
+      setPendingMcpConfig({
+        id: config.id,
+        name: configName,
+        endpoint: config.endpoint || "",
+      });
+      setShowMcpPicker(false);
+      setMcpFormField("secret");
+    } else {
+      setShowMcpPicker(false);
+    }
+  }, []);
+
+  // Handle secret selection for MCP
+  const handleMcpSecretSelect = React.useCallback(
+    (secrets: SecretListItem[]) => {
+      if (secrets.length > 0) {
+        const secret = secrets[0];
+        setPendingMcpSecret({ id: secret.id, name: secret.name || secret.id });
+      }
+      setShowMcpSecretPicker(false);
+      setMcpFormField("attach");
+    },
+    [],
+  );
+
+  // Attach the configured MCP config to the devbox
+  const handleAttachMcp = React.useCallback(() => {
+    if (!pendingMcpConfig || !pendingMcpSecret) return;
+    const newMcp: McpSpec = {
+      mcpConfig: pendingMcpConfig.id,
+      mcpConfigName: pendingMcpConfig.name,
+      mcpConfigEndpoint: pendingMcpConfig.endpoint,
+      secret: pendingMcpSecret.id,
+      secretName: pendingMcpSecret.name,
+    };
+    setFormData((prev) => ({
+      ...prev,
+      mcpConfigs: [...prev.mcpConfigs, newMcp],
+    }));
+    setPendingMcpConfig(null);
+    setPendingMcpSecret(null);
+    setMcpFormActive(false);
+    setMcpFormField("attach");
+    setSelectedMcpIndex(0);
+  }, [pendingMcpConfig, pendingMcpSecret]);
 
   // Handle clearing source
   const handleClearSource = React.useCallback(() => {
@@ -763,6 +874,97 @@ export const DevboxCreatePage = ({
     },
   );
 
+  // MCP section input handler - active when in MCP section
+  useInput(
+    (input, key) => {
+      // === MCP attach form mode ===
+      if (mcpFormActive) {
+        // Navigation between form fields
+        if (key.upArrow || (key.tab && key.shift)) {
+          const prevIdx = Math.max(0, mcpFormFieldIndex - 1);
+          setMcpFormField(mcpFormFields[prevIdx]);
+          return;
+        }
+        if (key.downArrow || (key.tab && !key.shift)) {
+          const nextIdx = Math.min(
+            mcpFormFields.length - 1,
+            mcpFormFieldIndex + 1,
+          );
+          setMcpFormField(mcpFormFields[nextIdx]);
+          return;
+        }
+
+        if (key.return) {
+          if (mcpFormField === "mcpConfig") {
+            setShowMcpPicker(true);
+            return;
+          }
+          if (mcpFormField === "secret") {
+            setShowMcpSecretPicker(true);
+            return;
+          }
+          if (mcpFormField === "attach") {
+            handleAttachMcp();
+            return;
+          }
+        }
+
+        if (key.escape || input === "q") {
+          setPendingMcpConfig(null);
+          setPendingMcpSecret(null);
+          setMcpFormActive(false);
+          setMcpFormField("attach");
+          return;
+        }
+        return;
+      }
+
+      // === List navigation mode (existing MCP configs + attach/done) ===
+      const mcpCount = formData.mcpConfigs.length;
+      const maxIndex = mcpCount + 1;
+
+      if (key.upArrow && selectedMcpIndex > 0) {
+        setSelectedMcpIndex(selectedMcpIndex - 1);
+      } else if (key.downArrow && selectedMcpIndex < maxIndex) {
+        setSelectedMcpIndex(selectedMcpIndex + 1);
+      } else if (key.return) {
+        if (selectedMcpIndex === 0) {
+          setPendingMcpConfig(null);
+          setPendingMcpSecret(null);
+          setMcpFormActive(true);
+          setMcpFormField("mcpConfig");
+        } else if (selectedMcpIndex === maxIndex) {
+          setInMcpSection(false);
+          setSelectedMcpIndex(0);
+        }
+      } else if (
+        (input === "d" || key.delete) &&
+        selectedMcpIndex >= 1 &&
+        selectedMcpIndex <= mcpCount
+      ) {
+        const indexToDelete = selectedMcpIndex - 1;
+        const newMcpConfigs = [...formData.mcpConfigs];
+        newMcpConfigs.splice(indexToDelete, 1);
+        setFormData({ ...formData, mcpConfigs: newMcpConfigs });
+        const newLength = newMcpConfigs.length;
+        if (selectedMcpIndex > newLength) {
+          setSelectedMcpIndex(Math.max(0, newLength));
+        }
+      } else if (key.escape || input === "q") {
+        setInMcpSection(false);
+        setSelectedMcpIndex(0);
+      }
+    },
+    {
+      isActive:
+        inMcpSection &&
+        !showMcpPicker &&
+        !showMcpSecretPicker &&
+        !showInlineMcpSecretCreate &&
+        !showInlineMcpConfigCreate,
+    },
+  );
+
   // Validate custom resource configuration
   const validateCustomResources = (): string | null => {
     if (formData.resource_size !== "CUSTOM_SIZE") {
@@ -881,6 +1083,14 @@ export const DevboxCreatePage = ({
           };
         }
         createParams.gateways = gateways;
+      }
+
+      // Add MCP specifications
+      if (formData.mcpConfigs.length > 0) {
+        createParams.mcp = formData.mcpConfigs.map((m) => ({
+          mcp_config: m.mcpConfig,
+          secret: m.secret,
+        }));
       }
 
       // Add tunnel configuration if not "none"
@@ -1439,6 +1649,230 @@ export const DevboxCreatePage = ({
           setShowSecretPicker(false);
           // Return to the form at the secret field
           setGatewayFormField("secret");
+        }}
+        initialSelected={[]}
+      />
+    );
+  }
+
+  // Inline MCP config creation screen (from MCP attach flow)
+  if (showInlineMcpConfigCreate) {
+    return (
+      <McpConfigCreatePage
+        onBack={() => {
+          setShowInlineMcpConfigCreate(false);
+          setShowMcpPicker(true);
+        }}
+        onCreate={(config) => {
+          setShowInlineMcpConfigCreate(false);
+          const configName = config.name || config.id;
+          setPendingMcpConfig({
+            id: config.id,
+            name: configName,
+            endpoint: config.endpoint || "",
+          });
+          setShowMcpPicker(false);
+          setMcpFormField("secret");
+        }}
+      />
+    );
+  }
+
+  // MCP config picker screen
+  if (showMcpPicker) {
+    const buildMcpColumns = (tw: number): Column<McpConfig>[] => {
+      const fixedWidth = 6;
+      const idWidth = 25;
+      const timeWidth = 20;
+      const showEndpoint = tw >= 100;
+      const endpointWidth = Math.max(20, tw >= 140 ? 40 : 25);
+      const baseWidth = fixedWidth + idWidth + timeWidth;
+      const optionalWidth = showEndpoint ? endpointWidth : 0;
+      const nameWidth = Math.min(
+        80,
+        Math.max(15, tw - baseWidth - optionalWidth),
+      );
+      return [
+        createTextColumn<McpConfig>("id", "ID", (config) => config.id, {
+          width: idWidth + 1,
+          color: colors.idColor,
+        }),
+        createTextColumn<McpConfig>(
+          "name",
+          "Name",
+          (config) => config.name || "",
+          { width: nameWidth },
+        ),
+        ...(showEndpoint
+          ? [
+              createTextColumn<McpConfig>(
+                "endpoint",
+                "Endpoint",
+                (config) => config.endpoint || "",
+                { width: endpointWidth, color: colors.textDim },
+              ),
+            ]
+          : []),
+        createTextColumn<McpConfig>(
+          "created",
+          "Created",
+          (config) =>
+            config.create_time_ms ? formatTimeAgo(config.create_time_ms) : "",
+          { width: timeWidth, color: colors.textDim },
+        ),
+      ];
+    };
+
+    return (
+      <ResourcePicker<McpConfig>
+        key="mcp-config-picker"
+        config={{
+          title: "Select MCP Config",
+          fetchPage: async (params) => {
+            const result = await listMcpConfigs({
+              limit: params.limit,
+              startingAfter: params.startingAt,
+              search: params.search,
+            });
+            return {
+              items: result.mcpConfigs,
+              hasMore: result.hasMore,
+              totalCount: result.totalCount,
+            };
+          },
+          getItemId: (config) => config.id,
+          getItemLabel: (config) => config.name || config.id,
+          columns: buildMcpColumns,
+          mode: "single",
+          emptyMessage: "No MCP configs found",
+          searchPlaceholder: "Search MCP configs...",
+          breadcrumbItems: [
+            { label: "Devboxes" },
+            { label: "Create" },
+            { label: "Attach MCP Config" },
+            { label: "Select Config", active: true },
+          ],
+          onCreateNew: () => {
+            setShowMcpPicker(false);
+            setShowInlineMcpConfigCreate(true);
+          },
+          createNewLabel: "Create MCP config",
+        }}
+        onSelect={handleMcpSelect}
+        onCancel={() => {
+          setShowMcpPicker(false);
+          setMcpFormField("mcpConfig");
+        }}
+        initialSelected={[]}
+      />
+    );
+  }
+
+  // Inline secret creation screen (from MCP flow)
+  if (showInlineMcpSecretCreate) {
+    return (
+      <SecretCreatePage
+        onBack={() => {
+          setShowInlineMcpSecretCreate(false);
+          setShowMcpSecretPicker(true);
+        }}
+        onCreate={(secret) => {
+          setShowInlineMcpSecretCreate(false);
+          setPendingMcpSecret({
+            id: secret.id,
+            name: secret.name || secret.id,
+          });
+          setShowMcpSecretPicker(false);
+          setMcpFormField("attach");
+        }}
+      />
+    );
+  }
+
+  // Secret picker screen (for MCP)
+  if (showMcpSecretPicker) {
+    const buildSecretColumns = (tw: number): Column<SecretListItem>[] => {
+      const fixedWidth = 6;
+      const idWidth = 30;
+      const timeWidth = 20;
+      const baseWidth = fixedWidth + idWidth + timeWidth;
+      const nameWidth = Math.min(80, Math.max(15, tw - baseWidth));
+      return [
+        createTextColumn<SecretListItem>("id", "ID", (secret) => secret.id, {
+          width: idWidth + 1,
+          color: colors.idColor,
+        }),
+        createTextColumn<SecretListItem>(
+          "name",
+          "Name",
+          (secret) => secret.name || "",
+          { width: nameWidth },
+        ),
+        createTextColumn<SecretListItem>(
+          "created",
+          "Created",
+          (secret) =>
+            secret.create_time_ms ? formatTimeAgo(secret.create_time_ms) : "",
+          { width: timeWidth, color: colors.textDim },
+        ),
+      ];
+    };
+
+    return (
+      <ResourcePicker<SecretListItem>
+        key="mcp-secret-picker"
+        config={{
+          title: "Select Secret for MCP Config",
+          fetchPage: async (params) => {
+            const client = getClient();
+            const page = await client.secrets.list({
+              limit: 1000,
+            });
+            const allSecrets = (page.secrets || []).map(
+              (s: { id: string; name: string; create_time_ms?: number }) => ({
+                id: s.id,
+                name: s.name,
+                create_time_ms: s.create_time_ms,
+              }),
+            );
+            let startIdx = 0;
+            if (params.startingAt) {
+              const cursorIdx = allSecrets.findIndex(
+                (s) => s.id === params.startingAt,
+              );
+              if (cursorIdx >= 0) {
+                startIdx = cursorIdx + 1;
+              }
+            }
+            const sliced = allSecrets.slice(startIdx, startIdx + params.limit);
+            return {
+              items: sliced,
+              hasMore: startIdx + params.limit < allSecrets.length,
+              totalCount: allSecrets.length,
+            };
+          },
+          getItemId: (secret) => secret.id,
+          getItemLabel: (secret) => secret.name || secret.id,
+          columns: buildSecretColumns,
+          mode: "single",
+          emptyMessage: "No secrets found",
+          searchPlaceholder: "Search secrets...",
+          breadcrumbItems: [
+            { label: "Devboxes" },
+            { label: "Create" },
+            { label: "Attach MCP Config" },
+            { label: "Select Secret", active: true },
+          ],
+          onCreateNew: () => {
+            setShowMcpSecretPicker(false);
+            setShowInlineMcpSecretCreate(true);
+          },
+          createNewLabel: "Create secret",
+        }}
+        onSelect={handleMcpSecretSelect}
+        onCancel={() => {
+          setShowMcpSecretPicker(false);
+          setMcpFormField("secret");
         }}
         initialSelected={[]}
       />
@@ -2154,6 +2588,285 @@ export const DevboxCreatePage = ({
             );
           }
 
+          if (field.type === "mcpConfigs") {
+            if (!inMcpSection) {
+              return (
+                <Box key={field.key} flexDirection="column" marginBottom={0}>
+                  <Box>
+                    <Text color={isActive ? colors.primary : colors.textDim}>
+                      {isActive ? figures.pointer : " "} {field.label}:{" "}
+                    </Text>
+                    <Text color={colors.text}>
+                      {formData.mcpConfigs.length} configured
+                    </Text>
+                    {isActive && (
+                      <Text color={colors.textDim} dimColor>
+                        {" "}
+                        [Enter to manage]
+                      </Text>
+                    )}
+                  </Box>
+                  {formData.mcpConfigs.length > 0 && (
+                    <Box marginLeft={2} flexDirection="column">
+                      {formData.mcpConfigs.map((m, idx) => (
+                        <Text key={idx} color={colors.textDim} dimColor>
+                          {figures.pointer} Config: {m.mcpConfigName} (
+                          {m.mcpConfigEndpoint}) | Secret: {m.secretName}
+                        </Text>
+                      ))}
+                    </Box>
+                  )}
+                </Box>
+              );
+            }
+
+            const mcpCount = formData.mcpConfigs.length;
+            const maxMcpIndex = mcpCount + 1;
+
+            const canAttachMcp = !!pendingMcpConfig && !!pendingMcpSecret;
+
+            return (
+              <Box
+                key={field.key}
+                flexDirection="column"
+                borderStyle="round"
+                borderColor={colors.primary}
+                paddingX={1}
+                paddingY={1}
+                marginBottom={1}
+              >
+                <Text color={colors.primary} bold>
+                  {figures.hamburger} Configure MCP Configs for Devbox
+                </Text>
+
+                {mcpFormActive && (
+                  <Box
+                    flexDirection="column"
+                    marginTop={1}
+                    borderStyle="single"
+                    borderColor={colors.success}
+                    paddingX={1}
+                  >
+                    <Text color={colors.success} bold>
+                      Attach MCP Config
+                    </Text>
+
+                    {/* Attach button */}
+                    <Box marginTop={1}>
+                      <Text
+                        color={
+                          mcpFormField === "attach"
+                            ? canAttachMcp
+                              ? colors.success
+                              : colors.primary
+                            : colors.textDim
+                        }
+                      >
+                        {mcpFormField === "attach" ? figures.pointer : " "}{" "}
+                      </Text>
+                      <Text
+                        color={
+                          mcpFormField === "attach"
+                            ? canAttachMcp
+                              ? colors.success
+                              : colors.primary
+                            : colors.textDim
+                        }
+                        bold={mcpFormField === "attach"}
+                      >
+                        {canAttachMcp
+                          ? `${figures.tick} Attach MCP Config`
+                          : `${figures.ellipsis} Attach MCP Config (fill fields below)`}
+                      </Text>
+                    </Box>
+
+                    {/* Field 1: MCP Config */}
+                    <Box marginTop={1}>
+                      <Text
+                        color={
+                          mcpFormField === "mcpConfig"
+                            ? colors.primary
+                            : colors.textDim
+                        }
+                      >
+                        {mcpFormField === "mcpConfig"
+                          ? figures.pointer
+                          : " "}{" "}
+                        MCP Config:{" "}
+                      </Text>
+                      {pendingMcpConfig ? (
+                        <Text color={colors.success}>
+                          {pendingMcpConfig.name}{" "}
+                          <Text color={colors.textDim} dimColor>
+                            ({pendingMcpConfig.endpoint})
+                          </Text>
+                        </Text>
+                      ) : (
+                        <Text color={colors.textDim} dimColor>
+                          (none selected)
+                        </Text>
+                      )}
+                      {mcpFormField === "mcpConfig" && (
+                        <Text color={colors.textDim} dimColor>
+                          {" "}
+                          [Enter to select]
+                        </Text>
+                      )}
+                    </Box>
+
+                    {/* Field 2: Secret */}
+                    <Box>
+                      <Text
+                        color={
+                          mcpFormField === "secret"
+                            ? colors.primary
+                            : colors.textDim
+                        }
+                      >
+                        {mcpFormField === "secret" ? figures.pointer : " "}{" "}
+                        Secret:{" "}
+                      </Text>
+                      {pendingMcpSecret ? (
+                        <Text color={colors.success}>
+                          {pendingMcpSecret.name}
+                        </Text>
+                      ) : (
+                        <Text color={colors.textDim} dimColor>
+                          (none selected)
+                        </Text>
+                      )}
+                      {mcpFormField === "secret" && (
+                        <Text color={colors.textDim} dimColor>
+                          {" "}
+                          [Enter to select]
+                        </Text>
+                      )}
+                    </Box>
+
+                    {/* Help text for form */}
+                    <Box
+                      marginTop={1}
+                      borderStyle="single"
+                      borderColor={colors.border}
+                      paddingX={1}
+                    >
+                      <Text color={colors.textDim} dimColor>
+                        {mcpFormField === "attach"
+                          ? canAttachMcp
+                            ? `[Enter] Attach • ${figures.arrowUp}${figures.arrowDown} Navigate • [esc] Cancel`
+                            : `${figures.arrowUp}${figures.arrowDown} Navigate • [esc] Cancel`
+                          : `[Enter] Select • ${figures.arrowUp}${figures.arrowDown} Navigate • [esc] Cancel`}
+                      </Text>
+                    </Box>
+                  </Box>
+                )}
+
+                {!mcpFormActive && (
+                  <>
+                    <Box marginTop={1}>
+                      <Text
+                        color={
+                          selectedMcpIndex === 0
+                            ? colors.primary
+                            : colors.textDim
+                        }
+                      >
+                        {selectedMcpIndex === 0 ? figures.pointer : " "}{" "}
+                      </Text>
+                      <Text
+                        color={
+                          selectedMcpIndex === 0
+                            ? colors.success
+                            : colors.textDim
+                        }
+                        bold={selectedMcpIndex === 0}
+                      >
+                        + Attach MCP config
+                      </Text>
+                    </Box>
+
+                    {mcpCount > 0 && (
+                      <Box flexDirection="column" marginTop={1}>
+                        {formData.mcpConfigs.map((m, index) => {
+                          const itemIndex = index + 1;
+                          const isMcpSelected = selectedMcpIndex === itemIndex;
+                          return (
+                            <Box key={m.mcpConfig} flexDirection="column">
+                              <Box>
+                                <Text
+                                  color={
+                                    isMcpSelected
+                                      ? colors.primary
+                                      : colors.textDim
+                                  }
+                                >
+                                  {isMcpSelected ? figures.pointer : " "}{" "}
+                                </Text>
+                                <Text
+                                  color={
+                                    isMcpSelected
+                                      ? colors.primary
+                                      : colors.textDim
+                                  }
+                                  bold={isMcpSelected}
+                                >
+                                  {m.mcpConfigName}
+                                </Text>
+                              </Box>
+                              <Box marginLeft={3} flexDirection="column">
+                                <Text color={colors.textDim} dimColor>
+                                  Endpoint: {m.mcpConfigEndpoint}
+                                </Text>
+                                <Text color={colors.textDim} dimColor>
+                                  Secret: {m.secretName} ({m.secret})
+                                </Text>
+                              </Box>
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    )}
+
+                    <Box marginTop={1}>
+                      <Text
+                        color={
+                          selectedMcpIndex === maxMcpIndex
+                            ? colors.primary
+                            : colors.textDim
+                        }
+                      >
+                        {selectedMcpIndex === maxMcpIndex
+                          ? figures.pointer
+                          : " "}{" "}
+                      </Text>
+                      <Text
+                        color={
+                          selectedMcpIndex === maxMcpIndex
+                            ? colors.success
+                            : colors.textDim
+                        }
+                        bold={selectedMcpIndex === maxMcpIndex}
+                      >
+                        {figures.tick} Done
+                      </Text>
+                    </Box>
+
+                    <Box
+                      marginTop={1}
+                      borderStyle="single"
+                      borderColor={colors.border}
+                      paddingX={1}
+                    >
+                      <Text color={colors.textDim} dimColor>
+                        {`${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedMcpIndex === 0 ? "Attach" : selectedMcpIndex === maxMcpIndex ? "Done" : "Select"} • [d] Remove • [esc] Back`}
+                      </Text>
+                    </Box>
+                  </>
+                )}
+              </Box>
+            );
+          }
+
           return null;
         })}
       </Box>
@@ -2177,7 +2890,7 @@ export const DevboxCreatePage = ({
           </Box>
         )}
 
-      {!inMetadataSection && !inGatewaySection && (
+      {!inMetadataSection && !inGatewaySection && !inMcpSection && (
         <NavigationTips
           showArrows
           tips={[
