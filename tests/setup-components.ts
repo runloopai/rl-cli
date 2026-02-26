@@ -188,6 +188,36 @@ jest.mock("../src/services/snapshotService.ts", () => ({
   },
 }));
 
+jest.mock("../src/services/mcpConfigService.ts", () => ({
+  listMcpConfigs: jest
+    .fn()
+    .mockResolvedValue({ mcpConfigs: [], totalCount: 0, hasMore: false }),
+  getMcpConfig: jest.fn().mockResolvedValue(null),
+  getMcpConfigByIdOrName: jest.fn().mockResolvedValue(null),
+  createMcpConfig: jest.fn().mockResolvedValue({ id: "mcp_test" }),
+  updateMcpConfig: jest.fn().mockResolvedValue({ id: "mcp_test" }),
+  deleteMcpConfig: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock("../src/services/gatewayConfigService.ts", () => ({
+  listGatewayConfigs: jest
+    .fn()
+    .mockResolvedValue({ gatewayConfigs: [], totalCount: 0, hasMore: false }),
+  getGatewayConfig: jest.fn().mockResolvedValue(null),
+  getGatewayConfigByIdOrName: jest.fn().mockResolvedValue(null),
+  createGatewayConfig: jest.fn().mockResolvedValue({ id: "gwc_test" }),
+  updateGatewayConfig: jest.fn().mockResolvedValue({ id: "gwc_test" }),
+  deleteGatewayConfig: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock("../src/services/networkPolicyService.ts", () => ({
+  listNetworkPolicies: jest
+    .fn()
+    .mockResolvedValue({ networkPolicies: [], totalCount: 0, hasMore: false }),
+  getNetworkPolicy: jest.fn().mockResolvedValue(null),
+  deleteNetworkPolicy: jest.fn().mockResolvedValue(undefined),
+}));
+
 // Mock zustand stores
 jest.mock("../src/store/devboxStore.ts", () => ({
   useDevboxStore: jest.fn(() => ({
@@ -198,6 +228,50 @@ jest.mock("../src/store/devboxStore.ts", () => ({
     selectedDevbox: null,
     setSelectedDevbox: jest.fn(),
   })),
+}));
+
+jest.mock("../src/store/mcpConfigStore.ts", () => ({
+  useMcpConfigStore: jest.fn((selector?: (state: any) => any) => {
+    const state = {
+      mcpConfigs: [],
+      loading: false,
+      initialLoading: false,
+      error: null,
+      currentPage: 0,
+      pageSize: 10,
+      totalCount: 0,
+      hasMore: false,
+      searchQuery: "",
+      selectedIndex: 0,
+      clearAll: jest.fn(),
+      setMcpConfigs: jest.fn(),
+      setLoading: jest.fn(),
+      setError: jest.fn(),
+    };
+    return selector ? selector(state) : state;
+  }),
+}));
+
+jest.mock("../src/store/gatewayConfigStore.ts", () => ({
+  useGatewayConfigStore: jest.fn((selector?: (state: any) => any) => {
+    const state = {
+      gatewayConfigs: [],
+      loading: false,
+      initialLoading: false,
+      error: null,
+      currentPage: 0,
+      pageSize: 10,
+      totalCount: 0,
+      hasMore: false,
+      searchQuery: "",
+      selectedIndex: 0,
+      clearAll: jest.fn(),
+      setGatewayConfigs: jest.fn(),
+      setLoading: jest.fn(),
+      setError: jest.fn(),
+    };
+    return selector ? selector(state) : state;
+  }),
 }));
 
 // Note: navigationStore is .tsx not .ts - mock both possible import paths

@@ -11,6 +11,7 @@ import { useBlueprintStore } from "../store/blueprintStore.js";
 import { useSnapshotStore } from "../store/snapshotStore.js";
 import { useNetworkPolicyStore } from "../store/networkPolicyStore.js";
 import { useGatewayConfigStore } from "../store/gatewayConfigStore.js";
+import { useMcpConfigStore } from "../store/mcpConfigStore.js";
 import { useObjectStore } from "../store/objectStore.js";
 import { useBenchmarkStore } from "../store/benchmarkStore.js";
 import { useBenchmarkJobStore } from "../store/benchmarkJobStore.js";
@@ -38,6 +39,9 @@ const KNOWN_SCREENS: Set<ScreenName> = new Set([
   "gateway-config-list",
   "gateway-config-detail",
   "gateway-config-create",
+  "mcp-config-list",
+  "mcp-config-detail",
+  "mcp-config-create",
   "secret-list",
   "secret-detail",
   "secret-create",
@@ -111,6 +115,8 @@ import { NetworkPolicyDetailScreen } from "../screens/NetworkPolicyDetailScreen.
 import { NetworkPolicyCreateScreen } from "../screens/NetworkPolicyCreateScreen.js";
 import { GatewayConfigListScreen } from "../screens/GatewayConfigListScreen.js";
 import { GatewayConfigDetailScreen } from "../screens/GatewayConfigDetailScreen.js";
+import { McpConfigListScreen } from "../screens/McpConfigListScreen.js";
+import { McpConfigDetailScreen } from "../screens/McpConfigDetailScreen.js";
 import { SettingsMenuScreen } from "../screens/SettingsMenuScreen.js";
 import { SecretListScreen } from "../screens/SecretListScreen.js";
 import { SecretDetailScreen } from "../screens/SecretDetailScreen.js";
@@ -187,6 +193,14 @@ export function Router() {
         case "gateway-config-create":
           if (!currentScreen.startsWith("gateway-config")) {
             useGatewayConfigStore.getState().clearAll();
+          }
+          break;
+
+        case "mcp-config-list":
+        case "mcp-config-detail":
+        case "mcp-config-create":
+          if (!currentScreen.startsWith("mcp-config")) {
+            useMcpConfigStore.getState().clearAll();
           }
           break;
 
@@ -281,6 +295,12 @@ export function Router() {
       )}
       {currentScreen === "gateway-config-detail" && (
         <GatewayConfigDetailScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "mcp-config-list" && (
+        <McpConfigListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "mcp-config-detail" && (
+        <McpConfigDetailScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "secret-list" && (
         <SecretListScreen key={currentScreen} {...params} />

@@ -30,6 +30,13 @@ const settingsMenuItems: SettingsMenuItem[] = [
     color: colors.success,
   },
   {
+    key: "mcp-configs",
+    label: "MCP Configs",
+    description: "Configure MCP server connections and tool access",
+    icon: "⬢",
+    color: colors.primary,
+  },
+  {
     key: "secrets",
     label: "Secrets",
     description: "Manage sensitive values and credentials",
@@ -95,7 +102,9 @@ export const SettingsMenu = ({ onSelect, onBack }: SettingsMenuProps) => {
       onSelect("network-policies");
     } else if (input === "g" || input === "2") {
       onSelect("gateway-configs");
-    } else if (input === "s" || input === "3") {
+    } else if (input === "m" || input === "3") {
+      onSelect("mcp-configs");
+    } else if (input === "s" || input === "4") {
       onSelect("secrets");
     } else if (input === "q") {
       exit();
@@ -155,7 +164,7 @@ export const SettingsMenu = ({ onSelect, onBack }: SettingsMenuProps) => {
         showArrows
         paddingX={2}
         tips={[
-          { key: "1-3", label: "Quick select" },
+          { key: "1-4", label: "Quick select" },
           { key: "Enter", label: "Select" },
           { key: "Esc", label: "Back" },
           { key: "q", label: "Quit" },

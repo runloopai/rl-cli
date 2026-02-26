@@ -1,81 +1,59 @@
 /**
- * GatewayConfigDetailScreen - Detail page for gateway configs
+ * McpConfigDetailScreen - Detail page for MCP configs
  * Uses the generic ResourceDetailPage component
  */
 import React from "react";
 import { Text, useInput } from "ink";
 import figures from "figures";
 import { useNavigation } from "../store/navigationStore.js";
-import {
-  useGatewayConfigStore,
-  type GatewayConfig,
-} from "../store/gatewayConfigStore.js";
+import { useMcpConfigStore, type McpConfig } from "../store/mcpConfigStore.js";
 import {
   ResourceDetailPage,
   formatTimestamp,
   type DetailSection,
   type ResourceOperation,
 } from "../components/ResourceDetailPage.js";
-import {
-  getGatewayConfig,
-  deleteGatewayConfig,
-} from "../services/gatewayConfigService.js";
+import { getMcpConfig, deleteMcpConfig } from "../services/mcpConfigService.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
 import { NavigationTips } from "../components/NavigationTips.js";
 import { ConfirmationPrompt } from "../components/ConfirmationPrompt.js";
-import { GatewayConfigCreatePage } from "../components/GatewayConfigCreatePage.js";
+import { McpConfigCreatePage } from "../components/McpConfigCreatePage.js";
 import { colors } from "../utils/theme.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 
-interface GatewayConfigDetailScreenProps {
-  gatewayConfigId?: string;
+interface McpConfigDetailScreenProps {
+  mcpConfigId?: string;
 }
 
-/**
- * Get a display label for the auth mechanism type
- */
-function getAuthTypeLabel(
-  authMechanism: GatewayConfig["auth_mechanism"],
-): string {
-  if (authMechanism.type === "bearer") {
-    return "Bearer Token";
-  }
-  if (authMechanism.type === "header") {
-    return authMechanism.key ? `Header: ${authMechanism.key}` : "Header";
-  }
-  return authMechanism.type;
-}
-
-export function GatewayConfigDetailScreen({
-  gatewayConfigId,
-}: GatewayConfigDetailScreenProps) {
+export function McpConfigDetailScreen({
+  mcpConfigId,
+}: McpConfigDetailScreenProps) {
   const { goBack } = useNavigation();
-  const gatewayConfigs = useGatewayConfigStore((state) => state.gatewayConfigs);
+  const mcpConfigs = useMcpConfigStore((state) => state.mcpConfigs);
 
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
-  const [fetchedConfig, setFetchedConfig] =
-    React.useState<GatewayConfig | null>(null);
+  const [fetchedConfig, setFetchedConfig] = React.useState<McpConfig | null>(
+    null,
+  );
   const [deleting, setDeleting] = React.useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const [showEditForm, setShowEditForm] = React.useState(false);
 
   useExitOnCtrlC();
 
-  // Find config in store first
-  const configFromStore = gatewayConfigs.find((c) => c.id === gatewayConfigId);
+  const configFromStore = mcpConfigs.find((c) => c.id === mcpConfigId);
 
-  // Fetch config from API once per mount
   const hasFetched = React.useRef(false);
   React.useEffect(() => {
-    if (gatewayConfigId && !hasFetched.current) {
+    if (mcpConfigId && !hasFetched.current) {
       hasFetched.current = true;
       setLoading(true);
       setError(null);
 
-      getGatewayConfig(gatewayConfigId)
+      getMcpConfig(mcpConfigId)
         .then((config) => {
           setFetchedConfig(config);
           setLoading(false);
@@ -85,12 +63,11 @@ export function GatewayConfigDetailScreen({
           setLoading(false);
         });
     }
-  }, [gatewayConfigId]);
+  }, [mcpConfigId]);
 
-  // Use fetched config for full details, fall back to store for basic display
   const config = fetchedConfig || configFromStore;
 
-  // Back navigation for error/not-found states (ResourceDetailPage handles its own input)
+  // Back navigation for error/not-found states
   useInput(
     (input, key) => {
       if (input === "q" || key.escape || key.return) {
@@ -103,33 +80,28 @@ export function GatewayConfigDetailScreen({
     },
   );
 
-  // Show loading state while fetching or before fetch starts
-  if (!config && gatewayConfigId && !error) {
+  if (!config && mcpConfigId && !error) {
     return (
       <>
         <Breadcrumb
           items={[
-            { label: "AI Gateway Configs" },
+            { label: "MCP Configs" },
             { label: "Loading...", active: true },
           ]}
         />
-        <SpinnerComponent message="Loading AI gateway config details..." />
+        <SpinnerComponent message="Loading MCP config details..." />
       </>
     );
   }
 
-  // Show error state if fetch failed
   if (error && !config) {
     return (
       <>
         <Breadcrumb
-          items={[
-            { label: "AI Gateway Configs" },
-            { label: "Error", active: true },
-          ]}
+          items={[{ label: "MCP Configs" }, { label: "Error", active: true }]}
         />
         <ErrorMessage
-          message="Failed to load AI gateway config details"
+          message="Failed to load MCP config details"
           error={error}
         />
         <NavigationTips tips={[{ key: "q/esc/Enter", label: "Go back" }]} />
@@ -137,29 +109,26 @@ export function GatewayConfigDetailScreen({
     );
   }
 
-  // Show error if no config found
   if (!config) {
     return (
       <>
         <Breadcrumb
           items={[
-            { label: "AI Gateway Configs" },
+            { label: "MCP Configs" },
             { label: "Not Found", active: true },
           ]}
         />
         <ErrorMessage
-          message={`AI gateway config ${gatewayConfigId || "unknown"} not found`}
-          error={new Error("AI gateway config not found")}
+          message={`MCP config ${mcpConfigId || "unknown"} not found`}
+          error={new Error("MCP config not found")}
         />
         <NavigationTips tips={[{ key: "q/esc/Enter", label: "Go back" }]} />
       </>
     );
   }
 
-  // Build detail sections
   const detailSections: DetailSection[] = [];
 
-  // Basic details section
   const basicFields = [];
   if (config.description) {
     basicFields.push({
@@ -177,12 +146,6 @@ export function GatewayConfigDetailScreen({
       value: formatTimestamp(config.create_time_ms),
     });
   }
-  if (config.account_id) {
-    basicFields.push({
-      label: "Account ID",
-      value: config.account_id,
-    });
-  }
 
   if (basicFields.length > 0) {
     detailSections.push({
@@ -193,71 +156,68 @@ export function GatewayConfigDetailScreen({
     });
   }
 
-  // Auth mechanism section
-  const authFields = [];
-  authFields.push({
-    label: "Auth Type",
-    value: (
-      <Text color={colors.info} bold>
-        {getAuthTypeLabel(config.auth_mechanism)}
-      </Text>
-    ),
-  });
-  if (config.auth_mechanism.type === "header" && config.auth_mechanism.key) {
-    authFields.push({
-      label: "Header Key",
-      value: config.auth_mechanism.key,
+  const toolsFields = [];
+  if (config.allowed_tools && config.allowed_tools.length > 0) {
+    toolsFields.push({
+      label: "Patterns",
+      value: (
+        <Text color={colors.info} bold>
+          {config.allowed_tools.join(", ")}
+        </Text>
+      ),
+    });
+    toolsFields.push({
+      label: "Count",
+      value: `${config.allowed_tools.length} pattern(s)`,
+    });
+  } else {
+    toolsFields.push({
+      label: "Patterns",
+      value: "(none)",
     });
   }
 
   detailSections.push({
-    title: "Authentication",
+    title: "Allowed Tools",
     icon: figures.arrowRight,
     color: colors.info,
-    fields: authFields,
+    fields: toolsFields,
   });
 
-  // Operations available for gateway configs
   const operations: ResourceOperation[] = [
     {
       key: "edit",
-      label: "Edit AI Gateway Config",
+      label: "Edit MCP Config",
       color: colors.warning,
       icon: figures.pointer,
       shortcut: "e",
     },
     {
       key: "delete",
-      label: "Delete AI Gateway Config",
+      label: "Delete MCP Config",
       color: colors.error,
       icon: figures.cross,
       shortcut: "d",
     },
   ];
 
-  // Handle operation selection
-  const handleOperation = async (
-    operation: string,
-    _resource: GatewayConfig,
-  ) => {
+  const handleOperation = async (operation: string, _resource: McpConfig) => {
     switch (operation) {
       case "edit":
         setShowEditForm(true);
         break;
       case "delete":
-        // Show confirmation dialog
         setShowDeleteConfirm(true);
         break;
     }
   };
 
-  // Execute delete after confirmation
   const executeDelete = async () => {
     if (!config) return;
     setShowDeleteConfirm(false);
     setDeleting(true);
     try {
-      await deleteGatewayConfig(config.id);
+      await deleteMcpConfig(config.id);
       goBack();
     } catch (err) {
       setError(err as Error);
@@ -265,89 +225,80 @@ export function GatewayConfigDetailScreen({
     }
   };
 
-  // Build detailed info lines for full details view
-  const buildDetailLines = (gc: GatewayConfig): React.ReactElement[] => {
+  const buildDetailLines = (mc: McpConfig): React.ReactElement[] => {
     const lines: React.ReactElement[] = [];
 
-    // Core Information
     lines.push(
       <Text key="core-title" color={colors.warning} bold>
-        AI Gateway Config Details
+        MCP Config Details
       </Text>,
     );
     lines.push(
       <Text key="core-id" color={colors.idColor}>
         {" "}
-        ID: {gc.id}
+        ID: {mc.id}
       </Text>,
     );
     lines.push(
       <Text key="core-name" dimColor>
         {" "}
-        Name: {gc.name}
+        Name: {mc.name}
       </Text>,
     );
-    if (gc.description) {
+    if (mc.description) {
       lines.push(
         <Text key="core-desc" dimColor>
           {" "}
-          Description: {gc.description}
+          Description: {mc.description}
         </Text>,
       );
     }
     lines.push(
       <Text key="core-endpoint" dimColor>
         {" "}
-        Endpoint: {gc.endpoint}
+        Endpoint: {mc.endpoint}
       </Text>,
     );
-    if (gc.create_time_ms) {
+    if (mc.create_time_ms) {
       lines.push(
         <Text key="core-created" dimColor>
           {" "}
-          Created: {new Date(gc.create_time_ms).toLocaleString()}
-        </Text>,
-      );
-    }
-    if (gc.account_id) {
-      lines.push(
-        <Text key="core-account" dimColor>
-          {" "}
-          Account ID: {gc.account_id}
+          Created: {new Date(mc.create_time_ms).toLocaleString()}
         </Text>,
       );
     }
     lines.push(<Text key="core-space"> </Text>);
 
-    // Auth Mechanism
     lines.push(
-      <Text key="auth-title" color={colors.warning} bold>
-        Authentication
+      <Text key="tools-title" color={colors.warning} bold>
+        Allowed Tools
       </Text>,
     );
-    lines.push(
-      <Text key="auth-type" dimColor>
-        {" "}
-        Type: {getAuthTypeLabel(gc.auth_mechanism)}
-      </Text>,
-    );
-    if (gc.auth_mechanism.type === "header" && gc.auth_mechanism.key) {
+    if (mc.allowed_tools && mc.allowed_tools.length > 0) {
+      mc.allowed_tools.forEach((tool, idx) => {
+        lines.push(
+          <Text key={`tool-${idx}`} dimColor>
+            {" "}
+            {figures.pointer} {tool}
+          </Text>,
+        );
+      });
+    } else {
       lines.push(
-        <Text key="auth-key" dimColor>
+        <Text key="tools-none" dimColor>
           {" "}
-          Header Key: {gc.auth_mechanism.key}
+          (none)
         </Text>,
       );
     }
-    lines.push(<Text key="auth-space"> </Text>);
+    lines.push(<Text key="tools-space"> </Text>);
 
-    // Raw JSON
     lines.push(
       <Text key="json-title" color={colors.warning} bold>
         Raw JSON
       </Text>,
     );
-    const jsonLines = JSON.stringify(gc, null, 2).split("\n");
+    const jsonLines = JSON.stringify(mc, null, 2).split("\n");
     jsonLines.forEach((line, idx) => {
       lines.push(
         <Text key={`json-${idx}`} dimColor>
@@ -360,14 +311,12 @@ export function GatewayConfigDetailScreen({
     return lines;
   };
 
-  // Show edit form
   if (showEditForm && config) {
     return (
-      <GatewayConfigCreatePage
+      <McpConfigCreatePage
         onBack={() => setShowEditForm(false)}
         onCreate={(updatedConfig) => {
-          // Update the fetched config with the new data
-          setFetchedConfig(updatedConfig as GatewayConfig);
+          setFetchedConfig(updatedConfig as McpConfig);
           setShowEditForm(false);
         }}
         initialConfig={config}
@@ -375,15 +324,14 @@ export function GatewayConfigDetailScreen({
     );
   }
 
-  // Show delete confirmation
   if (showDeleteConfirm && config) {
     return (
       <ConfirmationPrompt
-        title="Delete AI Gateway Config"
+        title="Delete MCP Config"
         message={`Are you sure you want to delete "${config.name || config.id}"?`}
-        details="This action cannot be undone. Any devboxes using this AI gateway config will no longer have access to it."
+        details="This action cannot be undone. Any devboxes using this MCP config will no longer have access to it."
         breadcrumbItems={[
-          { label: "AI Gateway Configs" },
+          { label: "MCP Configs" },
           { label: config.name || config.id },
           { label: "Delete", active: true },
         ]}
@@ -393,18 +341,17 @@ export function GatewayConfigDetailScreen({
     );
   }
 
-  // Show deleting state
   if (deleting) {
     return (
       <>
         <Breadcrumb
           items={[
-            { label: "AI Gateway Configs" },
+            { label: "MCP Configs" },
             { label: config.name || config.id },
             { label: "Deleting...", active: true },
           ]}
         />
-        <SpinnerComponent message="Deleting AI gateway config..." />
+        <SpinnerComponent message="Deleting MCP config..." />
       </>
     );
   }
@@ -412,10 +359,10 @@ export function GatewayConfigDetailScreen({
   return (
     <ResourceDetailPage
       resource={config}
-      resourceType="AI Gateway Configs"
-      getDisplayName={(gc) => gc.name || gc.id}
-      getId={(gc) => gc.id}
-      getStatus={() => "active"} // Gateway configs don't have a status field
+      resourceType="MCP Configs"
+      getDisplayName={(mc) => mc.name || mc.id}
+      getId={(mc) => mc.id}
+      getStatus={() => "active"}
       detailSections={detailSections}
       operations={operations}
       onOperation={handleOperation}

@@ -16,6 +16,9 @@ export function SettingsMenuScreen() {
       case "gateway-configs":
         navigate("gateway-config-list");
         break;
+      case "mcp-configs":
+        navigate("mcp-config-list");
+        break;
       case "secrets":
         navigate("secret-list");
         break;

@@ -30,6 +30,9 @@ export type ScreenName =
   | "gateway-config-list"
   | "gateway-config-detail"
   | "gateway-config-create"
+  | "mcp-config-list"
+  | "mcp-config-detail"
+  | "mcp-config-create"
   | "secret-list"
   | "secret-detail"
   | "secret-create"
@@ -53,6 +56,7 @@ export interface RouteParams {
   snapshotId?: string;
   networkPolicyId?: string;
   gatewayConfigId?: string;
+  mcpConfigId?: string;
   secretId?: string;
   objectId?: string;
   operation?: string;

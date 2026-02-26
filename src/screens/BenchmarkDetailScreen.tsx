@@ -43,9 +43,11 @@ export function BenchmarkDetailScreen({
     return getBenchmark(benchmarkId);
   }, [benchmarkId]);
 
-  // Fetch benchmark from API if not in store
+  // Fetch benchmark from API once per mount
+  const hasFetched = React.useRef(false);
   React.useEffect(() => {
-    if (benchmarkId && !loading && !fetchedBenchmark && !benchmarkFromStore) {
+    if (benchmarkId && !hasFetched.current && !benchmarkFromStore) {
+      hasFetched.current = true;
       setLoading(true);
       setError(null);
 
@@ -59,7 +61,7 @@ export function BenchmarkDetailScreen({
           setLoading(false);
         });
     }
-  }, [benchmarkId, loading, fetchedBenchmark, benchmarkFromStore]);
+  }, [benchmarkId, benchmarkFromStore]);
 
   // Use fetched benchmark for full details, fall back to store for basic display
   const benchmark = fetchedBenchmark || benchmarkFromStore;

@@ -64,10 +64,11 @@ export function NetworkPolicyDetailScreen({
   // Find policy in store first
   const policyFromStore = networkPolicies.find((p) => p.id === networkPolicyId);
 
-  // Fetch policy from API if not in store or missing full details
+  // Fetch policy from API once per mount
+  const hasFetched = React.useRef(false);
   React.useEffect(() => {
-    if (networkPolicyId && !loading && !fetchedPolicy) {
-      // Always fetch full details since store may only have basic info
+    if (networkPolicyId && !hasFetched.current) {
+      hasFetched.current = true;
       setLoading(true);
       setError(null);
 
@@ -81,7 +82,7 @@ export function NetworkPolicyDetailScreen({
           setLoading(false);
         });
     }
-  }, [networkPolicyId, loading, fetchedPolicy]);
+  }, [networkPolicyId]);
 
   // Use fetched policy for full details, fall back to store for basic display
   const policy = fetchedPolicy || policyFromStore;

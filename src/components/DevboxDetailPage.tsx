@@ -15,6 +15,7 @@ import {
 import { getDevboxUrl } from "../utils/url.js";
 import { colors } from "../utils/theme.js";
 import { formatTimeAgo } from "../utils/time.js";
+import { getMcpConfig } from "../services/mcpConfigService.js";
 import type { Devbox } from "../store/devboxStore.js";
 
 interface DevboxDetailPageProps {
@@ -24,6 +25,24 @@ interface DevboxDetailPageProps {
 
 export const DevboxDetailPage = ({ devbox, onBack }: DevboxDetailPageProps) => {
   const [showActions, setShowActions] = React.useState(false);
+  const [mcpEndpoints, setMcpEndpoints] = React.useState<
+    Record<string, string>
+  >({});
+
+  React.useEffect(() => {
+    if (!devbox.mcp_specs || devbox.mcp_specs.length === 0) return;
+
+    devbox.mcp_specs.forEach((spec) => {
+      getMcpConfig(spec.mcp_config_id)
+        .then((config) => {
+          setMcpEndpoints((prev) => ({
+            ...prev,
+            [spec.mcp_config_id]: config.endpoint,
+          }));
+        })
+        .catch(() => {});
+    });
+  }, [devbox.mcp_specs]);
   const [selectedOperationKey, setSelectedOperationKey] = React.useState<
     string | null
   >(null);
@@ -272,6 +291,46 @@ export const DevboxDetailPage = ({ devbox, onBack }: DevboxDetailPageProps) => {
           params: { networkPolicyId: lp.network_policy_id },
           hint: "View Policy",
         },
+      });
+    }
+
+    // Gateway Specs
+    if (devbox.gateway_specs && Object.keys(devbox.gateway_specs).length > 0) {
+      Object.entries(devbox.gateway_specs).forEach(([envPrefix, spec]) => {
+        detailFields.push({
+          label: `Gateway (${envPrefix})`,
+          value: <Text color={colors.success}>{spec.gateway_config_id}</Text>,
+          action: {
+            type: "navigate" as const,
+            screen: "gateway-config-detail" as const,
+            params: { gatewayConfigId: spec.gateway_config_id },
+            hint: "View Config",
+          },
+        });
+      });
+    }
+
+    // MCP Specs
+    if (devbox.mcp_specs && devbox.mcp_specs.length > 0) {
+      devbox.mcp_specs.forEach((spec, idx) => {
+        const endpoint = mcpEndpoints[spec.mcp_config_id];
+        detailFields.push({
+          label: `MCP Config${devbox.mcp_specs!.length > 1 ? ` ${idx + 1}` : ""}`,
+          value: (
+            <Text>
+              <Text color={colors.success}>{spec.mcp_config_id}</Text>
+              {endpoint ? (
+                <Text color={colors.textDim}> ({endpoint})</Text>
+              ) : null}
+            </Text>
+          ),
+          action: {
+            type: "navigate" as const,
+            screen: "mcp-config-detail" as const,
+            params: { mcpConfigId: spec.mcp_config_id },
+            hint: "View Config",
+          },
+        });
       });
     }
 
