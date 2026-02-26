@@ -112,7 +112,7 @@ export const NetworkPolicyCreatePage = ({
     },
     {
       key: "allow_ai_gateway",
-      label: "Allow AI Gateway",
+      label: "Allow Agent Gateway",
       type: "select",
     },
     {
@@ -299,19 +299,20 @@ export const NetworkPolicyCreatePage = ({
     }
   };
 
-  const breadcrumbLabel = isEditMode ? initialPolicy?.name || "Edit" : "Create";
+  const breadcrumbItems = isEditMode
+    ? [
+        { label: "Network Policies" },
+        { label: initialPolicy?.name || initialPolicy?.id || "Policy" },
+        { label: "Edit", active: true },
+      ]
+    : [{ label: "Network Policies" }, { label: "Create", active: true }];
   const actionLabel = isEditMode ? "Edit" : "Create";
 
   // Result screen
   if (result) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "Network Policies" },
-            { label: breadcrumbLabel, active: true },
-          ]}
-        />
+        <Breadcrumb items={breadcrumbItems} />
         <SuccessMessage
           message={`Network policy ${isEditMode ? "updated" : "created"} successfully!`}
         />
@@ -357,12 +358,7 @@ export const NetworkPolicyCreatePage = ({
   if (error) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "Network Policies" },
-            { label: breadcrumbLabel, active: true },
-          ]}
-        />
+        <Breadcrumb items={breadcrumbItems} />
         <ErrorMessage
           message={`Failed to ${isEditMode ? "update" : "create"} network policy`}
           error={error}
@@ -381,12 +377,7 @@ export const NetworkPolicyCreatePage = ({
   if (submitting) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "Network Policies" },
-            { label: breadcrumbLabel, active: true },
-          ]}
-        />
+        <Breadcrumb items={breadcrumbItems} />
         <SpinnerComponent
           message={`${isEditMode ? "Updating" : "Creating"} network policy...`}
         />
@@ -397,12 +388,7 @@ export const NetworkPolicyCreatePage = ({
   // Form screen
   return (
     <>
-      <Breadcrumb
-        items={[
-          { label: "Network Policies" },
-          { label: breadcrumbLabel, active: true },
-        ]}
-      />
+      <Breadcrumb items={breadcrumbItems} />
 
       {isEditMode && (
         <Box

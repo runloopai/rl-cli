@@ -334,9 +334,9 @@ export function NetworkPolicyDetailScreen({
       </Text>,
     );
     lines.push(
-      <Text key="egress-ai-gateway" dimColor>
+      <Text key="egress-agent-gateway" dimColor>
         {" "}
-        Allow AI Gateway: {np.egress.allow_ai_gateway ? "Yes" : "No"}
+        Allow Agent Gateway: {np.egress.allow_ai_gateway ? "Yes" : "No"}
       </Text>,
     );
     lines.push(

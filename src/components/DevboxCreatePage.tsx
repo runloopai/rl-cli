@@ -313,7 +313,7 @@ export const DevboxCreatePage = ({
     },
     {
       key: "gateways",
-      label: "AI Gateway Configs (optional)",
+      label: "Agent Gateway Configs (optional)",
       type: "gateways",
       placeholder: "Configure API credential proxying...",
     },
@@ -1496,7 +1496,7 @@ export const DevboxCreatePage = ({
       <ResourcePicker<GatewayConfig>
         key="gateway-config-picker"
         config={{
-          title: "Select AI Gateway Config",
+          title: "Select Agent Gateway Config",
           fetchPage: async (params) => {
             const result = await listGatewayConfigs({
               limit: params.limit,
@@ -1513,19 +1513,19 @@ export const DevboxCreatePage = ({
           getItemLabel: (config) => config.name || config.id,
           columns: buildGatewayColumns,
           mode: "single",
-          emptyMessage: "No AI gateway configs found",
-          searchPlaceholder: "Search AI gateway configs...",
+          emptyMessage: "No Agent gateway configs found",
+          searchPlaceholder: "Search Agent gateway configs...",
           breadcrumbItems: [
             { label: "Devboxes" },
             { label: "Create" },
-            { label: "Attach AI Gateway Config" },
+            { label: "Attach Agent Gateway Config" },
             { label: "Select Config", active: true },
           ],
           onCreateNew: () => {
             setShowGatewayPicker(false);
             setShowInlineGatewayConfigCreate(true);
           },
-          createNewLabel: "Create AI gateway config",
+          createNewLabel: "Create Agent gateway config",
         }}
         onSelect={handleGatewaySelect}
         onCancel={() => {
@@ -1635,7 +1635,7 @@ export const DevboxCreatePage = ({
           breadcrumbItems: [
             { label: "Devboxes" },
             { label: "Create" },
-            { label: "Attach AI Gateway Config" },
+            { label: "Attach Agent Gateway Config" },
             { label: "Select Secret", active: true },
           ],
           onCreateNew: () => {
@@ -2312,7 +2312,7 @@ export const DevboxCreatePage = ({
                 marginBottom={1}
               >
                 <Text color={colors.primary} bold>
-                  {figures.hamburger} Configure AI Gateway Configs for Devbox
+                  {figures.hamburger} Configure Agent Gateway Configs for Devbox
                 </Text>
 
                 {/* Attach form - shown when configuring a new gateway */}
@@ -2325,7 +2325,7 @@ export const DevboxCreatePage = ({
                     paddingX={1}
                   >
                     <Text color={colors.success} bold>
-                      Attach AI Gateway Config
+                      Attach Agent Gateway Config
                     </Text>
 
                     {/* Attach button */}
@@ -2369,7 +2369,7 @@ export const DevboxCreatePage = ({
                         }
                       >
                         {gatewayFormField === "gateway" ? figures.pointer : " "}{" "}
-                        AI Gateway Config:{" "}
+                        Agent Gateway Config:{" "}
                       </Text>
                       {pendingGateway ? (
                         <Text color={colors.success}>
@@ -2492,7 +2492,7 @@ export const DevboxCreatePage = ({
                         }
                         bold={selectedGatewayIndex === 0}
                       >
-                        + Attach AI gateway config
+                        + Attach Agent gateway config
                       </Text>
                     </Box>
 
