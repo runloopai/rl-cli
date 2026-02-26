@@ -608,7 +608,9 @@ const ListGatewayConfigsUI = ({
   if (loading && configs.length === 0) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Agent Gateway Configs", active: true }]} />
+        <Breadcrumb
+          items={[{ label: "Agent Gateway Configs", active: true }]}
+        />
         <SpinnerComponent message="Loading Agent gateway configs..." />
       </>
     );
@@ -618,7 +620,9 @@ const ListGatewayConfigsUI = ({
   if (error) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Agent Gateway Configs", active: true }]} />
+        <Breadcrumb
+          items={[{ label: "Agent Gateway Configs", active: true }]}
+        />
         <ErrorMessage
           message="Failed to list Agent gateway configs"
           error={error}
