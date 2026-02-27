@@ -50,3 +50,89 @@ jobs:
 
       - name: Publish to npm
         run: pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  build-executables:
+    needs: release
+    if: ${{ needs.release.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Create dist directory
+        run: mkdir -p dist
+
+      - name: Build executables for all platforms
+        run: |
+          echo "Building macOS Apple Silicon..."
+          bun build --compile --target=bun-darwin-arm64 --minify --bytecode src/cli.ts --outfile dist/rli-macos-arm64 || echo "macOS arm64 build failed (expected with current Bun/Ink limitation)"
+
+          echo "Building macOS Intel..."
+          bun build --compile --target=bun-darwin-x64 --minify --bytecode src/cli.ts --outfile dist/rli-macos-x64 || echo "macOS x64 build failed (expected with current Bun/Ink limitation)"
+
+          echo "Building Linux x64..."
+          bun build --compile --target=bun-linux-x64 --minify --bytecode src/cli.ts --outfile dist/rli-linux-x64 || echo "Linux x64 build failed (expected with current Bun/Ink limitation)"
+
+          echo "Building Linux ARM64..."
+          bun build --compile --target=bun-linux-arm64 --minify --bytecode src/cli.ts --outfile dist/rli-linux-arm64 || echo "Linux arm64 build failed (expected with current Bun/Ink limitation)"
+
+          echo "Building Windows x64..."
+          bun build --compile --target=bun-windows-x64 --minify --bytecode src/cli.ts --outfile dist/rli-windows-x64.exe || echo "Windows x64 build failed (expected with current Bun/Ink limitation)"
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          if [ -n "$(ls -A 2>/dev/null)" ]; then
+            shasum -a 256 rli-* > checksums.txt 2>/dev/null || echo "No executables to checksum (expected with current Bun/Ink limitation)"
+          else
+            echo "No executables built (expected with current Bun/Ink limitation)" > checksums.txt
+          fi
+
+      - name: Upload release assets
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f dist/checksums.txt ]; then
+            gh release upload ${{ needs.release.outputs.tag_name }} dist/checksums.txt --clobber || echo "No checksums to upload"
+          fi
+
+          for file in dist/rli-*; do
+            if [ -f "$file" ] && [ "$file" != "dist/checksums.txt" ]; then
+              echo "Uploading $file..."
+              gh release upload ${{ needs.release.outputs.tag_name }} "$file" --clobber || echo "Failed to upload $file"
+            fi
+          done
+
+          # Add note to release about executable status
+          gh release edit ${{ needs.release.outputs.tag_name }} --notes-file - <<EOF
+          ## Installation
+
+          ### npm (Recommended)
+          \`\`\`bash
+          npm install -g @runloop/rl-cli
+          \`\`\`
+
+          ### Standalone Executables (Experimental)
+
+          **Note:** Executable builds are currently experimental due to Bun bundler limitations with Ink's yoga-layout dependency. If executables are not attached to this release, please use the npm installation method.
+
+          Once Bun resolves this limitation, executables will be available for:
+          - macOS (Apple Silicon & Intel)
+          - Linux (x64 & ARM64)
+          - Windows (x64)
+
+          For more information, see the [README](https://github.com/runloopai/rl-cli#readme).
+          EOF
