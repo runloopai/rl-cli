@@ -1,6 +1,6 @@
 {
   "name": "@runloop/rl-cli",
-  "version": "1.11.2",
+  "version": "1.11.3",
   "description": "Beautiful CLI for the Runloop platform",
   "type": "module",
   "bin": {
