@@ -81,6 +81,7 @@ interface GatewaySpec {
 
 // MCP configuration for devbox
 interface McpSpec {
+  envVarName: string; // environment variable name for the MCP token envelope
   mcpConfig: string; // MCP config ID or name
   mcpConfigName: string; // display name
   mcpConfigEndpoint: string; // endpoint URL
@@ -638,7 +639,9 @@ export const DevboxCreatePage = ({
   // Attach the configured MCP config to the devbox
   const handleAttachMcp = React.useCallback(() => {
     if (!pendingMcpConfig || !pendingMcpSecret) return;
+    const envVarName = `RL_MCP_${pendingMcpConfig.name.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`;
     const newMcp: McpSpec = {
+      envVarName,
       mcpConfig: pendingMcpConfig.id,
       mcpConfigName: pendingMcpConfig.name,
       mcpConfigEndpoint: pendingMcpConfig.endpoint,
@@ -1087,10 +1090,14 @@ export const DevboxCreatePage = ({
 
       // Add MCP specifications
       if (formData.mcpConfigs.length > 0) {
-        createParams.mcp = formData.mcpConfigs.map((m) => ({
-          mcp_config: m.mcpConfig,
-          secret: m.secret,
-        }));
+        const mcp: Record<string, { mcp_config: string; secret: string }> = {};
+        for (const m of formData.mcpConfigs) {
+          mcp[m.envVarName] = {
+            mcp_config: m.mcpConfig,
+            secret: m.secret,
+          };
+        }
+        createParams.mcp = mcp;
       }
 
       // Add tunnel configuration if not "none"
@@ -2610,8 +2617,9 @@ export const DevboxCreatePage = ({
                     <Box marginLeft={2} flexDirection="column">
                       {formData.mcpConfigs.map((m, idx) => (
                         <Text key={idx} color={colors.textDim} dimColor>
-                          {figures.pointer} Config: {m.mcpConfigName} (
-                          {m.mcpConfigEndpoint}) | Secret: {m.secretName}
+                          {figures.pointer} ENV: {m.envVarName} | Config:{" "}
+                          {m.mcpConfigName} ({m.mcpConfigEndpoint}) | Secret:{" "}
+                          {m.secretName}
                         </Text>
                       ))}
                     </Box>
@@ -2812,6 +2820,9 @@ export const DevboxCreatePage = ({
                                 </Text>
                               </Box>
                               <Box marginLeft={3} flexDirection="column">
+                                <Text color={colors.textDim} dimColor>
+                                  ENV: {m.envVarName}
+                                </Text>
                                 <Text color={colors.textDim} dimColor>
                                   Endpoint: {m.mcpConfigEndpoint}
                                 </Text>

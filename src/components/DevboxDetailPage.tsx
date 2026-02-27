@@ -30,9 +30,9 @@ export const DevboxDetailPage = ({ devbox, onBack }: DevboxDetailPageProps) => {
   >({});
 
   React.useEffect(() => {
-    if (!devbox.mcp_specs || devbox.mcp_specs.length === 0) return;
+    if (!devbox.mcp_specs || Object.keys(devbox.mcp_specs).length === 0) return;
 
-    devbox.mcp_specs.forEach((spec) => {
+    for (const [, spec] of Object.entries(devbox.mcp_specs)) {
       getMcpConfig(spec.mcp_config_id)
         .then((config) => {
           setMcpEndpoints((prev) => ({
@@ -41,7 +41,7 @@ export const DevboxDetailPage = ({ devbox, onBack }: DevboxDetailPageProps) => {
           }));
         })
         .catch(() => {});
-    });
+    }
   }, [devbox.mcp_specs]);
   const [selectedOperationKey, setSelectedOperationKey] = React.useState<
     string | null
@@ -311,11 +311,12 @@ export const DevboxDetailPage = ({ devbox, onBack }: DevboxDetailPageProps) => {
     }
 
     // MCP Specs
-    if (devbox.mcp_specs && devbox.mcp_specs.length > 0) {
-      devbox.mcp_specs.forEach((spec, idx) => {
+    if (devbox.mcp_specs && Object.keys(devbox.mcp_specs).length > 0) {
+      const entries = Object.entries(devbox.mcp_specs);
+      entries.forEach(([envVarName, spec]) => {
         const endpoint = mcpEndpoints[spec.mcp_config_id];
         detailFields.push({
-          label: `MCP Config${devbox.mcp_specs!.length > 1 ? ` ${idx + 1}` : ""}`,
+          label: `MCP (${envVarName})`,
           value: (
             <Text>
               <Text color={colors.success}>{spec.mcp_config_id}</Text>
