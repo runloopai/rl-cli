@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.3](https://github.com/runloopai/rl-cli/compare/v1.11.2...v1.11.3) (2026-02-27)
+
+
+### Bug Fixes
+
+* using the new format for mcp-configs ([#132](https://github.com/runloopai/rl-cli/issues/132)) ([9deeb1c](https://github.com/runloopai/rl-cli/commit/9deeb1ce507eaa94b7104c865cbb2c570c32d3b3))
+
 ## [1.11.2](https://github.com/runloopai/rl-cli/compare/v1.11.1...v1.11.2) (2026-02-26)
 
 
