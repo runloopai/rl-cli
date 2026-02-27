@@ -71,7 +71,7 @@ export function createProgram(): Command {
     )
     .option(
       "--mcp <specs...>",
-      "MCP configurations (format: mcp_config_id_or_name,secret_id_or_name)",
+      "MCP configurations (format: ENV_VAR_NAME=mcp_config_id_or_name,secret_id_or_name)",
     )
     .option(
       "-o, --output [format]",

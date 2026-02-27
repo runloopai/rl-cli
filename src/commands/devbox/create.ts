@@ -115,25 +115,36 @@ function parseGateways(
 
 function parseMcpSpecs(
   specs: string[],
-): Array<{ mcp_config: string; secret: string }> {
-  return specs.map((spec) => {
-    const commaIndex = spec.indexOf(",");
+): Record<string, { mcp_config: string; secret: string }> {
+  const result: Record<string, { mcp_config: string; secret: string }> = {};
+  for (const spec of specs) {
+    const eqIndex = spec.indexOf("=");
+    if (eqIndex === -1) {
+      throw new Error(
+        `Invalid MCP spec format: ${spec}. Expected ENV_VAR_NAME=mcp_config_id_or_name,secret_id_or_name`,
+      );
+    }
+    const envVarName = spec.substring(0, eqIndex);
+    const valueStr = spec.substring(eqIndex + 1);
+
+    const commaIndex = valueStr.indexOf(",");
     if (commaIndex === -1) {
       throw new Error(
-        `Invalid MCP spec format: ${spec}. Expected mcp_config_id_or_name,secret_id_or_name`,
+        `Invalid MCP spec format: ${spec}. Expected ENV_VAR_NAME=mcp_config_id_or_name,secret_id_or_name`,
       );
     }
-    const mcpConfig = spec.substring(0, commaIndex);
-    const secret = spec.substring(commaIndex + 1);
+    const mcpConfig = valueStr.substring(0, commaIndex);
+    const secret = valueStr.substring(commaIndex + 1);
 
-    if (!mcpConfig || !secret) {
+    if (!envVarName || !mcpConfig || !secret) {
       throw new Error(
-        `Invalid MCP spec format: ${spec}. Expected mcp_config_id_or_name,secret_id_or_name`,
+        `Invalid MCP spec format: ${spec}. Expected ENV_VAR_NAME=mcp_config_id_or_name,secret_id_or_name`,
       );
     }
 
-    return { mcp_config: mcpConfig, secret };
-  });
+    result[envVarName] = { mcp_config: mcpConfig, secret };
+  }
+  return result;
 }
 
 export async function createDevbox(options: CreateOptions = {}) {
