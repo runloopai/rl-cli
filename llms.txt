@@ -31,10 +31,14 @@ Get your API key from [https://runloop.ai/settings](https://runloop.ai/settings)
 - `rli devbox create --name <name>` - Create a new devbox
 - `rli devbox exec <id> <command...>` - Execute a command in a devbox
 - `rli devbox ssh <id>` - SSH into a devbox
+- `rli devbox scp <src> <dst>` - Copy files to/from a devbox (e.g., `rli devbox scp dbx_id:/remote ./local`)
+- `rli devbox rsync <src> <dst>` - Sync files to/from a devbox using rsync
 - `rli devbox delete <id>` - Shutdown and delete a devbox
 - `rli snapshot list` - List snapshots
 - `rli snapshot create <devbox-id>` - Create a snapshot
 - `rli blueprint list` - List available blueprints
+
+Use the help or explore this repo to discover the full set of commands.
 
 ## Docs
 
