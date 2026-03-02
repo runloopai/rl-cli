@@ -1,0 +1,57 @@
+# Runloop CLI
+
+> Runloop CLI (`rli`) is a TUI + CLI for the [Runloop.ai](https://runloop.ai) platform. It manages devboxes (cloud development environments), snapshots, blueprints, objects, network policies, secrets, and gateway configurations. It also includes an MCP server for AI assistant integration.
+
+Important notes for AI agents:
+
+- The `RUNLOOP_API_KEY` environment variable must be set before running any command
+- Use `-o json` or `-o yaml` flags for machine-readable output (most commands default to JSON for `list` and `get` operations)
+- Run `rli --help` for top-level help, `rli <command> --help` for command group help, and `rli <command> <subcommand> --help` for detailed flag documentation
+- Command aliases exist for convenience: `devbox`/`d`, `snapshot`/`snap`, `blueprint`/`bp`, `object`/`obj`, `network-policy`/`np`, `secret`/`s`, `gateway-config`/`gwc`, `mcp-config`/`mcpc`
+
+## Installation
+
+```bash
+npm install -g @runloop/rl-cli
+# or
+pnpm add -g @runloop/rl-cli
+```
+
+Then configure authentication:
+
+```bash
+export RUNLOOP_API_KEY=your_api_key_here
+```
+
+Get your API key from [https://runloop.ai/settings](https://runloop.ai/settings).
+
+## Core Commands
+
+- `rli devbox list` - List all devboxes (filter with `-s running`, `-s suspended`, etc.)
+- `rli devbox create --name <name>` - Create a new devbox
+- `rli devbox exec <id> <command...>` - Execute a command in a devbox
+- `rli devbox ssh <id>` - SSH into a devbox
+- `rli devbox scp <src> <dst>` - Copy files to/from a devbox (e.g., `rli devbox scp dbx_id:/remote ./local`)
+- `rli devbox rsync <src> <dst>` - Sync files to/from a devbox using rsync
+- `rli devbox delete <id>` - Shutdown and delete a devbox
+- `rli snapshot list` - List snapshots
+- `rli snapshot create <devbox-id>` - Create a snapshot
+- `rli blueprint list` - List available blueprints
+
+Use the help or explore this repo to discover the full set of commands.
+
+## Docs
+
+- [README](https://github.com/runloopai/rl-cli/blob/main/README.md): Installation, setup, and complete command reference with examples
+- [Full Documentation](https://docs.runloop.ai/docs/tools/rl-cli): Official Runloop CLI documentation
+
+## MCP Integration
+
+- [MCP README](https://github.com/runloopai/rl-cli/blob/main/MCP_README.md): Model Context Protocol server setup for AI assistants
+- [Claude Setup](https://github.com/runloopai/rl-cli/blob/main/CLAUDE_SETUP.md): Step-by-step guide for Claude Desktop integration
+- [MCP Commands](https://github.com/runloopai/rl-cli/blob/main/MCP_COMMANDS.md): Quick reference for MCP tools
+
+## Optional
+
+- [Contributing](https://github.com/runloopai/rl-cli/blob/main/CONTRIBUTING.md): Guidelines for contributing to the CLI
+- [Changelog](https://github.com/runloopai/rl-cli/blob/main/CHANGELOG.md): Version history and release notes
