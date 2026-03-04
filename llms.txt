@@ -34,9 +34,11 @@ Get your API key from [https://runloop.ai/settings](https://runloop.ai/settings)
 - `rli devbox scp <src> <dst>` - Copy files to/from a devbox (e.g., `rli devbox scp dbx_id:/remote ./local`)
 - `rli devbox rsync <src> <dst>` - Sync files to/from a devbox using rsync
 - `rli devbox delete <id>` - Shutdown and delete a devbox
+- `rli devbox logs <id>` - View devbox logs (use `-o json` for structured output)
 - `rli snapshot list` - List snapshots
 - `rli snapshot create <devbox-id>` - Create a snapshot
 - `rli blueprint list` - List available blueprints
+- `rli blueprint logs <name-or-id>` - View blueprint build logs (useful for debugging failed builds)
 
 Use the help or explore this repo to discover the full set of commands.
 
