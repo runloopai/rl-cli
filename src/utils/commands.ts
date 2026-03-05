@@ -462,6 +462,7 @@ export function createProgram(): Command {
     .option("--available-ports <ports...>", "Available ports")
     .option("--root", "Run as root")
     .option("--user <user:uid>", "Run as this user (format: username:uid)")
+    .option("--metadata <tags...>", "Metadata tags (format: key=value)")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: json)",
@@ -552,6 +553,7 @@ export function createProgram(): Command {
     .option("--available-ports <ports...>", "Available ports")
     .option("--root", "Run as root")
     .option("--user <user:uid>", "Run as this user (format: username:uid)")
+    .option("--metadata <tags...>", "Metadata tags (format: key=value)")
     .option(
       "--ttl <seconds>",
       "TTL in seconds for the build context object (default: 3600)",

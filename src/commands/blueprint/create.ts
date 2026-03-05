@@ -16,7 +16,23 @@ interface CreateBlueprintOptions {
   availablePorts?: string[];
   root?: boolean;
   user?: string;
+  metadata?: string[];
   output?: string;
+}
+
+// Parse metadata from key=value format
+function parseMetadata(metadata: string[]): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const item of metadata) {
+    const eqIndex = item.indexOf("=");
+    if (eqIndex === -1) {
+      throw new Error(`Invalid metadata format: ${item}. Expected key=value`);
+    }
+    const key = item.substring(0, eqIndex);
+    const value = item.substring(eqIndex + 1);
+    result[key] = value;
+  }
+  return result;
 }
 
 export async function createBlueprint(options: CreateBlueprintOptions) {
@@ -60,6 +76,11 @@ export async function createBlueprint(options: CreateBlueprintOptions) {
       launchParameters.user_parameters = userParameters;
     }
 
+    // Parse metadata if provided
+    const metadata = options.metadata
+      ? parseMetadata(options.metadata)
+      : undefined;
+
     const blueprint = await client.blueprints.create({
       name: options.name,
       dockerfile: dockerfileContents,
@@ -67,6 +88,7 @@ export async function createBlueprint(options: CreateBlueprintOptions) {
       launch_parameters: launchParameters as Parameters<
         typeof client.blueprints.create
       >[0]["launch_parameters"],
+      metadata,
     });
 
     // Default: output JSON
