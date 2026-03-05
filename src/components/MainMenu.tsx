@@ -58,7 +58,6 @@ const allMenuItems: MenuItem[] = [
     description: "Performance testing and evaluation",
     icon: "▶",
     color: colors.success,
-    betaFeature: "benchmarks",
   },
   {
     key: "settings",
