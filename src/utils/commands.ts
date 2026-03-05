@@ -1049,9 +1049,8 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: text)",
     )
     .action(async (options) => {
-      const { runBenchmarkJob } = await import(
-        "../commands/benchmark-job/run.js"
-      );
+      const { runBenchmarkJob } =
+        await import("../commands/benchmark-job/run.js");
       await runBenchmarkJob(options);
     });
 
@@ -1064,9 +1063,8 @@ export function createProgram(): Command {
       "Output format: text|json|yaml (default: text)",
     )
     .action(async (id, options) => {
-      const { statusBenchmarkJob } = await import(
-        "../commands/benchmark-job/status.js"
-      );
+      const { statusBenchmarkJob } =
+        await import("../commands/benchmark-job/status.js");
       await statusBenchmarkJob(id, options);
     });
 
