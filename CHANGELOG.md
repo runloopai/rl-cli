@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.12.0](https://github.com/runloopai/rl-cli/compare/v1.11.2...v1.12.0) (2026-03-05)
+
+
+### Features
+
+* **benchmark:** add benchmark job run, status ([#142](https://github.com/runloopai/rl-cli/issues/142)) ([80e26c1](https://github.com/runloopai/rl-cli/commit/80e26c175465b2f44bbd776a89e78a68393e1ae7))
+* **blueprint:** support blueprint create metadata ([#141](https://github.com/runloopai/rl-cli/issues/141)) ([4579d91](https://github.com/runloopai/rl-cli/commit/4579d91a6dffa54f1dc11af72841556d7b3888e3))
+* **cli:** add llms.txt ([#139](https://github.com/runloopai/rl-cli/issues/139)) ([db21f81](https://github.com/runloopai/rl-cli/commit/db21f814cedd63b5b3980403d83ec6b5a8ad13a0))
+
+
+### Bug Fixes
+
+* using the new format for mcp-configs ([#132](https://github.com/runloopai/rl-cli/issues/132)) ([9deeb1c](https://github.com/runloopai/rl-cli/commit/9deeb1ce507eaa94b7104c865cbb2c570c32d3b3))
+
 ## [1.11.2](https://github.com/runloopai/rl-cli/compare/v1.11.1...v1.11.2) (2026-02-26)
 
 
