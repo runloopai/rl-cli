@@ -1012,6 +1012,62 @@ export function createProgram(): Command {
       await installMcpConfig();
     });
 
+  // Benchmark job commands
+  const benchmarkJob = program
+    .command("benchmark-job")
+    .description("Manage benchmark jobs")
+    .alias("bmj");
+
+  benchmarkJob
+    .command("run")
+    .description("Run a benchmark job with an agent")
+    .requiredOption(
+      "--agent <agent>",
+      "Agent to use (claude-code, codex, opencode, goose, gemini-cli)",
+    )
+    .requiredOption("--model <model>", "Model name for the agent")
+    .option("--benchmark <id-or-name>", "Benchmark ID or name to run")
+    .option(
+      "--scenarios <ids...>",
+      "Scenario IDs to run (alternative to --benchmark)",
+    )
+    .option("-n, --job-name <name>", "Job name")
+    .option(
+      "--env-vars <vars...>",
+      "Additional environment variables (format: KEY=value)",
+    )
+    .option(
+      "--secrets <secrets...>",
+      "Secrets to inject as environment variables (format: ENV_VAR=SECRET_NAME)",
+    )
+    .option("--timeout <seconds>", "Agent timeout in seconds")
+    .option("--n-attempts <n>", "Number of attempts per scenario")
+    .option("--n-concurrent-trials <n>", "Number of concurrent trials")
+    .option("--timeout-multiplier <n>", "Timeout multiplier")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (options) => {
+      const { runBenchmarkJob } =
+        await import("../commands/benchmark-job/run.js");
+      await runBenchmarkJob(options);
+    });
+
+  benchmarkJob
+    .command("status <id>")
+    .description("Get benchmark job status and results")
+    .option("-w, --watch", "Watch for job to complete before showing results")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (id, options) => {
+      const { statusBenchmarkJob } =
+        await import("../commands/benchmark-job/status.js");
+      await statusBenchmarkJob(id, options);
+    });
+
   // Hidden command: 'rli mcp' without subcommand starts the server (for Claude Desktop config compatibility)
   program
     .command("mcp-server", { hidden: true })

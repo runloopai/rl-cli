@@ -181,6 +181,13 @@ rli mcp start                            # Start the MCP server
 rli mcp install                          # Install Runloop MCP server configurat...
 ```
 
+### Benchmark-job Commands (alias: `bmj`)
+
+```bash
+rli benchmark-job run                    # Run a benchmark job with an agent
+rli benchmark-job status <id>            # Get benchmark job status and results
+```
+
 
 ## MCP Server (AI Integration)
 
