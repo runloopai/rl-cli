@@ -7,7 +7,7 @@ import { getBenchmarkJob } from "../../services/benchmarkJobService.js";
 import { output, outputError } from "../../utils/output.js";
 
 interface StatusOptions {
-  wait?: boolean;
+  watch?: boolean;
   output?: string;
 }
 
@@ -16,7 +16,7 @@ const COMPLETED_STATES = ["completed", "failed", "canceled", "timeout"];
 
 // Polling config
 const POLL_INTERVAL_MS = 10 * 1000; // 10 seconds
-const MAX_WAIT_MS = 60 * 60 * 1000; // 1 hour
+const MAX_WAIT_MS = 60 * 60 * 4 * 1000; // 4 hours
 
 // Sleep utility
 function sleep(ms: number): Promise<void> {
@@ -247,7 +247,7 @@ export async function statusBenchmarkJob(
     const isComplete = COMPLETED_STATES.includes(job.state || "");
 
     // If not waiting or already complete, just print status/results
-    if (!options.wait || isComplete) {
+    if (!options.watch || isComplete) {
       if (options.output && options.output !== "text") {
         output(job, { format: options.output, defaultFormat: "json" });
       } else if (isComplete) {

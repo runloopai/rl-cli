@@ -1057,7 +1057,7 @@ export function createProgram(): Command {
   benchmarkJob
     .command("status <id>")
     .description("Get benchmark job status and results")
-    .option("-w, --wait", "Wait for job to complete before showing results")
+    .option("-w, --watch", "Watch for job to complete before showing results")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",

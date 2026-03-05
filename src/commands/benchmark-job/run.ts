@@ -104,6 +104,7 @@ function validateAgent(agent: string): asserts agent is SupportedAgent {
 // Check if a secret exists by name
 async function secretExists(secretName: string): Promise<boolean> {
   const client = getClient();
+  // TODO: Fetch by name when API exposed.
   const result = await client.secrets.list({ limit: 5000 });
   return result.secrets?.some((s) => s.name === secretName) ?? false;
 }
