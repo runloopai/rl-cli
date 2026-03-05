@@ -14,26 +14,28 @@ import { output, outputError } from "../../utils/output.js";
 // Secret name prefix for benchmark job secrets
 const SECRET_PREFIX = "BMJ_";
 
-// Supported agents and their required environment variables (mapped to BMJ_* secrets)
+// Supported agents and their automatic environment variables (mapped to BMJ_* secrets)
+// - automaticEnvVars: env vars that will be auto-populated from secrets or environment
+// - requiresAny: if true, at least one must be set; if false, just try to auto-populate
 const SUPPORTED_AGENTS = {
   "claude-code": {
-    requiredEnvVars: ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"],
+    automaticEnvVars: ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"],
     requiresAny: true, // At least one of these is required
   },
   codex: {
-    requiredEnvVars: ["OPENAI_API_KEY"],
-    requiresAny: false,
+    automaticEnvVars: ["OPENAI_API_KEY"],
+    requiresAny: true,
   },
   opencode: {
-    requiredEnvVars: ["ANTHROPIC_API_KEY"],
-    requiresAny: false,
+    automaticEnvVars: ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GOOGLE_API_KEY"],
+    requiresAny: false, // Try to auto-populate, but user may configure differently
   },
   goose: {
-    requiredEnvVars: ["ANTHROPIC_API_KEY"],
-    requiresAny: false,
+    automaticEnvVars: ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GOOGLE_API_KEY"],
+    requiresAny: false, // Try to auto-populate, but user may configure differently
   },
   "gemini-cli": {
-    requiredEnvVars: ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
+    automaticEnvVars: ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
     requiresAny: true, // At least one of these is required
   },
 } as const;
@@ -120,7 +122,7 @@ async function ensureAgentSecrets(
   const agentConfig = SUPPORTED_AGENTS[agent];
   const secrets: Record<string, string> = {};
 
-  for (const varName of agentConfig.requiredEnvVars) {
+  for (const varName of agentConfig.automaticEnvVars) {
     const secretName = `${SECRET_PREFIX}${varName}`;
     const envValue = process.env[varName];
 
@@ -214,30 +216,22 @@ export async function runBenchmarkJob(options: RunOptions) {
     // Maps ENV_VAR -> BMJ_ENV_VAR (e.g., ANTHROPIC_API_KEY -> BMJ_ANTHROPIC_API_KEY)
     const agentSecrets = await ensureAgentSecrets(agent);
 
-    // Validate that at least one required secret is available
+    // Validate that at least one secret is available (only if requiresAny is true)
     const agentConfig = SUPPORTED_AGENTS[agent];
     if (agentConfig.requiresAny) {
-      const hasAny = agentConfig.requiredEnvVars.some(
+      const hasAny = agentConfig.automaticEnvVars.some(
         (varName) => agentSecrets[varName],
       );
       if (!hasAny) {
         throw new Error(
-          `Agent ${agent} requires at least one of: ${agentConfig.requiredEnvVars.join(", ")}. ` +
-            `Create secrets (${agentConfig.requiredEnvVars.map((v) => `${SECRET_PREFIX}${v}`).join(", ")}) ` +
+          `Agent ${agent} requires at least one of: ${agentConfig.automaticEnvVars.join(", ")}. ` +
+            `Create secrets (${agentConfig.automaticEnvVars.map((v) => `${SECRET_PREFIX}${v}`).join(", ")}) ` +
             `or set environment variables.`,
         );
       }
-    } else {
-      const hasAny = agentConfig.requiredEnvVars.some(
-        (varName) => agentSecrets[varName],
-      );
-      if (!hasAny) {
-        throw new Error(
-          `Agent ${agent} requires secrets. Expected one of: ${agentConfig.requiredEnvVars.map((v) => `${SECRET_PREFIX}${v}`).join(", ")}. ` +
-            `Create secrets or set environment variables.`,
-        );
-      }
     }
+    // If requiresAny is false, we just use whatever secrets were auto-populated
+    // User may be configuring credentials via other means (e.g., --secrets flag)
 
     // Combine agent secrets with user-provided secrets
     const secrets = {
