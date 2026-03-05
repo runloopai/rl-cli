@@ -2,11 +2,19 @@
  * Run benchmark job command
  */
 
+import chalk from "chalk";
 import { createBenchmarkJob } from "../../services/benchmarkJobService.js";
-import { listBenchmarks } from "../../services/benchmarkService.js";
+import {
+  listBenchmarks,
+  listPublicBenchmarks,
+} from "../../services/benchmarkService.js";
+import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
 
-// Supported agents and their required environment variables
+// Secret name prefix for benchmark job secrets
+const SECRET_PREFIX = "BMJ_";
+
+// Supported agents and their required environment variables (mapped to BMJ_* secrets)
 const SUPPORTED_AGENTS = {
   "claude-code": {
     requiredEnvVars: ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"],
@@ -91,53 +99,55 @@ function validateAgent(agent: string): asserts agent is SupportedAgent {
   }
 }
 
-// Get env vars from current environment for the agent
-function getAgentEnvVars(agent: SupportedAgent): Record<string, string> {
-  const agentConfig = SUPPORTED_AGENTS[agent];
-  const envVars: Record<string, string> = {};
-
-  for (const varName of agentConfig.requiredEnvVars) {
-    const value = process.env[varName];
-    if (value) {
-      envVars[varName] = value;
-    }
-  }
-
-  return envVars;
+// Check if a secret exists by name
+async function secretExists(secretName: string): Promise<boolean> {
+  const client = getClient();
+  const result = await client.secrets.list({ limit: 5000 });
+  return result.secrets?.some((s) => s.name === secretName) ?? false;
 }
 
-// Validate that required env vars are present
-function validateEnvVars(
-  agent: SupportedAgent,
-  providedEnvVars: Record<string, string>,
-): void {
-  const agentConfig = SUPPORTED_AGENTS[agent];
-  const allEnvVars = { ...getAgentEnvVars(agent), ...providedEnvVars };
+// Create a secret
+async function createSecret(name: string, value: string): Promise<void> {
+  const client = getClient();
+  await client.secrets.create({ name, value });
+}
 
-  if (agentConfig.requiresAny) {
-    // At least one of the required env vars must be present
-    const hasAny = agentConfig.requiredEnvVars.some(
-      (varName) => allEnvVars[varName],
-    );
-    if (!hasAny) {
-      throw new Error(
-        `Agent ${agent} requires at least one of: ${agentConfig.requiredEnvVars.join(", ")}. ` +
-          `Set via --env-vars or as environment variables.`,
+// Ensure agent secrets exist, creating them from env vars if needed
+// Returns the secrets mapping (ENV_VAR -> BMJ_ENV_VAR)
+async function ensureAgentSecrets(
+  agent: SupportedAgent,
+): Promise<Record<string, string>> {
+  const agentConfig = SUPPORTED_AGENTS[agent];
+  const secrets: Record<string, string> = {};
+
+  for (const varName of agentConfig.requiredEnvVars) {
+    const secretName = `${SECRET_PREFIX}${varName}`;
+    const envValue = process.env[varName];
+
+    // Check if secret exists
+    const exists = await secretExists(secretName);
+
+    if (exists) {
+      console.log(chalk.dim(`Secret ${secretName} exists`));
+      secrets[varName] = secretName;
+    } else if (envValue) {
+      // Create secret from env var
+      console.log(
+        chalk.cyan(`Creating secret ${secretName} from ${varName} env var`),
       );
-    }
-  } else {
-    // For agents that don't use requiresAny, we just need at least one key
-    // since different models may need different keys
-    const hasAny = agentConfig.requiredEnvVars.some(
-      (varName) => allEnvVars[varName],
-    );
-    if (!hasAny) {
-      throw new Error(
-        `Agent ${agent} requires environment variables. Expected one of: ${agentConfig.requiredEnvVars.join(", ")}. ` +
-          `Set via --env-vars or as environment variables.`,
+      await createSecret(secretName, envValue);
+      secrets[varName] = secretName;
+    } else {
+      // No secret and no env var - skip (will be validated later if required)
+      console.log(
+        chalk.yellow(
+          `Secret ${secretName} not found and ${varName} not set in environment`,
+        ),
       );
     }
   }
+
+  return secrets;
 }
 
 // Resolve benchmark name to ID if needed
@@ -150,27 +160,34 @@ async function resolveBenchmarkId(benchmarkIdOrName: string): Promise<string> {
     return benchmarkIdOrName;
   }
 
-  // Otherwise, search for benchmark by name
-  const result = await listBenchmarks({
-    limit: 100,
-    search: benchmarkIdOrName,
-  });
+  // Search both user benchmarks and public benchmarks
+  const [userResult, publicResult] = await Promise.all([
+    listBenchmarks({
+      limit: 100,
+      search: benchmarkIdOrName,
+    }),
+    listPublicBenchmarks({
+      limit: 100,
+      search: benchmarkIdOrName,
+    }),
+  ]);
+
+  // Combine results
+  const allBenchmarks = [...userResult.benchmarks, ...publicResult.benchmarks];
 
   // Look for exact name match
-  const exactMatch = result.benchmarks.find(
-    (b) => b.name === benchmarkIdOrName,
-  );
+  const exactMatch = allBenchmarks.find((b) => b.name === benchmarkIdOrName);
 
   if (exactMatch) {
     return exactMatch.id;
   }
 
-  if (result.benchmarks.length === 0) {
+  if (allBenchmarks.length === 0) {
     throw new Error(`No benchmark found with name: ${benchmarkIdOrName}`);
   }
 
   // If no exact match but we have results, suggest them
-  const suggestions = result.benchmarks
+  const suggestions = allBenchmarks
     .slice(0, 5)
     .map((b) => `  - ${b.name} (${b.id})`)
     .join("\n");
@@ -193,20 +210,44 @@ export async function runBenchmarkJob(options: RunOptions) {
       ? parseSecrets(options.secrets)
       : {};
 
-    // Merge environment variables (CLI-provided override auto-detected)
-    const environmentVariables = {
-      ...getAgentEnvVars(agent),
-      ...providedEnvVars,
-    };
+    // Ensure agent secrets exist (auto-create from env vars if needed)
+    // Maps ENV_VAR -> BMJ_ENV_VAR (e.g., ANTHROPIC_API_KEY -> BMJ_ANTHROPIC_API_KEY)
+    const agentSecrets = await ensureAgentSecrets(agent);
 
-    // Validate required env vars
-    validateEnvVars(agent, providedEnvVars);
+    // Validate that at least one required secret is available
+    const agentConfig = SUPPORTED_AGENTS[agent];
+    if (agentConfig.requiresAny) {
+      const hasAny = agentConfig.requiredEnvVars.some(
+        (varName) => agentSecrets[varName],
+      );
+      if (!hasAny) {
+        throw new Error(
+          `Agent ${agent} requires at least one of: ${agentConfig.requiredEnvVars.join(", ")}. ` +
+            `Create secrets (${agentConfig.requiredEnvVars.map((v) => `${SECRET_PREFIX}${v}`).join(", ")}) ` +
+            `or set environment variables.`,
+        );
+      }
+    } else {
+      const hasAny = agentConfig.requiredEnvVars.some(
+        (varName) => agentSecrets[varName],
+      );
+      if (!hasAny) {
+        throw new Error(
+          `Agent ${agent} requires secrets. Expected one of: ${agentConfig.requiredEnvVars.map((v) => `${SECRET_PREFIX}${v}`).join(", ")}. ` +
+            `Create secrets or set environment variables.`,
+        );
+      }
+    }
+
+    // Combine agent secrets with user-provided secrets
+    const secrets = {
+      ...agentSecrets,
+      ...providedSecrets,
+    };
 
     // Validate that either benchmark or scenarios is provided, but not both
     if (!options.benchmark && !options.scenarios) {
-      throw new Error(
-        "Either --benchmark or --scenarios must be specified",
-      );
+      throw new Error("Either --benchmark or --scenarios must be specified");
     }
     if (options.benchmark && options.scenarios) {
       throw new Error("Cannot specify both --benchmark and --scenarios");
@@ -242,11 +283,11 @@ export async function runBenchmarkJob(options: RunOptions) {
           timeoutSeconds: options.timeout
             ? parseInt(options.timeout, 10)
             : 1800,
-          environmentVariables,
-          secrets:
-            Object.keys(providedSecrets).length > 0
-              ? providedSecrets
+          environmentVariables:
+            Object.keys(providedEnvVars).length > 0
+              ? providedEnvVars
               : undefined,
+          secrets,
         },
       ],
       orchestratorConfig,

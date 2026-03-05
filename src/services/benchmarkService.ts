@@ -180,6 +180,40 @@ export async function getBenchmark(id: string): Promise<Benchmark> {
 }
 
 /**
+ * List public benchmark definitions with pagination
+ */
+export async function listPublicBenchmarks(
+  options: ListBenchmarksOptions,
+): Promise<ListBenchmarksResult> {
+  const client = getClient();
+
+  const queryParams: {
+    limit?: number;
+    starting_after?: string;
+    search?: string;
+  } = {
+    limit: options.limit,
+  };
+
+  if (options.startingAfter) {
+    queryParams.starting_after = options.startingAfter;
+  }
+
+  if (options.search) {
+    queryParams.search = options.search;
+  }
+
+  const page = await client.benchmarks.listPublic(queryParams);
+  const benchmarks = page.benchmarks || [];
+
+  return {
+    benchmarks,
+    totalCount: benchmarks.length,
+    hasMore: page.has_more || false,
+  };
+}
+
+/**
  * Create/start a benchmark run with selected benchmarks
  */
 export async function createBenchmarkRun(

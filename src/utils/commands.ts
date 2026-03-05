@@ -1034,7 +1034,7 @@ export function createProgram(): Command {
     .option("-n, --job-name <name>", "Job name")
     .option(
       "--env-vars <vars...>",
-      "Environment variables (format: KEY=value). Agent-specific API keys are auto-detected from environment.",
+      "Additional environment variables (format: KEY=value)",
     )
     .option(
       "--secrets <secrets...>",
