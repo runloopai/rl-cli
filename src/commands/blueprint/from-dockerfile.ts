@@ -24,9 +24,25 @@ interface FromDockerfileOptions {
   availablePorts?: string[];
   root?: boolean;
   user?: string;
+  metadata?: string[];
   ttl?: string;
   noWait?: boolean;
   output?: string;
+}
+
+// Parse metadata from key=value format
+function parseMetadata(metadata: string[]): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const item of metadata) {
+    const eqIndex = item.indexOf("=");
+    if (eqIndex === -1) {
+      throw new Error(`Invalid metadata format: ${item}. Expected key=value`);
+    }
+    const key = item.substring(0, eqIndex);
+    const value = item.substring(eqIndex + 1);
+    result[key] = value;
+  }
+  return result;
 }
 
 // Helper to check if we should show progress
@@ -161,6 +177,11 @@ export async function createBlueprintFromDockerfile(
     logProgress(`\n⏳ [2/3] Creating blueprint...`, options);
     const createStart = Date.now();
 
+    // Parse metadata if provided
+    const metadata = options.metadata
+      ? parseMetadata(options.metadata)
+      : undefined;
+
     const createParams: BlueprintCreateParams = {
       name: options.name,
       dockerfile: dockerfileContents,
@@ -171,6 +192,7 @@ export async function createBlueprintFromDockerfile(
         type: "object",
         object_id: storageObject.id,
       },
+      metadata,
     };
 
     const blueprintResponse = await client.blueprints.create(createParams);
