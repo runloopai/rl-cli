@@ -3,7 +3,10 @@
  */
 
 import chalk from "chalk";
-import { createBenchmarkJob } from "../../services/benchmarkJobService.js";
+import {
+  createBenchmarkJob,
+  listBenchmarkJobs,
+} from "../../services/benchmarkJobService.js";
 import {
   listBenchmarks,
   listPublicBenchmarks,
@@ -275,26 +278,38 @@ export async function runBenchmarkJob(options: RunOptions) {
     };
 
     // Create the benchmark job
-    const job = await createBenchmarkJob({
-      name: options.jobName,
-      benchmarkId,
-      scenarioIds: options.scenarios,
-      agentConfigs: [
-        {
-          name: agent,
-          modelName: options.model,
-          timeoutSeconds: options.timeout
-            ? parseInt(options.timeout, 10)
-            : 1800,
-          environmentVariables:
-            Object.keys(providedEnvVars).length > 0
-              ? providedEnvVars
-              : undefined,
-          secrets,
-        },
-      ],
-      orchestratorConfig,
-    });
+    let job;
+    try {
+      job = await createBenchmarkJob({
+        name: options.jobName,
+        benchmarkId,
+        scenarioIds: options.scenarios,
+        agentConfigs: [
+          {
+            name: agent,
+            modelName: options.model,
+            timeoutSeconds: options.timeout
+              ? parseInt(options.timeout, 10)
+              : 1800,
+            environmentVariables:
+              Object.keys(providedEnvVars).length > 0
+                ? providedEnvVars
+                : undefined,
+            secrets,
+          },
+        ],
+        orchestratorConfig,
+      });
+    } catch (createError) {
+      // Check if a job with this name already exists
+      const existing = await listBenchmarkJobs({ name: options.jobName });
+      if (existing.jobs.length > 0) {
+        throw new Error(
+          `A benchmark job named "${options.jobName}" already exists (${existing.jobs[0].id})`,
+        );
+      }
+      throw createError;
+    }
 
     // Output result
     if (!options.output || options.output === "text") {
