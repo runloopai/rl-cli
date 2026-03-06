@@ -112,7 +112,8 @@ const COL_STATUS = 14;
 const COL_DONE = 9;
 const COL_ERRORS = 8;
 const COL_SCORE = 7;
-const FIXED_WIDTH = COL_ID + COL_STARTED + COL_STATUS + COL_DONE + COL_ERRORS + COL_SCORE + 6; // 6 for spacing
+const FIXED_WIDTH =
+  COL_ID + COL_STARTED + COL_STATUS + COL_DONE + COL_ERRORS + COL_SCORE + 6; // 6 for spacing
 
 function truncate(str: string, maxLen: number): string {
   if (str.length <= maxLen) return str;
