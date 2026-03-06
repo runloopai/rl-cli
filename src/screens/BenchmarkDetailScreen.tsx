@@ -176,10 +176,10 @@ export function BenchmarkDetailScreen({
   const operations: ResourceOperation[] = [
     {
       key: "create-job",
-      label: "Create Benchmark Job",
+      label: "Run Benchmark Job",
       color: colors.success,
       icon: figures.play,
-      shortcut: "c",
+      shortcut: "r",
     },
   ];
 

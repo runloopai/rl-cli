@@ -598,7 +598,7 @@ export function BenchmarkJobListScreen() {
           data={benchmarkJobs}
           keyExtractor={(job: BenchmarkJob) => job.id}
           selectedIndex={selectedIndex}
-          title={`benchmark_jobs[${totalCount}]`}
+          title={`benchmark_jobs[${totalCount}${hasMore ? "+" : ""}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -613,12 +613,13 @@ export function BenchmarkJobListScreen() {
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
             {figures.hamburger} {totalCount}
+            {hasMore ? "+" : ""}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
             total
           </Text>
-          {totalPages > 1 && (
+          {(hasMore || hasPrev) && (
             <>
               <Text color={colors.textDim} dimColor>
                 {" "}
@@ -630,7 +631,8 @@ export function BenchmarkJobListScreen() {
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of {totalPages}
+                  Page {currentPage + 1}
+                  {!hasMore ? ` of ${totalPages}` : ""}
                 </Text>
               )}
             </>
@@ -640,7 +642,8 @@ export function BenchmarkJobListScreen() {
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {startIndex + 1}-{endIndex}
+            {!hasMore ? ` of ${totalCount}` : ""}
           </Text>
         </Box>
       )}

@@ -24,15 +24,32 @@ import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../hooks/useCursorPagination.js";
 import { useListSearch } from "../hooks/useListSearch.js";
-import { listBenchmarks } from "../services/benchmarkService.js";
+import {
+  listBenchmarks,
+  listPublicBenchmarks,
+} from "../services/benchmarkService.js";
 import type { Benchmark } from "../store/benchmarkStore.js";
 
 export function BenchmarkListScreen() {
   const { exit: inkExit } = useApp();
-  const { navigate, goBack } = useNavigation();
-  const [selectedIndex, setSelectedIndex] = React.useState(0);
+  const { navigate, goBack, params, updateCurrentParams } = useNavigation();
+  const [selectedIndex, setSelectedIndex] = React.useState(
+    params.selectedIndex ? Number(params.selectedIndex) : 0,
+  );
   const [showPopup, setShowPopup] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(0);
+  const [tab, setTab] = React.useState<"private" | "public">(
+    params.tab === "public" ? "public" : "private",
+  );
+  const isPublic = tab === "public";
+
+  // Save current tab and cursor into route params so back-navigation restores them
+  const saveListState = React.useCallback(() => {
+    updateCurrentParams({
+      tab,
+      selectedIndex: String(selectedIndex),
+    });
+  }, [updateCurrentParams, tab, selectedIndex]);
 
   // Search state
   const search = useListSearch({
@@ -41,7 +58,7 @@ export function BenchmarkListScreen() {
   });
 
   // Calculate overhead for viewport height
-  const overhead = 13 + search.getSearchOverhead();
+  const overhead = 14 + search.getSearchOverhead();
   const { viewportHeight, terminalWidth } = useViewportHeight({
     overhead,
     minHeight: 5,
@@ -61,19 +78,27 @@ export function BenchmarkListScreen() {
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
     async (params: { limit: number; startingAt?: string }) => {
-      const result = await listBenchmarks({
+      const listFn = isPublic ? listPublicBenchmarks : listBenchmarks;
+      const result = await listFn({
         limit: params.limit,
         startingAfter: params.startingAt,
         search: search.submittedSearchQuery || undefined,
       });
 
+      // Public tab: only show benchmarks with bmj_support metadata
+      const items = isPublic
+        ? result.benchmarks.filter((b) => b.metadata?.bmj_support === "true")
+        : result.benchmarks;
+
       return {
-        items: result.benchmarks,
+        items,
         hasMore: result.hasMore,
-        totalCount: result.totalCount,
+        totalCount: isPublic
+          ? items.length + (result.hasMore ? 1 : 0)
+          : result.totalCount,
       };
     },
-    [search.submittedSearchQuery],
+    [search.submittedSearchQuery, isPublic],
   );
 
   // Use the shared pagination hook
@@ -94,7 +119,7 @@ export function BenchmarkListScreen() {
     getItemId: (benchmark: Benchmark) => benchmark.id,
     pollInterval: 5000,
     pollingEnabled: !showPopup && !search.searchMode,
-    deps: [PAGE_SIZE, search.submittedSearchQuery],
+    deps: [PAGE_SIZE, search.submittedSearchQuery, isPublic],
   });
 
   // Operations for benchmarks
@@ -108,7 +133,7 @@ export function BenchmarkListScreen() {
       },
       {
         key: "create_job",
-        label: "Create Benchmark Job",
+        label: "Run Benchmark Job",
         color: colors.success,
         icon: figures.play,
       },
@@ -209,21 +234,25 @@ export function BenchmarkListScreen() {
         const operationKey = operations[selectedOperation].key;
 
         if (operationKey === "view_details") {
+          saveListState();
           navigate("benchmark-detail", {
             benchmarkId: selectedBenchmark.id,
           });
         } else if (operationKey === "create_job") {
+          saveListState();
           navigate("benchmark-job-create", {
             initialBenchmarkIds: selectedBenchmark.id,
           });
         }
       } else if (input === "v" && selectedBenchmark) {
         setShowPopup(false);
+        saveListState();
         navigate("benchmark-detail", {
           benchmarkId: selectedBenchmark.id,
         });
-      } else if (input === "c" && selectedBenchmark) {
+      } else if (input === "r" && selectedBenchmark) {
         setShowPopup(false);
+        saveListState();
         navigate("benchmark-job-create", {
           initialBenchmarkIds: selectedBenchmark.id,
         });
@@ -258,19 +287,26 @@ export function BenchmarkListScreen() {
       prevPage();
       setSelectedIndex(0);
     } else if (key.return && selectedBenchmark) {
+      saveListState();
       navigate("benchmark-detail", {
         benchmarkId: selectedBenchmark.id,
       });
     } else if (input === "a" && selectedBenchmark) {
       setShowPopup(true);
       setSelectedOperation(0);
-    } else if (input === "c" && selectedBenchmark) {
-      // Quick shortcut to create a job
+    } else if (input === "r" && selectedBenchmark) {
+      saveListState();
       navigate("benchmark-job-create", {
         initialBenchmarkIds: selectedBenchmark.id,
       });
     } else if (input === "/") {
       search.enterSearchMode();
+    } else if (input === "1" && tab !== "private") {
+      setTab("private");
+      setSelectedIndex(0);
+    } else if (input === "2" && tab !== "public") {
+      setTab("public");
+      setSelectedIndex(0);
     } else if (key.escape) {
       if (search.handleEscape()) {
         return;
@@ -287,7 +323,10 @@ export function BenchmarkListScreen() {
           items={[
             { label: "Home" },
             { label: "Benchmarks" },
-            { label: "Benchmark Definitions", active: true },
+            {
+              label: isPublic ? "Public Benchmarks" : "Benchmark Defs",
+              active: true,
+            },
           ]}
         />
         <SpinnerComponent message="Loading benchmarks..." />
@@ -303,7 +342,10 @@ export function BenchmarkListScreen() {
           items={[
             { label: "Home" },
             { label: "Benchmarks" },
-            { label: "Benchmark Definitions", active: true },
+            {
+              label: isPublic ? "Public Benchmarks" : "Benchmark Defs",
+              active: true,
+            },
           ]}
         />
         <ErrorMessage message="Failed to list benchmarks" error={error} />
@@ -318,9 +360,29 @@ export function BenchmarkListScreen() {
         items={[
           { label: "Home" },
           { label: "Benchmarks" },
-          { label: "Benchmark Definitions", active: true },
+          {
+            label: isPublic ? "Public Benchmarks" : "Benchmark Defs",
+            active: true,
+          },
         ]}
       />
+
+      {/* Tab indicator */}
+      <Box paddingX={2} marginBottom={0}>
+        <Text
+          color={!isPublic ? colors.primary : colors.textDim}
+          bold={!isPublic}
+        >
+          [1] Private
+        </Text>
+        <Text> </Text>
+        <Text
+          color={isPublic ? colors.primary : colors.textDim}
+          bold={isPublic}
+        >
+          [2] Public
+        </Text>
+      </Box>
 
       {/* Search bar */}
       <SearchBar
@@ -330,7 +392,9 @@ export function BenchmarkListScreen() {
         resultCount={totalCount}
         onSearchChange={search.setSearchQuery}
         onSearchSubmit={search.submitSearch}
-        placeholder="Search benchmarks..."
+        placeholder={
+          isPublic ? "Search public benchmarks..." : "Search benchmarks..."
+        }
       />
 
       {/* Table */}
@@ -339,7 +403,7 @@ export function BenchmarkListScreen() {
           data={benchmarks}
           keyExtractor={(benchmark: Benchmark) => benchmark.id}
           selectedIndex={selectedIndex}
-          title={`benchmarks[${totalCount}]`}
+          title={`${isPublic ? "public " : ""}benchmarks[${totalCount}${hasMore ? "+" : ""}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -354,12 +418,13 @@ export function BenchmarkListScreen() {
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
             {figures.hamburger} {totalCount}
+            {hasMore ? "+" : ""}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
             total
           </Text>
-          {totalPages > 1 && (
+          {(hasMore || hasPrev) && (
             <>
               <Text color={colors.textDim} dimColor>
                 {" "}
@@ -371,7 +436,8 @@ export function BenchmarkListScreen() {
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of {totalPages}
+                  Page {currentPage + 1}
+                  {!hasMore ? ` of ${totalPages}` : ""}
                 </Text>
               )}
             </>
@@ -381,7 +447,8 @@ export function BenchmarkListScreen() {
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {startIndex + 1}-{endIndex}
+            {!hasMore ? ` of ${totalCount}` : ""}
           </Text>
         </Box>
       )}
@@ -400,7 +467,7 @@ export function BenchmarkListScreen() {
                 op.key === "view_details"
                   ? "v"
                   : op.key === "create_job"
-                    ? "s"
+                    ? "r"
                     : "",
             }))}
             selectedOperation={selectedOperation}
@@ -418,8 +485,9 @@ export function BenchmarkListScreen() {
             label: "Page",
             condition: hasMore || hasPrev,
           },
+          { key: "1/2", label: "Private/Public" },
           { key: "Enter", label: "Details" },
-          { key: "c", label: "Create Job" },
+          { key: "r", label: "Run Benchmark Job" },
           { key: "a", label: "Actions" },
           { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },

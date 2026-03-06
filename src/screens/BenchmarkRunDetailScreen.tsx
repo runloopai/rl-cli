@@ -19,7 +19,7 @@ import {
 } from "../components/ResourceDetailPage.js";
 import {
   getBenchmarkRun,
-  listScenarioRuns,
+  fetchAllScenarioRuns,
 } from "../services/benchmarkService.js";
 import { useResourceDetail } from "../hooks/useResourceDetail.js";
 import { SpinnerComponent } from "../components/Spinner.js";
@@ -60,17 +60,14 @@ export function BenchmarkRunDetailScreen({
   const [scenarioRuns, setScenarioRuns] = React.useState<ScenarioRun[]>([]);
   const [scenarioRunsLoading, setScenarioRunsLoading] = React.useState(false);
 
-  // Fetch scenario runs for this benchmark run
+  // Fetch all scenario runs for this benchmark run
   React.useEffect(() => {
     if (benchmarkRunId && !scenarioRunsLoading && scenarioRuns.length === 0) {
       setScenarioRunsLoading(true);
 
-      listScenarioRuns({
-        limit: 10, // Show up to 10 scenarios
-        benchmarkRunId,
-      })
-        .then((result) => {
-          setScenarioRuns(result.scenarioRuns);
+      fetchAllScenarioRuns(benchmarkRunId)
+        .then((runs) => {
+          setScenarioRuns(runs);
           setScenarioRunsLoading(false);
         })
         .catch(() => {
@@ -88,12 +85,9 @@ export function BenchmarkRunDetailScreen({
     if (run.state !== "running") return;
 
     const interval = setInterval(() => {
-      listScenarioRuns({
-        limit: 10,
-        benchmarkRunId,
-      })
-        .then((result) => {
-          setScenarioRuns(result.scenarioRuns);
+      fetchAllScenarioRuns(benchmarkRunId)
+        .then((runs) => {
+          setScenarioRuns(runs);
         })
         .catch(() => {
           // Silently fail
@@ -304,8 +298,12 @@ export function BenchmarkRunDetailScreen({
     ],
   });
 
-  // Scenario Runs Section
+  // Scenario Runs Section (capped to avoid overflowing the terminal)
   if (scenarioRuns.length > 0) {
+    const MAX_EMBEDDED_SCENARIOS = 10;
+    const displayedScenarioRuns = scenarioRuns.slice(0, MAX_EMBEDDED_SCENARIOS);
+    const hasHiddenScenarios = scenarioRuns.length > MAX_EMBEDDED_SCENARIOS;
+
     // Define columns for scenario table
     const scenarioColumns = [
       createTextColumn("id", "ID", (s: ScenarioRun) => s.id, {
@@ -362,13 +360,19 @@ export function BenchmarkRunDetailScreen({
         {
           label: "",
           value: (
-            <Box paddingTop={1}>
+            <Box flexDirection="column" paddingTop={1}>
               <Table
-                data={scenarioRuns}
+                data={displayedScenarioRuns}
                 columns={scenarioColumns}
                 selectedIndex={-1}
                 keyExtractor={(s) => s.id}
               />
+              {hasHiddenScenarios && (
+                <Text color={colors.textDim} dimColor>
+                  Showing {MAX_EMBEDDED_SCENARIOS} of {scenarioRuns.length}{" "}
+                  {"— press 's' to view all"}
+                </Text>
+              )}
             </Box>
           ),
         },

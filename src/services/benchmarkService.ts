@@ -130,6 +130,29 @@ export async function listScenarioRuns(
 }
 
 /**
+ * Fetch all scenario runs for a benchmark run, paginating through all results.
+ */
+export async function fetchAllScenarioRuns(
+  benchmarkRunId: string,
+): Promise<ScenarioRun[]> {
+  const allRuns: ScenarioRun[] = [];
+  let startingAfter: string | undefined;
+
+  while (true) {
+    const result = await listScenarioRuns({
+      limit: 100,
+      startingAfter,
+      benchmarkRunId,
+    });
+    allRuns.push(...result.scenarioRuns);
+    if (!result.hasMore || result.scenarioRuns.length === 0) break;
+    startingAfter = result.scenarioRuns[result.scenarioRuns.length - 1].id;
+  }
+
+  return allRuns;
+}
+
+/**
  * Get scenario run by ID
  */
 export async function getScenarioRun(id: string): Promise<ScenarioRun> {

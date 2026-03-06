@@ -24,7 +24,10 @@ import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../hooks/useCursorPagination.js";
 import { useListSearch } from "../hooks/useListSearch.js";
-import { listScenarioRuns } from "../services/benchmarkService.js";
+import {
+  listScenarioRuns,
+  fetchAllScenarioRuns,
+} from "../services/benchmarkService.js";
 import type { ScenarioRun } from "../store/benchmarkStore.js";
 
 interface ScenarioRunListScreenProps {
@@ -65,15 +68,66 @@ export function ScenarioRunListScreen({
   const remainingWidth = terminalWidth - baseWidth;
   const nameWidth = Math.min(60, Math.max(15, remainingWidth));
 
-  // Fetch function for pagination hook
+  // --- Client-side pagination (when benchmarkRunId is provided) ---
+  // Fetches all scenario runs upfront for accurate total count and cached page navigation.
+  const [allScenarioRuns, setAllScenarioRuns] = React.useState<ScenarioRun[]>(
+    [],
+  );
+  const [allRunsLoaded, setAllRunsLoaded] = React.useState(false);
+  const [allRunsError, setAllRunsError] = React.useState<Error | null>(null);
+  const [clientPage, setClientPage] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!benchmarkRunId) return;
+    let cancelled = false;
+
+    fetchAllScenarioRuns(benchmarkRunId)
+      .then((runs) => {
+        if (!cancelled) {
+          setAllScenarioRuns(runs);
+          setAllRunsLoaded(true);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setAllRunsError(err as Error);
+          setAllRunsLoaded(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [benchmarkRunId]);
+
+  // Poll to refresh the client-side cache
+  React.useEffect(() => {
+    if (!benchmarkRunId || showPopup || search.searchMode) return;
+
+    const interval = setInterval(() => {
+      fetchAllScenarioRuns(benchmarkRunId)
+        .then((runs) => setAllScenarioRuns(runs))
+        .catch(() => {});
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [benchmarkRunId, showPopup, search.searchMode]);
+
+  // Reset client page when page size changes
+  React.useEffect(() => {
+    if (benchmarkRunId) setClientPage(0);
+  }, [PAGE_SIZE, benchmarkRunId]);
+
+  // --- Cursor-based pagination (when no benchmarkRunId) ---
   const fetchPage = React.useCallback(
     async (params: { limit: number; startingAt?: string }) => {
+      if (benchmarkRunId) {
+        return { items: [] as ScenarioRun[], hasMore: false };
+      }
       const result = await listScenarioRuns({
         limit: params.limit,
         startingAfter: params.startingAt,
-        benchmarkRunId,
       });
-
       return {
         items: result.scenarioRuns,
         hasMore: result.hasMore,
@@ -83,27 +137,50 @@ export function ScenarioRunListScreen({
     [benchmarkRunId],
   );
 
-  // Use the shared pagination hook
-  const {
-    items: scenarioRuns,
-    loading,
-    navigating,
-    error,
-    currentPage,
-    hasMore,
-    hasPrev,
-    totalCount,
-    nextPage,
-    prevPage,
-    refresh,
-  } = useCursorPagination({
+  const cursor = useCursorPagination({
     fetchPage,
     pageSize: PAGE_SIZE,
     getItemId: (run: ScenarioRun) => run.id,
-    pollInterval: 5000,
-    pollingEnabled: !showPopup && !search.searchMode,
+    pollInterval: benchmarkRunId ? 0 : 5000,
+    pollingEnabled: !benchmarkRunId && !showPopup && !search.searchMode,
     deps: [PAGE_SIZE, benchmarkRunId],
   });
+
+  // --- Unified pagination interface ---
+  const useClientSide = !!benchmarkRunId;
+  const clientPageItems = allScenarioRuns.slice(
+    clientPage * PAGE_SIZE,
+    (clientPage + 1) * PAGE_SIZE,
+  );
+
+  const scenarioRuns = useClientSide ? clientPageItems : cursor.items;
+  const loading = useClientSide
+    ? !allRunsLoaded && allScenarioRuns.length === 0
+    : cursor.loading;
+  const navigating = useClientSide ? false : cursor.navigating;
+  const error = useClientSide ? allRunsError : cursor.error;
+  const currentPage = useClientSide ? clientPage : cursor.currentPage;
+  const hasMore = useClientSide
+    ? (clientPage + 1) * PAGE_SIZE < allScenarioRuns.length
+    : cursor.hasMore;
+  const hasPrev = useClientSide ? clientPage > 0 : cursor.hasPrev;
+  const totalCount = useClientSide ? allScenarioRuns.length : cursor.totalCount;
+
+  const nextPage = () => {
+    if (useClientSide) {
+      setClientPage((p) => p + 1);
+    } else {
+      cursor.nextPage();
+    }
+  };
+
+  const prevPage = () => {
+    if (useClientSide) {
+      setClientPage((p) => Math.max(0, p - 1));
+    } else {
+      cursor.prevPage();
+    }
+  };
 
   // Operations for scenario runs
   const operations: Operation[] = React.useMemo(
@@ -191,6 +268,7 @@ export function ScenarioRunListScreen({
   const selectedRun = scenarioRuns[selectedIndex];
 
   // Calculate pagination info for display
+  const totalIsExact = useClientSide || !hasMore;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
   const endIndex = startIndex + scenarioRuns.length;
@@ -328,7 +406,7 @@ export function ScenarioRunListScreen({
           data={scenarioRuns}
           keyExtractor={(run: ScenarioRun) => run.id}
           selectedIndex={selectedIndex}
-          title={`scenario_runs[${totalCount}]`}
+          title={`scenario_runs[${totalCount}${!totalIsExact ? "+" : ""}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -343,12 +421,13 @@ export function ScenarioRunListScreen({
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
             {figures.hamburger} {totalCount}
+            {!totalIsExact ? "+" : ""}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
             total
           </Text>
-          {totalPages > 1 && (
+          {(hasMore || hasPrev) && (
             <>
               <Text color={colors.textDim} dimColor>
                 {" "}
@@ -360,7 +439,8 @@ export function ScenarioRunListScreen({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of {totalPages}
+                  Page {currentPage + 1}
+                  {totalIsExact ? ` of ${totalPages}` : ""}
                 </Text>
               )}
             </>
@@ -370,7 +450,8 @@ export function ScenarioRunListScreen({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {startIndex + 1}-{endIndex}
+            {totalIsExact ? ` of ${totalCount}` : ""}
           </Text>
           {benchmarkRunId && (
             <>

@@ -7,6 +7,7 @@ import {
   goBack as navGoBack,
   reset as navReset,
   canGoBack as navCanGoBack,
+  updateCurrentParams as navUpdateCurrentParams,
 } from "./navigationStateMachine.js";
 import type { NavigationState } from "./navigationStateMachine.js";
 
@@ -91,6 +92,7 @@ interface NavigationContextValue {
   goBack: () => void;
   reset: () => void;
   canGoBack: () => boolean;
+  updateCurrentParams: (params: RouteParams) => void;
 }
 
 const NavigationContext = React.createContext<NavigationContextValue | null>(
@@ -153,6 +155,10 @@ export function NavigationProvider({
     [state.history.length],
   );
 
+  const updateCurrentParams = React.useCallback((newParams: RouteParams) => {
+    setState((prev) => navUpdateCurrentParams(prev, newParams));
+  }, []);
+
   const value = React.useMemo(
     () => ({
       currentScreen: state.currentScreen,
@@ -163,6 +169,7 @@ export function NavigationProvider({
       goBack,
       reset,
       canGoBack,
+      updateCurrentParams,
     }),
     [
       state.currentScreen,
@@ -173,6 +180,7 @@ export function NavigationProvider({
       goBack,
       reset,
       canGoBack,
+      updateCurrentParams,
     ],
   );
 

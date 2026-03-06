@@ -106,6 +106,18 @@ export function reset(_state: NavigationState): NavigationState {
 }
 
 /**
+ * Merge additional params into the current screen's params without navigating.
+ * Useful for preserving UI state (e.g. tab, cursor position) before navigating
+ * away, so that goBack() restores the screen with the correct state.
+ */
+export function updateCurrentParams(
+  state: NavigationState,
+  params: RouteParams,
+): NavigationState {
+  return { ...state, params: { ...state.params, ...params } };
+}
+
+/**
  * Whether there is a previous screen to go back to.
  */
 export function canGoBack(state: NavigationState): boolean {
