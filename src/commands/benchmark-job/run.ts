@@ -43,8 +43,7 @@ const SUPPORTED_AGENTS = {
 type SupportedAgent = keyof typeof SUPPORTED_AGENTS;
 
 interface RunOptions {
-  agent: string;
-  model: string;
+  agent?: string[];
   benchmark?: string;
   scenarios?: string[];
   jobName?: string;
@@ -55,6 +54,50 @@ interface RunOptions {
   nConcurrentTrials?: string;
   timeoutMultiplier?: string;
   output?: string;
+}
+
+interface ParsedAgent {
+  name: SupportedAgent;
+  model: string;
+}
+
+// Parse agent strings in "agent:model" format
+function parseAgentStrings(agentStrings: string[] | undefined): ParsedAgent[] {
+  if (!agentStrings || agentStrings.length === 0) {
+    throw new Error(
+      "At least one --agent is required. Format: --agent agent:model (e.g., --agent claude-code:claude-sonnet-4)",
+    );
+  }
+
+  const agents: ParsedAgent[] = [];
+
+  for (const agentStr of agentStrings) {
+    const colonIndex = agentStr.indexOf(":");
+    if (colonIndex === -1) {
+      throw new Error(
+        `Invalid agent format: "${agentStr}". Use format: agent:model (e.g., claude-code:claude-sonnet-4)`,
+      );
+    }
+
+    const agentName = agentStr.substring(0, colonIndex);
+    const model = agentStr.substring(colonIndex + 1);
+
+    if (!model) {
+      throw new Error(
+        `No model specified for agent "${agentName}". Use format: --agent ${agentName}:model-name`,
+      );
+    }
+
+    // Validate agent
+    validateAgent(agentName);
+
+    agents.push({
+      name: agentName as SupportedAgent,
+      model,
+    });
+  }
+
+  return agents;
 }
 
 // Parse environment variables from KEY=value format
@@ -209,9 +252,8 @@ async function resolveBenchmarkId(benchmarkIdOrName: string): Promise<string> {
 
 export async function runBenchmarkJob(options: RunOptions) {
   try {
-    // Validate agent
-    validateAgent(options.agent);
-    const agent = options.agent as SupportedAgent;
+    // Parse agent strings (format: agent:model)
+    const parsedAgents = parseAgentStrings(options.agent);
 
     // Parse provided env vars and secrets
     const providedEnvVars = options.envVars
@@ -221,30 +263,37 @@ export async function runBenchmarkJob(options: RunOptions) {
       ? parseSecrets(options.secrets)
       : {};
 
-    // Ensure agent secrets exist (auto-create from env vars if needed)
-    // Maps ENV_VAR -> BMJ_ENV_VAR (e.g., ANTHROPIC_API_KEY -> BMJ_ANTHROPIC_API_KEY)
-    const agentSecrets = await ensureAgentSecrets(agent);
+    // Get unique agent names for secret setup
+    const uniqueAgentNames = [...new Set(parsedAgents.map((a) => a.name))];
 
-    // Validate that at least one secret is available (only if requiresAny is true)
-    const agentConfig = SUPPORTED_AGENTS[agent];
-    if (agentConfig.requiresAny) {
-      const hasAny = agentConfig.automaticEnvVars.some(
-        (varName) => agentSecrets[varName],
-      );
-      if (!hasAny) {
-        throw new Error(
-          `Agent ${agent} requires at least one of: ${agentConfig.automaticEnvVars.join(", ")}. ` +
-            `Create secrets (${agentConfig.automaticEnvVars.map((v) => `${SECRET_PREFIX}${v}`).join(", ")}) ` +
-            `or set environment variables.`,
+    // Ensure secrets exist for all unique agents
+    // Collect all secrets across agents
+    const allAgentSecrets: Record<string, string> = {};
+    for (const agentName of uniqueAgentNames) {
+      const agentSecrets = await ensureAgentSecrets(agentName);
+
+      // Validate that at least one secret is available (only if requiresAny is true)
+      const agentConfig = SUPPORTED_AGENTS[agentName];
+      if (agentConfig.requiresAny) {
+        const hasAny = agentConfig.automaticEnvVars.some(
+          (varName) => agentSecrets[varName],
         );
+        if (!hasAny) {
+          throw new Error(
+            `Agent ${agentName} requires at least one of: ${agentConfig.automaticEnvVars.join(", ")}. ` +
+              `Create secrets (${agentConfig.automaticEnvVars.map((v) => `${SECRET_PREFIX}${v}`).join(", ")}) ` +
+              `or set environment variables.`,
+          );
+        }
       }
+
+      // Merge secrets (later agents can use same secrets)
+      Object.assign(allAgentSecrets, agentSecrets);
     }
-    // If requiresAny is false, we just use whatever secrets were auto-populated
-    // User may be configuring credentials via other means (e.g., --secrets flag)
 
     // Combine agent secrets with user-provided secrets
     const secrets = {
-      ...agentSecrets,
+      ...allAgentSecrets,
       ...providedSecrets,
     };
 
@@ -274,25 +323,22 @@ export async function runBenchmarkJob(options: RunOptions) {
       quiet: false,
     };
 
+    // Build agent configs for all parsed agents
+    const agentConfigs = parsedAgents.map((agent) => ({
+      name: agent.name,
+      modelName: agent.model,
+      timeoutSeconds: options.timeout ? parseInt(options.timeout, 10) : 1800,
+      environmentVariables:
+        Object.keys(providedEnvVars).length > 0 ? providedEnvVars : undefined,
+      secrets,
+    }));
+
     // Create the benchmark job
     const job = await createBenchmarkJob({
       name: options.jobName,
       benchmarkId,
       scenarioIds: options.scenarios,
-      agentConfigs: [
-        {
-          name: agent,
-          modelName: options.model,
-          timeoutSeconds: options.timeout
-            ? parseInt(options.timeout, 10)
-            : 1800,
-          environmentVariables:
-            Object.keys(providedEnvVars).length > 0
-              ? providedEnvVars
-              : undefined,
-          secrets,
-        },
-      ],
+      agentConfigs,
       orchestratorConfig,
     });
 
