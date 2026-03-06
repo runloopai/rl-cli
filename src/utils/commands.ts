@@ -1076,6 +1076,25 @@ export function createProgram(): Command {
       await watchBenchmarkJob(id);
     });
 
+  benchmarkJob
+    .command("list")
+    .description("List benchmark jobs")
+    .option("--days <n>", "Show jobs from the last N days (default: 1)")
+    .option("--all", "Show all jobs (no time filter)")
+    .option(
+      "--status <statuses>",
+      "Filter by status (comma-separated). Valid: initializing, queued, running, completed, failed, cancelled, timeout",
+    )
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (options) => {
+      const { listBenchmarkJobsCommand } =
+        await import("../commands/benchmark-job/list.js");
+      await listBenchmarkJobsCommand(options);
+    });
+
   // Hidden command: 'rli mcp' without subcommand starts the server (for Claude Desktop config compatibility)
   program
     .command("mcp-server", { hidden: true })
