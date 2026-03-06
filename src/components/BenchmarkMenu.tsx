@@ -186,7 +186,8 @@ export const BenchmarkMenu = ({ onSelect, onBack }: BenchmarkMenuProps) => {
                 color={isSelected ? item.color : colors.text}
                 bold={isSelected}
               >
-                {" "}{item.label}
+                {" "}
+                {item.label}
               </Text>
               {!isNarrow && (
                 <Text color={colors.textDim} dimColor>
