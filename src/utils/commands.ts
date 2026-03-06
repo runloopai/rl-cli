@@ -1056,7 +1056,6 @@ export function createProgram(): Command {
   benchmarkJob
     .command("status <id>")
     .description("Get benchmark job status and results")
-    .option("-w, --watch", "Watch for job to complete before showing results")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
@@ -1065,6 +1064,19 @@ export function createProgram(): Command {
       const { statusBenchmarkJob } =
         await import("../commands/benchmark-job/status.js");
       await statusBenchmarkJob(id, options);
+    });
+
+  benchmarkJob
+    .command("watch <id>")
+    .description("Watch benchmark job progress in real-time (full-screen)")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (id, options) => {
+      const { watchBenchmarkJob } =
+        await import("../commands/benchmark-job/watch.js");
+      await watchBenchmarkJob(id, options);
     });
 
   // Hidden command: 'rli mcp' without subcommand starts the server (for Claude Desktop config compatibility)
