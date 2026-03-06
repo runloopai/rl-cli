@@ -175,7 +175,6 @@ async function ensureAgentSecrets(
     const exists = await secretExists(secretName);
 
     if (exists) {
-      console.log(chalk.dim(`Secret ${secretName} exists`));
       secrets[varName] = secretName;
     } else if (envValue) {
       // Create secret from env var
@@ -344,7 +343,8 @@ export async function runBenchmarkJob(options: RunOptions) {
 
     // Output result
     if (!options.output || options.output === "text") {
-      console.log(job.id);
+      console.log(`Benchmark job created: ${job.id}`);
+      console.log(`Follow the run with rli benchmark-job watch ${job.id}`);
     } else {
       output(job, { format: options.output, defaultFormat: "json" });
     }
