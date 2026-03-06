@@ -122,9 +122,7 @@ function getAgentInfo(run: InProgressRun): {
 }
 
 // Fetch progress for all runs (in-progress and completed)
-async function fetchAllRunsProgress(
-  job: BenchmarkJob,
-): Promise<RunProgress[]> {
+async function fetchAllRunsProgress(job: BenchmarkJob): Promise<RunProgress[]> {
   const results: RunProgress[] = [];
 
   // Get expected scenario count from job spec
@@ -160,7 +158,9 @@ async function fetchAllRunsProgress(
   const inProgressRuns = job.in_progress_runs || [];
   const progressPromises = inProgressRuns.map(async (run) => {
     const agentInfo = getAgentInfo(run);
-    const scenarioRuns = await listBenchmarkRunScenarioRuns(run.benchmark_run_id);
+    const scenarioRuns = await listBenchmarkRunScenarioRuns(
+      run.benchmark_run_id,
+    );
     return calculateRunProgress(
       run.benchmark_run_id,
       agentInfo.name,
@@ -189,7 +189,8 @@ function formatRunProgressLine(progress: RunProgress): string {
   }
 
   // Use expectedTotal if available, otherwise use started count
-  const total = progress.expectedTotal > 0 ? progress.expectedTotal : progress.started;
+  const total =
+    progress.expectedTotal > 0 ? progress.expectedTotal : progress.started;
 
   // Check if this run is complete
   const isComplete = progress.finished === total && total > 0;
@@ -491,7 +492,9 @@ export async function statusBenchmarkJob(
         }
         lastLineCount = progressLines.length + 1;
       } else {
-        console.log(chalk.dim(`[${job.state}] waiting for scenarios to start${dots}`));
+        console.log(
+          chalk.dim(`[${job.state}] waiting for scenarios to start${dots}`),
+        );
         lastLineCount = 1;
       }
 
