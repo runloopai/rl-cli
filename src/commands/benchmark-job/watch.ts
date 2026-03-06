@@ -56,11 +56,13 @@ function exitFullScreen(): void {
   process.stdout.write(ANSI.exitAltScreen);
 }
 
-// Render content at top of screen
+// Render content at top of screen, truncating to fit terminal height
 function renderScreen(lines: string[]): void {
   process.stdout.write(ANSI.moveTo(1, 1));
   process.stdout.write(ANSI.clearScreen);
-  for (const line of lines) {
+  const maxLines = (process.stdout.rows || 24) - 1; // Leave 1 line buffer
+  const truncatedLines = lines.slice(0, maxLines);
+  for (const line of truncatedLines) {
     console.log(line);
   }
 }
@@ -71,10 +73,27 @@ function formatPercent(count: number, total: number): string {
   return ((count / total) * 100).toFixed(1) + "%";
 }
 
+// Format duration in human-readable format
+function formatDuration(ms: number): string {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  const remainingSeconds = seconds % 60;
+  if (hours > 0) {
+    return `${hours}h ${remainingMinutes}m ${remainingSeconds}s`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${remainingSeconds}s`;
+  }
+  return `${seconds}s`;
+}
+
 // In-progress scenario info for display
 interface InProgressScenario {
   name: string;
   state: string;
+  startTimeMs?: number;
 }
 
 // Progress stats for a benchmark run
@@ -141,17 +160,20 @@ function calculateRunProgress(
       inProgressScenarios.push({
         name: scenario.name || scenario.scenario_id || "unknown",
         state: scenarioState,
+        startTimeMs: scenario.start_time_ms,
       });
     } else if (scenarioState === "running") {
       running++;
       inProgressScenarios.push({
         name: scenario.name || scenario.scenario_id || "unknown",
         state: scenarioState,
+        startTimeMs: scenario.start_time_ms,
       });
     } else if (scenarioState && scenarioState !== "pending") {
       inProgressScenarios.push({
         name: scenario.name || scenario.scenario_id || "unknown",
         state: scenarioState,
+        startTimeMs: scenario.start_time_ms,
       });
     }
   }
@@ -311,15 +333,29 @@ function formatScenarioLines(
 ): string[] {
   const limited = scenarios.slice(0, maxScenarios);
   const remaining = scenarios.length - limited.length;
+  const now = Date.now();
 
   const lines: string[] = [];
   for (const scenario of limited) {
     let name = scenario.name;
-    if (name.length > 45) {
-      name = name.slice(0, 42) + "...";
+    if (name.length > 35) {
+      name = name.slice(0, 32) + "...";
     }
     const stateStr = formatScenarioState(scenario.state, tick);
-    lines.push(chalk.dim("      └ ") + chalk.dim(name.padEnd(46)) + stateStr);
+
+    // Calculate elapsed time if start time is available
+    let elapsedStr = "";
+    if (scenario.startTimeMs) {
+      const elapsedMs = now - scenario.startTimeMs;
+      elapsedStr = chalk.dim(` (${formatDuration(elapsedMs)})`);
+    }
+
+    lines.push(
+      chalk.dim("      └ ") +
+        chalk.dim(name.padEnd(36)) +
+        stateStr +
+        elapsedStr,
+    );
   }
 
   if (remaining > 0) {
@@ -457,47 +493,6 @@ function printResultsTable(job: BenchmarkJob): void {
         failedErrorColored +
         chalk.dim(totalColStr),
     );
-
-    for (const scenario of scenarioOutcomes) {
-      const scenarioName =
-        scenario.scenario_name || scenario.scenario_definition_id || "unknown";
-      const state = scenario.state || "unknown";
-      const score = scenario.score;
-
-      let statusIcon: string;
-      let statusColor: typeof chalk.green;
-
-      if (state.toUpperCase() === "COMPLETED") {
-        if (score === 1.0) {
-          statusIcon = chalk.green("\u2713");
-          statusColor = chalk.green;
-        } else {
-          statusIcon = chalk.yellow("\u2717");
-          statusColor = chalk.yellow;
-        }
-      } else {
-        statusIcon = chalk.red("!");
-        statusColor = chalk.red;
-      }
-
-      const scenarioNameTrunc =
-        scenarioName.length > 50
-          ? scenarioName.slice(0, 47) + "..."
-          : scenarioName;
-
-      const scoreStr =
-        score !== undefined && score !== null
-          ? `score=${score.toFixed(1)}`
-          : state;
-
-      console.log(
-        chalk.dim("  ") +
-          statusIcon +
-          " " +
-          chalk.dim(scenarioNameTrunc.padEnd(52)) +
-          statusColor(scoreStr),
-      );
-    }
   }
 
   console.log();
@@ -547,6 +542,13 @@ export async function watchBenchmarkJob(id: string) {
     const SPINNER_INTERVAL_MS = 100;
     const UPDATES_PER_POLL = Math.floor(POLL_INTERVAL_MS / SPINNER_INTERVAL_MS);
 
+    // Handle terminal resize - clear screen to prevent artifacts
+    let needsFullRedraw = false;
+    const handleResize = () => {
+      needsFullRedraw = true;
+    };
+    process.stdout.on("resize", handleResize);
+
     try {
       let tick = 0;
       let progressList = await fetchAllRunsProgress(job);
@@ -572,6 +574,7 @@ export async function watchBenchmarkJob(id: string) {
           chalk.bold.cyan(`Benchmark Job: ${jobName}`) +
             chalk.dim(` (${elapsedStr})`),
         );
+        screenLines.push(chalk.dim(`ID: ${job.id}`));
         screenLines.push(chalk.dim(`State: ${job.state}`));
         screenLines.push("");
 
@@ -584,6 +587,12 @@ export async function watchBenchmarkJob(id: string) {
 
         screenLines.push("");
         screenLines.push(chalk.dim("Press Ctrl+C to exit"));
+
+        // Force full clear on resize to prevent artifacts
+        if (needsFullRedraw) {
+          process.stdout.write(ANSI.clearScreen);
+          needsFullRedraw = false;
+        }
 
         // Render the screen
         renderScreen(screenLines);
@@ -601,11 +610,27 @@ export async function watchBenchmarkJob(id: string) {
         await sleep(SPINNER_INTERVAL_MS);
       }
     } finally {
+      process.stdout.off("resize", handleResize);
       cleanup();
     }
 
-    // Show final results
+    // Calculate total elapsed time
+    const totalElapsed = Date.now() - startTime;
+    const totalElapsedStr = formatDuration(totalElapsed);
+
+    // Show completion message
+    console.log(chalk.green.bold("Benchmark job completed!"));
+    console.log(chalk.dim(`Total time: ${totalElapsedStr}`));
+
+    // Show final results (summary only)
     printResultsTable(job);
+
+    // Show hint for full results
+    console.log(
+      chalk.dim(
+        `To see full results, run: rli benchmark-job summary -e ${job.id}`,
+      ),
+    );
   } catch (error) {
     outputError("Failed to watch benchmark job", error);
   }

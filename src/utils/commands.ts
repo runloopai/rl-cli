@@ -1054,16 +1054,17 @@ export function createProgram(): Command {
     });
 
   benchmarkJob
-    .command("status <id>")
-    .description("Get benchmark job status and results")
+    .command("summary <id>")
+    .description("Get benchmark job summary and results")
+    .option("-e, --extended", "Show individual scenario results")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
     )
     .action(async (id, options) => {
-      const { statusBenchmarkJob } =
-        await import("../commands/benchmark-job/status.js");
-      await statusBenchmarkJob(id, options);
+      const { summaryBenchmarkJob } =
+        await import("../commands/benchmark-job/summary.js");
+      await summaryBenchmarkJob(id, options);
     });
 
   benchmarkJob

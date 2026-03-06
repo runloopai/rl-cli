@@ -185,7 +185,7 @@ rli mcp install                          # Install Runloop MCP server configurat
 
 ```bash
 rli benchmark-job run                    # Run a benchmark job with one or more ...
-rli benchmark-job status <id>            # Get benchmark job status and results
+rli benchmark-job summary <id>           # Get benchmark job summary and results
 rli benchmark-job watch <id>             # Watch benchmark job progress in real-...
 ```
 

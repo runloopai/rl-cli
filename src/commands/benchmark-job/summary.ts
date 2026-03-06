@@ -1,5 +1,5 @@
 /**
- * Status benchmark job command
+ * Summary benchmark job command
  */
 
 import chalk from "chalk";
@@ -11,8 +11,9 @@ import {
 } from "../../services/benchmarkJobService.js";
 import { output, outputError } from "../../utils/output.js";
 
-interface StatusOptions {
+interface SummaryOptions {
   output?: string;
+  extended?: boolean;
 }
 
 // Job states that indicate completion
@@ -285,7 +286,7 @@ function calculateCompletedStats(
 }
 
 // Print results table for completed jobs
-function printResultsTable(job: BenchmarkJob): void {
+function printResultsTable(job: BenchmarkJob, extended: boolean = false): void {
   const outcomes = job.benchmark_outcomes || [];
 
   if (outcomes.length === 0) {
@@ -363,55 +364,59 @@ function printResultsTable(job: BenchmarkJob): void {
         chalk.dim(totalColStr),
     );
 
-    // Print individual scenario results underneath (indented)
-    for (const scenario of scenarioOutcomes) {
-      const scenarioName =
-        scenario.scenario_name || scenario.scenario_definition_id || "unknown";
-      const state = scenario.state || "unknown";
-      const score = scenario.score;
+    // Print individual scenario results underneath (indented) when extended
+    if (extended) {
+      for (const scenario of scenarioOutcomes) {
+        const scenarioName =
+          scenario.scenario_name ||
+          scenario.scenario_definition_id ||
+          "unknown";
+        const state = scenario.state || "unknown";
+        const score = scenario.score;
 
-      let statusIcon: string;
-      let statusColor: typeof chalk.green;
+        let statusIcon: string;
+        let statusColor: typeof chalk.green;
 
-      if (state.toUpperCase() === "COMPLETED") {
-        if (score === 1.0) {
-          statusIcon = chalk.green("\u2713"); // checkmark
-          statusColor = chalk.green;
+        if (state.toUpperCase() === "COMPLETED") {
+          if (score === 1.0) {
+            statusIcon = chalk.green("\u2713"); // checkmark
+            statusColor = chalk.green;
+          } else {
+            statusIcon = chalk.yellow("\u2717"); // X
+            statusColor = chalk.yellow;
+          }
         } else {
-          statusIcon = chalk.yellow("\u2717"); // X
-          statusColor = chalk.yellow;
+          statusIcon = chalk.red("!");
+          statusColor = chalk.red;
         }
-      } else {
-        statusIcon = chalk.red("!");
-        statusColor = chalk.red;
+
+        const scenarioNameTrunc =
+          scenarioName.length > 50
+            ? scenarioName.slice(0, 47) + "..."
+            : scenarioName;
+
+        const scoreStr =
+          score !== undefined && score !== null
+            ? `score=${score.toFixed(1)}`
+            : state;
+
+        console.log(
+          chalk.dim("  ") +
+            statusIcon +
+            " " +
+            chalk.dim(scenarioNameTrunc.padEnd(52)) +
+            statusColor(scoreStr),
+        );
       }
-
-      const scenarioNameTrunc =
-        scenarioName.length > 50
-          ? scenarioName.slice(0, 47) + "..."
-          : scenarioName;
-
-      const scoreStr =
-        score !== undefined && score !== null
-          ? `score=${score.toFixed(1)}`
-          : state;
-
-      console.log(
-        chalk.dim("  ") +
-          statusIcon +
-          " " +
-          chalk.dim(scenarioNameTrunc.padEnd(52)) +
-          statusColor(scoreStr),
-      );
     }
   }
 
   console.log();
 }
 
-export async function statusBenchmarkJob(
+export async function summaryBenchmarkJob(
   id: string,
-  options: StatusOptions = {},
+  options: SummaryOptions = {},
 ) {
   try {
     const job = await getBenchmarkJob(id);
@@ -420,11 +425,11 @@ export async function statusBenchmarkJob(
     if (options.output && options.output !== "text") {
       output(job, { format: options.output, defaultFormat: "json" });
     } else if (isComplete) {
-      printResultsTable(job);
+      printResultsTable(job, options.extended);
     } else {
       await printStatus(job);
     }
   } catch (error) {
-    outputError("Failed to get benchmark job status", error);
+    outputError("Failed to get benchmark job summary", error);
   }
 }
