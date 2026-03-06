@@ -56,11 +56,13 @@ function exitFullScreen(): void {
   process.stdout.write(ANSI.exitAltScreen);
 }
 
-// Render content at top of screen
+// Render content at top of screen, truncating to fit terminal height
 function renderScreen(lines: string[]): void {
   process.stdout.write(ANSI.moveTo(1, 1));
   process.stdout.write(ANSI.clearScreen);
-  for (const line of lines) {
+  const maxLines = (process.stdout.rows || 24) - 1; // Leave 1 line buffer
+  const truncatedLines = lines.slice(0, maxLines);
+  for (const line of truncatedLines) {
     console.log(line);
   }
 }
@@ -535,6 +537,13 @@ export async function watchBenchmarkJob(id: string) {
     const SPINNER_INTERVAL_MS = 100;
     const UPDATES_PER_POLL = Math.floor(POLL_INTERVAL_MS / SPINNER_INTERVAL_MS);
 
+    // Handle terminal resize - clear screen to prevent artifacts
+    let needsFullRedraw = false;
+    const handleResize = () => {
+      needsFullRedraw = true;
+    };
+    process.stdout.on("resize", handleResize);
+
     try {
       let tick = 0;
       let progressList = await fetchAllRunsProgress(job);
@@ -560,6 +569,7 @@ export async function watchBenchmarkJob(id: string) {
           chalk.bold.cyan(`Benchmark Job: ${jobName}`) +
             chalk.dim(` (${elapsedStr})`),
         );
+        screenLines.push(chalk.dim(`ID: ${job.id}`));
         screenLines.push(chalk.dim(`State: ${job.state}`));
         screenLines.push("");
 
@@ -572,6 +582,12 @@ export async function watchBenchmarkJob(id: string) {
 
         screenLines.push("");
         screenLines.push(chalk.dim("Press Ctrl+C to exit"));
+
+        // Force full clear on resize to prevent artifacts
+        if (needsFullRedraw) {
+          process.stdout.write(ANSI.clearScreen);
+          needsFullRedraw = false;
+        }
 
         // Render the screen
         renderScreen(screenLines);
@@ -589,6 +605,7 @@ export async function watchBenchmarkJob(id: string) {
         await sleep(SPINNER_INTERVAL_MS);
       }
     } finally {
+      process.stdout.off("resize", handleResize);
       cleanup();
     }
 
