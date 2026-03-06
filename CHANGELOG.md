@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.13.0](https://github.com/runloopai/rl-cli/compare/v1.12.0...v1.13.0) (2026-03-06)
+
+
+### Features
+
+* add benchmark list features ([#154](https://github.com/runloopai/rl-cli/issues/154)) ([2abe85c](https://github.com/runloopai/rl-cli/commit/2abe85c2cd0ffa901107673b6effd5d49afefaf9))
+* **benchmark:** add status breakout during status -w ([#149](https://github.com/runloopai/rl-cli/issues/149)) ([393548e](https://github.com/runloopai/rl-cli/commit/393548eb8611fa302183264b4b055cf18a17a09f))
+* **benchmark:** add watch with term takeover / interactive display ([#151](https://github.com/runloopai/rl-cli/issues/151)) ([c49ee7a](https://github.com/runloopai/rl-cli/commit/c49ee7ae578d6131c2bfceb491e439250ec60948))
+* **benchmark:** print scenario runtime, status and prompt for viewing extended ([#152](https://github.com/runloopai/rl-cli/issues/152)) ([32f4f72](https://github.com/runloopai/rl-cli/commit/32f4f7234fbb14c848c515898d26519872020e61))
+* **benchmark:** support multi agent jobs ([#145](https://github.com/runloopai/rl-cli/issues/145)) ([41ec8d3](https://github.com/runloopai/rl-cli/commit/41ec8d38ed1a1cb293a5b8f720fbf6cabdcba169))
+
+
+### Bug Fixes
+
+* remove spurious warning for optional secrets ([#146](https://github.com/runloopai/rl-cli/issues/146)) ([3abea8a](https://github.com/runloopai/rl-cli/commit/3abea8afd7bf8241541dc534c0bae6329a1083a5))
+
 ## [1.12.0](https://github.com/runloopai/rl-cli/compare/v1.11.2...v1.12.0) (2026-03-05)
 
 
