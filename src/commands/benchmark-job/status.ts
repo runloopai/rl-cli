@@ -12,7 +12,6 @@ import {
 import { output, outputError } from "../../utils/output.js";
 
 interface StatusOptions {
-  watch?: boolean;
   output?: string;
 }
 
@@ -27,15 +26,6 @@ const SCENARIO_COMPLETED_STATES = [
   "timeout",
   "error",
 ];
-
-// Polling config
-const POLL_INTERVAL_MS = 10 * 1000; // 10 seconds
-const MAX_WAIT_MS = 60 * 60 * 4 * 1000; // 4 hours
-
-// Sleep utility
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 // Format percentage
 function formatPercent(count: number, total: number): string {
@@ -419,100 +409,20 @@ function printResultsTable(job: BenchmarkJob): void {
   console.log();
 }
 
-// Format progress for watch mode - shows per-run progress
-function formatWatchProgress(progressList: RunProgress[]): string[] {
-  if (progressList.length === 0) {
-    return [];
-  }
-
-  return progressList.map((progress) => formatRunProgressLine(progress));
-}
-
 export async function statusBenchmarkJob(
   id: string,
   options: StatusOptions = {},
 ) {
   try {
-    // Initial fetch
-    let job = await getBenchmarkJob(id);
-
-    // Check if job is complete
+    const job = await getBenchmarkJob(id);
     const isComplete = COMPLETED_STATES.includes(job.state || "");
 
-    // If not waiting or already complete, just print status/results
-    if (!options.watch || isComplete) {
-      if (options.output && options.output !== "text") {
-        output(job, { format: options.output, defaultFormat: "json" });
-      } else if (isComplete) {
-        printResultsTable(job);
-      } else {
-        await printStatus(job);
-      }
-      return;
-    }
-
-    // Wait mode: poll until complete
-    const jobName = job.name || job.id;
-    console.log(chalk.cyan(`Awaiting job "${jobName}" completion...`));
-    console.log();
-
-    const startTime = Date.now();
-    let lastLineCount = 0;
-    let dotCount = 0;
-
-    while (!COMPLETED_STATES.includes(job.state || "")) {
-      // Check timeout
-      if (Date.now() - startTime > MAX_WAIT_MS) {
-        console.log();
-        outputError(
-          `Timeout waiting for job completion after ${MAX_WAIT_MS / 1000 / 60} minutes`,
-        );
-      }
-
-      // Fetch and show current progress
-      const progressList = await fetchAllRunsProgress(job);
-      const progressLines = formatWatchProgress(progressList);
-
-      // Build dots string (cycles through 1-3 dots)
-      dotCount = (dotCount % 3) + 1;
-      const dots = chalk.dim(".".repeat(dotCount));
-
-      // Clear previous output lines
-      if (lastLineCount > 0) {
-        for (let i = 0; i < lastLineCount; i++) {
-          process.stdout.write("\x1b[1A\x1b[2K"); // Move up and clear line
-        }
-      }
-
-      // Print current progress
-      if (progressLines.length > 0) {
-        console.log(chalk.dim(`[${job.state}]`) + " " + dots);
-        for (const line of progressLines) {
-          console.log(line);
-        }
-        lastLineCount = progressLines.length + 1;
-      } else {
-        console.log(
-          chalk.dim(`[${job.state}] waiting for scenarios to start${dots}`),
-        );
-        lastLineCount = 1;
-      }
-
-      await sleep(POLL_INTERVAL_MS);
-      job = await getBenchmarkJob(id);
-    }
-
-    // Clear progress output
-    for (let i = 0; i < lastLineCount; i++) {
-      process.stdout.write("\x1b[1A\x1b[2K");
-    }
-    console.log();
-
-    // Output based on format
     if (options.output && options.output !== "text") {
       output(job, { format: options.output, defaultFormat: "json" });
-    } else {
+    } else if (isComplete) {
       printResultsTable(job);
+    } else {
+      await printStatus(job);
     }
   } catch (error) {
     outputError("Failed to get benchmark job status", error);
