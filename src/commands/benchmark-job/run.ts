@@ -122,6 +122,7 @@ async function ensureAgentSecrets(
 ): Promise<Record<string, string>> {
   const agentConfig = SUPPORTED_AGENTS[agent];
   const secrets: Record<string, string> = {};
+  const missing: string[] = [];
 
   for (const varName of agentConfig.automaticEnvVars) {
     const secretName = `${SECRET_PREFIX}${varName}`;
@@ -141,7 +142,14 @@ async function ensureAgentSecrets(
       await createSecret(secretName, envValue);
       secrets[varName] = secretName;
     } else {
-      // No secret and no env var - skip (will be validated later if required)
+      missing.push(varName);
+    }
+  }
+
+  // Only warn about missing vars when none were resolved at all
+  if (missing.length > 0 && Object.keys(secrets).length === 0) {
+    for (const varName of missing) {
+      const secretName = `${SECRET_PREFIX}${varName}`;
       console.log(
         chalk.yellow(
           `Secret ${secretName} not found and ${varName} not set in environment`,
