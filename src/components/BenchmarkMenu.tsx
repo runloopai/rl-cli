@@ -9,6 +9,53 @@ import { NavigationTips } from "./NavigationTips.js";
 import { colors } from "../utils/theme.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 
+/*
+Some useful icon chars
+ 
+  Circles:
+  ◉  FISHEYE (U+25C9)           - currently used for Benchmark Defs
+  ◎  BULLSEYE (U+25CE)
+  ◐  CIRCLE LEFT HALF BLACK (U+25D0)
+  ◑  CIRCLE RIGHT HALF BLACK (U+25D1)
+  ⊕  CIRCLED PLUS (U+2295)
+  ⊗  CIRCLED TIMES (U+2297)
+  ⊙  CIRCLED DOT (U+2299)
+
+  Squares:
+  ▣  SQUARE W/ BLACK SMALL SQ   - currently used for Orchestrator Jobs
+  ▩  SQUARE W/ DIAGONAL CROSS   - currently used for Legacy Runs
+  ◧  SQUARE LEFT HALF BLACK (U+25E7)
+  ◨  SQUARE RIGHT HALF BLACK (U+25E8)
+  ◫  SQUARE W/ VERTICAL LINE (U+25EB)
+  ▦  SQUARE W/ CROSSHATCH (U+25A6)
+  ▧  SQUARE W/ DIAGONAL FILL (U+25A7)
+
+  Diamonds / Triangles / Stars:
+  ◈  DIAMOND W/ BLACK DIAMOND   - currently used for Scenario Runs
+  ◆  BLACK DIAMOND (U+25C6)
+  ◇  WHITE DIAMOND (U+25C7)
+  ▲  BLACK UP TRIANGLE (U+25B2)
+  △  WHITE UP TRIANGLE (U+25B3)
+  ★  BLACK STAR (U+2605)
+  ⬡  WHITE HEXAGON (U+2B21)
+  ⬢  BLACK HEXAGON (U+2B22)
+  ▶  BLACK RIGHT-POINTING TRIANGLE (U+25B6)   This one renders weirdly, with an extra space
+  ▷  WHITE RIGHT-POINTING TRIANGLE (U+25B7)
+  ►  BLACK RIGHT-POINTING POINTER (U+25BA)
+  ▻  WHITE RIGHT-POINTING POINTER (U+25BB)
+
+  ✦  BLACK FOUR POINTED STAR (U+2726)
+  ✧  WHITE FOUR POINTED STAR (U+2727)
+  ✚  HEAVY GREEK CROSS (U+271A)
+  ✜  HEAVY OPEN CENTRE CROSS (U+271C)
+  ✛  OPEN CENTRE CROSS (U+271B)
+  ❖  BLACK DIAMOND MINUS WHITE X (U+2756)
+  ✥  FOUR CLUB-SPOKED ASTERISK (U+2725)
+  ❋  HEAVY EIGHT TEARDROP-SPOKED PROPELLER ASTERISK (U+274B)
+  ✳  EIGHT SPOKED ASTERISK (U+2733)
+  ✴  EIGHT POINTED BLACK STAR (U+2734)
+*/
+
 interface BenchmarkMenuItem {
   key: string;
   label: string;
@@ -20,24 +67,24 @@ interface BenchmarkMenuItem {
 const benchmarkMenuItems: BenchmarkMenuItem[] = [
   {
     key: "benchmarks",
-    label: "Benchmarks",
+    label: "Benchmark Defs",
     description: "View benchmark definitions",
     icon: "◉",
     color: colors.primary,
   },
   {
-    key: "benchmark-runs",
-    label: "Benchmark Runs",
-    description: "View and manage benchmark executions",
-    icon: "▶",
-    color: colors.success,
+    key: "benchmark-jobs",
+    label: "Orchestrator Jobs",
+    description: "Run and manage benchmark jobs",
+    icon: "▲",
+    color: colors.warning,
   },
   {
-    key: "benchmark-jobs",
-    label: "Benchmark Jobs",
-    description: "Run and manage benchmark jobs",
-    icon: "▣",
-    color: colors.warning,
+    key: "benchmark-runs",
+    label: "Legacy Runs",
+    description: "View and manage benchmark executions",
+    icon: "◇",
+    color: colors.success,
   },
   {
     key: "scenario-runs",
@@ -101,14 +148,8 @@ export const BenchmarkMenu = ({ onSelect, onBack }: BenchmarkMenuProps) => {
       onSelect(benchmarkMenuItems[selectedIndex].key);
     } else if (key.escape) {
       onBack();
-    } else if (input === "1") {
-      onSelect("benchmarks");
-    } else if (input === "2") {
-      onSelect("benchmark-runs");
-    } else if (input === "3") {
-      onSelect("benchmark-jobs");
-    } else if (input === "4") {
-      onSelect("scenario-runs");
+    } else if (input >= "1" && input <= String(benchmarkMenuItems.length)) {
+      onSelect(benchmarkMenuItems[parseInt(input) - 1].key);
     } else if (input === "q") {
       exit();
     }
@@ -141,12 +182,11 @@ export const BenchmarkMenu = ({ onSelect, onBack }: BenchmarkMenuProps) => {
               <Text color={item.color} bold>
                 {item.icon}
               </Text>
-              <Text> </Text>
               <Text
                 color={isSelected ? item.color : colors.text}
                 bold={isSelected}
               >
-                {item.label}
+                {" "}{item.label}
               </Text>
               {!isNarrow && (
                 <Text color={colors.textDim} dimColor>

@@ -25,6 +25,13 @@ interface MenuItem {
 
 const allMenuItems: MenuItem[] = [
   {
+    key: "benchmarks",
+    label: "Benchmarks",
+    description: "Performance testing and evaluation",
+    icon: "▷",
+    color: colors.success,
+  },
+  {
     key: "devboxes",
     label: "Devboxes",
     description: "Manage cloud development environments",
@@ -53,17 +60,10 @@ const allMenuItems: MenuItem[] = [
     color: colors.secondary,
   },
   {
-    key: "benchmarks",
-    label: "Benchmarks",
-    description: "Performance testing and evaluation",
-    icon: "▶",
-    color: colors.success,
-  },
-  {
     key: "settings",
     label: "Settings",
     description: "Network policies, secrets, and more",
-    icon: "⚙",
+    icon: "⬢",
     color: colors.info,
   },
 ];
