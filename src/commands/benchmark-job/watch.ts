@@ -9,11 +9,7 @@ import {
   type BenchmarkJob,
   type ScenarioRun,
 } from "../../services/benchmarkJobService.js";
-import { output, outputError } from "../../utils/output.js";
-
-interface WatchOptions {
-  output?: string;
-}
+import { outputError } from "../../utils/output.js";
 
 // Job states that indicate completion
 const COMPLETED_STATES = ["completed", "failed", "canceled", "timeout"];
@@ -507,20 +503,13 @@ function printResultsTable(job: BenchmarkJob): void {
   console.log();
 }
 
-export async function watchBenchmarkJob(
-  id: string,
-  options: WatchOptions = {},
-) {
+export async function watchBenchmarkJob(id: string) {
   try {
     let job = await getBenchmarkJob(id);
 
     // If job is already complete, just show results
     if (COMPLETED_STATES.includes(job.state || "")) {
-      if (options.output && options.output !== "text") {
-        output(job, { format: options.output, defaultFormat: "json" });
-      } else {
-        printResultsTable(job);
-      }
+      printResultsTable(job);
       return;
     }
 
@@ -615,12 +604,8 @@ export async function watchBenchmarkJob(
       cleanup();
     }
 
-    // Output based on format
-    if (options.output && options.output !== "text") {
-      output(job, { format: options.output, defaultFormat: "json" });
-    } else {
-      printResultsTable(job);
-    }
+    // Show final results
+    printResultsTable(job);
   } catch (error) {
     outputError("Failed to watch benchmark job", error);
   }
