@@ -1020,12 +1020,11 @@ export function createProgram(): Command {
 
   benchmarkJob
     .command("run")
-    .description("Run a benchmark job with an agent")
-    .requiredOption(
-      "--agent <agent>",
-      "Agent to use (claude-code, codex, opencode, goose, gemini-cli)",
+    .description("Run a benchmark job with one or more agents")
+    .option(
+      "--agent <agents...>",
+      "Agent(s) to use. Format: agent:model (e.g., claude-code:claude-sonnet-4). Can specify multiple.",
     )
-    .requiredOption("--model <model>", "Model name for the agent")
     .option("--benchmark <id-or-name>", "Benchmark ID or name to run")
     .option(
       "--scenarios <ids...>",
