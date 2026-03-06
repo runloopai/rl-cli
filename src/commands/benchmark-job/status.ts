@@ -3,7 +3,12 @@
  */
 
 import chalk from "chalk";
-import { getBenchmarkJob } from "../../services/benchmarkJobService.js";
+import {
+  getBenchmarkJob,
+  listBenchmarkRunScenarioRuns,
+  type BenchmarkJob,
+  type ScenarioRun,
+} from "../../services/benchmarkJobService.js";
 import { output, outputError } from "../../utils/output.js";
 
 interface StatusOptions {
@@ -14,6 +19,15 @@ interface StatusOptions {
 // Job states that indicate completion
 const COMPLETED_STATES = ["completed", "failed", "canceled", "timeout"];
 
+// Scenario run states that indicate completion
+const SCENARIO_COMPLETED_STATES = [
+  "completed",
+  "failed",
+  "canceled",
+  "timeout",
+  "error",
+];
+
 // Polling config
 const POLL_INTERVAL_MS = 10 * 1000; // 10 seconds
 const MAX_WAIT_MS = 60 * 60 * 4 * 1000; // 4 hours
@@ -23,33 +37,235 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-interface ScenarioOutcome {
-  scenario_name?: string;
-  scenario_definition_id?: string;
-  state?: string;
-  score?: number;
+// Format percentage
+function formatPercent(count: number, total: number): string {
+  if (total === 0) return "0.0%";
+  return ((count / total) * 100).toFixed(1) + "%";
 }
 
-interface BenchmarkOutcome {
-  agent_name?: string;
-  model_name?: string;
-  scenario_outcomes?: ScenarioOutcome[];
+// Progress stats for a benchmark run
+interface RunProgress {
+  benchmarkRunId: string;
+  agentName: string;
+  modelName?: string;
+  state: string;
+  expectedTotal: number;
+  started: number;
+  running: number;
+  scoring: number;
+  finished: number;
+  avgScore: number | null;
 }
 
-interface JobData {
-  id: string;
-  name?: string;
-  state?: string;
-  benchmark_outcomes?: BenchmarkOutcome[];
+// Calculate progress from scenario runs
+function calculateRunProgress(
+  benchmarkRunId: string,
+  agentName: string,
+  modelName: string | undefined,
+  state: string,
+  expectedTotal: number,
+  scenarioRuns: ScenarioRun[],
+): RunProgress {
+  let running = 0;
+  let scoring = 0;
+  let finished = 0;
+  let scoreSum = 0;
+  let scoreCount = 0;
+
+  for (const scenario of scenarioRuns) {
+    const scenarioState = scenario.state?.toLowerCase() || "";
+
+    if (SCENARIO_COMPLETED_STATES.includes(scenarioState)) {
+      finished++;
+      const score = scenario.scoring_contract_result?.score;
+      if (score !== undefined && score !== null) {
+        scoreSum += score;
+        scoreCount++;
+      }
+    } else if (scenarioState === "scoring" || scenarioState === "scored") {
+      scoring++;
+    } else if (scenarioState === "running") {
+      running++;
+    }
+  }
+
+  return {
+    benchmarkRunId,
+    agentName,
+    modelName,
+    state,
+    expectedTotal,
+    started: scenarioRuns.length,
+    running,
+    scoring,
+    finished,
+    avgScore: scoreCount > 0 ? scoreSum / scoreCount : null,
+  };
 }
 
-// Calculate stats for scenario outcomes
-function calculateStats(outcomes: ScenarioOutcome[]): {
+// In-progress run type
+type InProgressRun = NonNullable<BenchmarkJob["in_progress_runs"]>[number];
+
+// Get agent info from in_progress_run
+function getAgentInfo(run: InProgressRun): {
+  name: string;
+  model?: string;
+} {
+  const agentConfig = run.agent_config;
+  if (agentConfig && agentConfig.type === "job_agent") {
+    return {
+      name: agentConfig.name,
+      model: agentConfig.model_name ?? undefined,
+    };
+  }
+  return { name: "unknown" };
+}
+
+// Fetch progress for all runs (in-progress and completed)
+async function fetchAllRunsProgress(
+  job: BenchmarkJob,
+): Promise<RunProgress[]> {
+  const results: RunProgress[] = [];
+
+  // Get expected scenario count from job spec
+  const expectedTotal = job.job_spec?.scenario_ids?.length || 0;
+
+  // First, add completed runs from benchmark_outcomes
+  const completedOutcomes = job.benchmark_outcomes || [];
+  for (const outcome of completedOutcomes) {
+    const scenarioOutcomes = outcome.scenario_outcomes || [];
+    let scoreSum = 0;
+    let scoreCount = 0;
+    for (const s of scenarioOutcomes) {
+      if (s.score !== undefined && s.score !== null) {
+        scoreSum += s.score;
+        scoreCount++;
+      }
+    }
+    results.push({
+      benchmarkRunId: outcome.benchmark_run_id,
+      agentName: outcome.agent_name,
+      modelName: outcome.model_name ?? undefined,
+      state: "completed",
+      expectedTotal: expectedTotal || scenarioOutcomes.length,
+      started: scenarioOutcomes.length,
+      running: 0,
+      scoring: 0,
+      finished: scenarioOutcomes.length,
+      avgScore: scoreCount > 0 ? scoreSum / scoreCount : null,
+    });
+  }
+
+  // Then, fetch progress for in-progress runs
+  const inProgressRuns = job.in_progress_runs || [];
+  const progressPromises = inProgressRuns.map(async (run) => {
+    const agentInfo = getAgentInfo(run);
+    const scenarioRuns = await listBenchmarkRunScenarioRuns(run.benchmark_run_id);
+    return calculateRunProgress(
+      run.benchmark_run_id,
+      agentInfo.name,
+      agentInfo.model,
+      run.state,
+      expectedTotal,
+      scenarioRuns,
+    );
+  });
+
+  const inProgressResults = await Promise.all(progressPromises);
+  results.push(...inProgressResults);
+
+  return results;
+}
+
+// Format a single run's progress line
+function formatRunProgressLine(progress: RunProgress): string {
+  // Format agent/model label
+  let label = progress.agentName;
+  if (progress.modelName) {
+    label += `:${progress.modelName}`;
+  }
+  if (label.length > 30) {
+    label = label.slice(0, 27) + "...";
+  }
+
+  // Use expectedTotal if available, otherwise use started count
+  const total = progress.expectedTotal > 0 ? progress.expectedTotal : progress.started;
+
+  // Check if this run is complete
+  const isComplete = progress.finished === total && total > 0;
+
+  if (isComplete) {
+    // Completed run - show green checkmark and final score
+    const scoreStr =
+      progress.avgScore !== null
+        ? `score: ${(progress.avgScore * 100).toFixed(0)}%`
+        : "done";
+    return `${chalk.green("✓")} ${label.padEnd(30)} ${chalk.green(scoreStr)}`;
+  }
+
+  // In-progress run
+  const parts: string[] = [];
+  parts.push(`${progress.finished}/${total} complete`);
+
+  if (progress.running > 0) {
+    parts.push(`${progress.running} running`);
+  }
+
+  if (progress.scoring > 0) {
+    parts.push(`${progress.scoring} scoring`);
+  }
+
+  if (progress.avgScore !== null) {
+    parts.push(`score: ${(progress.avgScore * 100).toFixed(0)}%`);
+  }
+
+  return `  ${label.padEnd(30)} ${parts.join(", ")}`;
+}
+
+// Print progress for in-progress jobs
+function printProgress(progressList: RunProgress[]): void {
+  if (progressList.length === 0) {
+    console.log(chalk.dim("No runs in progress"));
+    return;
+  }
+
+  console.log(chalk.bold("Progress:"));
+
+  for (const progress of progressList) {
+    console.log(formatRunProgressLine(progress));
+  }
+}
+
+// Print current status (brief)
+async function printStatus(job: BenchmarkJob): Promise<void> {
+  const jobName = job.name || job.id;
+  const state = job.state || "unknown";
+
+  console.log(`Job: ${jobName}`);
+  console.log(`ID: ${job.id}`);
+  console.log(`State: ${state}`);
+
+  if (!COMPLETED_STATES.includes(state)) {
+    // Fetch and show progress for in-progress runs
+    console.log();
+    const progressList = await fetchAllRunsProgress(job);
+    printProgress(progressList);
+  }
+}
+
+// Calculate stats for completed scenario outcomes
+interface CompletedStats {
   total: number;
   passed: number;
   failedZero: number;
   failedError: number;
-} {
+}
+
+function calculateCompletedStats(
+  outcomes: NonNullable<
+    NonNullable<BenchmarkJob["benchmark_outcomes"]>[0]["scenario_outcomes"]
+  >,
+): CompletedStats {
   let passed = 0;
   let failedZero = 0;
   let failedError = 0;
@@ -65,7 +281,6 @@ function calculateStats(outcomes: ScenarioOutcome[]): {
         failedZero++;
       }
     } else {
-      // Any non-COMPLETED state is an error
       failedError++;
     }
   }
@@ -78,42 +293,8 @@ function calculateStats(outcomes: ScenarioOutcome[]): {
   };
 }
 
-// Format percentage
-function formatPercent(count: number, total: number): string {
-  if (total === 0) return "0.0%";
-  return ((count / total) * 100).toFixed(1) + "%";
-}
-
-// Print current status (brief)
-function printStatus(job: JobData): void {
-  const jobName = job.name || job.id;
-  const state = job.state || "unknown";
-
-  console.log(`Job: ${jobName}`);
-  console.log(`ID: ${job.id}`);
-  console.log(`State: ${state}`);
-
-  if (COMPLETED_STATES.includes(state)) {
-    const outcomes = job.benchmark_outcomes || [];
-    if (outcomes.length > 0) {
-      let totalScenarios = 0;
-      let totalPassed = 0;
-      for (const outcome of outcomes) {
-        const stats = calculateStats(outcome.scenario_outcomes || []);
-        totalScenarios += stats.total;
-        totalPassed += stats.passed;
-      }
-      if (totalScenarios > 0) {
-        console.log(
-          `Results: ${totalPassed}/${totalScenarios} passed (${formatPercent(totalPassed, totalScenarios)})`,
-        );
-      }
-    }
-  }
-}
-
-// Print results table
-function printResultsTable(job: JobData): void {
+// Print results table for completed jobs
+function printResultsTable(job: BenchmarkJob): void {
   const outcomes = job.benchmark_outcomes || [];
 
   if (outcomes.length === 0) {
@@ -149,7 +330,7 @@ function printResultsTable(job: JobData): void {
     const modelName = outcome.model_name || "default";
     const scenarioOutcomes = outcome.scenario_outcomes || [];
 
-    const stats = calculateStats(scenarioOutcomes);
+    const stats = calculateCompletedStats(scenarioOutcomes);
 
     // Format agent/model column
     let agentModelStr = agentName;
@@ -220,7 +401,9 @@ function printResultsTable(job: JobData): void {
           : scenarioName;
 
       const scoreStr =
-        score !== undefined ? `score=${score.toFixed(1)}` : state;
+        score !== undefined && score !== null
+          ? `score=${score.toFixed(1)}`
+          : state;
 
       console.log(
         chalk.dim("  ") +
@@ -235,13 +418,22 @@ function printResultsTable(job: JobData): void {
   console.log();
 }
 
+// Format progress for watch mode - shows per-run progress
+function formatWatchProgress(progressList: RunProgress[]): string[] {
+  if (progressList.length === 0) {
+    return [];
+  }
+
+  return progressList.map((progress) => formatRunProgressLine(progress));
+}
+
 export async function statusBenchmarkJob(
   id: string,
   options: StatusOptions = {},
 ) {
   try {
     // Initial fetch
-    let job = (await getBenchmarkJob(id)) as unknown as JobData;
+    let job = await getBenchmarkJob(id);
 
     // Check if job is complete
     const isComplete = COMPLETED_STATES.includes(job.state || "");
@@ -253,7 +445,7 @@ export async function statusBenchmarkJob(
       } else if (isComplete) {
         printResultsTable(job);
       } else {
-        printStatus(job);
+        await printStatus(job);
       }
       return;
     }
@@ -261,10 +453,11 @@ export async function statusBenchmarkJob(
     // Wait mode: poll until complete
     const jobName = job.name || job.id;
     console.log(chalk.cyan(`Awaiting job "${jobName}" completion...`));
-    console.log(chalk.dim(`Current state: ${job.state}`));
     console.log();
 
     const startTime = Date.now();
+    let lastLineCount = 0;
+    let dotCount = 0;
 
     while (!COMPLETED_STATES.includes(job.state || "")) {
       // Check timeout
@@ -275,12 +468,41 @@ export async function statusBenchmarkJob(
         );
       }
 
+      // Fetch and show current progress
+      const progressList = await fetchAllRunsProgress(job);
+      const progressLines = formatWatchProgress(progressList);
+
+      // Build dots string (cycles through 1-3 dots)
+      dotCount = (dotCount % 3) + 1;
+      const dots = chalk.dim(".".repeat(dotCount));
+
+      // Clear previous output lines
+      if (lastLineCount > 0) {
+        for (let i = 0; i < lastLineCount; i++) {
+          process.stdout.write("\x1b[1A\x1b[2K"); // Move up and clear line
+        }
+      }
+
+      // Print current progress
+      if (progressLines.length > 0) {
+        console.log(chalk.dim(`[${job.state}]`) + " " + dots);
+        for (const line of progressLines) {
+          console.log(line);
+        }
+        lastLineCount = progressLines.length + 1;
+      } else {
+        console.log(chalk.dim(`[${job.state}] waiting for scenarios to start${dots}`));
+        lastLineCount = 1;
+      }
+
       await sleep(POLL_INTERVAL_MS);
-      job = (await getBenchmarkJob(id)) as unknown as JobData;
-      process.stdout.write(chalk.dim("."));
+      job = await getBenchmarkJob(id);
     }
 
-    console.log();
+    // Clear progress output
+    for (let i = 0; i < lastLineCount; i++) {
+      process.stdout.write("\x1b[1A\x1b[2K");
+    }
     console.log();
 
     // Output based on format

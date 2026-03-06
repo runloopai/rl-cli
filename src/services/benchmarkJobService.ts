@@ -7,9 +7,16 @@ import type {
   BenchmarkJobListView,
   BenchmarkJobCreateParams,
 } from "@runloop/api-client/resources/benchmark-jobs";
+import type {
+  BenchmarkRunView,
+  BenchmarkRunListScenarioRunsParams,
+} from "@runloop/api-client/resources/benchmark-runs";
+import type { ScenarioRunView } from "@runloop/api-client/resources/scenarios";
 
 // Re-export types
 export type BenchmarkJob = BenchmarkJobView;
+export type BenchmarkRun = BenchmarkRunView;
+export type ScenarioRun = ScenarioRunView;
 export type { BenchmarkJobCreateParams };
 
 export interface ListBenchmarkJobsOptions {
@@ -90,6 +97,35 @@ export async function listBenchmarkJobs(
 export async function getBenchmarkJob(id: string): Promise<BenchmarkJob> {
   const client = getClient();
   return client.benchmarkJobs.retrieve(id);
+}
+
+/**
+ * Get benchmark run by ID
+ */
+export async function getBenchmarkRun(id: string): Promise<BenchmarkRun> {
+  const client = getClient();
+  return client.benchmarkRuns.retrieve(id);
+}
+
+/**
+ * List scenario runs for a benchmark run
+ */
+export async function listBenchmarkRunScenarioRuns(
+  benchmarkRunId: string,
+  options?: BenchmarkRunListScenarioRunsParams,
+): Promise<ScenarioRun[]> {
+  const client = getClient();
+  const scenarioRuns: ScenarioRun[] = [];
+
+  // Paginate through all scenario runs
+  for await (const run of client.benchmarkRuns.listScenarioRuns(
+    benchmarkRunId,
+    { limit: 100, ...options },
+  )) {
+    scenarioRuns.push(run);
+  }
+
+  return scenarioRuns;
 }
 
 /**
