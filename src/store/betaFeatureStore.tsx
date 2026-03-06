@@ -25,7 +25,7 @@ interface BetaFeatureContextValue {
 /**
  * Known beta features that can be enabled
  */
-export type BetaFeature = "benchmarks";
+export type BetaFeature = never;
 
 const BetaFeatureContext = React.createContext<BetaFeatureContextValue | null>(
   null,
@@ -43,12 +43,9 @@ export function BetaFeatureProvider({ children }: BetaFeatureProviderProps) {
     (feature: BetaFeature): boolean => {
       // Currently all beta features are gated by the same flag
       // This can be extended to support per-feature flags in the future
-      switch (feature) {
-        case "benchmarks":
-          return betaEnabled;
-        default:
-          return false;
-      }
+      // Add cases here when new beta features are introduced
+      void feature;
+      return betaEnabled;
     },
     [betaEnabled],
   );
