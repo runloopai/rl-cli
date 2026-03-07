@@ -9,8 +9,7 @@ command: rli
 cwd: ~
 
 # Export additional ENV variables
-env:
-  recording: true
+env: {}
 
 # Explicitly set the number of columns
 # or use `auto` to take the current

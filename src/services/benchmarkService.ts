@@ -214,7 +214,7 @@ export async function listPublicBenchmarks(
 }
 
 /**
- * Create/start a benchmark run with selected benchmarks
+ * Create/start a benchmark run with selected benchmarks (POST /v1/benchmark_runs)
  */
 export async function createBenchmarkRun(
   benchmarkIds: string[],
@@ -241,4 +241,4 @@ export async function createBenchmarkRun(
   // Use type assertion since the API client types may not be fully defined
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (client.benchmarkRuns as any).create(createParams);
-}
+  }

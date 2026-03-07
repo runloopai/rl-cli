@@ -29,12 +29,20 @@ import {
   type OrchestratorConfig,
 } from "../services/benchmarkJobService.js";
 import type { Benchmark } from "../store/benchmarkStore.js";
+import { getClient } from "../utils/client.js";
+
+/** Secret list item for account secrets picker */
+interface SecretListItem {
+  id: string;
+  name: string;
+}
 
 type FormField =
   | "source_type"
   | "benchmark"
   | "scenarios"
   | "agents"
+  | "secrets"
   | "model_names"
   | "name"
   | "agent_timeout"
@@ -49,6 +57,8 @@ interface FormData {
   scenarioNames: string[];
   agentIds: string[];
   agentNames: string[];
+  /** Env var name -> secret name (account secret) */
+  secretsMapping: Record<string, string>;
   /** Comma-separated model names (one per agent, or one value applied to all) */
   modelNamesInput: string;
   name: string;
@@ -61,6 +71,9 @@ type ScreenState =
   | "picking_benchmark"
   | "picking_scenarios"
   | "picking_agents"
+  | "secrets_config"
+  | "picking_secret"
+  | "entering_env_var"
   | "creating"
   | "success"
   | "error";
@@ -78,6 +91,187 @@ interface BenchmarkJobCreateScreenProps {
   cloneAgentNames?: string;
   cloneAgentTimeout?: string;
   cloneConcurrentTrials?: string;
+}
+
+/**
+ * Secrets config sub-screen: list mappings, Add, Done. Handles its own input so hooks are stable.
+ */
+function SecretsConfigView({
+  mappingEntries,
+  selectedIndex,
+  onSelectIndex,
+  onAdd,
+  onDone,
+  onRemove,
+  onBack,
+}: {
+  mappingEntries: [string, string][];
+  selectedIndex: number;
+  onSelectIndex: (i: number) => void;
+  onAdd: () => void;
+  onDone: () => void;
+  onRemove: (envVar: string) => void;
+  onBack: () => void;
+}) {
+  const totalOptions = mappingEntries.length + 2;
+  const idx = Math.min(selectedIndex, Math.max(0, totalOptions - 1));
+
+  useInput((_input, key) => {
+    if (key.upArrow && idx > 0) {
+      onSelectIndex(idx - 1);
+    } else if (key.downArrow && idx < totalOptions - 1) {
+      onSelectIndex(idx + 1);
+    } else if (key.return) {
+      if (idx === mappingEntries.length) {
+        onAdd();
+      } else if (idx === mappingEntries.length + 1) {
+        onDone();
+      } else {
+        const keyToRemove = mappingEntries[idx][0];
+        onRemove(keyToRemove);
+        onSelectIndex(Math.max(0, idx - 1));
+      }
+    } else if (key.escape) {
+      onBack();
+    }
+  });
+
+  return (
+    <>
+      <Breadcrumb
+        items={[
+          { label: "Home" },
+          { label: "Benchmarks" },
+          { label: "Jobs" },
+          { label: "Create" },
+          { label: "Secrets", active: true },
+        ]}
+      />
+      <Box flexDirection="column" paddingX={1}>
+        <Box marginBottom={1}>
+          <Text color={colors.primary} bold>
+            {figures.pointer} Secrets (env → secret)
+          </Text>
+        </Box>
+        {mappingEntries.map(([envVar, secretName], i) => (
+          <Box key={envVar} marginBottom={0}>
+            <Box width={4}>
+              <Text
+                color={idx === i ? colors.primary : colors.textDim}
+                bold={idx === i}
+              >
+                {idx === i ? figures.pointer : " "}
+              </Text>
+            </Box>
+            <Text color={colors.textDim}>
+              {envVar} → {secretName}
+            </Text>
+            {idx === i && (
+              <Text color={colors.textDim} dimColor>
+                {" "}
+                Enter to remove
+              </Text>
+            )}
+          </Box>
+        ))}
+        <Box marginBottom={0}>
+          <Box width={4}>
+            <Text
+              color={idx === mappingEntries.length ? colors.primary : colors.textDim}
+              bold={idx === mappingEntries.length}
+            >
+              {idx === mappingEntries.length ? figures.pointer : " "}
+            </Text>
+          </Box>
+          <Text color={idx === mappingEntries.length ? colors.primary : colors.text}>
+            + Add secret
+          </Text>
+        </Box>
+        <Box marginBottom={0}>
+          <Box width={4}>
+            <Text
+              color={
+                idx === mappingEntries.length + 1 ? colors.primary : colors.textDim
+              }
+              bold={idx === mappingEntries.length + 1}
+            >
+              {idx === mappingEntries.length + 1 ? figures.pointer : " "}
+            </Text>
+          </Box>
+          <Text
+            color={
+              idx === mappingEntries.length + 1 ? colors.primary : colors.text
+            }
+          >
+            Done
+          </Text>
+        </Box>
+      </Box>
+      <NavigationTips
+        tips={[
+          { key: "Enter", label: "Select" },
+          { key: "Esc", label: "Back to form" },
+        ]}
+      />
+    </>
+  );
+}
+
+/**
+ * Inline view to enter env var name for a selected secret
+ * Pre-fills with secret name so Enter uses it as-is; user can edit if needed.
+ */
+function EnvVarInputView({
+  secretName,
+  onSubmit,
+  onCancel,
+}: {
+  secretName: string;
+  onSubmit: (value: string) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = React.useState(secretName);
+  useInput((_input, key) => {
+    if (key.return) {
+      onSubmit(value.trim() || secretName);
+    } else if (key.escape) {
+      onCancel();
+    }
+  });
+  return (
+    <>
+      <Breadcrumb
+        items={[
+          { label: "Home" },
+          { label: "Benchmarks" },
+          { label: "Jobs" },
+          { label: "Create" },
+          { label: "Secret env var", active: true },
+        ]}
+      />
+      <Box flexDirection="column" paddingX={1}>
+        <Box marginBottom={1}>
+          <Text color={colors.textDim} dimColor>
+            Env var name for secret &quot;{secretName}&quot;:
+          </Text>
+        </Box>
+        <Box marginLeft={2}>
+          <TextInput
+            value={value}
+            onChange={setValue}
+            placeholder="e.g. ANTHROPIC_API_KEY (or use secret name as-is)"
+            onSubmit={() => onSubmit(value.trim() || secretName)}
+          />
+        </Box>
+      </Box>
+      <NavigationTips
+        tips={[
+          { key: "Enter", label: "Add (uses secret name if empty)" },
+          { key: "Esc", label: "Cancel" },
+        ]}
+      />
+    </>
+  );
 }
 
 /**
@@ -174,16 +368,26 @@ export function BenchmarkJobCreateScreen({
 
   const [formData, setFormData] = React.useState<FormData>(() => {
     let modelNamesInput = "";
+    let secretsMapping: Record<string, string> = {};
     try {
       if (cloneAgentConfigs) {
         const arr = JSON.parse(cloneAgentConfigs) as Array<{
           modelName?: string | null;
           model_name?: string | null;
+          secrets?: Record<string, string>;
+          secret_names?: Record<string, string>;
         }>;
         modelNamesInput = arr
           .map((a) => a.modelName ?? a.model_name ?? "")
           .filter(Boolean)
           .join(", ");
+        // Merge secrets from all agent configs into one mapping (clone prefill)
+        const allSecrets = arr
+          .map((a) => a.secrets ?? a.secret_names)
+          .filter((s): s is Record<string, string> => !!s && typeof s === "object");
+        if (allSecrets.length > 0) {
+          secretsMapping = Object.assign({}, ...allSecrets);
+        }
       }
     } catch {
       // ignore invalid JSON
@@ -196,6 +400,7 @@ export function BenchmarkJobCreateScreen({
       scenarioNames: [],
       agentIds: cloneAgentIds ? cloneAgentIds.split(",") : [],
       agentNames: cloneAgentNames ? cloneAgentNames.split(",") : [],
+      secretsMapping,
       modelNamesInput,
       name: cloneJobName ? `${cloneJobName} (clone)` : "",
       agentTimeout: cloneAgentTimeout || "",
@@ -205,6 +410,14 @@ export function BenchmarkJobCreateScreen({
 
   const [createdJob, setCreatedJob] = React.useState<BenchmarkJob | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
+  /** When adding a secret: selected secret awaiting env var name */
+  const [pendingSecretForEnv, setPendingSecretForEnv] = React.useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  /** In secrets_config, index of mapping row selected for removal (or -1 for Add/Done) */
+  const [secretsConfigSelectedIndex, setSecretsConfigSelectedIndex] =
+    React.useState(0);
 
   // Handle Ctrl+C to exit
   useExitOnCtrlC();
@@ -287,6 +500,16 @@ export function BenchmarkJobCreateScreen({
       type: "picker",
       required: true,
       description: "Select one or more agents to run",
+    },
+    {
+      key: "secrets",
+      label: "Secrets (env → secret)",
+      type: "picker",
+      required: false,
+      description:
+        cloneFromJobId && Object.keys(formData.secretsMapping).length === 0
+          ? "Optional. The API does not return secrets on job fetch; add any needed env→secret mappings here."
+          : "Optional. Map environment variable names to account secrets.",
     },
     {
       key: "model_names",
@@ -464,6 +687,55 @@ export function BenchmarkJobCreateScreen({
     [fetchAgentsPage],
   );
 
+  // Fetch account secrets for picker (client-side pagination)
+  const fetchSecretsPage = React.useCallback(
+    async (params: { limit: number; startingAt?: string; search?: string }) => {
+      const client = getClient();
+      const result = await client.secrets.list({ limit: 5000 });
+      const raw = (result.secrets || []) as Array<{ id: string; name: string }>;
+      let items = raw.map((s) => ({ id: s.id, name: s.name || s.id }));
+      if (params.search) {
+        const q = params.search.toLowerCase();
+        items = items.filter(
+          (s) =>
+            s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q),
+        );
+      }
+      const startIdx = params.startingAt
+        ? items.findIndex((s) => s.id === params.startingAt) + 1
+        : 0;
+      const page = items.slice(startIdx, startIdx + params.limit);
+      return {
+        items: page,
+        hasMore: startIdx + params.limit < items.length,
+        totalCount: items.length,
+      };
+    },
+    [],
+  );
+
+  const secretPickerConfig = React.useMemo(
+    () => ({
+      title: "Select Secret",
+      fetchPage: fetchSecretsPage,
+      getItemId: (s: SecretListItem) => s.id,
+      getItemLabel: (s: SecretListItem) => s.name,
+      getItemStatus: () => undefined,
+      mode: "single" as const,
+      minSelection: 1,
+      emptyMessage: "No secrets found",
+      searchPlaceholder: "Search secrets...",
+      breadcrumbItems: [
+        { label: "Home" },
+        { label: "Benchmarks" },
+        { label: "Jobs" },
+        { label: "Create" },
+        { label: "Select Secret", active: true },
+      ],
+    }),
+    [fetchSecretsPage],
+  );
+
   // Handle benchmark selection (single)
   const handleBenchmarkSelect = React.useCallback((items: Benchmark[]) => {
     if (items.length > 0) {
@@ -496,6 +768,37 @@ export function BenchmarkJobCreateScreen({
     }));
     setScreenState("form");
   }, []);
+
+  // After picking a secret: set pending and go to env var input
+  const handleSecretSelect = React.useCallback((items: SecretListItem[]) => {
+    if (items.length > 0) {
+      const s = items[0];
+      setPendingSecretForEnv({ id: s.id, name: s.name });
+      setScreenState("entering_env_var");
+    } else {
+      setScreenState("secrets_config");
+    }
+  }, []);
+
+  // After entering env var for pending secret: add mapping and return to secrets_config
+  // If envVarName is empty, use secret name as-is for the mapping (env var name = secret name).
+  const handleEnvVarForSecretSubmit = React.useCallback(
+    (envVarName: string) => {
+      const envVarToUse = envVarName.trim() || pendingSecretForEnv?.name || "";
+      if (envVarToUse && pendingSecretForEnv) {
+        setFormData((prev) => ({
+          ...prev,
+          secretsMapping: {
+            ...prev.secretsMapping,
+            [envVarToUse]: pendingSecretForEnv.name,
+          },
+        }));
+      }
+      setPendingSecretForEnv(null);
+      setScreenState("secrets_config");
+    },
+    [pendingSecretForEnv],
+  );
 
   // Handle create
   const handleCreate = React.useCallback(async () => {
@@ -543,6 +846,13 @@ export function BenchmarkJobCreateScreen({
 
           return config;
         });
+      }
+
+      // Form secrets are source of truth: apply to all agents
+      if (Object.keys(formData.secretsMapping).length > 0) {
+        for (const config of agentConfigs) {
+          config.secrets = { ...formData.secretsMapping };
+        }
       }
 
       // Use cloned orchestrator config if available, otherwise build from form
@@ -618,6 +928,12 @@ export function BenchmarkJobCreateScreen({
       ) {
         setScreenState("picking_agents");
       } else if (
+        currentFieldDef?.type === "picker" &&
+        currentField === "secrets"
+      ) {
+        setScreenState("secrets_config");
+        setSecretsConfigSelectedIndex(0);
+      } else if (
         currentFieldDef?.type === "action" &&
         currentField === "create"
       ) {
@@ -628,6 +944,54 @@ export function BenchmarkJobCreateScreen({
       }
     }
   });
+
+  // ----- Secrets sub-flow -----
+  const mappingEntries = Object.entries(formData.secretsMapping);
+
+  if (screenState === "secrets_config") {
+    return (
+      <SecretsConfigView
+        mappingEntries={mappingEntries}
+        selectedIndex={secretsConfigSelectedIndex}
+        onSelectIndex={setSecretsConfigSelectedIndex}
+        onAdd={() => setScreenState("picking_secret")}
+        onDone={() => setScreenState("form")}
+        onRemove={(envVar) => {
+          setFormData((prev) => {
+            const next = { ...prev.secretsMapping };
+            delete next[envVar];
+            return { ...prev, secretsMapping: next };
+          });
+          setSecretsConfigSelectedIndex((i) => Math.max(0, i - 1));
+        }}
+        onBack={() => setScreenState("form")}
+      />
+    );
+  }
+
+  if (screenState === "entering_env_var" && pendingSecretForEnv) {
+    return (
+      <EnvVarInputView
+        secretName={pendingSecretForEnv.name}
+        onSubmit={(val) => handleEnvVarForSecretSubmit(val)}
+        onCancel={() => {
+          setPendingSecretForEnv(null);
+          setScreenState("secrets_config");
+        }}
+      />
+    );
+  }
+
+  if (screenState === "picking_secret") {
+    return (
+      <ResourcePicker<SecretListItem>
+        config={secretPickerConfig}
+        onSelect={handleSecretSelect}
+        onCancel={() => setScreenState("secrets_config")}
+        initialSelected={[]}
+      />
+    );
+  }
 
   // Show benchmark picker (single-select)
   if (screenState === "picking_benchmark") {
@@ -750,6 +1114,13 @@ export function BenchmarkJobCreateScreen({
         if (formData.agentNames.length === 0) return "";
         if (formData.agentNames.length === 1) return formData.agentNames[0];
         return `${formData.agentNames.length} agents selected`;
+      case "secrets": {
+        const keys = Object.keys(formData.secretsMapping);
+        if (keys.length === 0) return "";
+        if (keys.length === 1)
+          return `${keys[0]} → ${formData.secretsMapping[keys[0]]}`;
+        return `${keys.length} mappings`;
+      }
       case "model_names":
         return formData.modelNamesInput;
       case "name":

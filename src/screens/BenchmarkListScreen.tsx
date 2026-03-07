@@ -24,7 +24,10 @@ import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../hooks/useCursorPagination.js";
 import { useListSearch } from "../hooks/useListSearch.js";
-import { listBenchmarks } from "../services/benchmarkService.js";
+import {
+  listBenchmarks,
+  listPublicBenchmarks,
+} from "../services/benchmarkService.js";
 import type { Benchmark } from "../store/benchmarkStore.js";
 
 export function BenchmarkListScreen() {
@@ -33,6 +36,7 @@ export function BenchmarkListScreen() {
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showPopup, setShowPopup] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(0);
+  const [showPublic, setShowPublic] = React.useState(false);
 
   // Search state
   const search = useListSearch({
@@ -61,7 +65,8 @@ export function BenchmarkListScreen() {
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
     async (params: { limit: number; startingAt?: string }) => {
-      const result = await listBenchmarks({
+      const listFn = showPublic ? listPublicBenchmarks : listBenchmarks;
+      const result = await listFn({
         limit: params.limit,
         startingAfter: params.startingAt,
         search: search.submittedSearchQuery || undefined,
@@ -73,7 +78,7 @@ export function BenchmarkListScreen() {
         totalCount: result.totalCount,
       };
     },
-    [search.submittedSearchQuery],
+    [showPublic, search.submittedSearchQuery],
   );
 
   // Use the shared pagination hook
@@ -94,7 +99,7 @@ export function BenchmarkListScreen() {
     getItemId: (benchmark: Benchmark) => benchmark.id,
     pollInterval: 5000,
     pollingEnabled: !showPopup && !search.searchMode,
-    deps: [PAGE_SIZE, search.submittedSearchQuery],
+    deps: [PAGE_SIZE, search.submittedSearchQuery, showPublic],
   });
 
   // Operations for benchmarks
@@ -271,6 +276,9 @@ export function BenchmarkListScreen() {
       });
     } else if (input === "/") {
       search.enterSearchMode();
+    } else if (input === "t") {
+      setShowPublic((prev) => !prev);
+      setSelectedIndex(0);
     } else if (key.escape) {
       if (search.handleEscape()) {
         return;
@@ -339,11 +347,11 @@ export function BenchmarkListScreen() {
           data={benchmarks}
           keyExtractor={(benchmark: Benchmark) => benchmark.id}
           selectedIndex={selectedIndex}
-          title={`benchmarks[${totalCount}]`}
+          title={`benchmarks[${totalCount}] ${showPublic ? "(public)" : "(private)"}`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
-              {figures.info} No benchmarks found
+              {figures.info} No {showPublic ? "public " : ""}benchmarks found
             </Text>
           }
         />
@@ -358,6 +366,10 @@ export function BenchmarkListScreen() {
           <Text color={colors.textDim} dimColor>
             {" "}
             total
+          </Text>
+          <Text color={showPublic ? colors.warning : colors.textDim} dimColor={!showPublic}>
+            {" "}
+            • {showPublic ? "Public" : "Private"}
           </Text>
           {totalPages > 1 && (
             <>
@@ -421,6 +433,7 @@ export function BenchmarkListScreen() {
           { key: "Enter", label: "Details" },
           { key: "c", label: "Create Job" },
           { key: "a", label: "Actions" },
+          { key: "t", label: showPublic ? "Private" : "Public" },
           { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },
         ]}
