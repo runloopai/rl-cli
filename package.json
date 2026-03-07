@@ -11,6 +11,7 @@
     "build:mcp": "pnpm run build && node scripts/build-mcp.js",
     "dev": "tsc --watch",
     "start": "node dist/cli.js",
+    "start:debug": "node dist/cli.js 2> debug.log",
     "prepublishOnly": "pnpm run build",
     "version:patch": "pnpm version patch",
     "version:minor": "pnpm version minor",

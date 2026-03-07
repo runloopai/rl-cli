@@ -372,7 +372,7 @@ export function BenchmarkListScreen() {
             dimColor={!showPublic}
           >
             {" "}
-            • {showPublic ? "Public" : "Private"}
+            • {showPublic ? "Public" : "Custom"}
           </Text>
           {totalPages > 1 && (
             <>
@@ -436,7 +436,7 @@ export function BenchmarkListScreen() {
           { key: "Enter", label: "Details" },
           { key: "c", label: "Create Job" },
           { key: "a", label: "Actions" },
-          { key: "t", label: showPublic ? "Private" : "Public" },
+          { key: "t", label: showPublic ? "Custom" : "Public" },
           { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },
         ]}
