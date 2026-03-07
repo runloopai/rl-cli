@@ -177,13 +177,17 @@ function SecretsConfigView({
         <Box marginBottom={0}>
           <Box width={4}>
             <Text
-              color={idx === mappingEntries.length ? colors.primary : colors.textDim}
+              color={
+                idx === mappingEntries.length ? colors.primary : colors.textDim
+              }
               bold={idx === mappingEntries.length}
             >
               {idx === mappingEntries.length ? figures.pointer : " "}
             </Text>
           </Box>
-          <Text color={idx === mappingEntries.length ? colors.primary : colors.text}>
+          <Text
+            color={idx === mappingEntries.length ? colors.primary : colors.text}
+          >
             + Add secret
           </Text>
         </Box>
@@ -191,7 +195,9 @@ function SecretsConfigView({
           <Box width={4}>
             <Text
               color={
-                idx === mappingEntries.length + 1 ? colors.primary : colors.textDim
+                idx === mappingEntries.length + 1
+                  ? colors.primary
+                  : colors.textDim
               }
               bold={idx === mappingEntries.length + 1}
             >
@@ -384,7 +390,9 @@ export function BenchmarkJobCreateScreen({
         // Merge secrets from all agent configs into one mapping (clone prefill)
         const allSecrets = arr
           .map((a) => a.secrets ?? a.secret_names)
-          .filter((s): s is Record<string, string> => !!s && typeof s === "object");
+          .filter(
+            (s): s is Record<string, string> => !!s && typeof s === "object",
+          );
         if (allSecrets.length > 0) {
           secretsMapping = Object.assign({}, ...allSecrets);
         }

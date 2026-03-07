@@ -367,7 +367,10 @@ export function BenchmarkListScreen() {
             {" "}
             total
           </Text>
-          <Text color={showPublic ? colors.warning : colors.textDim} dimColor={!showPublic}>
+          <Text
+            color={showPublic ? colors.warning : colors.textDim}
+            dimColor={!showPublic}
+          >
             {" "}
             • {showPublic ? "Public" : "Private"}
           </Text>

@@ -241,4 +241,4 @@ export async function createBenchmarkRun(
   // Use type assertion since the API client types may not be fully defined
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (client.benchmarkRuns as any).create(createParams);
-  }
+}
