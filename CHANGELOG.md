@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.1](https://github.com/runloopai/rl-cli/compare/v1.13.0...v1.13.1) (2026-03-07)
+
+
+### Bug Fixes
+
+* disable unfinished benchmark features in interactive UX ([#157](https://github.com/runloopai/rl-cli/issues/157)) ([fd84d31](https://github.com/runloopai/rl-cli/commit/fd84d31617e112cae0774625691327cefdc443a8))
+
 ## [1.13.0](https://github.com/runloopai/rl-cli/compare/v1.12.0...v1.13.0) (2026-03-06)
 
 
