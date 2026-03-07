@@ -24,6 +24,7 @@ interface MenuItem {
 }
 
 const allMenuItems: MenuItem[] = [
+  /**
   {
     key: "benchmarks",
     label: "Benchmarks",
@@ -31,6 +32,7 @@ const allMenuItems: MenuItem[] = [
     icon: "▷",
     color: colors.success,
   },
+  */
   {
     key: "devboxes",
     label: "Devboxes",
@@ -188,8 +190,10 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       selectByKey("snapshots");
     } else if (input === "o") {
       selectByKey("objects");
+      /**
     } else if (input === "e") {
       selectByKey("benchmarks");
+    */
     } else if (input === "n") {
       selectByKey("settings");
     } else if (input >= "1" && input <= "9") {
