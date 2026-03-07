@@ -1020,12 +1020,11 @@ export function createProgram(): Command {
 
   benchmarkJob
     .command("run")
-    .description("Run a benchmark job with an agent")
-    .requiredOption(
-      "--agent <agent>",
-      "Agent to use (claude-code, codex, opencode, goose, gemini-cli)",
+    .description("Run a benchmark job with one or more agents")
+    .option(
+      "--agent <agents...>",
+      "Agent(s) to use. Format: agent:model (e.g., claude-code:claude-sonnet-4). Can specify multiple.",
     )
-    .requiredOption("--model <model>", "Model name for the agent")
     .option("--benchmark <id-or-name>", "Benchmark ID or name to run")
     .option(
       "--scenarios <ids...>",
@@ -1055,17 +1054,45 @@ export function createProgram(): Command {
     });
 
   benchmarkJob
-    .command("status <id>")
-    .description("Get benchmark job status and results")
-    .option("-w, --watch", "Watch for job to complete before showing results")
+    .command("summary <id>")
+    .description("Get benchmark job summary and results")
+    .option("-e, --extended", "Show individual scenario results")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
     )
     .action(async (id, options) => {
-      const { statusBenchmarkJob } =
-        await import("../commands/benchmark-job/status.js");
-      await statusBenchmarkJob(id, options);
+      const { summaryBenchmarkJob } =
+        await import("../commands/benchmark-job/summary.js");
+      await summaryBenchmarkJob(id, options);
+    });
+
+  benchmarkJob
+    .command("watch <id>")
+    .description("Watch benchmark job progress in real-time (full-screen)")
+    .action(async (id) => {
+      const { watchBenchmarkJob } =
+        await import("../commands/benchmark-job/watch.js");
+      await watchBenchmarkJob(id);
+    });
+
+  benchmarkJob
+    .command("list")
+    .description("List benchmark jobs")
+    .option("--days <n>", "Show jobs from the last N days (default: 1)")
+    .option("--all", "Show all jobs (no time filter)")
+    .option(
+      "--status <statuses>",
+      "Filter by status (comma-separated). Valid: initializing, queued, running, completed, failed, cancelled, timeout",
+    )
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (options) => {
+      const { listBenchmarkJobsCommand } =
+        await import("../commands/benchmark-job/list.js");
+      await listBenchmarkJobsCommand(options);
     });
 
   // Hidden command: 'rli mcp' without subcommand starts the server (for Claude Desktop config compatibility)
