@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.2](https://github.com/runloopai/rl-cli/compare/v1.13.1...v1.13.2) (2026-03-09)
+
+
+### Bug Fixes
+
+* **benchmark:** increase id column so full id visible in bechmark-job.list ([#159](https://github.com/runloopai/rl-cli/issues/159)) ([a472f0a](https://github.com/runloopai/rl-cli/commit/a472f0a07dd5d1c275e5e79cfeead08ab6f97fae))
+* **benchmark:** remove default agent timeout ([#160](https://github.com/runloopai/rl-cli/issues/160)) ([97fcfcc](https://github.com/runloopai/rl-cli/commit/97fcfcc7c51808bf751a607cfee03ba80e906a70))
+
 ## [1.13.1](https://github.com/runloopai/rl-cli/compare/v1.13.0...v1.13.1) (2026-03-07)
 
 
