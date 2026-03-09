@@ -326,9 +326,7 @@ export async function runBenchmarkJob(options: RunOptions) {
     const agentConfigs = parsedAgents.map((agent) => ({
       name: agent.name,
       modelName: agent.model,
-      timeoutSeconds: options.timeout
-        ? parseInt(options.timeout, 10)
-        : undefined,
+      timeoutSeconds: options.timeout ? parseInt(options.timeout, 10) : 7200, // Default to 2 hours
       environmentVariables:
         Object.keys(providedEnvVars).length > 0 ? providedEnvVars : undefined,
       secrets,
@@ -345,7 +343,9 @@ export async function runBenchmarkJob(options: RunOptions) {
 
     // Output result
     if (!options.output || options.output === "text") {
-      console.log(`Benchmark job created: ${job.id}`);
+      console.log(
+        `Benchmark job created: ${job.id} (agent timeout = ${agentConfigs[0].timeoutSeconds}s)`,
+      );
       console.log(`Follow the run with rli benchmark-job watch ${job.id}`);
     } else {
       output(job, { format: options.output, defaultFormat: "json" });
