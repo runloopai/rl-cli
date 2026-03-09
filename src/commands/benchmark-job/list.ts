@@ -106,7 +106,7 @@ function colorState(state: string): string {
 // --- Table printing ---
 
 // Fixed column widths (excluding NAME which is dynamic)
-const COL_ID = 16;
+const COL_ID = 30;
 const COL_STARTED = 10;
 const COL_STATUS = 14;
 const COL_DONE = 9;
