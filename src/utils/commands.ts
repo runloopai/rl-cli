@@ -1077,6 +1077,20 @@ export function createProgram(): Command {
     });
 
   benchmarkJob
+    .command("logs <id>")
+    .description(
+      "Download devbox logs for all scenario runs in a benchmark job",
+    )
+    .option("-o, --output-dir <path>", "Output directory")
+    .option("--run <id>", "Download logs for a specific benchmark run only")
+    .option("--scenario <id>", "Download logs for a specific scenario run only")
+    .action(async (id, options) => {
+      const { downloadBenchmarkJobLogs } =
+        await import("../commands/benchmark-job/logs.js");
+      await downloadBenchmarkJobLogs(id, options);
+    });
+
+  benchmarkJob
     .command("list")
     .description("List benchmark jobs")
     .option("--days <n>", "Show jobs from the last N days (default: 1)")
