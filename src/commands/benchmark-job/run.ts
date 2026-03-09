@@ -342,8 +342,9 @@ export async function runBenchmarkJob(options: RunOptions) {
     });
 
     // Output result
+    const agentTimeout = options.timeout ? parseInt(options.timeout, 10) : 7200;
     if (!options.output || options.output === "text") {
-      console.log(`Benchmark job created: ${job.id}`);
+      console.log(`Benchmark job created: ${job.id} (agent timeout = ${agentTimeout}s)`);
       console.log(`Follow the run with rli benchmark-job watch ${job.id}`);
     } else {
       output(job, { format: options.output, defaultFormat: "json" });
