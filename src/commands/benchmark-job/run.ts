@@ -328,7 +328,7 @@ export async function runBenchmarkJob(options: RunOptions) {
       modelName: agent.model,
       timeoutSeconds: options.timeout
         ? parseInt(options.timeout, 10)
-        : undefined,
+        : 7200, // Default to 2 hours
       environmentVariables:
         Object.keys(providedEnvVars).length > 0 ? providedEnvVars : undefined,
       secrets,
