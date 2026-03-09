@@ -326,7 +326,9 @@ export async function runBenchmarkJob(options: RunOptions) {
     const agentConfigs = parsedAgents.map((agent) => ({
       name: agent.name,
       modelName: agent.model,
-      timeoutSeconds: options.timeout ? parseInt(options.timeout, 10) : undefined,
+      timeoutSeconds: options.timeout
+        ? parseInt(options.timeout, 10)
+        : undefined,
       environmentVariables:
         Object.keys(providedEnvVars).length > 0 ? providedEnvVars : undefined,
       secrets,
