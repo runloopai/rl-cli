@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.3](https://github.com/runloopai/rl-cli/compare/v1.13.2...v1.13.3) (2026-03-09)
+
+
+### Bug Fixes
+
+* **benchmark:** set default agent timeout -&gt; 2 hours ([#162](https://github.com/runloopai/rl-cli/issues/162)) ([869fb89](https://github.com/runloopai/rl-cli/commit/869fb8956d975a1e88c27bd7d7b664162ac6d64f))
+
 ## [1.13.2](https://github.com/runloopai/rl-cli/compare/v1.13.1...v1.13.2) (2026-03-09)
 
 
