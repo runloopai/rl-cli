@@ -181,12 +181,19 @@ rli mcp start                            # Start the MCP server
 rli mcp install                          # Install Runloop MCP server configurat...
 ```
 
+### Scenario Commands (alias: `scn`)
+
+```bash
+rli scenario info <id>                   # Display scenario definition details
+```
+
 ### Benchmark-job Commands (alias: `bmj`)
 
 ```bash
 rli benchmark-job run                    # Run a benchmark job with one or more ...
 rli benchmark-job summary <id>           # Get benchmark job summary and results
 rli benchmark-job watch <id>             # Watch benchmark job progress in real-...
+rli benchmark-job logs <id>              # Download devbox logs for all scenario...
 rli benchmark-job list                   # List benchmark jobs
 ```
 

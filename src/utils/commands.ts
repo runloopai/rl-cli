@@ -1012,6 +1012,24 @@ export function createProgram(): Command {
       await installMcpConfig();
     });
 
+  // Scenario commands
+  const scenario = program
+    .command("scenario")
+    .description("Manage scenarios")
+    .alias("scn");
+
+  scenario
+    .command("info <id>")
+    .description("Display scenario definition details")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (id, options) => {
+      const { scenarioInfo } = await import("../commands/scenario/info.js");
+      await scenarioInfo(id, options);
+    });
+
   // Benchmark job commands
   const benchmarkJob = program
     .command("benchmark-job")
@@ -1074,6 +1092,20 @@ export function createProgram(): Command {
       const { watchBenchmarkJob } =
         await import("../commands/benchmark-job/watch.js");
       await watchBenchmarkJob(id);
+    });
+
+  benchmarkJob
+    .command("logs <id>")
+    .description(
+      "Download devbox logs for all scenario runs in a benchmark job",
+    )
+    .option("-o, --output-dir <path>", "Output directory")
+    .option("--run <id>", "Download logs for a specific benchmark run only")
+    .option("--scenario <id>", "Download logs for a specific scenario run only")
+    .action(async (id, options) => {
+      const { downloadBenchmarkJobLogs } =
+        await import("../commands/benchmark-job/logs.js");
+      await downloadBenchmarkJobLogs(id, options);
     });
 
   benchmarkJob
