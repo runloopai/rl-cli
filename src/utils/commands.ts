@@ -1012,6 +1012,24 @@ export function createProgram(): Command {
       await installMcpConfig();
     });
 
+  // Scenario commands
+  const scenario = program
+    .command("scenario")
+    .description("Manage scenarios")
+    .alias("scn");
+
+  scenario
+    .command("info <id>")
+    .description("Display scenario definition details")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (id, options) => {
+      const { scenarioInfo } = await import("../commands/scenario/info.js");
+      await scenarioInfo(id, options);
+    });
+
   // Benchmark job commands
   const benchmarkJob = program
     .command("benchmark-job")
