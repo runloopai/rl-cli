@@ -56,15 +56,26 @@ function exitFullScreen(): void {
   process.stdout.write(ANSI.exitAltScreen);
 }
 
-// Render content at top of screen, truncating to fit terminal height
+// Track how many lines the last render wrote so we can clear stale lines
+let lastRenderedLineCount = 0;
+
+// Render content at top of screen by overwriting lines in place.
+// This avoids the flicker caused by clearing the entire screen each frame.
 function renderScreen(lines: string[]): void {
-  process.stdout.write(ANSI.moveTo(1, 1));
-  process.stdout.write(ANSI.clearScreen);
-  const maxLines = (process.stdout.rows || 24) - 1; // Leave 1 line buffer
+  const maxLines = (process.stdout.rows || 24) - 1;
   const truncatedLines = lines.slice(0, maxLines);
+
+  let buf = ANSI.moveTo(1, 1);
   for (const line of truncatedLines) {
-    console.log(line);
+    buf += ANSI.clearLine + line + "\n";
   }
+  // Clear any leftover lines from the previous (longer) render
+  for (let i = truncatedLines.length; i < lastRenderedLineCount; i++) {
+    buf += ANSI.clearLine + "\n";
+  }
+  lastRenderedLineCount = truncatedLines.length;
+
+  process.stdout.write(buf);
 }
 
 // Format percentage
@@ -509,7 +520,7 @@ export async function watchBenchmarkJob(id: string) {
     }
 
     const jobName = job.name || job.id;
-    const startTime = Date.now();
+    const jobStartMs = job.create_time_ms;
 
     // Enter full-screen mode and set up cleanup
     enterFullScreen();
@@ -542,7 +553,7 @@ export async function watchBenchmarkJob(id: string) {
     const SPINNER_INTERVAL_MS = 100;
     const UPDATES_PER_POLL = Math.floor(POLL_INTERVAL_MS / SPINNER_INTERVAL_MS);
 
-    // Handle terminal resize - clear screen to prevent artifacts
+    // Handle terminal resize - force a full redraw to clear stale content
     let needsFullRedraw = false;
     const handleResize = () => {
       needsFullRedraw = true;
@@ -555,7 +566,7 @@ export async function watchBenchmarkJob(id: string) {
 
       while (!COMPLETED_STATES.includes(job.state || "")) {
         // Check timeout
-        if (Date.now() - startTime > MAX_WAIT_MS) {
+        if (Date.now() - jobStartMs > MAX_WAIT_MS) {
           cleanup();
           outputError(
             `Timeout waiting for job completion after ${MAX_WAIT_MS / 1000 / 60} minutes`,
@@ -566,8 +577,7 @@ export async function watchBenchmarkJob(id: string) {
         const progressLines = formatWatchProgress(progressList, tick);
 
         // Build screen content
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        const elapsedStr = `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`;
+        const elapsedStr = formatDuration(Date.now() - jobStartMs);
 
         const screenLines: string[] = [];
         screenLines.push(
@@ -588,9 +598,9 @@ export async function watchBenchmarkJob(id: string) {
         screenLines.push("");
         screenLines.push(chalk.dim("Press Ctrl+C to exit"));
 
-        // Force full clear on resize to prevent artifacts
+        // On resize, bump the line count so renderScreen clears the full area
         if (needsFullRedraw) {
-          process.stdout.write(ANSI.clearScreen);
+          lastRenderedLineCount = process.stdout.rows || 24;
           needsFullRedraw = false;
         }
 
@@ -614,9 +624,8 @@ export async function watchBenchmarkJob(id: string) {
       cleanup();
     }
 
-    // Calculate total elapsed time
-    const totalElapsed = Date.now() - startTime;
-    const totalElapsedStr = formatDuration(totalElapsed);
+    // Calculate total elapsed time from job creation
+    const totalElapsedStr = formatDuration(Date.now() - jobStartMs);
 
     // Show completion message
     console.log(chalk.green.bold("Benchmark job completed!"));
