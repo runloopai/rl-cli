@@ -340,7 +340,7 @@ export function BenchmarkRunListScreen() {
           data={benchmarkRuns}
           keyExtractor={(run: BenchmarkRun) => run.id}
           selectedIndex={selectedIndex}
-          title={`benchmark_runs[${totalCount}]`}
+          title={`benchmark_runs[${totalCount}${hasMore ? "+" : ""}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -355,12 +355,13 @@ export function BenchmarkRunListScreen() {
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
             {figures.hamburger} {totalCount}
+            {hasMore ? "+" : ""}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
             total
           </Text>
-          {totalPages > 1 && (
+          {(hasMore || hasPrev) && (
             <>
               <Text color={colors.textDim} dimColor>
                 {" "}
@@ -372,7 +373,8 @@ export function BenchmarkRunListScreen() {
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of {totalPages}
+                  Page {currentPage + 1}
+                  {!hasMore ? ` of ${totalPages}` : ""}
                 </Text>
               )}
             </>
@@ -382,7 +384,8 @@ export function BenchmarkRunListScreen() {
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {startIndex + 1}-{endIndex}
+            {!hasMore ? ` of ${totalCount}` : ""}
           </Text>
         </Box>
       )}

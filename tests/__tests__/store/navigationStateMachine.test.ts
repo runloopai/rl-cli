@@ -12,6 +12,7 @@ import {
   goBack,
   reset,
   canGoBack,
+  updateCurrentParams,
 } from "../../../src/store/navigationStateMachine.js";
 import type { ScreenName, RouteParams } from "../../../src/store/navigationStore.js";
 
@@ -168,6 +169,31 @@ describe("navigationStateMachine", () => {
       expect(state.currentScreen).toBe("menu");
       expect(state.params).toEqual({});
       expect(state.history).toEqual([]);
+    });
+  });
+
+  describe("updateCurrentParams", () => {
+    it("merges new params into current params without changing screen or history", () => {
+      let state = navigate(initialNavigationState, "benchmark-list" as ScreenName, {
+        benchmarkId: "bm_1",
+      } as RouteParams);
+      state = updateCurrentParams(state, { tab: "public", selectedIndex: "3" } as RouteParams);
+      expect(state.currentScreen).toBe("benchmark-list");
+      expect(state.params.benchmarkId).toBe("bm_1");
+      expect(state.params.tab).toBe("public");
+      expect(state.params.selectedIndex).toBe("3");
+      expect(state.history).toHaveLength(1);
+    });
+
+    it("updated params are captured in history on subsequent navigate", () => {
+      let state = navigate(initialNavigationState, "benchmark-list" as ScreenName, {});
+      state = updateCurrentParams(state, { tab: "public" } as RouteParams);
+      state = navigate(state, "benchmark-detail" as ScreenName, { benchmarkId: "bm_1" } as RouteParams);
+      // History should contain the updated params from benchmark-list
+      expect(state.history[1]?.params.tab).toBe("public");
+      state = goBack(state);
+      expect(state.currentScreen).toBe("benchmark-list");
+      expect(state.params.tab).toBe("public");
     });
   });
 

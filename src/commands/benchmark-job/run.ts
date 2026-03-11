@@ -203,14 +203,29 @@ async function ensureAgentSecrets(
   return secrets;
 }
 
+const BENCHMARK_ID_PREFIXES = ["bm_", "bmk_", "bmd_"];
+
+function looksLikeBenchmarkId(s: string): boolean {
+  return BENCHMARK_ID_PREFIXES.some((p) => s.startsWith(p));
+}
+
+// Extract a benchmark ID from strings like "Name (bmd_xxx)" copied from the TUI
+function extractEmbeddedId(s: string): string | null {
+  const match = s.match(/\((bm[dk]?_\S+)\)\s*$/);
+  return match ? match[1] : null;
+}
+
 // Resolve benchmark name to ID if needed
 async function resolveBenchmarkId(benchmarkIdOrName: string): Promise<string> {
-  // If it looks like an ID (starts with bm_ or similar), return as-is
-  if (
-    benchmarkIdOrName.startsWith("bm_") ||
-    benchmarkIdOrName.startsWith("bmk_")
-  ) {
+  // If it looks like a bare ID, return as-is
+  if (looksLikeBenchmarkId(benchmarkIdOrName)) {
     return benchmarkIdOrName;
+  }
+
+  // If the input has an embedded ID like "Name (bmd_xxx)", extract and use it
+  const embeddedId = extractEmbeddedId(benchmarkIdOrName);
+  if (embeddedId) {
+    return embeddedId;
   }
 
   // Search both user benchmarks and public benchmarks
