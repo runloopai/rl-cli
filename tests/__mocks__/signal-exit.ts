@@ -6,5 +6,6 @@ const noop = () => () => {};
 
 export default noop;
 export const onExit = noop;
-
-
+export const load = () => {};
+export const unload = () => {};
+export const signals: string[] = [];

@@ -35,12 +35,12 @@ describe("createDevbox --mcp flag", () => {
 
     const { createDevbox } = await import("@/commands/devbox/create.js");
     await createDevbox({
-      mcp: ["github-readonly,my_secret"],
+      mcp: ["GH_TOKEN=github-readonly,my_secret"],
     });
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        mcp: [{ mcp_config: "github-readonly", secret: "my_secret" }],
+        mcp: { GH_TOKEN: { mcp_config: "github-readonly", secret: "my_secret" } },
       }),
     );
     expect(console.log).toHaveBeenCalledWith("dbx_mcp_test");
@@ -52,15 +52,15 @@ describe("createDevbox --mcp flag", () => {
 
     const { createDevbox } = await import("@/commands/devbox/create.js");
     await createDevbox({
-      mcp: ["github-readonly,secret1", "jira-config,secret2"],
+      mcp: ["GH_TOKEN=github-readonly,secret1", "JIRA_TOKEN=jira-config,secret2"],
     });
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        mcp: [
-          { mcp_config: "github-readonly", secret: "secret1" },
-          { mcp_config: "jira-config", secret: "secret2" },
-        ],
+        mcp: {
+          GH_TOKEN: { mcp_config: "github-readonly", secret: "secret1" },
+          JIRA_TOKEN: { mcp_config: "jira-config", secret: "secret2" },
+        },
       }),
     );
   });
@@ -76,10 +76,10 @@ describe("createDevbox --mcp flag", () => {
     expect(createArg.mcp).toBeUndefined();
   });
 
-  it("should report error for invalid MCP spec format (missing comma)", async () => {
+  it("should report error for invalid MCP spec format (missing equals)", async () => {
     const { createDevbox } = await import("@/commands/devbox/create.js");
     await createDevbox({
-      mcp: ["invalid-no-comma"],
+      mcp: ["invalid-no-equals"],
     });
 
     expect(mockOutputError).toHaveBeenCalledWith(
@@ -96,15 +96,15 @@ describe("createDevbox --mcp flag", () => {
     const { createDevbox } = await import("@/commands/devbox/create.js");
     await createDevbox({
       name: "my-devbox",
-      mcp: ["github-readonly,my_secret"],
+      mcp: ["GH_TOKEN=github-readonly,my_secret"],
       blueprint: "my-blueprint",
     });
 
     const createArg = mockCreate.mock.calls[0][0] as Record<string, unknown>;
     expect(createArg.name).toBe("my-devbox");
     expect(createArg.blueprint_name).toBe("my-blueprint");
-    expect(createArg.mcp).toEqual([
-      { mcp_config: "github-readonly", secret: "my_secret" },
-    ]);
+    expect(createArg.mcp).toEqual({
+      GH_TOKEN: { mcp_config: "github-readonly", secret: "my_secret" },
+    });
   });
 });
