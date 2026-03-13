@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.14.0](https://github.com/runloopai/rl-cli/compare/v1.13.3...v1.14.0) (2026-03-13)
+
+
+### Features
+
+* add 'logs' command to download info from devboxes ([#164](https://github.com/runloopai/rl-cli/issues/164)) ([d5354be](https://github.com/runloopai/rl-cli/commit/d5354bedaecc68faf44e7c4063d2f76a4b57c808))
+
+
+### Bug Fixes
+
+* **benchmark:** fix benchmark id when creating job with benchmark ([#170](https://github.com/runloopai/rl-cli/issues/170)) ([2c73cba](https://github.com/runloopai/rl-cli/commit/2c73cbadf74d4d5cf9f8532111147654587822e1))
+* bmj list now counts finished scenarios from in-progress runs ([#168](https://github.com/runloopai/rl-cli/issues/168)) ([123f1d4](https://github.com/runloopai/rl-cli/commit/123f1d44f846da67ac2e31478fe4e1316f58991b))
+* eliminate flicker in bmj watch and show job elapsed time ([#167](https://github.com/runloopai/rl-cli/issues/167)) ([9b1deed](https://github.com/runloopai/rl-cli/commit/9b1deedf0d495b0a2651ec912a18fa8c7e9c1a7c))
+
 ## [1.13.3](https://github.com/runloopai/rl-cli/compare/v1.13.2...v1.13.3) (2026-03-09)
 
 
