@@ -25,6 +25,7 @@ describe('MainMenu', () => {
     const { lastFrame } = renderMainMenu();
     
     const frame = lastFrame() || '';
+    expect(frame).toContain('Benchmarks');
     expect(frame).toContain('Devboxes');
     expect(frame).toContain('Blueprints');
     expect(frame).toContain('Snapshots');
@@ -46,6 +47,17 @@ describe('MainMenu', () => {
     expect(frame).toContain('[1]');
     expect(frame).toContain('[2]');
     expect(frame).toContain('[3]');
+  });
+
+  it('selects benchmarks with the e shortcut', () => {
+    let selectedKey = '';
+    const { stdin } = renderMainMenu((key: string) => {
+      selectedKey = key;
+    });
+
+    stdin.write('e');
+
+    expect(selectedKey).toBe('benchmarks');
   });
 
   it('shows navigation help', () => {

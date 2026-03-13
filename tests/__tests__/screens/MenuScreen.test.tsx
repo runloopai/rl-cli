@@ -26,6 +26,7 @@ describe("MenuScreen", () => {
   it("displays main menu items", () => {
     const { lastFrame } = renderMenuScreen();
     const frame = lastFrame() ?? "";
+    expect(frame).toContain("Benchmarks");
     expect(frame).toContain("Devboxes");
     expect(frame).toContain("Blueprints");
     expect(frame).toContain("Snapshots");
