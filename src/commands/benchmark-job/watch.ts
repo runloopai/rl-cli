@@ -114,7 +114,6 @@ function getMaxScenariosPerRun(numRuns: number): number {
   return Math.max(Math.floor(availableLines / Math.max(numRuns, 1)), 3);
 }
 
-
 // Format a single run's progress line
 function formatRunProgressLine(progress: RunProgress): string {
   let label = progress.agentName;
@@ -398,7 +397,10 @@ export async function watchBenchmarkJob(id: string) {
 
     try {
       let tick = 0;
-      let progressList = await fetchAllRunsProgress(job, listBenchmarkRunScenarioRuns);
+      let progressList = await fetchAllRunsProgress(
+        job,
+        listBenchmarkRunScenarioRuns,
+      );
 
       while (!isJobCompleted(job.state)) {
         // Check timeout
@@ -449,7 +451,10 @@ export async function watchBenchmarkJob(id: string) {
         if (tick % UPDATES_PER_POLL === 0) {
           job = await getBenchmarkJob(id);
           if (!isJobCompleted(job.state)) {
-            progressList = await fetchAllRunsProgress(job, listBenchmarkRunScenarioRuns);
+            progressList = await fetchAllRunsProgress(
+              job,
+              listBenchmarkRunScenarioRuns,
+            );
           }
         }
 
@@ -460,7 +465,10 @@ export async function watchBenchmarkJob(id: string) {
       // we have the most up-to-date data before printing results. This prevents
       // stale in-progress state from persisting after the job completes.
       job = await getBenchmarkJob(id);
-      progressList = await fetchAllRunsProgress(job, listBenchmarkRunScenarioRuns);
+      progressList = await fetchAllRunsProgress(
+        job,
+        listBenchmarkRunScenarioRuns,
+      );
     } finally {
       process.stdout.off("resize", handleResize);
       cleanup();

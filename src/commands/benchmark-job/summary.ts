@@ -98,7 +98,10 @@ async function printStatus(job: BenchmarkJob): Promise<void> {
   if (!isJobCompleted(state)) {
     // Fetch and show progress for in-progress runs
     console.log();
-    const progressList = await fetchAllRunsProgress(job, listBenchmarkRunScenarioRuns);
+    const progressList = await fetchAllRunsProgress(
+      job,
+      listBenchmarkRunScenarioRuns,
+    );
     printProgress(progressList);
   }
 }
