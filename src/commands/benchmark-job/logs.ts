@@ -272,7 +272,7 @@ async function runWithConcurrency<T>(
     { length: Math.min(maxConcurrency, tasks.length) },
     () => worker(),
   );
-  await Promise.all(workers);
+  await Promise.allSettled(workers);
   return results;
 }
 
@@ -349,7 +349,8 @@ export async function downloadBenchmarkJobLogs(
       `\nDownloading logs for ${targets.length} scenario run(s) to ${chalk.bold(outputDir)}\n`,
     );
 
-    // Download logs in parallel with a max concurrency of 50
+    // Download logs in parallel with a max concurrency of 50.
+    // Bumping to 100 yields no improvement in simple manual testing.
     const MAX_CONCURRENCY = 50;
     let succeeded = 0;
 
