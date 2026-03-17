@@ -7,21 +7,14 @@ import {
   getBenchmarkJob,
   listBenchmarkRunScenarioRuns,
   type BenchmarkJob,
-  type ScenarioRun,
 } from "../../services/benchmarkJobService.js";
 import { outputError } from "../../utils/output.js";
-
-// Job states that indicate completion
-const COMPLETED_STATES = ["completed", "failed", "canceled", "timeout"];
-
-// Scenario run states that indicate completion
-const SCENARIO_COMPLETED_STATES = [
-  "completed",
-  "failed",
-  "canceled",
-  "timeout",
-  "error",
-];
+import {
+  isJobCompleted,
+  fetchAllRunsProgress,
+  type RunProgress,
+  type InProgressScenario,
+} from "./progress.js";
 
 // Polling config
 const POLL_INTERVAL_MS = 5 * 1000; // 5 seconds
@@ -100,27 +93,8 @@ function formatDuration(ms: number): string {
   return `${seconds}s`;
 }
 
-// In-progress scenario info for display
-interface InProgressScenario {
-  name: string;
-  state: string;
-  startTimeMs?: number;
-}
-
-// Progress stats for a benchmark run
-interface RunProgress {
-  benchmarkRunId: string;
-  agentName: string;
-  modelName?: string;
-  state: string;
-  expectedTotal: number;
-  started: number;
-  running: number;
-  scoring: number;
-  finished: number;
-  avgScore: number | null;
-  inProgressScenarios: InProgressScenario[];
-}
+// Re-export types from shared module for internal use
+export type { RunProgress, InProgressScenario };
 
 // Spinner frames for running indicators
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
@@ -140,144 +114,6 @@ function getMaxScenariosPerRun(numRuns: number): number {
   return Math.max(Math.floor(availableLines / Math.max(numRuns, 1)), 3);
 }
 
-// Calculate progress from scenario runs
-function calculateRunProgress(
-  benchmarkRunId: string,
-  agentName: string,
-  modelName: string | undefined,
-  state: string,
-  expectedTotal: number,
-  scenarioRuns: ScenarioRun[],
-): RunProgress {
-  let running = 0;
-  let scoring = 0;
-  let finished = 0;
-  let scoreSum = 0;
-  let scoreCount = 0;
-  const inProgressScenarios: InProgressScenario[] = [];
-
-  for (const scenario of scenarioRuns) {
-    const scenarioState = scenario.state?.toLowerCase() || "";
-
-    if (SCENARIO_COMPLETED_STATES.includes(scenarioState)) {
-      finished++;
-      const score = scenario.scoring_contract_result?.score;
-      if (score !== undefined && score !== null) {
-        scoreSum += score;
-        scoreCount++;
-      }
-    } else if (scenarioState === "scoring" || scenarioState === "scored") {
-      scoring++;
-      inProgressScenarios.push({
-        name: scenario.name || scenario.scenario_id || "unknown",
-        state: scenarioState,
-        startTimeMs: scenario.start_time_ms,
-      });
-    } else if (scenarioState === "running") {
-      running++;
-      inProgressScenarios.push({
-        name: scenario.name || scenario.scenario_id || "unknown",
-        state: scenarioState,
-        startTimeMs: scenario.start_time_ms,
-      });
-    } else if (scenarioState && scenarioState !== "pending") {
-      inProgressScenarios.push({
-        name: scenario.name || scenario.scenario_id || "unknown",
-        state: scenarioState,
-        startTimeMs: scenario.start_time_ms,
-      });
-    }
-  }
-
-  return {
-    benchmarkRunId,
-    agentName,
-    modelName,
-    state,
-    expectedTotal,
-    started: scenarioRuns.length,
-    running,
-    scoring,
-    finished,
-    avgScore: scoreCount > 0 ? scoreSum / scoreCount : null,
-    inProgressScenarios,
-  };
-}
-
-// In-progress run type
-type InProgressRun = NonNullable<BenchmarkJob["in_progress_runs"]>[number];
-
-// Get agent info from in_progress_run
-function getAgentInfo(run: InProgressRun): {
-  name: string;
-  model?: string;
-} {
-  const agentConfig = run.agent_config;
-  if (agentConfig && agentConfig.type === "job_agent") {
-    return {
-      name: agentConfig.name,
-      model: agentConfig.model_name ?? undefined,
-    };
-  }
-  return { name: "unknown" };
-}
-
-// Fetch progress for all runs (in-progress and completed)
-async function fetchAllRunsProgress(job: BenchmarkJob): Promise<RunProgress[]> {
-  const results: RunProgress[] = [];
-
-  // Get expected scenario count from job spec
-  const expectedTotal = job.job_spec?.scenario_ids?.length || 0;
-
-  // First, add completed runs from benchmark_outcomes
-  const completedOutcomes = job.benchmark_outcomes || [];
-  for (const outcome of completedOutcomes) {
-    const scenarioOutcomes = outcome.scenario_outcomes || [];
-    let scoreSum = 0;
-    let scoreCount = 0;
-    for (const s of scenarioOutcomes) {
-      if (s.score !== undefined && s.score !== null) {
-        scoreSum += s.score;
-        scoreCount++;
-      }
-    }
-    results.push({
-      benchmarkRunId: outcome.benchmark_run_id,
-      agentName: outcome.agent_name,
-      modelName: outcome.model_name ?? undefined,
-      state: "completed",
-      expectedTotal: expectedTotal || scenarioOutcomes.length,
-      started: scenarioOutcomes.length,
-      running: 0,
-      scoring: 0,
-      finished: scenarioOutcomes.length,
-      avgScore: scoreCount > 0 ? scoreSum / scoreCount : null,
-      inProgressScenarios: [],
-    });
-  }
-
-  // Then, fetch progress for in-progress runs
-  const inProgressRuns = job.in_progress_runs || [];
-  const progressPromises = inProgressRuns.map(async (run) => {
-    const agentInfo = getAgentInfo(run);
-    const scenarioRuns = await listBenchmarkRunScenarioRuns(
-      run.benchmark_run_id,
-    );
-    return calculateRunProgress(
-      run.benchmark_run_id,
-      agentInfo.name,
-      agentInfo.model,
-      run.state,
-      expectedTotal,
-      scenarioRuns,
-    );
-  });
-
-  const inProgressResults = await Promise.all(progressPromises);
-  results.push(...inProgressResults);
-
-  return results;
-}
 
 // Format a single run's progress line
 function formatRunProgressLine(progress: RunProgress): string {
@@ -514,7 +350,7 @@ export async function watchBenchmarkJob(id: string) {
     let job = await getBenchmarkJob(id);
 
     // If job is already complete, just show results
-    if (COMPLETED_STATES.includes(job.state || "")) {
+    if (isJobCompleted(job.state)) {
       printResultsTable(job);
       return;
     }
@@ -562,9 +398,9 @@ export async function watchBenchmarkJob(id: string) {
 
     try {
       let tick = 0;
-      let progressList = await fetchAllRunsProgress(job);
+      let progressList = await fetchAllRunsProgress(job, listBenchmarkRunScenarioRuns);
 
-      while (!COMPLETED_STATES.includes(job.state || "")) {
+      while (!isJobCompleted(job.state)) {
         // Check timeout
         if (Date.now() - jobStartMs > MAX_WAIT_MS) {
           cleanup();
@@ -612,13 +448,19 @@ export async function watchBenchmarkJob(id: string) {
         // Every UPDATES_PER_POLL ticks, poll the API for fresh data
         if (tick % UPDATES_PER_POLL === 0) {
           job = await getBenchmarkJob(id);
-          if (!COMPLETED_STATES.includes(job.state || "")) {
-            progressList = await fetchAllRunsProgress(job);
+          if (!isJobCompleted(job.state)) {
+            progressList = await fetchAllRunsProgress(job, listBenchmarkRunScenarioRuns);
           }
         }
 
         await sleep(SPINNER_INTERVAL_MS);
       }
+
+      // Final reconciliation: refresh job and progress one more time to ensure
+      // we have the most up-to-date data before printing results. This prevents
+      // stale in-progress state from persisting after the job completes.
+      job = await getBenchmarkJob(id);
+      progressList = await fetchAllRunsProgress(job, listBenchmarkRunScenarioRuns);
     } finally {
       process.stdout.off("resize", handleResize);
       cleanup();

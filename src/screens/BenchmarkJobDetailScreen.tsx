@@ -243,6 +243,8 @@ export function BenchmarkJobDetailScreen({
 
   // Build a unified view of benchmark runs per agent
   // Collect all agents from job_spec, in_progress_runs, and benchmark_outcomes
+  // NOTE: We dedupe by benchmark_run_id, preferring completed outcomes over
+  // stale in-progress data to avoid showing mixed completed/running state.
   interface AgentRunInfo {
     agentName: string;
     modelName?: string;
@@ -258,9 +260,14 @@ export function BenchmarkJobDetailScreen({
 
   const agentRuns: AgentRunInfo[] = [];
 
-  // First, add completed runs from benchmark_outcomes
+  // Track which benchmark_run_ids we've already added from completed outcomes
+  const completedRunIds = new Set<string>();
+
+  // First, add completed runs from benchmark_outcomes (authoritative)
   if (job.benchmark_outcomes) {
     job.benchmark_outcomes.forEach((outcome) => {
+      completedRunIds.add(outcome.benchmark_run_id);
+
       const total = outcome.n_completed + outcome.n_failed + outcome.n_timeout;
       const status =
         outcome.n_failed > 0 || outcome.n_timeout > 0
@@ -283,9 +290,14 @@ export function BenchmarkJobDetailScreen({
     });
   }
 
-  // Add in-progress runs
+  // Add in-progress runs that are NOT already in completed outcomes
   if (job.in_progress_runs) {
     job.in_progress_runs.forEach((run) => {
+      // Skip if we already have this run from benchmark_outcomes
+      if (completedRunIds.has(run.benchmark_run_id)) {
+        return;
+      }
+
       // Get agent name from agent_config if available
       let agentName = "Unknown Agent";
       if (run.agent_config && "name" in run.agent_config) {
@@ -805,9 +817,20 @@ export function BenchmarkJobDetailScreen({
       });
     }
 
-    // In-progress runs
+    // In-progress runs (skip any that are already in completed outcomes)
     if (j.in_progress_runs && j.in_progress_runs.length > 0) {
+      // Build set of completed run IDs to skip
+      const detailCompletedRunIds = new Set<string>();
+      j.benchmark_outcomes?.forEach((o) =>
+        detailCompletedRunIds.add(o.benchmark_run_id),
+      );
+
       j.in_progress_runs.forEach((run, idx) => {
+        // Skip if already in completed outcomes
+        if (detailCompletedRunIds.has(run.benchmark_run_id)) {
+          return;
+        }
+
         let agentName = "Unknown Agent";
         if (run.agent_config && "name" in run.agent_config) {
           agentName = (run.agent_config as any).name;
