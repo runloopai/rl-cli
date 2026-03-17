@@ -16,15 +16,14 @@ interface BetaFeatureContextValue {
 
   /**
    * Check if a specific feature flag is enabled
-   * This stays in place so future beta-only features can be wired through
-   * the shared RL_CLI_BETA gate without changing consuming components.
+   * Currently all beta features are controlled by the single RL_CLI_BETA flag,
+   * but this allows for future granular control
    */
   isFeatureEnabled: (feature: BetaFeature) => boolean;
 }
 
 /**
- * Known beta features that can be enabled.
- * There are currently no named beta-only features configured.
+ * Known beta features that can be enabled
  */
 export type BetaFeature = never;
 
@@ -42,8 +41,9 @@ export function BetaFeatureProvider({ children }: BetaFeatureProviderProps) {
 
   const isFeatureEnabled = React.useCallback(
     (feature: BetaFeature): boolean => {
-      // No named beta features exist yet, but keep the shared env-based
-      // gate so future feature flags can opt into it centrally.
+      // Currently all beta features are gated by the same flag
+      // This can be extended to support per-feature flags in the future
+      // Add cases here when new beta features are introduced
       void feature;
       return betaEnabled;
     },

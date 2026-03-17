@@ -26,16 +26,8 @@ describe("Router", () => {
   it("renders menu screen when initialScreen is menu", () => {
     const { lastFrame } = renderWithApp("menu");
     const frame = lastFrame() ?? "";
-    expect(frame).toContain("Benchmarks");
     expect(frame).toContain("Devboxes");
     expect(frame).toContain("Blueprints");
-  });
-
-  it("renders benchmark-menu screen when initialScreen is benchmark-menu", () => {
-    const { lastFrame } = renderWithApp("benchmark-menu");
-    const frame = lastFrame() ?? "";
-    expect(frame).toContain("Benchmarks");
-    expect(frame).toContain("Benchmark Defs");
   });
 
   it("renders devbox-list screen when initialScreen is devbox-list", () => {

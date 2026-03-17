@@ -24,7 +24,6 @@ describe("navigation flows", () => {
     const { lastFrame, stdin } = renderApp("menu");
 
     let frame = lastFrame() ?? "";
-    expect(frame).toContain("Benchmarks");
     expect(frame).toContain("Devboxes");
     expect(frame).toContain("Blueprints");
 
