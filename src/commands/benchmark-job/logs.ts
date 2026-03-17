@@ -253,6 +253,29 @@ async function downloadScenarioLogs(
   }
 }
 
+/** Run tasks in parallel with a maximum concurrency limit */
+async function runWithConcurrency<T>(
+  tasks: (() => Promise<T>)[],
+  maxConcurrency: number,
+): Promise<T[]> {
+  const results: T[] = new Array(tasks.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < tasks.length) {
+      const i = nextIndex++;
+      results[i] = await tasks[i]();
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.min(maxConcurrency, tasks.length) },
+    () => worker(),
+  );
+  await Promise.all(workers);
+  return results;
+}
+
 export async function downloadBenchmarkJobLogs(
   jobId: string,
   options: LogsOptions = {},
@@ -326,18 +349,23 @@ export async function downloadBenchmarkJobLogs(
       `\nDownloading logs for ${targets.length} scenario run(s) to ${chalk.bold(outputDir)}\n`,
     );
 
-    // Download logs one at a time to avoid overwhelming the API
+    // Download logs in parallel with a max concurrency of 50
+    const MAX_CONCURRENCY = 50;
     let succeeded = 0;
-    for (const target of targets) {
-      process.stdout.write(
-        `  ${target.agentName} / ${target.scenarioName}... `,
-      );
+
+    const tasks = targets.map((target) => async () => {
       const ok = await downloadScenarioLogs(target);
       if (ok) {
-        console.log(chalk.green("done"));
-        succeeded++;
+        console.log(
+          chalk.green(`  ✓ ${target.agentName} / ${target.scenarioName}`),
+        );
+        return true;
       }
-    }
+      return false;
+    });
+
+    const results = await runWithConcurrency(tasks, MAX_CONCURRENCY);
+    succeeded = results.filter(Boolean).length;
 
     console.log(
       `\n${chalk.green(`Downloaded logs for ${succeeded}/${targets.length} scenario run(s)`)} to ${chalk.bold(outputDir)}`,
