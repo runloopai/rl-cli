@@ -103,7 +103,11 @@ const ListMcpConfigsUI = ({
   const nameWidth = Math.min(80, Math.max(15, remainingWidth));
 
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const client = getClient();
       const pageConfigs: McpConfigListItem[] = [];
 
@@ -116,10 +120,16 @@ const ListMcpConfigsUI = ({
       if (search.submittedSearchQuery) {
         queryParams.name = search.submittedSearchQuery;
       }
+      // Only request total_count on first page (expensive for backend)
+      if (params.includeTotalCount) {
+        queryParams.include_total_count = true;
+      }
 
       const page = (await client.mcpConfigs.list(
         queryParams,
-      )) as unknown as McpConfigsCursorIDPage<McpConfigListItem>;
+      )) as unknown as McpConfigsCursorIDPage<McpConfigListItem> & {
+        total_count?: number;
+      };
 
       if (page.mcp_configs && Array.isArray(page.mcp_configs)) {
         page.mcp_configs.forEach((m: McpConfigListItem) => {
@@ -139,7 +149,7 @@ const ListMcpConfigsUI = ({
       return {
         items: pageConfigs,
         hasMore: page.has_more || false,
-        totalCount: pageConfigs.length,
+        totalCount: page.total_count,
       };
     },
     [search.submittedSearchQuery],

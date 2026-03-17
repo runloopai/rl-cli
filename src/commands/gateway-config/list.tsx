@@ -122,7 +122,11 @@ const ListGatewayConfigsUI = ({
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const client = getClient();
       const pageConfigs: GatewayConfigListItem[] = [];
 
@@ -136,11 +140,17 @@ const ListGatewayConfigsUI = ({
       if (search.submittedSearchQuery) {
         queryParams.name = search.submittedSearchQuery;
       }
+      // Only request total_count on first page (expensive for backend)
+      if (params.includeTotalCount) {
+        queryParams.include_total_count = true;
+      }
 
       // Fetch ONE page only
       const page = (await client.gatewayConfigs.list(
         queryParams,
-      )) as unknown as GatewayConfigsCursorIDPage<GatewayConfigListItem>;
+      )) as unknown as GatewayConfigsCursorIDPage<GatewayConfigListItem> & {
+        total_count?: number;
+      };
 
       // Extract data and create defensive copies
       if (page.gateway_configs && Array.isArray(page.gateway_configs)) {
@@ -163,7 +173,7 @@ const ListGatewayConfigsUI = ({
       const result = {
         items: pageConfigs,
         hasMore: page.has_more || false,
-        totalCount: pageConfigs.length,
+        totalCount: page.total_count,
       };
 
       return result;

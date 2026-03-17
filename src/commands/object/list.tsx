@@ -135,7 +135,11 @@ const ListObjectsUI = ({
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const client = getClient();
       const pageObjects: ObjectListItem[] = [];
 
@@ -148,6 +152,10 @@ const ListObjectsUI = ({
       }
       if (search.submittedSearchQuery) {
         queryParams.search = search.submittedSearchQuery;
+      }
+      // Only request total_count on first page (expensive for backend)
+      if (params.includeTotalCount) {
+        queryParams.include_total_count = true;
       }
 
       // Fetch ONE page only
@@ -174,12 +182,13 @@ const ListObjectsUI = ({
       const pageResult = result as unknown as {
         objects: unknown[];
         has_more?: boolean;
+        total_count?: number;
       };
 
       return {
         items: pageObjects,
         hasMore: pageResult.has_more || false,
-        totalCount: pageObjects.length,
+        totalCount: pageResult.total_count,
       };
     },
     [search.submittedSearchQuery],

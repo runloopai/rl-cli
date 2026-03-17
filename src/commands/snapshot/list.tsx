@@ -104,7 +104,11 @@ const ListSnapshotsUI = ({
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const client = getClient();
       const pageSnapshots: SnapshotListItem[] = [];
 
@@ -121,11 +125,17 @@ const ListSnapshotsUI = ({
       if (search.submittedSearchQuery) {
         queryParams.search = search.submittedSearchQuery;
       }
+      // Only request total_count on first page (expensive for backend)
+      if (params.includeTotalCount) {
+        queryParams.include_total_count = true;
+      }
 
       // Fetch ONE page only
       const page = (await client.devboxes.listDiskSnapshots(
         queryParams,
-      )) as unknown as DiskSnapshotsCursorIDPage<SnapshotListItem>;
+      )) as unknown as DiskSnapshotsCursorIDPage<SnapshotListItem> & {
+        total_count?: number;
+      };
 
       // Extract data and create defensive copies
       if (page.snapshots && Array.isArray(page.snapshots)) {
@@ -143,7 +153,7 @@ const ListSnapshotsUI = ({
       const result = {
         items: pageSnapshots,
         hasMore: page.has_more || false,
-        totalCount: pageSnapshots.length,
+        totalCount: page.total_count,
       };
 
       return result;

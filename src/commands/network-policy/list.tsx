@@ -135,7 +135,11 @@ const ListNetworkPoliciesUI = ({
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const client = getClient();
       const pagePolicies: NetworkPolicyListItem[] = [];
 
@@ -149,11 +153,17 @@ const ListNetworkPoliciesUI = ({
       if (search.submittedSearchQuery) {
         queryParams.search = search.submittedSearchQuery;
       }
+      // Only request total_count on first page (expensive for backend)
+      if (params.includeTotalCount) {
+        queryParams.include_total_count = true;
+      }
 
       // Fetch ONE page only
       const page = (await client.networkPolicies.list(
         queryParams,
-      )) as unknown as NetworkPoliciesCursorIDPage<NetworkPolicyListItem>;
+      )) as unknown as NetworkPoliciesCursorIDPage<NetworkPolicyListItem> & {
+        total_count?: number;
+      };
 
       // Extract data and create defensive copies
       if (page.network_policies && Array.isArray(page.network_policies)) {
@@ -178,7 +188,7 @@ const ListNetworkPoliciesUI = ({
       const result = {
         items: pagePolicies,
         hasMore: page.has_more || false,
-        totalCount: pagePolicies.length,
+        totalCount: page.total_count,
       };
 
       return result;

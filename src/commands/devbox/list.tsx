@@ -78,7 +78,11 @@ const ListDevboxesUI = ({
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const client = getClient();
       const pageDevboxes: Devbox[] = [];
 
@@ -95,11 +99,15 @@ const ListDevboxesUI = ({
       if (search.submittedSearchQuery) {
         queryParams.search = search.submittedSearchQuery;
       }
+      // Only request total_count on first page (expensive for backend)
+      if (params.includeTotalCount) {
+        queryParams.include_total_count = true;
+      }
 
       // Fetch ONE page only
       const page = (await client.devboxes.list(
         queryParams,
-      )) as unknown as DevboxesCursorIDPage<Devbox>;
+      )) as unknown as DevboxesCursorIDPage<Devbox> & { total_count?: number };
 
       // Extract data and create defensive copies using JSON serialization
       if (page.devboxes && Array.isArray(page.devboxes)) {
@@ -111,7 +119,7 @@ const ListDevboxesUI = ({
       const result = {
         items: pageDevboxes,
         hasMore: page.has_more || false,
-        totalCount: pageDevboxes.length,
+        totalCount: page.total_count,
       };
 
       return result;

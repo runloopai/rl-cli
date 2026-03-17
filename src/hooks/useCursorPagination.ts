@@ -7,7 +7,11 @@ export interface UsePaginatedListConfig<T> {
   /**
    * Fetch function that takes pagination params and returns a page of results
    */
-  fetchPage: (params: { limit: number; startingAt?: string }) => Promise<{
+  fetchPage: (params: {
+    limit: number;
+    startingAt?: string;
+    includeTotalCount?: boolean;
+  }) => Promise<{
     items: T[];
     hasMore: boolean;
     totalCount?: number;
@@ -101,7 +105,8 @@ export function useCursorPagination<T>(
   const [currentPage, setCurrentPage] = React.useState(0);
   const [hasMore, setHasMore] = React.useState(false);
   const [totalCount, setTotalCount] = React.useState(0);
-  const maxTotalCountRef = React.useRef(0);
+  // Track if we have a cached total count from the API (to avoid re-requesting)
+  const hasCachedTotalCountRef = React.useRef(false);
 
   // Cursor history: cursorHistory[N] = last item ID of page N
   // Used to determine startingAt for page N+1
@@ -171,9 +176,13 @@ export function useCursorPagination<T>(
         const startingAt =
           page > 0 ? cursorHistoryRef.current[page - 1] : undefined;
 
+        // Only request total_count on first fetch or when we don't have it cached
+        const includeTotalCount = !hasCachedTotalCountRef.current;
+
         const result = await fetchPageRef.current({
           limit: pageSizeRef.current,
           startingAt,
+          includeTotalCount,
         });
 
         if (!isMountedRef.current) return;
@@ -191,12 +200,20 @@ export function useCursorPagination<T>(
 
         // Update pagination state
         setHasMore(result.hasMore);
-        // Compute cumulative total: items seen on all previous pages + current page.
-        // Use a high-water mark so the count never decreases when navigating back.
-        const computed = page * pageSizeRef.current + result.items.length;
-        const newTotal = Math.max(computed, maxTotalCountRef.current);
-        maxTotalCountRef.current = newTotal;
-        setTotalCount(newTotal);
+
+        // Use API's totalCount if available (only on first fetch), otherwise keep existing
+        if (
+          result.totalCount !== undefined &&
+          result.totalCount > 0 &&
+          !hasCachedTotalCountRef.current
+        ) {
+          setTotalCount(result.totalCount);
+          hasCachedTotalCountRef.current = true;
+        } else if (!hasCachedTotalCountRef.current) {
+          // Fallback: compute from items seen so far (for APIs that don't support total_count)
+          const computed = page * pageSizeRef.current + result.items.length;
+          setTotalCount((prev) => Math.max(computed, prev));
+        }
       } catch (err) {
         if (!isMountedRef.current) return;
         setError(err as Error);
@@ -216,7 +233,7 @@ export function useCursorPagination<T>(
   React.useEffect(() => {
     // Clear cursor history when deps change
     cursorHistoryRef.current = [];
-    maxTotalCountRef.current = 0;
+    hasCachedTotalCountRef.current = false;
     setCurrentPage(0);
     setItems([]);
     setHasMore(false);
