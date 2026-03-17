@@ -459,8 +459,8 @@ export const DevboxCreatePage = ({
         return;
       }
 
-      // Handle Enter on any field to submit
-      if (key.return) {
+      // Enter on the create button to submit
+      if (currentField === "create" && key.return) {
         handleCreate();
         return;
       }
@@ -1918,7 +1918,6 @@ export const DevboxCreatePage = ({
                 onChange={(value) =>
                   setFormData({ ...formData, [field.key]: value })
                 }
-                onSubmit={handleCreate}
                 isActive={isActive}
                 placeholder={field.placeholder}
               />

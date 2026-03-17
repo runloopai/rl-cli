@@ -11,6 +11,9 @@ export interface ListAgentsOptions {
   limit?: number;
   startingAfter?: string;
   publicOnly?: boolean;
+  privateOnly?: boolean;
+  name?: string;
+  search?: string;
 }
 
 export interface ListAgentsResult {
@@ -32,6 +35,8 @@ export async function listAgents(
     limit?: number;
     starting_after?: string;
     is_public?: boolean;
+    name?: string;
+    search?: string;
   } = {
     limit: options.limit || 50,
   };
@@ -40,9 +45,18 @@ export async function listAgents(
     queryParams.starting_after = options.startingAfter;
   }
 
-  // Use API filter for public agents
   if (options.publicOnly) {
     queryParams.is_public = true;
+  } else if (options.privateOnly) {
+    queryParams.is_public = false;
+  }
+
+  if (options.name) {
+    queryParams.name = options.name;
+  }
+
+  if (options.search) {
+    queryParams.search = options.search;
   }
 
   const page = await client.agents.list(queryParams);
