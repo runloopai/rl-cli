@@ -2,7 +2,7 @@
  * Download file from devbox command
  */
 
-import { writeFileSync } from "fs";
+import { writeFile } from "fs/promises";
 import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
 
@@ -25,12 +25,17 @@ export async function downloadFile(
 
   try {
     const client = getClient();
-    const result = await client.devboxes.downloadFile(devboxId, {
+    const response = await client.devboxes.downloadFile(devboxId, {
       path: options.filePath!,
     });
 
-    // Write the file contents to the output path
-    writeFileSync(options.outputPath!, result as unknown as string);
+    if (!response.ok) {
+      outputError(`Download failed: HTTP ${response.status}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    await writeFile(options.outputPath!, buffer);
 
     // Default: just output the local path for easy scripting
     if (!options.output || options.output === "text") {
