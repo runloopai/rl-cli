@@ -5,6 +5,7 @@
 import chalk from "chalk";
 import {
   getBenchmarkJob,
+  getBenchmarkRun,
   listBenchmarkRunScenarioRuns,
   type BenchmarkJob,
   type ScenarioRun,
@@ -413,6 +414,30 @@ function formatWatchProgress(
   return lines;
 }
 
+// Infer total elapsed time for a completed job by finding the latest benchmark
+// run end time (start_time_ms + duration_ms). Returns null if unavailable.
+async function inferJobElapsedMs(job: BenchmarkJob): Promise<number | null> {
+  const outcomes = job.benchmark_outcomes || [];
+  if (outcomes.length === 0) return null;
+
+  const runs = await Promise.all(
+    outcomes.map((outcome) => getBenchmarkRun(outcome.benchmark_run_id)),
+  );
+
+  let maxEndTimeMs = 0;
+  for (const run of runs) {
+    if (run.start_time_ms && run.duration_ms) {
+      const endTimeMs = run.start_time_ms + run.duration_ms;
+      if (endTimeMs > maxEndTimeMs) {
+        maxEndTimeMs = endTimeMs;
+      }
+    }
+  }
+
+  if (maxEndTimeMs === 0) return null;
+  return maxEndTimeMs - job.create_time_ms;
+}
+
 // Print results table for completed jobs
 function printResultsTable(job: BenchmarkJob): void {
   const outcomes = job.benchmark_outcomes || [];
@@ -513,8 +538,13 @@ export async function watchBenchmarkJob(id: string) {
   try {
     let job = await getBenchmarkJob(id);
 
-    // If job is already complete, just show results
+    // If job is already complete, infer elapsed time from benchmark run data
+    // and show results
     if (COMPLETED_STATES.includes(job.state || "")) {
+      const elapsedMs = await inferJobElapsedMs(job).catch(() => null);
+      if (elapsedMs !== null) {
+        console.log(chalk.dim(`Total time: ${formatDuration(elapsedMs)}`));
+      }
       printResultsTable(job);
       return;
     }
