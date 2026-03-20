@@ -243,7 +243,7 @@ export async function listPublicBenchmarks(
 }
 
 /**
- * Create/start a benchmark run with selected benchmarks
+ * Create/start a benchmark run with selected benchmarks (POST /v1/benchmark_runs)
  */
 export async function createBenchmarkRun(
   benchmarkIds: string[],
