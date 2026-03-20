@@ -276,7 +276,11 @@ const ListMcpConfigsUI = ({
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + configs.length;
+  const endIndex = Math.min(startIndex + configs.length, totalCount);
+  const showingRange =
+    endIndex === startIndex + 1
+      ? `${startIndex + 1}`
+      : `${startIndex + 1}-${endIndex}`;
 
   const executeOperation = async (
     config: McpConfigListItem,
@@ -631,7 +635,7 @@ const ListMcpConfigsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {showingRange} of {totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>

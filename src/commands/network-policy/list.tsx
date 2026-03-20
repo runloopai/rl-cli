@@ -351,7 +351,11 @@ const ListNetworkPoliciesUI = ({
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + policies.length;
+  const endIndex = Math.min(startIndex + policies.length, totalCount);
+  const showingRange =
+    endIndex === startIndex + 1
+      ? `${startIndex + 1}`
+      : `${startIndex + 1}-${endIndex}`;
 
   const executeOperation = async (
     policy: NetworkPolicyListItem,
@@ -735,7 +739,7 @@ const ListNetworkPoliciesUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {showingRange} of {totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>

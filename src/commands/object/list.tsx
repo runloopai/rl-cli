@@ -353,7 +353,11 @@ const ListObjectsUI = ({
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + objects.length;
+  const endIndex = Math.min(startIndex + objects.length, totalCount);
+  const showingRange =
+    endIndex === startIndex + 1
+      ? `${startIndex + 1}`
+      : `${startIndex + 1}-${endIndex}`;
 
   const executeOperation = async (
     obj: ObjectListItem,
@@ -776,7 +780,7 @@ const ListObjectsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {showingRange} of {totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>

@@ -241,7 +241,11 @@ const ListSecretsUI = ({
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + secrets.length;
+  const endIndex = Math.min(startIndex + secrets.length, totalCount);
+  const showingRange =
+    endIndex === startIndex + 1
+      ? `${startIndex + 1}`
+      : `${startIndex + 1}-${endIndex}`;
 
   const executeOperation = async (
     secret: SecretListItem,
@@ -575,7 +579,7 @@ const ListSecretsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {showingRange} of {totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>

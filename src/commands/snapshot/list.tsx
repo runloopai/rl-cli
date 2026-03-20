@@ -278,7 +278,11 @@ const ListSnapshotsUI = ({
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + snapshots.length;
+  const endIndex = Math.min(startIndex + snapshots.length, totalCount);
+  const showingRange =
+    endIndex === startIndex + 1
+      ? `${startIndex + 1}`
+      : `${startIndex + 1}-${endIndex}`;
 
   const executeOperation = async (
     snapshot: SnapshotListItem,
@@ -648,7 +652,7 @@ const ListSnapshotsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
+            Showing {showingRange} of {totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>
