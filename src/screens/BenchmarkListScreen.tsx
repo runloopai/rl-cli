@@ -36,7 +36,7 @@ export function BenchmarkListScreen() {
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showPopup, setShowPopup] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(0);
-  const [showPublic, setShowPublic] = React.useState(false);
+  const [showPublic, setShowPublic] = React.useState(true);
 
   // Search state
   const search = useListSearch({
@@ -351,7 +351,8 @@ export function BenchmarkListScreen() {
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
-              {figures.info} No {showPublic ? "public " : ""}benchmarks found
+              {figures.info}{" "}
+              No {showPublic ? "public " : "private "}benchmarks found
             </Text>
           }
         />
@@ -372,7 +373,7 @@ export function BenchmarkListScreen() {
             dimColor={!showPublic}
           >
             {" "}
-            • {showPublic ? "Public" : "Custom"}
+            • {showPublic ? "Public" : "Private"}
           </Text>
           {totalPages > 1 && (
             <>
@@ -436,7 +437,7 @@ export function BenchmarkListScreen() {
           { key: "Enter", label: "Details" },
           { key: "c", label: "Create Job" },
           { key: "a", label: "Actions" },
-          { key: "t", label: showPublic ? "Custom" : "Public" },
+          { key: "t", label: showPublic ? "Private" : "Public" },
           { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },
         ]}
