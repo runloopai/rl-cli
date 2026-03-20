@@ -312,8 +312,11 @@ export function ResourceDetailPage<T>({
       sectionRefIndex >= 0 &&
       sectionViewRefs[sectionRefIndex]
     ) {
-      setShowSectionDetail(sectionViewRefs[sectionRefIndex].sectionIndex);
-      setSectionScroll(0);
+      const sec = sectionViewRefs[sectionRefIndex].section;
+      if (!sec.sectionViewShortcut) {
+        setShowSectionDetail(sectionViewRefs[sectionRefIndex].sectionIndex);
+        setSectionScroll(0);
+      }
     } else if (
       hasViewRestOfActions &&
       operationIndex === actionsOpenListIndex
@@ -413,6 +416,18 @@ export function ResourceDetailPage<T>({
           ...(getUrl ? { o: handleOpenInBrowser } : {}),
         },
         onUnmatched: (input) => {
+          // Open truncated sections by letter (main view only; avoids relying on Enter when
+          // selection defaults to an operation).
+          for (let i = 0; i < sectionViewRefs.length; i++) {
+            const ref = sectionViewRefs[i];
+            const shortcut = ref.section.sectionViewShortcut;
+            if (shortcut && input === shortcut) {
+              setShowSectionDetail(ref.sectionIndex);
+              setSectionScroll(0);
+              setSelectedIndex(actionableFields.length + i);
+              return;
+            }
+          }
           // Operation shortcuts work from anywhere (all ops, including those in "View rest")
           const matchedOpIndex = operations.findIndex(
             (op) => op.shortcut === input,
@@ -452,6 +467,9 @@ export function ResourceDetailPage<T>({
       operationsStartIndex,
       onOperation,
       getId,
+      sectionViewRefs,
+      actionableFields.length,
+      handleCopy,
     ],
   );
 
@@ -701,7 +719,9 @@ export function ResourceDetailPage<T>({
                   </Text>
                   <Text color={colors.textDim} dimColor>
                     {" "}
-                    [Enter: View section]
+                    {section.sectionViewShortcut
+                      ? `[${section.sectionViewShortcut}]`
+                      : "[Enter: View section]"}
                   </Text>
                 </Box>
               )}
@@ -806,6 +826,10 @@ export function ResourceDetailPage<T>({
               : isOnSectionRef
                 ? "View section"
                 : "Execute",
+            condition:
+              isOnLink ||
+              !isOnSectionRef ||
+              !sectionViewRefs[sectionRefIndex]?.section.sectionViewShortcut,
           },
           { key: "c", label: "Copy ID" },
           { key: "i", label: "Full Details", condition: !!buildDetailLines },

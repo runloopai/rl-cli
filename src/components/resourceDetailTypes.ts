@@ -37,6 +37,11 @@ export interface DetailSection {
   icon?: string;
   color?: string;
   fields: DetailField[];
+  /**
+   * When this section has a "View section" row (truncated content), optional
+   * single-key shortcut from the main detail view to open the full section (mainView only).
+   */
+  sectionViewShortcut?: string;
 }
 
 /** An operation/action available for the resource (shown in the Actions menu). */

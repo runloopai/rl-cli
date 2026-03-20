@@ -9,6 +9,7 @@ import type {
 } from "../store/benchmarkStore.js";
 import type { BenchmarkRunListParams } from "@runloop/api-client/resources/benchmark-runs";
 import type { RunListParams } from "@runloop/api-client/resources/scenarios/runs";
+import type { Scenario } from "./scenarioService.js";
 
 export interface ListBenchmarksOptions {
   limit: number;
@@ -177,6 +178,34 @@ export async function listBenchmarks(
 export async function getBenchmark(id: string): Promise<Benchmark> {
   const client = getClient();
   return client.benchmarks.retrieve(id);
+}
+
+const BENCHMARK_DEFINITIONS_PAGE_SIZE = 500;
+
+/**
+ * List all scenario definitions for a benchmark (paginated).
+ */
+export async function listAllBenchmarkScenarioDefinitions(
+  benchmarkId: string,
+): Promise<Scenario[]> {
+  const client = getClient();
+  const all: Scenario[] = [];
+  let startingAfter: string | undefined;
+
+  for (;;) {
+    const page = await client.benchmarks.definitions(benchmarkId, {
+      limit: BENCHMARK_DEFINITIONS_PAGE_SIZE,
+      starting_after: startingAfter,
+    });
+    const batch = page.scenarios ?? [];
+    all.push(...batch);
+    if (!page.has_more || batch.length === 0) break;
+    const last = batch[batch.length - 1];
+    if (!last?.id) break;
+    startingAfter = last.id;
+  }
+
+  return all;
 }
 
 /**
