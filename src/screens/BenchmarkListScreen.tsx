@@ -351,8 +351,8 @@ export function BenchmarkListScreen() {
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
-              {figures.info}{" "}
-              No {showPublic ? "public " : "private "}benchmarks found
+              {figures.info} No {showPublic ? "public " : "private "}benchmarks
+              found
             </Text>
           }
         />
