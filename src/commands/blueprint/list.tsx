@@ -893,7 +893,7 @@ const ListBlueprintsUI = ({
           data={blueprints}
           keyExtractor={(blueprint: BlueprintListItem) => blueprint.id}
           selectedIndex={selectedIndex}
-          title={`blueprints[${hasMore ? `${totalCount}+` : totalCount}]`}
+          title={`blueprints[${totalCount}]`}
           columns={blueprintColumns}
           emptyState={
             <Text color={colors.textDim}>
@@ -907,7 +907,7 @@ const ListBlueprintsUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
+            {figures.hamburger} {totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -925,8 +925,7 @@ const ListBlueprintsUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of{" "}
-                  {hasMore ? `${totalPages}+` : totalPages}
+                  Page {currentPage + 1} of {totalPages}
                 </Text>
               )}
             </>
@@ -936,8 +935,7 @@ const ListBlueprintsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of{" "}
-            {hasMore ? `${totalCount}+` : totalCount}
+            Showing {startIndex + 1}-{endIndex} of {totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>

@@ -590,7 +590,7 @@ const ListMcpConfigsUI = ({
           data={configs}
           keyExtractor={(config: McpConfigListItem) => config.id}
           selectedIndex={selectedIndex}
-          title={`mcp_configs[${hasMore ? `${totalCount}+` : totalCount}]`}
+          title={`mcp_configs[${totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -603,7 +603,7 @@ const ListMcpConfigsUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
+            {figures.hamburger} {totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -621,8 +621,7 @@ const ListMcpConfigsUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of{" "}
-                  {hasMore ? `${totalPages}+` : totalPages}
+                  Page {currentPage + 1} of {totalPages}
                 </Text>
               )}
             </>
@@ -632,8 +631,7 @@ const ListMcpConfigsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of{" "}
-            {hasMore ? `${totalCount}+` : totalCount}
+            Showing {startIndex + 1}-{endIndex} of {totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>

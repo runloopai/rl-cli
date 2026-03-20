@@ -733,7 +733,7 @@ const ListObjectsUI = ({
           data={objects}
           keyExtractor={(obj: ObjectListItem) => obj.id}
           selectedIndex={selectedIndex}
-          title={`storage_objects[${hasMore ? `${totalCount}+` : totalCount}]`}
+          title={`storage_objects[${totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -748,7 +748,7 @@ const ListObjectsUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
+            {figures.hamburger} {totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -766,8 +766,7 @@ const ListObjectsUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of{" "}
-                  {hasMore ? `${totalPages}+` : totalPages}
+                  Page {currentPage + 1} of {totalPages}
                 </Text>
               )}
             </>
@@ -777,8 +776,7 @@ const ListObjectsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of{" "}
-            {hasMore ? `${totalCount}+` : totalCount}
+            Showing {startIndex + 1}-{endIndex} of {totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>
