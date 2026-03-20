@@ -24,15 +24,6 @@ interface MenuItem {
 }
 
 const allMenuItems: MenuItem[] = [
-  /**
-  {
-    key: "benchmarks",
-    label: "Benchmarks",
-    description: "Performance testing and evaluation",
-    icon: "▷",
-    color: colors.success,
-  },
-  */
   {
     key: "devboxes",
     label: "Devboxes",
@@ -53,6 +44,13 @@ const allMenuItems: MenuItem[] = [
     description: "Save and restore devbox states",
     icon: "◈",
     color: colors.accent3,
+  },
+  {
+    key: "benchmarks",
+    label: "Benchmarks",
+    description: "Performance testing and evaluation",
+    icon: "▷",
+    color: colors.success,
   },
   {
     key: "objects",
@@ -190,10 +188,8 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       selectByKey("snapshots");
     } else if (input === "o") {
       selectByKey("objects");
-      /**
     } else if (input === "e") {
       selectByKey("benchmarks");
-    */
     } else if (input === "n") {
       selectByKey("settings");
     } else if (input >= "1" && input <= "9") {
