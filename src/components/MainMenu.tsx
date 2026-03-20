@@ -12,6 +12,7 @@ import { useUpdateCheck } from "../hooks/useUpdateCheck.js";
 import { useVerticalLayout } from "../hooks/useVerticalLayout.js";
 import { useBetaFeatures } from "../store/betaFeatureStore.js";
 import type { BetaFeature } from "../store/betaFeatureStore.js";
+import { useMenuStore } from "../store/menuStore.js";
 
 interface MenuItem {
   key: string;
@@ -96,9 +97,9 @@ const BetaBadge = () => (
 
 export const MainMenu = ({ onSelect }: MainMenuProps) => {
   const { exit } = useApp();
-  const [selectedIndex, setSelectedIndex] = React.useState(0);
   const { stdout } = useStdout();
   const { isFeatureEnabled } = useBetaFeatures();
+  const { selectedKey, setSelectedKey } = useMenuStore();
 
   // Filter menu items based on beta feature flags
   const menuItems = React.useMemo(() => {
@@ -109,6 +110,22 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       return true;
     });
   }, [isFeatureEnabled]);
+
+  // Calculate initial index from persisted key
+  const initialIndex = React.useMemo(() => {
+    const index = menuItems.findIndex((item) => item.key === selectedKey);
+    return index >= 0 ? index : 0;
+  }, [selectedKey, menuItems]);
+
+  const [selectedIndex, setSelectedIndex] = React.useState(initialIndex);
+
+  // Persist selection when it changes
+  React.useEffect(() => {
+    const currentKey = menuItems[selectedIndex]?.key;
+    if (currentKey && currentKey !== selectedKey) {
+      setSelectedKey(currentKey);
+    }
+  }, [selectedIndex, menuItems, selectedKey, setSelectedKey]);
 
   // Get raw terminal dimensions, responding to resize events
   // Default to 20 rows / 80 cols if we can't detect
