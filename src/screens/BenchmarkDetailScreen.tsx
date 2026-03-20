@@ -149,10 +149,7 @@ export function BenchmarkDetailScreen({
       });
     }
 
-    if (
-      (b as any).metadata &&
-      Object.keys((b as any).metadata).length > 0
-    ) {
+    if ((b as any).metadata && Object.keys((b as any).metadata).length > 0) {
       const metadataFields = Object.entries((b as any).metadata).map(
         ([key, value]) => ({
           label: key,
@@ -209,14 +206,10 @@ export function BenchmarkDetailScreen({
     } else if (scenarioDefsError) {
       nameFields.push({
         label: "",
-        value: (
-          <Text color={colors.error}>{scenarioDefsError.message}</Text>
-        ),
+        value: <Text color={colors.error}>{scenarioDefsError.message}</Text>,
       });
     } else {
-      const idToName = new Map(
-        scenarioDefs.map((s) => [s.id, s.name || s.id]),
-      );
+      const idToName = new Map(scenarioDefs.map((s) => [s.id, s.name || s.id]));
       for (const id of orderedScenarioIds) {
         const name = idToName.get(id) ?? id;
         nameFields.push({
@@ -239,12 +232,7 @@ export function BenchmarkDetailScreen({
     });
 
     return sections;
-  }, [
-    benchmark,
-    scenarioDefs,
-    scenarioDefsLoading,
-    scenarioDefsError,
-  ]);
+  }, [benchmark, scenarioDefs, scenarioDefsLoading, scenarioDefsError]);
 
   const buildDetailLines = React.useCallback(
     (b: Benchmark): React.ReactElement[] => {
