@@ -721,7 +721,7 @@ const ListDevboxesUI = ({
           data={devboxes}
           keyExtractor={(devbox: Devbox) => devbox.id}
           selectedIndex={selectedIndex}
-          title="devboxes"
+          title={`devboxes[${totalCount}]`}
           columns={tableColumns}
           emptyState={
             <Text color={colors.textDim}>
