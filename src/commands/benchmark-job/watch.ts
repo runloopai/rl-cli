@@ -77,6 +77,43 @@ function formatPercent(count: number, total: number): string {
   return ((count / total) * 100).toFixed(1) + "%";
 }
 
+/** Sum finished / total across all runs (same denominator rules as per-run lines). */
+function aggregateJobProgress(progressList: RunProgress[]): {
+  finished: number;
+  total: number;
+} {
+  let finished = 0;
+  let total = 0;
+  for (const p of progressList) {
+    const runTotal = p.expectedTotal > 0 ? p.expectedTotal : p.started;
+    finished += p.finished;
+    total += runTotal;
+  }
+  return { finished, total };
+}
+
+/** Full-width terminal bar from aggregate scenario completion (0–100%). */
+function formatAggregateProgressBar(progressList: RunProgress[]): string {
+  const { finished, total } = aggregateJobProgress(progressList);
+  const ratio = total > 0 ? Math.min(1, Math.max(0, finished / total)) : 0;
+  const pctStr = (ratio * 100).toFixed(1) + "%";
+  const countPlain = total > 0 ? `  ${finished}/${total}` : "";
+
+  const cols = process.stdout.columns || 80;
+  // Visible width: `[` + bar + `]` + space + pct + optional count
+  const rightLen = pctStr.length + countPlain.length + 1;
+  const inner = Math.max(8, cols - rightLen - 4);
+
+  const filledLen = Math.round(ratio * inner);
+  const emptyLen = inner - filledLen;
+
+  const bar =
+    chalk.cyan("█".repeat(filledLen)) + chalk.dim("░".repeat(emptyLen));
+  const countSuffix = total > 0 ? chalk.dim(countPlain) : "";
+
+  return `[${bar}] ${pctStr}${countSuffix}`;
+}
+
 // Format duration in human-readable format
 function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000);
@@ -107,8 +144,8 @@ function getSpinnerFrame(tick: number): string {
 // Calculate max scenarios per run based on terminal height
 function getMaxScenariosPerRun(numRuns: number): number {
   const termHeight = process.stdout.rows || 24;
-  // Reserve lines for: header (3), footer (2), per-run header (1 per run), buffer (2)
-  const reservedLines = 3 + 2 + numRuns + 2;
+  // Reserve lines for: header (job, id, state, bar), footer (2), per-run header (1 per run), buffer (2)
+  const reservedLines = 4 + 2 + numRuns + 2;
   const availableLines = Math.max(termHeight - reservedLines, 3);
   // Distribute available lines across runs, minimum 3 per run
   return Math.max(Math.floor(availableLines / Math.max(numRuns, 1)), 3);
@@ -424,7 +461,7 @@ export async function watchBenchmarkJob(id: string) {
         );
         screenLines.push(chalk.dim(`ID: ${job.id}`));
         screenLines.push(chalk.dim(`State: ${job.state}`));
-        screenLines.push("");
+        screenLines.push(formatAggregateProgressBar(progressList));
 
         if (progressLines.length > 0) {
           screenLines.push(chalk.bold("Progress:"));
