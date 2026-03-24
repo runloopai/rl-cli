@@ -133,16 +133,14 @@ const ListGatewayConfigsUI = ({
       // Build query params
       const queryParams: Record<string, unknown> = {
         limit: params.limit,
+        // Only request total_count on first page (expensive for backend)
+        include_total_count: params.includeTotalCount === true,
       };
       if (params.startingAt) {
         queryParams.starting_after = params.startingAt;
       }
       if (search.submittedSearchQuery) {
         queryParams.name = search.submittedSearchQuery;
-      }
-      // Only request total_count on first page (expensive for backend)
-      if (params.includeTotalCount) {
-        queryParams.include_total_count = true;
       }
 
       // Fetch ONE page only
