@@ -135,13 +135,19 @@ const ListNetworkPoliciesUI = ({
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const client = getClient();
       const pagePolicies: NetworkPolicyListItem[] = [];
 
       // Build query params
       const queryParams: Record<string, unknown> = {
         limit: params.limit,
+        // Only request total_count on first page (expensive for backend)
+        include_total_count: params.includeTotalCount === true,
       };
       if (params.startingAt) {
         queryParams.starting_after = params.startingAt;
@@ -153,7 +159,9 @@ const ListNetworkPoliciesUI = ({
       // Fetch ONE page only
       const page = (await client.networkPolicies.list(
         queryParams,
-      )) as unknown as NetworkPoliciesCursorIDPage<NetworkPolicyListItem>;
+      )) as unknown as NetworkPoliciesCursorIDPage<NetworkPolicyListItem> & {
+        total_count?: number;
+      };
 
       // Extract data and create defensive copies
       if (page.network_policies && Array.isArray(page.network_policies)) {
@@ -178,7 +186,7 @@ const ListNetworkPoliciesUI = ({
       const result = {
         items: pagePolicies,
         hasMore: page.has_more || false,
-        totalCount: pagePolicies.length,
+        totalCount: page.total_count,
       };
 
       return result;
@@ -341,7 +349,11 @@ const ListNetworkPoliciesUI = ({
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + policies.length;
+  const endIndex = Math.min(startIndex + policies.length, totalCount);
+  const showingRange =
+    endIndex === startIndex + 1
+      ? `${startIndex + 1}`
+      : `${startIndex + 1}-${endIndex}`;
 
   const executeOperation = async (
     policy: NetworkPolicyListItem,
@@ -683,7 +695,7 @@ const ListNetworkPoliciesUI = ({
           data={policies}
           keyExtractor={(policy: NetworkPolicyListItem) => policy.id}
           selectedIndex={selectedIndex}
-          title={`network_policies[${hasMore ? `${totalCount}+` : totalCount}]`}
+          title={`network_policies[${totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -697,7 +709,7 @@ const ListNetworkPoliciesUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
+            {figures.hamburger} {totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -715,8 +727,7 @@ const ListNetworkPoliciesUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of{" "}
-                  {hasMore ? `${totalPages}+` : totalPages}
+                  Page {currentPage + 1} of {totalPages}
                 </Text>
               )}
             </>
@@ -726,8 +737,7 @@ const ListNetworkPoliciesUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of{" "}
-            {hasMore ? `${totalCount}+` : totalCount}
+            Showing {showingRange} of {totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>

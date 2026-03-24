@@ -90,7 +90,11 @@ const ListSecretsUI = ({
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const client = getClient();
       const pageSecrets: SecretListItem[] = [];
 
@@ -237,7 +241,11 @@ const ListSecretsUI = ({
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + secrets.length;
+  const endIndex = Math.min(startIndex + secrets.length, totalCount);
+  const showingRange =
+    endIndex === startIndex + 1
+      ? `${startIndex + 1}`
+      : `${startIndex + 1}-${endIndex}`;
 
   const executeOperation = async (
     secret: SecretListItem,
@@ -543,7 +551,7 @@ const ListSecretsUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
+            {figures.hamburger} {totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -561,8 +569,7 @@ const ListSecretsUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of{" "}
-                  {hasMore ? `${totalPages}+` : totalPages}
+                  Page {currentPage + 1} of {totalPages}
                 </Text>
               )}
             </>
@@ -572,8 +579,7 @@ const ListSecretsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of{" "}
-            {hasMore ? `${totalCount}+` : totalCount}
+            Showing {showingRange} of {totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>

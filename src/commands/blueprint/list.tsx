@@ -113,13 +113,19 @@ const ListBlueprintsUI = ({
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const client = getClient();
       const pageBlueprints: BlueprintListItem[] = [];
 
       // Build query params
       const queryParams: Record<string, unknown> = {
         limit: params.limit,
+        // Only request total_count on first page (expensive for backend)
+        include_total_count: params.includeTotalCount === true,
       };
       if (params.startingAt) {
         queryParams.starting_after = params.startingAt;
@@ -131,7 +137,9 @@ const ListBlueprintsUI = ({
       // Fetch ONE page only
       const page = (await client.blueprints.list(
         queryParams,
-      )) as unknown as BlueprintsCursorIDPage<BlueprintListItem>;
+      )) as unknown as BlueprintsCursorIDPage<BlueprintListItem> & {
+        total_count?: number;
+      };
 
       // Extract data and create defensive copies
       if (page.blueprints && Array.isArray(page.blueprints)) {
@@ -148,7 +156,7 @@ const ListBlueprintsUI = ({
       const result = {
         items: pageBlueprints,
         hasMore: page.has_more || false,
-        totalCount: pageBlueprints.length,
+        totalCount: page.total_count,
       };
 
       return result;
@@ -356,7 +364,11 @@ const ListBlueprintsUI = ({
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + blueprints.length;
+  const endIndex = Math.min(startIndex + blueprints.length, totalCount);
+  const showingRange =
+    endIndex === startIndex + 1
+      ? `${startIndex + 1}`
+      : `${startIndex + 1}-${endIndex}`;
 
   const executeOperation = async (
     blueprintOverride?: BlueprintListItem,
@@ -883,7 +895,7 @@ const ListBlueprintsUI = ({
           data={blueprints}
           keyExtractor={(blueprint: BlueprintListItem) => blueprint.id}
           selectedIndex={selectedIndex}
-          title={`blueprints[${hasMore ? `${totalCount}+` : totalCount}]`}
+          title={`blueprints[${totalCount}]`}
           columns={blueprintColumns}
           emptyState={
             <Text color={colors.textDim}>
@@ -897,7 +909,7 @@ const ListBlueprintsUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
+            {figures.hamburger} {totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -915,8 +927,7 @@ const ListBlueprintsUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of{" "}
-                  {hasMore ? `${totalPages}+` : totalPages}
+                  Page {currentPage + 1} of {totalPages}
                 </Text>
               )}
             </>
@@ -926,8 +937,7 @@ const ListBlueprintsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of{" "}
-            {hasMore ? `${totalCount}+` : totalCount}
+            Showing {showingRange} of {totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>

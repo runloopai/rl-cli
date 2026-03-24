@@ -103,12 +103,18 @@ const ListMcpConfigsUI = ({
   const nameWidth = Math.min(80, Math.max(15, remainingWidth));
 
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const client = getClient();
       const pageConfigs: McpConfigListItem[] = [];
 
       const queryParams: Record<string, unknown> = {
         limit: params.limit,
+        // Only request total_count on first page (expensive for backend)
+        include_total_count: params.includeTotalCount === true,
       };
       if (params.startingAt) {
         queryParams.starting_after = params.startingAt;
@@ -119,7 +125,9 @@ const ListMcpConfigsUI = ({
 
       const page = (await client.mcpConfigs.list(
         queryParams,
-      )) as unknown as McpConfigsCursorIDPage<McpConfigListItem>;
+      )) as unknown as McpConfigsCursorIDPage<McpConfigListItem> & {
+        total_count?: number;
+      };
 
       if (page.mcp_configs && Array.isArray(page.mcp_configs)) {
         page.mcp_configs.forEach((m: McpConfigListItem) => {
@@ -139,7 +147,7 @@ const ListMcpConfigsUI = ({
       return {
         items: pageConfigs,
         hasMore: page.has_more || false,
-        totalCount: pageConfigs.length,
+        totalCount: page.total_count,
       };
     },
     [search.submittedSearchQuery],
@@ -266,7 +274,11 @@ const ListMcpConfigsUI = ({
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + configs.length;
+  const endIndex = Math.min(startIndex + configs.length, totalCount);
+  const showingRange =
+    endIndex === startIndex + 1
+      ? `${startIndex + 1}`
+      : `${startIndex + 1}-${endIndex}`;
 
   const executeOperation = async (
     config: McpConfigListItem,
@@ -580,7 +592,7 @@ const ListMcpConfigsUI = ({
           data={configs}
           keyExtractor={(config: McpConfigListItem) => config.id}
           selectedIndex={selectedIndex}
-          title={`mcp_configs[${hasMore ? `${totalCount}+` : totalCount}]`}
+          title={`mcp_configs[${totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -593,7 +605,7 @@ const ListMcpConfigsUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
+            {figures.hamburger} {totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -611,8 +623,7 @@ const ListMcpConfigsUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of{" "}
-                  {hasMore ? `${totalPages}+` : totalPages}
+                  Page {currentPage + 1} of {totalPages}
                 </Text>
               )}
             </>
@@ -622,8 +633,7 @@ const ListMcpConfigsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of{" "}
-            {hasMore ? `${totalCount}+` : totalCount}
+            Showing {showingRange} of {totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>

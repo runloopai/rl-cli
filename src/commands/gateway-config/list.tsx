@@ -122,13 +122,19 @@ const ListGatewayConfigsUI = ({
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const client = getClient();
       const pageConfigs: GatewayConfigListItem[] = [];
 
       // Build query params
       const queryParams: Record<string, unknown> = {
         limit: params.limit,
+        // Only request total_count on first page (expensive for backend)
+        include_total_count: params.includeTotalCount === true,
       };
       if (params.startingAt) {
         queryParams.starting_after = params.startingAt;
@@ -140,7 +146,9 @@ const ListGatewayConfigsUI = ({
       // Fetch ONE page only
       const page = (await client.gatewayConfigs.list(
         queryParams,
-      )) as unknown as GatewayConfigsCursorIDPage<GatewayConfigListItem>;
+      )) as unknown as GatewayConfigsCursorIDPage<GatewayConfigListItem> & {
+        total_count?: number;
+      };
 
       // Extract data and create defensive copies
       if (page.gateway_configs && Array.isArray(page.gateway_configs)) {
@@ -163,7 +171,7 @@ const ListGatewayConfigsUI = ({
       const result = {
         items: pageConfigs,
         hasMore: page.has_more || false,
-        totalCount: pageConfigs.length,
+        totalCount: page.total_count,
       };
 
       return result;
@@ -304,7 +312,11 @@ const ListGatewayConfigsUI = ({
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + configs.length;
+  const endIndex = Math.min(startIndex + configs.length, totalCount);
+  const showingRange =
+    endIndex === startIndex + 1
+      ? `${startIndex + 1}`
+      : `${startIndex + 1}-${endIndex}`;
 
   const executeOperation = async (
     config: GatewayConfigListItem,
@@ -653,7 +665,7 @@ const ListGatewayConfigsUI = ({
           data={configs}
           keyExtractor={(config: GatewayConfigListItem) => config.id}
           selectedIndex={selectedIndex}
-          title={`gateway_configs[${hasMore ? `${totalCount}+` : totalCount}]`}
+          title={`gateway_configs[${totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -668,7 +680,7 @@ const ListGatewayConfigsUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
+            {figures.hamburger} {totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -686,8 +698,7 @@ const ListGatewayConfigsUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of{" "}
-                  {hasMore ? `${totalPages}+` : totalPages}
+                  Page {currentPage + 1} of {totalPages}
                 </Text>
               )}
             </>
@@ -697,8 +708,7 @@ const ListGatewayConfigsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of{" "}
-            {hasMore ? `${totalCount}+` : totalCount}
+            Showing {showingRange} of {totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>

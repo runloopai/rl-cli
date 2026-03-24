@@ -104,13 +104,19 @@ const ListSnapshotsUI = ({
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const client = getClient();
       const pageSnapshots: SnapshotListItem[] = [];
 
       // Build query params
       const queryParams: Record<string, unknown> = {
         limit: params.limit,
+        // Only request total_count on first page (expensive for backend)
+        include_total_count: params.includeTotalCount === true,
       };
       if (params.startingAt) {
         queryParams.starting_after = params.startingAt;
@@ -125,7 +131,9 @@ const ListSnapshotsUI = ({
       // Fetch ONE page only
       const page = (await client.devboxes.listDiskSnapshots(
         queryParams,
-      )) as unknown as DiskSnapshotsCursorIDPage<SnapshotListItem>;
+      )) as unknown as DiskSnapshotsCursorIDPage<SnapshotListItem> & {
+        total_count?: number;
+      };
 
       // Extract data and create defensive copies
       if (page.snapshots && Array.isArray(page.snapshots)) {
@@ -143,7 +151,7 @@ const ListSnapshotsUI = ({
       const result = {
         items: pageSnapshots,
         hasMore: page.has_more || false,
-        totalCount: pageSnapshots.length,
+        totalCount: page.total_count,
       };
 
       return result;
@@ -268,7 +276,11 @@ const ListSnapshotsUI = ({
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + snapshots.length;
+  const endIndex = Math.min(startIndex + snapshots.length, totalCount);
+  const showingRange =
+    endIndex === startIndex + 1
+      ? `${startIndex + 1}`
+      : `${startIndex + 1}-${endIndex}`;
 
   const executeOperation = async (
     snapshot: SnapshotListItem,
@@ -595,7 +607,7 @@ const ListSnapshotsUI = ({
           data={snapshots}
           keyExtractor={(snapshot: SnapshotListItem) => snapshot.id}
           selectedIndex={selectedIndex}
-          title={`snapshots[${hasMore ? `${totalCount}+` : totalCount}]`}
+          title={`snapshots[${totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -610,7 +622,7 @@ const ListSnapshotsUI = ({
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
           <Text color={colors.primary} bold>
-            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
+            {figures.hamburger} {totalCount}
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -628,8 +640,7 @@ const ListSnapshotsUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of{" "}
-                  {hasMore ? `${totalPages}+` : totalPages}
+                  Page {currentPage + 1} of {totalPages}
                 </Text>
               )}
             </>
@@ -639,8 +650,7 @@ const ListSnapshotsUI = ({
             •{" "}
           </Text>
           <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of{" "}
-            {hasMore ? `${totalCount}+` : totalCount}
+            Showing {showingRange} of {totalCount}
           </Text>
           {search.submittedSearchQuery && (
             <>
