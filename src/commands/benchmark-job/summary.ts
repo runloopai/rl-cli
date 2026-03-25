@@ -151,7 +151,11 @@ function printResultsTable(job: BenchmarkJob, extended: boolean = false): void {
   const outcomes = job.benchmark_outcomes || [];
 
   if (outcomes.length === 0) {
-    console.log(chalk.yellow("No benchmark outcomes found"));
+    if (job.failure_reason) {
+      console.log(chalk.red(`Job failed: ${job.failure_reason}`));
+    } else {
+      console.log(chalk.yellow("No benchmark outcomes found"));
+    }
     return;
   }
 
