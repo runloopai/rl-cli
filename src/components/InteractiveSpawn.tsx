@@ -8,6 +8,7 @@ import { spawn, ChildProcess } from "child_process";
 import {
   showCursor,
   clearScreen,
+  exitAlternateScreenBuffer,
   enterAlternateScreenBuffer,
 } from "../utils/screen.js";
 import { processUtils } from "../utils/processUtils.js";
@@ -24,14 +25,20 @@ interface InteractiveSpawnProps {
  * This directly manipulates stdin to bypass Ink's input handling.
  */
 function releaseTerminal(): void {
+  // Exit alternate screen buffer so the subprocess runs in the normal screen buffer.
+  // This prevents Ink's ongoing renders (which target the alt buffer) from
+  // interfering with the subprocess's terminal I/O, which was causing characters
+  // to be lost at the start of the session.
+  exitAlternateScreenBuffer();
+
   // Pause stdin to stop Ink from reading input
   process.stdin.pause();
 
-  // Disable raw mode so the subprocess can control terminal echo and line buffering
-  // SSH needs to set its own terminal modes
-  if (processUtils.stdin.isTTY && processUtils.stdin.setRawMode) {
-    processUtils.stdin.setRawMode(false);
-  }
+  // NOTE: We intentionally do NOT call setRawMode(false) here. Leaving the terminal
+  // in raw mode means characters typed during the subprocess connection setup remain
+  // immediately available in the kernel buffer (no canonical line-buffering). Calling
+  // setRawMode(false) would invoke tcsetattr(TCSAFLUSH) which discards pending input
+  // and switches to canonical mode where keystrokes are held until Enter is pressed.
 
   // Reset terminal attributes (SGR reset) - clears any colors/styles Ink may have set
   if (processUtils.stdout.isTTY) {
@@ -40,11 +47,6 @@ function releaseTerminal(): void {
 
   // Show cursor - Ink may have hidden it, and subprocesses expect it to be visible
   showCursor();
-
-  // Flush stdout to ensure all pending writes are complete before handoff
-  if (processUtils.stdout.isTTY) {
-    processUtils.stdout.write("");
-  }
 }
 
 /**
