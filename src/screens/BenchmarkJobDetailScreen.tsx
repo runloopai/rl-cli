@@ -645,15 +645,24 @@ export function BenchmarkJobDetailScreen({
 
       // Extract agent configs - both full configs and legacy fields
       if (resource.job_spec?.agent_configs) {
-        const agentConfigs = resource.job_spec.agent_configs.map((a: any) => ({
-          agentId: a.agent_id,
-          name: a.name,
-          modelName: a.model_name,
-          timeoutSeconds: a.timeout_seconds,
-          kwargs: a.kwargs,
-          environmentVariables: a.agent_environment?.environment_variables,
-          secrets: a.agent_environment?.secrets,
-        }));
+        const agentConfigs = resource.job_spec.agent_configs.map((a: any) => {
+          const env = a.agent_environment;
+          const secrets =
+            env?.secrets ??
+            env?.secret_names ??
+            (typeof env?.secret_refs === "object" && env.secret_refs
+              ? env.secret_refs
+              : undefined);
+          return {
+            agentId: a.agent_id,
+            name: a.name,
+            modelName: a.model_name,
+            timeoutSeconds: a.timeout_seconds,
+            kwargs: a.kwargs,
+            environmentVariables: env?.environment_variables,
+            secrets,
+          };
+        });
         cloneParams.cloneAgentConfigs = JSON.stringify(agentConfigs);
 
         // Also extract legacy fields for form initialization
