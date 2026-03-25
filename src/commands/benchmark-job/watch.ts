@@ -253,7 +253,11 @@ function printResultsTable(job: BenchmarkJob): void {
   const outcomes = job.benchmark_outcomes || [];
 
   if (outcomes.length === 0) {
-    console.log(chalk.yellow("No benchmark outcomes found"));
+    if (job.failure_reason) {
+      console.log(chalk.red(`Job failed: ${job.failure_reason}`));
+    } else {
+      console.log(chalk.yellow("No benchmark outcomes found"));
+    }
     return;
   }
 
@@ -478,7 +482,11 @@ export async function watchBenchmarkJob(id: string) {
     const totalElapsedStr = formatDuration(Date.now() - jobStartMs);
 
     // Show completion message
-    console.log(chalk.green.bold("Benchmark job completed!"));
+    if (job.state === "failed") {
+      console.log(chalk.red.bold("Benchmark job failed."));
+    } else {
+      console.log(chalk.green.bold("Benchmark job completed!"));
+    }
     console.log(chalk.dim(`Total time: ${totalElapsedStr}`));
 
     // Show final results (summary only)
