@@ -302,40 +302,58 @@ export async function downloadBenchmarkJobLogs(
     // Build scenario outcome lookup from completed outcomes
     const outcomeMap = buildScenarioOutcomeMap(job);
 
-    // Gather all scenario log targets across benchmark runs
-    const targets: ScenarioLogTarget[] = [];
+    // Gather all scenario log targets across benchmark runs, fetching all
+    // agents' scenario run lists in parallel for speed.
+    console.log(
+      chalk.dim(
+        `Fetching scenario runs for ${runs.length} agent(s) in parallel...`,
+      ),
+    );
 
-    for (const run of runs) {
-      const agentLabel = run.modelName
-        ? `${run.agentName}:${run.modelName}`
-        : run.agentName;
-      console.log(
-        chalk.dim(`Fetching scenario runs for agent "${agentLabel}"...`),
-      );
-      let scenarioRuns = await listBenchmarkRunScenarioRuns(run.benchmarkRunId);
+    const agentScenarioRuns = await Promise.allSettled(
+      runs.map((run) => listBenchmarkRunScenarioRuns(run.benchmarkRunId)),
+    );
 
-      // Apply --scenario filter
+    // Collect (run, scenarioRun) pairs, applying --scenario filter
+    const pairs: { run: BenchmarkRunInfo; sr: ScenarioRun }[] = [];
+    for (let i = 0; i < runs.length; i++) {
+      const result = agentScenarioRuns[i];
+      if (result.status === "rejected") {
+        const agentLabel = runs[i].modelName
+          ? `${runs[i].agentName}:${runs[i].modelName}`
+          : runs[i].agentName;
+        console.error(
+          chalk.yellow(
+            `  Warning: failed to fetch scenario runs for agent "${agentLabel}": ${result.reason}`,
+          ),
+        );
+        continue;
+      }
+      let scenarioRuns = result.value;
       if (options.scenario) {
         scenarioRuns = scenarioRuns.filter((sr) => sr.id === options.scenario);
       }
-
       for (const sr of scenarioRuns) {
-        const scenarioName = await resolveScenarioName(
-          sr.id,
-          sr.scenario_id,
-          outcomeMap,
-        );
-        targets.push({
-          agentName: run.agentName,
-          modelName: run.modelName,
-          scenarioName,
-          scenarioRunId: sr.id,
-          scenarioRun: sr,
-          outcome: outcomeMap.get(sr.id),
-          destDir: "", // assigned below
-        });
+        pairs.push({ run: runs[i], sr });
       }
     }
+
+    // Resolve all scenario names in parallel (may hit the API for in-progress runs)
+    const resolvedNames = await Promise.all(
+      pairs.map(({ sr }) =>
+        resolveScenarioName(sr.id, sr.scenario_id, outcomeMap),
+      ),
+    );
+
+    const targets: ScenarioLogTarget[] = pairs.map(({ run, sr }, i) => ({
+      agentName: run.agentName,
+      modelName: run.modelName,
+      scenarioName: resolvedNames[i],
+      scenarioRunId: sr.id,
+      scenarioRun: sr,
+      outcome: outcomeMap.get(sr.id),
+      destDir: "", // assigned below
+    }));
 
     if (targets.length === 0) {
       console.log(chalk.yellow("No scenario runs found to download logs for."));
