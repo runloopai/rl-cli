@@ -1012,6 +1012,30 @@ export function createProgram(): Command {
       await installMcpConfig();
     });
 
+  // Axon commands (beta)
+  const axon = program.command("axon").description("Manage axons (beta)");
+
+  axon
+    .command("list")
+    .description("List active axons")
+    .option(
+      "--limit <n>",
+      "Max axons to return (0 = unlimited)",
+      "0",
+    )
+    .option(
+      "--starting-after <id>",
+      "Starting point for cursor pagination (axon ID)",
+    )
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (options) => {
+      const { listAxonsCommand } = await import("../commands/axon/list.js");
+      await listAxonsCommand(options);
+    });
+
   // Scenario commands
   const scenario = program
     .command("scenario")
