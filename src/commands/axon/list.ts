@@ -3,10 +3,7 @@
  */
 
 import chalk from "chalk";
-import {
-  listActiveAxons,
-  type Axon,
-} from "../../services/axonService.js";
+import { listActiveAxons, type Axon } from "../../services/axonService.js";
 import { output, outputError, parseLimit } from "../../utils/output.js";
 
 interface ListOptions {
@@ -52,7 +49,8 @@ function printTable(axons: Axon[]): void {
   console.log(chalk.dim("─".repeat(header.length)));
 
   for (const axon of axons) {
-    const id = axon.id.length > COL_ID ? axon.id.slice(0, COL_ID - 1) + "…" : axon.id;
+    const id =
+      axon.id.length > COL_ID ? axon.id.slice(0, COL_ID - 1) + "…" : axon.id;
     const nameRaw = axon.name ?? "";
     const name =
       nameRaw.length > COL_NAME
@@ -103,8 +101,7 @@ export async function listAxonsCommand(options: ListOptions): Promise<void> {
     let axons: Axon[];
 
     if (options.startingAfter) {
-      const pageLimit =
-        maxResults === Infinity ? PAGE_SIZE : maxResults;
+      const pageLimit = maxResults === Infinity ? PAGE_SIZE : maxResults;
       const { axons: page, hasMore } = await listActiveAxons({
         limit: pageLimit,
         startingAfter: options.startingAfter,

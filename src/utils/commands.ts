@@ -1018,11 +1018,7 @@ export function createProgram(): Command {
   axon
     .command("list")
     .description("List active axons")
-    .option(
-      "--limit <n>",
-      "Max axons to return (0 = unlimited)",
-      "0",
-    )
+    .option("--limit <n>", "Max axons to return (0 = unlimited)", "0")
     .option(
       "--starting-after <id>",
       "Starting point for cursor pagination (axon ID)",

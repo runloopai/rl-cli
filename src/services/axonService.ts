@@ -2,7 +2,10 @@
  * Axon service — active axons listing (beta API)
  */
 import { getClient } from "../utils/client.js";
-import type { AxonListView, AxonView } from "@runloop/api-client/resources/axons/axons";
+import type {
+  AxonListView,
+  AxonView,
+} from "@runloop/api-client/resources/axons/axons";
 
 export type Axon = AxonView;
 
