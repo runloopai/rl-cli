@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.1](https://github.com/runloopai/rl-cli/compare/v1.14.0...v1.14.1) (2026-03-28)
+
+
+### Bug Fixes
+
+* **cli:** account for pending scenarios in rli display ([#185](https://github.com/runloopai/rl-cli/issues/185)) ([c82d528](https://github.com/runloopai/rl-cli/commit/c82d528e3028b4c6eaf7fb30d868c80e91edbf91))
+
 ## [1.14.0](https://github.com/runloopai/rl-cli/compare/v1.13.3...v1.14.0) (2026-03-25)
 
 
