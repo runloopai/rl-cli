@@ -147,6 +147,12 @@ function formatRunProgressLine(progress: RunProgress): string {
     parts.push(`${progress.scoring} scoring`);
   }
 
+  // Pending = scenarios not yet started (expected minus actually started)
+  const notStarted = total - progress.started;
+  if (notStarted > 0) {
+    parts.push(`${notStarted} pending`);
+  }
+
   if (progress.avgScore !== null) {
     parts.push(`score: ${(progress.avgScore * 100).toFixed(0)}%`);
   }
