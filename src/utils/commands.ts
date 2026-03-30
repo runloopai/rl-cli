@@ -568,6 +568,84 @@ export function createProgram(): Command {
       await createBlueprintFromDockerfile(options);
     });
 
+  // Agent commands
+  const agent = program
+    .command("agent")
+    .description("Manage agents")
+    .alias("agt");
+
+  agent
+    .command("list")
+    .description("List agents")
+    .option("--limit <n>", "Max results", "20")
+    .option("--name <name>", "Filter by name (partial match)")
+    .option("--search <query>", "Search by agent ID or name")
+    .option("--public", "List public agents only")
+    .option("--private", "List private agents only")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: json)",
+    )
+    .action(async (options) => {
+      const { listAgentsCommand } = await import("../commands/agent/list.js");
+      await listAgentsCommand(options);
+    });
+
+  agent
+    .command("get <id>")
+    .description("Get agent details")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: json)",
+    )
+    .action(async (id, options) => {
+      const { getAgentCommand } = await import("../commands/agent/get.js");
+      await getAgentCommand({ id, ...options });
+    });
+
+  agent
+    .command("create")
+    .description("Create an agent")
+    .requiredOption("--name <name>", "Agent name")
+    .requiredOption("--version <version>", "Agent version (semver or SHA)")
+    .option("--source-type <type>", "Source type: git, npm, pip, object")
+    .option("--git-repository <url>", "Git repository URL")
+    .option("--git-ref <ref>", "Git ref (branch/tag/commit)")
+    .option("--npm-package <package>", "NPM package name")
+    .option("--npm-registry-url <url>", "NPM registry URL")
+    .option("--pip-package <package>", "PyPI package name")
+    .option("--pip-index-url <url>", "PyPI index URL")
+    .option("--object-id <id>", "Object ID for object source")
+    .option("--setup-commands <commands>", "Newline-separated setup commands")
+    .option("--public", "Make agent publicly accessible")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: json)",
+    )
+    .action(async (options) => {
+      const { createAgentCommand } =
+        await import("../commands/agent/create.js");
+      await createAgentCommand(options);
+    });
+
+  agent
+    .command("create-from-dir <path>")
+    .description(
+      "Create an agent from a directory (reads agent.yaml config and .runloopignore)",
+    )
+    .option("--name <name>", "Agent name (overrides agent.yaml)")
+    .option("--version <version>", "Agent version (overrides agent.yaml)")
+    .option("--public", "Make agent publicly accessible")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: json)",
+    )
+    .action(async (path, options) => {
+      const { createFromDirCommand } =
+        await import("../commands/agent/create-from-dir.js");
+      await createFromDirCommand({ path, ...options });
+    });
+
   // Object storage commands
   const object = program
     .command("object")

@@ -125,6 +125,15 @@ rli blueprint prune <name>               # Delete old blueprint builds, keeping 
 rli blueprint from-dockerfile            # Create a blueprint from a Dockerfile ...
 ```
 
+### Agent Commands (alias: `agt`)
+
+```bash
+rli agent list                           # List agents
+rli agent get <id>                       # Get agent details
+rli agent create                         # Create an agent
+rli agent create-from-dir <path>         # Create an agent from a directory (rea...
+```
+
 ### Object Commands (alias: `obj`)
 
 ```bash

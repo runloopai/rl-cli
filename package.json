@@ -82,6 +82,7 @@
     "express": "^5.2.1",
     "figures": "^6.1.0",
     "gradient-string": "^3.0.0",
+    "ignore": "^7.0.5",
     "ink": "^6.6.0",
     "ink-big-text": "^2.0.0",
     "ink-gradient": "^3.0.0",

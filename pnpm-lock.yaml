@@ -47,6 +47,9 @@ importers:
       gradient-string:
         specifier: ^3.0.0
         version: 3.0.0
+      ignore:
+        specifier: ^7.0.5
+        version: 7.0.5
       ink:
         specifier: ^6.6.0
         version: 6.6.0(@types/react@19.2.10)(react@19.2.0)
