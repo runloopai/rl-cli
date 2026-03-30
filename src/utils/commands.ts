@@ -1127,6 +1127,41 @@ export function createProgram(): Command {
       await listBenchmarkJobsCommand(options);
     });
 
+  // Agent commands
+  const agent = program
+    .command("agent", { hidden: true })
+    .description("Manage agents")
+    .alias("agt");
+
+  agent
+    .command("list")
+    .description("List agents")
+    .option("--full", "Show all versions for all agents")
+    .option("--name <name>", "Filter by name (partial match)")
+    .option("--search <query>", "Search by agent ID or name")
+    .option("--public", "Show only public agents")
+    .option("--private", "Show only private agents")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (options) => {
+      const { listAgentsCommand } = await import("../commands/agent/list.js");
+      await listAgentsCommand(options);
+    });
+
+  agent
+    .command("show <id-or-name>")
+    .description("Show agent details")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (idOrName, options) => {
+      const { showAgentCommand } = await import("../commands/agent/show.js");
+      await showAgentCommand(idOrName, options);
+    });
+
   // Hidden command: 'rli mcp' without subcommand starts the server (for Claude Desktop config compatibility)
   program
     .command("mcp-server", { hidden: true })
