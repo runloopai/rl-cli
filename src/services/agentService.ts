@@ -14,6 +14,7 @@ export interface ListAgentsOptions {
   privateOnly?: boolean;
   name?: string;
   search?: string;
+  version?: string;
 }
 
 export interface ListAgentsResult {
@@ -37,6 +38,7 @@ export async function listAgents(
     is_public?: boolean;
     name?: string;
     search?: string;
+    version?: string;
   } = {
     limit: options.limit || 50,
   };
@@ -57,6 +59,10 @@ export async function listAgents(
 
   if (options.search) {
     queryParams.search = options.search;
+  }
+
+  if (options.version) {
+    queryParams.version = options.version;
   }
 
   const page = await client.agents.list(queryParams);
