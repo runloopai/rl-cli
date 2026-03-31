@@ -17,7 +17,7 @@ interface ListOptions {
 }
 
 // Column widths (NAME is dynamic, takes remaining space)
-const COL_VERSION = 14;
+const COL_VERSION = 18;
 const COL_VISIBILITY = 10;
 const COL_ID = 30;
 const COL_CREATED = 10;
