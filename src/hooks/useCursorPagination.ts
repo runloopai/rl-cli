@@ -108,6 +108,9 @@ export function useCursorPagination<T>(
   // Track if we have a cached total count from the API (to avoid re-requesting)
   const hasCachedTotalCountRef = React.useRef(false);
 
+  // Abort controller for cancelling in-flight count requests
+  const countAbortRef = React.useRef<AbortController | null>(null);
+
   // Cursor history: cursorHistory[N] = last item ID of page N
   // Used to determine startingAt for page N+1
   const cursorHistoryRef = React.useRef<(string | undefined)[]>([]);
@@ -176,13 +179,11 @@ export function useCursorPagination<T>(
         const startingAt =
           page > 0 ? cursorHistoryRef.current[page - 1] : undefined;
 
-        // Only request total_count on first fetch or when we don't have it cached
-        const includeTotalCount = !hasCachedTotalCountRef.current;
-
+        // Never request total_count in the main data fetch — it's fetched asynchronously
         const result = await fetchPageRef.current({
           limit: pageSizeRef.current,
           startingAt,
-          includeTotalCount,
+          includeTotalCount: false,
         });
 
         if (!isMountedRef.current) return;
@@ -201,18 +202,12 @@ export function useCursorPagination<T>(
         // Update pagination state
         setHasMore(result.hasMore);
 
-        // Use API's totalCount if available (only on first fetch), otherwise keep existing
-        if (
-          result.totalCount !== undefined &&
-          result.totalCount > 0 &&
-          !hasCachedTotalCountRef.current
-        ) {
-          setTotalCount(result.totalCount);
+        // If has_more is false on any page, we know the exact total count.
+        // Cancel the background count request if still pending.
+        if (!result.hasMore && !hasCachedTotalCountRef.current) {
+          countAbortRef.current?.abort();
+          setTotalCount(page * pageSizeRef.current + result.items.length);
           hasCachedTotalCountRef.current = true;
-        } else if (!hasCachedTotalCountRef.current) {
-          // Fallback: compute from items seen so far (for APIs that don't support total_count)
-          const computed = page * pageSizeRef.current + result.items.length;
-          setTotalCount((prev) => Math.max(computed, prev));
         }
       } catch (err) {
         if (!isMountedRef.current) return;
@@ -237,9 +232,34 @@ export function useCursorPagination<T>(
     setCurrentPage(0);
     setItems([]);
     setHasMore(false);
-    setTotalCount(0);
-    // Fetch page 0
+    // Don't reset totalCount to 0 — keep old value visible while new count loads
+    // Fire both data and count requests immediately in parallel.
+    // If the data request returns first with hasMore=false, cancel the count request.
+    countAbortRef.current?.abort();
+    const countAbort = new AbortController();
+    countAbortRef.current = countAbort;
+    let cancelled = false;
+
+    // Data fetch
     fetchPageData(0, true);
+
+    // Background count fetch — fires immediately alongside data
+    fetchPageRef
+      .current({ limit: 0, startingAt: undefined, includeTotalCount: true })
+      .then((result) => {
+        if (cancelled || countAbort.signal.aborted || !isMountedRef.current)
+          return;
+        if (result.totalCount !== undefined) {
+          setTotalCount(result.totalCount);
+          hasCachedTotalCountRef.current = true;
+        }
+      })
+      .catch(() => {}); // count failure is non-critical
+
+    return () => {
+      cancelled = true;
+      countAbort.abort();
+    };
   }, [depsKey, fetchPageData]);
 
   // Polling effect - STOP polling when there's an error to avoid flickering
