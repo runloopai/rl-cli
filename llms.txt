@@ -8,7 +8,7 @@ Important notes for AI agents:
 - Use `-o json` or `-o yaml` flags for machine-readable output (most commands default to JSON for `list` and `get` operations)
 - Run `rli --help` for top-level help, `rli <command> --help` for command group help, and `rli <command> <subcommand> --help` for detailed flag documentation
 - Command aliases exist for convenience: `devbox`/`d`, `snapshot`/`snap`, `blueprint`/`bp`, `object`/`obj`, `network-policy`/`np`, `secret`/`s`, `gateway-config`/`gwc`, `mcp-config`/`mcpc`
-- Avoid running in interactive mode.
+- Do not run `rli` without arguments. Running `rli` with no args launches interactive mode and blocks waiting for input. Always provide a command or flags.
 
 ## Installation
 
