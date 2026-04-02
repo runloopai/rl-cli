@@ -2,10 +2,8 @@
  * Axon service — active axons listing (beta API)
  */
 import { getClient } from "../utils/client.js";
-import type {
-  AxonListView,
-  AxonView,
-} from "@runloop/api-client/resources/axons/axons";
+import type { AxonView } from "@runloop/api-client/resources/axons/axons";
+import type { AxonsCursorIDPage } from "@runloop/api-client/pagination";
 
 export type Axon = AxonView;
 
@@ -19,11 +17,6 @@ export interface ListActiveAxonsResult {
   hasMore: boolean;
 }
 
-/** Response shape once the list-active-axons endpoint supports cursor pagination */
-interface AxonListPageResponse extends AxonListView {
-  has_more?: boolean;
-}
-
 /**
  * List active axons with optional cursor pagination (`limit`, `starting_after`).
  */
@@ -32,7 +25,10 @@ export async function listActiveAxons(
 ): Promise<ListActiveAxonsResult> {
   const client = getClient();
 
-  const query: Record<string, string | number> = {};
+  const query: {
+    limit?: number;
+    starting_after?: string;
+  } = {};
   if (options.limit !== undefined) {
     query.limit = options.limit;
   }
@@ -41,11 +37,11 @@ export async function listActiveAxons(
   }
 
   const page = (await client.axons.list(
-    Object.keys(query).length > 0 ? { query } : undefined,
-  )) as AxonListPageResponse;
+    Object.keys(query).length > 0 ? query : undefined,
+  )) as AxonsCursorIDPage<AxonView>;
 
   const axons = page.axons || [];
-  const hasMore = page.has_more === true;
+  const hasMore = page.has_more || false;
 
   return { axons, hasMore };
 }

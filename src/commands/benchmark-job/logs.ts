@@ -100,7 +100,10 @@ function buildScenarioOutcomeMap(
   const map = new Map<string, ScenarioOutcome>();
   for (const outcome of job.benchmark_outcomes || []) {
     for (const scenario of outcome.scenario_outcomes || []) {
-      map.set(scenario.scenario_run_id, scenario);
+      const runId = scenario.scenario_run_id;
+      if (runId) {
+        map.set(runId, scenario);
+      }
     }
   }
   return map;
