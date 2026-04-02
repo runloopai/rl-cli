@@ -636,13 +636,17 @@ const ListMcpConfigsUI = ({
               )}
             </>
           )}
-          <Text color={colors.textDim} dimColor>
-            {totalCount > 0 ? " • " : ""}
-          </Text>
-          <Text color={colors.textDim} dimColor>
-            Showing {showingRange}
-            {totalCount > 0 ? ` of ${totalCount}` : ""}
-          </Text>
+          {endIndex > startIndex && (
+            <>
+              <Text color={colors.textDim} dimColor>
+                {totalCount > 0 ? " • " : ""}
+              </Text>
+              <Text color={colors.textDim} dimColor>
+                Showing {showingRange}
+                {totalCount > 0 ? ` of ${totalCount}` : ""}
+              </Text>
+            </>
+          )}
           {search.submittedSearchQuery && (
             <>
               <Text color={colors.textDim} dimColor>
