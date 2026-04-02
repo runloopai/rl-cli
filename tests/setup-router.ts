@@ -207,54 +207,76 @@ jest.mock("../src/store/devboxStore.ts", () => ({
 }));
 
 jest.mock("../src/store/blueprintStore.ts", () => ({
-  useBlueprintStore: Object.assign(jest.fn(() => ({})), {
-    getState: () => ({ clearAll: jest.fn() }),
-  }),
+  useBlueprintStore: Object.assign(
+    jest.fn(() => ({})),
+    {
+      getState: () => ({ clearAll: jest.fn() }),
+    },
+  ),
 }));
 
 jest.mock("../src/store/snapshotStore.ts", () => ({
-  useSnapshotStore: Object.assign(jest.fn(() => ({})), {
-    getState: () => ({ clearAll: jest.fn() }),
-  }),
+  useSnapshotStore: Object.assign(
+    jest.fn(() => ({})),
+    {
+      getState: () => ({ clearAll: jest.fn() }),
+    },
+  ),
 }));
 
 jest.mock("../src/store/networkPolicyStore.ts", () => ({
-  useNetworkPolicyStore: Object.assign(jest.fn(() => ({})), {
-    getState: () => ({ clearAll: jest.fn() }),
-  }),
+  useNetworkPolicyStore: Object.assign(
+    jest.fn(() => ({})),
+    {
+      getState: () => ({ clearAll: jest.fn() }),
+    },
+  ),
 }));
 
 jest.mock("../src/store/gatewayConfigStore.ts", () => ({
-  useGatewayConfigStore: Object.assign(jest.fn(() => ({})), {
-    getState: () => ({ clearAll: jest.fn() }),
-  }),
+  useGatewayConfigStore: Object.assign(
+    jest.fn(() => ({})),
+    {
+      getState: () => ({ clearAll: jest.fn() }),
+    },
+  ),
 }));
 
 jest.mock("../src/store/objectStore.ts", () => ({
-  useObjectStore: Object.assign(jest.fn(() => ({})), {
-    getState: () => ({ clearAll: jest.fn() }),
-  }),
+  useObjectStore: Object.assign(
+    jest.fn(() => ({})),
+    {
+      getState: () => ({ clearAll: jest.fn() }),
+    },
+  ),
 }));
 
 jest.mock("../src/store/benchmarkStore.ts", () => ({
-  useBenchmarkStore: Object.assign(jest.fn(() => ({})), {
-    getState: () => ({ clearAll: jest.fn() }),
-  }),
+  useBenchmarkStore: Object.assign(
+    jest.fn(() => ({})),
+    {
+      getState: () => ({ clearAll: jest.fn() }),
+    },
+  ),
 }));
 
 jest.mock("../src/store/benchmarkJobStore.ts", () => ({
-  useBenchmarkJobStore: Object.assign(jest.fn(() => ({})), {
-    getState: () => ({ clearAll: jest.fn() }),
-  }),
+  useBenchmarkJobStore: Object.assign(
+    jest.fn(() => ({})),
+    {
+      getState: () => ({ clearAll: jest.fn() }),
+    },
+  ),
 }));
 
-// Mock hooks
+const mockViewportDimensionsRouter = {
+  viewportHeight: 20,
+  terminalHeight: 24,
+  terminalWidth: 80,
+};
+
 jest.mock("../src/hooks/useViewportHeight.ts", () => ({
-  useViewportHeight: jest.fn(() => ({
-    viewportHeight: 20,
-    terminalHeight: 24,
-    terminalWidth: 80,
-  })),
+  useViewportHeight: () => mockViewportDimensionsRouter,
 }));
 
 jest.mock("../src/hooks/useExitOnCtrlC.ts", () => ({

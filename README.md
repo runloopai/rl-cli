@@ -181,6 +181,12 @@ rli mcp start                            # Start the MCP server
 rli mcp install                          # Install Runloop MCP server configurat...
 ```
 
+### Axon Commands
+
+```bash
+rli axon list                            # List active axons
+```
+
 ### Scenario Commands (alias: `scn`)
 
 ```bash

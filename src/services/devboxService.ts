@@ -3,6 +3,7 @@
  * Returns plain data objects with no SDK reference retention
  */
 import { getClient } from "../utils/client.js";
+import { getTunnelBaseHost } from "../utils/url.js";
 import type { Devbox } from "../store/devboxStore.js";
 import type { DevboxesCursorIDPage } from "@runloop/api-client/pagination";
 import type {
@@ -254,17 +255,18 @@ export async function createSSHKey(id: string): Promise<{
 }
 
 /**
- * Create tunnel to devbox
+ * Enable V2 HTTP tunnel on devbox and return the public URL for the given port.
  */
 export async function createTunnel(
   id: string,
   port: number,
 ): Promise<{ url: string }> {
   const client = getClient();
-  const tunnel = await client.devboxes.createTunnel(id, { port });
+  const tunnel = await client.devboxes.enableTunnel(id);
+  const url = `https://${port}-${tunnel.tunnel_key}.${getTunnelBaseHost()}`;
 
   return {
-    url: String((tunnel as any).url || "").substring(0, 500),
+    url: url.substring(0, 500),
   };
 }
 
