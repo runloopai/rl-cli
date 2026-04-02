@@ -3,6 +3,7 @@
  */
 
 import chalk from "chalk";
+import { formatTimeAgo } from "../../components/ResourceListView.js";
 import { listActiveAxons, type Axon } from "../../services/axonService.js";
 import { output, outputError, parseLimit } from "../../utils/output.js";
 
@@ -13,21 +14,6 @@ interface ListOptions {
 }
 
 const PAGE_SIZE = 100;
-
-function formatTimeAgo(timestampMs: number): string {
-  const diffMs = Date.now() - timestampMs;
-  const diffMinutes = Math.floor(diffMs / 60_000);
-  const diffHours = Math.floor(diffMs / 3_600_000);
-  const diffDays = Math.floor(diffMs / 86_400_000);
-
-  if (diffMinutes < 1) return "just now";
-  if (diffMinutes < 60) return `${diffMinutes}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  const date = new Date(timestampMs);
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
 
 function printTable(axons: Axon[]): void {
   if (axons.length === 0) {
@@ -68,31 +54,6 @@ function printTable(axons: Axon[]): void {
   );
 }
 
-async function fetchAllAxons(maxResults: number): Promise<Axon[]> {
-  const all: Axon[] = [];
-  let cursor: string | undefined;
-
-  while (all.length < maxResults) {
-    const remaining = maxResults - all.length;
-    const pageLimit = Math.min(PAGE_SIZE, remaining);
-
-    const { axons, hasMore } = await listActiveAxons({
-      limit: pageLimit,
-      startingAfter: cursor,
-    });
-
-    all.push(...axons);
-
-    if (!hasMore || axons.length === 0) {
-      break;
-    }
-
-    cursor = axons[axons.length - 1].id;
-  }
-
-  return all;
-}
-
 export async function listAxonsCommand(options: ListOptions): Promise<void> {
   try {
     const maxResults = parseLimit(options.limit);
@@ -116,7 +77,22 @@ export async function listAxonsCommand(options: ListOptions): Promise<void> {
         console.log();
       }
     } else {
-      axons = await fetchAllAxons(maxResults);
+      const all: Axon[] = [];
+      let cursor: string | undefined;
+      while (all.length < maxResults) {
+        const remaining = maxResults - all.length;
+        const pageLimit = Math.min(PAGE_SIZE, remaining);
+        const { axons: page, hasMore } = await listActiveAxons({
+          limit: pageLimit,
+          startingAfter: cursor,
+        });
+        all.push(...page);
+        if (!hasMore || page.length === 0) {
+          break;
+        }
+        cursor = page[page.length - 1].id;
+      }
+      axons = all;
     }
 
     if (format !== "text") {

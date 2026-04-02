@@ -3,7 +3,7 @@
  * Returns plain data objects with no SDK reference retention
  */
 import { getClient } from "../utils/client.js";
-import { baseUrl } from "../utils/config.js";
+import { getTunnelBaseHost } from "../utils/url.js";
 import type { Devbox } from "../store/devboxStore.js";
 import type { DevboxesCursorIDPage } from "@runloop/api-client/pagination";
 import type {
@@ -254,18 +254,6 @@ export async function createSSHKey(id: string): Promise<{
   };
 }
 
-function tunnelHostFromApiBase(): string {
-  try {
-    const host = new URL(baseUrl()).host;
-    if (host.includes("runloop.pro")) {
-      return "tunnel.runloop.pro";
-    }
-  } catch {
-    // fall through
-  }
-  return "tunnel.runloop.ai";
-}
-
 /**
  * Enable V2 HTTP tunnel on devbox and return the public URL for the given port.
  */
@@ -275,8 +263,7 @@ export async function createTunnel(
 ): Promise<{ url: string }> {
   const client = getClient();
   const tunnel = await client.devboxes.enableTunnel(id);
-  const tunnelHost = tunnelHostFromApiBase();
-  const url = `https://${port}-${tunnel.tunnel_key}.${tunnelHost}`;
+  const url = `https://${port}-${tunnel.tunnel_key}.${getTunnelBaseHost()}`;
 
   return {
     url: url.substring(0, 500),
