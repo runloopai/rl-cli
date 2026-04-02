@@ -289,13 +289,16 @@ jest.mock("../src/store/navigationStore", () => ({
   })),
 }));
 
-// Mock hooks
+// Stable dimensions: jest restoreMocks clears jest.fn() implementations, which
+// would make PAGE_SIZE undefined in ResourcePicker and leave it stuck loading.
+const mockViewportDimensions = {
+  viewportHeight: 20,
+  terminalHeight: 24,
+  terminalWidth: 80,
+};
+
 jest.mock("../src/hooks/useViewportHeight.ts", () => ({
-  useViewportHeight: jest.fn(() => ({
-    viewportHeight: 20,
-    terminalHeight: 24,
-    terminalWidth: 80,
-  })),
+  useViewportHeight: () => mockViewportDimensions,
 }));
 
 jest.mock("../src/hooks/useExitOnCtrlC.ts", () => ({

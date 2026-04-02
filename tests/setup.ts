@@ -192,13 +192,14 @@ jest.mock("../src/store/navigationStore", () => ({
   })),
 }));
 
-// Mock hooks
+const mockViewportDimensionsMain = {
+  viewportHeight: 20,
+  terminalHeight: 24,
+  terminalWidth: 80,
+};
+
 jest.mock("../src/hooks/useViewportHeight.ts", () => ({
-  useViewportHeight: jest.fn(() => ({
-    viewportHeight: 20,
-    terminalHeight: 24,
-    terminalWidth: 80,
-  })),
+  useViewportHeight: () => mockViewportDimensionsMain,
 }));
 
 jest.mock("../src/hooks/useExitOnCtrlC.ts", () => ({
