@@ -364,9 +364,13 @@ const ListBlueprintsUI = ({
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = Math.min(startIndex + blueprints.length, totalCount);
-  const showingRange =
-    endIndex === startIndex + 1
+  const endIndex =
+    totalCount > 0
+      ? Math.min(startIndex + blueprints.length, totalCount)
+      : startIndex + blueprints.length;
+  const showingRange = navigating
+    ? `${startIndex + 1}+`
+    : endIndex === startIndex + 1
       ? `${startIndex + 1}`
       : `${startIndex + 1}-${endIndex}`;
 
@@ -908,14 +912,18 @@ const ListBlueprintsUI = ({
       {/* Statistics Bar */}
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
-          <Text color={colors.primary} bold>
-            {figures.hamburger} {totalCount}
-          </Text>
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            total
-          </Text>
-          {totalPages > 1 && (
+          {totalCount > 0 && (
+            <>
+              <Text color={colors.primary} bold>
+                {figures.hamburger} {totalCount}
+              </Text>
+              <Text color={colors.textDim} dimColor>
+                {" "}
+                total
+              </Text>
+            </>
+          )}
+          {totalCount > 0 && totalPages > 1 && (
             <>
               <Text color={colors.textDim} dimColor>
                 {" "}
@@ -932,13 +940,17 @@ const ListBlueprintsUI = ({
               )}
             </>
           )}
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            •{" "}
-          </Text>
-          <Text color={colors.textDim} dimColor>
-            Showing {showingRange} of {totalCount}
-          </Text>
+          {endIndex > startIndex && (
+            <>
+              <Text color={colors.textDim} dimColor>
+                {totalCount > 0 ? " • " : ""}
+              </Text>
+              <Text color={colors.textDim} dimColor>
+                Showing {showingRange}
+                {totalCount > 0 ? ` of ${totalCount}` : ""}
+              </Text>
+            </>
+          )}
           {search.submittedSearchQuery && (
             <>
               <Text color={colors.textDim} dimColor>
