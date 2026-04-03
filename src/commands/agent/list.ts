@@ -17,11 +17,13 @@ interface ListOptions {
 }
 
 // Column widths (NAME is dynamic, takes remaining space)
+const COL_SOURCE = 8;
 const COL_VERSION = 18;
 const COL_VISIBILITY = 10;
 const COL_ID = 30;
 const COL_CREATED = 10;
-const FIXED_WIDTH = COL_VERSION + COL_VISIBILITY + COL_ID + COL_CREATED + 4; // 4 for spacing
+const FIXED_WIDTH =
+  COL_SOURCE + COL_VERSION + COL_VISIBILITY + COL_ID + COL_CREATED + 5; // 5 for spacing
 
 function truncate(str: string, maxLen: number): string {
   if (str.length <= maxLen) return str;
@@ -41,6 +43,8 @@ function printTable(agents: Agent[]): void {
   const header =
     "NAME".padEnd(nameWidth) +
     " " +
+    "SOURCE".padEnd(COL_SOURCE) +
+    " " +
     "VERSION".padEnd(COL_VERSION) +
     " " +
     "VISIBILITY".padEnd(COL_VISIBILITY) +
@@ -52,8 +56,32 @@ function printTable(agents: Agent[]): void {
   console.log(chalk.dim("─".repeat(Math.min(header.length, termWidth))));
 
   for (const agent of agents) {
-    const name = truncate(agent.name, nameWidth).padEnd(nameWidth);
-    const version = truncate(agent.version, COL_VERSION).padEnd(COL_VERSION);
+    const prefix = agent.is_public ? "➰ " : "";
+    const rawName = prefix + agent.name;
+    const name = truncate(rawName, nameWidth);
+    const namePadded = name.padEnd(nameWidth);
+
+    const sourceType = (agent as any).source?.type || "-";
+    const sourceStr = sourceType.padEnd(COL_SOURCE);
+
+    const packageName =
+      (agent as any).source?.npm?.package_name ||
+      (agent as any).source?.pip?.package_name;
+    const versionRaw = packageName
+      ? `${packageName}@${agent.version}`
+      : agent.version;
+    const versionTruncated = truncate(versionRaw, COL_VERSION);
+    const versionStr = packageName
+      ? chalk.dim(packageName + "@") + agent.version
+      : agent.version;
+    const versionPadded = versionTruncated.padEnd(COL_VERSION);
+    // Use colored version but pad based on raw length
+    const versionDisplay = packageName
+      ? chalk.dim(packageName + "@") +
+        agent.version +
+        " ".repeat(Math.max(0, COL_VERSION - versionRaw.length))
+      : agent.version.padEnd(COL_VERSION);
+
     const visibility = (agent.is_public ? "public" : "private").padEnd(
       COL_VISIBILITY,
     );
@@ -64,7 +92,7 @@ function printTable(agents: Agent[]): void {
     const created = formatTimeAgo(agent.create_time_ms).padEnd(COL_CREATED);
 
     console.log(
-      `${name} ${version} ${visibilityColored} ${chalk.dim(id)} ${chalk.dim(created)}`,
+      `${namePadded} ${sourceStr} ${versionDisplay} ${visibilityColored} ${chalk.dim(id)} ${chalk.dim(created)}`,
     );
   }
 

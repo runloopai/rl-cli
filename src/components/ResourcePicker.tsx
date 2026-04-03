@@ -43,6 +43,8 @@ export interface ResourcePickerConfig<T> {
     items: T[];
     hasMore: boolean;
     totalCount?: number;
+    /** Opaque cursor for the next page. If omitted, last item ID is used. */
+    nextCursor?: string;
   }>;
 
   /** Extract unique ID from an item */
@@ -94,6 +96,12 @@ export interface ResourcePickerProps<T> {
 
   /** Initially selected item IDs */
   initialSelected?: string[];
+
+  /** Extra dependencies that reset pagination when changed (e.g., tab switches) */
+  extraDeps?: unknown[];
+
+  /** Extra lines of overhead to account for (e.g., tab bar rendered above the picker) */
+  extraOverhead?: number;
 }
 
 /**
@@ -104,6 +112,8 @@ export function ResourcePicker<T>({
   onSelect,
   onCancel,
   initialSelected = [],
+  extraDeps = [],
+  extraOverhead = 0,
 }: ResourcePickerProps<T>) {
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(
@@ -118,7 +128,7 @@ export function ResourcePicker<T>({
 
   // Calculate overhead for viewport height
   // Matches list pages: breadcrumb(4) + table chrome(4) + stats(2) + nav tips(2) + buffer(1) = 13
-  const overhead = 13 + search.getSearchOverhead();
+  const overhead = 13 + search.getSearchOverhead() + extraOverhead;
   const { viewportHeight, terminalWidth } = useViewportHeight({
     overhead,
     minHeight: 5,
@@ -171,7 +181,7 @@ export function ResourcePicker<T>({
     getItemId: config.getItemId,
     pollInterval: 0, // No polling for picker
     pollingEnabled: false,
-    deps: [PAGE_SIZE, search.submittedSearchQuery],
+    deps: [PAGE_SIZE, search.submittedSearchQuery, ...extraDeps],
   });
 
   // Handle Ctrl+C to exit

@@ -15,6 +15,7 @@ import { useMcpConfigStore } from "../store/mcpConfigStore.js";
 import { useObjectStore } from "../store/objectStore.js";
 import { useBenchmarkStore } from "../store/benchmarkStore.js";
 import { useBenchmarkJobStore } from "../store/benchmarkJobStore.js";
+import { useAgentStore } from "../store/agentStore.js";
 import { ErrorBoundary } from "../components/ErrorBoundary.js";
 import { colors } from "../utils/theme.js";
 import type { ScreenName } from "../router/types.js";
@@ -58,6 +59,9 @@ const KNOWN_SCREENS: Set<ScreenName> = new Set([
   "benchmark-job-list",
   "benchmark-job-detail",
   "benchmark-job-create",
+  "agent-list",
+  "agent-detail",
+  "agent-create",
 ]);
 
 /**
@@ -134,6 +138,9 @@ import { ScenarioRunDetailScreen } from "../screens/ScenarioRunDetailScreen.js";
 import { BenchmarkJobListScreen } from "../screens/BenchmarkJobListScreen.js";
 import { BenchmarkJobDetailScreen } from "../screens/BenchmarkJobDetailScreen.js";
 import { BenchmarkJobCreateScreen } from "../screens/BenchmarkJobCreateScreen.js";
+import { AgentListScreen } from "../screens/AgentListScreen.js";
+import { AgentDetailScreen } from "../screens/AgentDetailScreen.js";
+import { AgentCreateScreen } from "../screens/AgentCreateScreen.js";
 
 /**
  * Router component that renders the current screen
@@ -231,6 +238,14 @@ export function Router() {
         case "benchmark-job-create":
           if (!currentScreen.startsWith("benchmark-job")) {
             useBenchmarkJobStore.getState().clearAll();
+          }
+          break;
+
+        case "agent-list":
+        case "agent-detail":
+        case "agent-create":
+          if (!currentScreen.startsWith("agent")) {
+            useAgentStore.getState().clearAll();
           }
           break;
       }
@@ -352,6 +367,15 @@ export function Router() {
           key={`benchmark-job-create-${params.cloneFromJobId ?? "new"}`}
           {...params}
         />
+      )}
+      {currentScreen === "agent-list" && (
+        <AgentListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "agent-detail" && (
+        <AgentDetailScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "agent-create" && (
+        <AgentCreateScreen key={currentScreen} {...params} />
       )}
       {!KNOWN_SCREENS.has(currentScreen) && (
         <UnknownScreen key={currentScreen} screenName={currentScreen} />
