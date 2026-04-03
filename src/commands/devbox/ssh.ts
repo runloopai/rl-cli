@@ -64,7 +64,12 @@ export async function sshDevbox(devboxId: string, options: SSHOptions = {}) {
         sshInfo!.keyfilePath,
         sshInfo!.url,
       );
-      output({ config }, { format: options.output, defaultFormat: "text" });
+      const format = options.output ?? "text";
+      if (format === "text") {
+        console.log(config);
+      } else {
+        output({ config }, { format, defaultFormat: "text" });
+      }
       return;
     }
 

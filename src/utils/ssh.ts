@@ -89,25 +89,25 @@ export async function waitForReady(
       const remaining = timeoutSeconds - elapsed;
 
       if (devbox.status === "running") {
-        console.log(`Devbox ${devboxId} is ready!`);
+        console.error(`Devbox ${devboxId} is ready!`);
         return true;
       } else if (devbox.status === "failure") {
-        console.log(
+        console.error(
           `Devbox ${devboxId} failed to start (status: ${devbox.status})`,
         );
         return false;
       } else if (["shutdown", "suspended"].includes(devbox.status)) {
-        console.log(
+        console.error(
           `Devbox ${devboxId} is not running (status: ${devbox.status})`,
         );
         return false;
       } else {
-        console.log(
+        console.error(
           `Devbox ${devboxId} is still ${devbox.status}... (elapsed: ${elapsed.toFixed(0)}s, remaining: ${remaining.toFixed(0)}s)`,
         );
 
         if (elapsed >= timeoutSeconds) {
-          console.log(
+          console.error(
             `Timeout waiting for devbox ${devboxId} to be ready after ${timeoutSeconds} seconds`,
           );
           return false;
@@ -120,13 +120,13 @@ export async function waitForReady(
     } catch (error) {
       const elapsed = (Date.now() - startTime) / 1000;
       if (elapsed >= timeoutSeconds) {
-        console.log(
+        console.error(
           `Timeout waiting for devbox ${devboxId} to be ready after ${timeoutSeconds} seconds (error: ${error})`,
         );
         return false;
       }
 
-      console.log(
+      console.error(
         `Error checking devbox status: ${error}, retrying in ${pollIntervalSeconds} seconds...`,
       );
       await new Promise((resolve) =>
