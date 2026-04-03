@@ -4,6 +4,7 @@
 
 import { spawn } from "child_process";
 import { getClient } from "../../utils/client.js";
+import { cliStatus } from "../../utils/cliStatus.js";
 import { output, outputError } from "../../utils/output.js";
 import { processUtils } from "../../utils/processUtils.js";
 import {
@@ -36,11 +37,14 @@ export async function sshDevbox(devboxId: string, options: SSHOptions = {}) {
 
     // Wait for devbox to be ready unless --no-wait is specified
     if (!options.noWait) {
-      console.error(`Waiting for devbox ${devboxId} to be ready...`);
+      if (!options.configOnly) {
+        cliStatus(`Waiting for devbox ${devboxId} to be ready...`);
+      }
       const isReady = await waitForReady(
         devboxId,
         options.timeout || 180,
         options.pollInterval || 3,
+        { quiet: options.configOnly },
       );
       if (!isReady) {
         outputError(`Devbox ${devboxId} is not ready. Please try again later.`);
