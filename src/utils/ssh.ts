@@ -4,6 +4,7 @@ import { writeFile, mkdir, chmod } from "fs/promises";
 import { join } from "path";
 import { homedir } from "os";
 import { getClient } from "./client.js";
+import { cliStatus } from "./cliStatus.js";
 import { processUtils } from "./processUtils.js";
 
 const execAsync = promisify(exec);
@@ -71,6 +72,11 @@ export async function getSSHKey(devboxId: string): Promise<SSHKeyInfo | null> {
   }
 }
 
+export interface WaitForReadyOptions {
+  /** If true, omit periodic poll lines (e.g. when stdout must stay machine-clean). */
+  quiet?: boolean;
+}
+
 /**
  * Wait for a devbox to be ready
  */
@@ -78,7 +84,9 @@ export async function waitForReady(
   devboxId: string,
   timeoutSeconds: number = 180,
   pollIntervalSeconds: number = 3,
+  waitOptions?: WaitForReadyOptions,
 ): Promise<boolean> {
+  const quiet = waitOptions?.quiet ?? false;
   const startTime = Date.now();
   const client = getClient();
 
@@ -89,25 +97,26 @@ export async function waitForReady(
       const remaining = timeoutSeconds - elapsed;
 
       if (devbox.status === "running") {
-        console.log(`Devbox ${devboxId} is ready!`);
         return true;
       } else if (devbox.status === "failure") {
-        console.log(
+        cliStatus(
           `Devbox ${devboxId} failed to start (status: ${devbox.status})`,
         );
         return false;
       } else if (["shutdown", "suspended"].includes(devbox.status)) {
-        console.log(
+        cliStatus(
           `Devbox ${devboxId} is not running (status: ${devbox.status})`,
         );
         return false;
       } else {
-        console.log(
-          `Devbox ${devboxId} is still ${devbox.status}... (elapsed: ${elapsed.toFixed(0)}s, remaining: ${remaining.toFixed(0)}s)`,
-        );
+        if (!quiet) {
+          cliStatus(
+            `Devbox ${devboxId} is still ${devbox.status}... (elapsed: ${elapsed.toFixed(0)}s, remaining: ${remaining.toFixed(0)}s)`,
+          );
+        }
 
         if (elapsed >= timeoutSeconds) {
-          console.log(
+          cliStatus(
             `Timeout waiting for devbox ${devboxId} to be ready after ${timeoutSeconds} seconds`,
           );
           return false;
@@ -120,15 +129,17 @@ export async function waitForReady(
     } catch (error) {
       const elapsed = (Date.now() - startTime) / 1000;
       if (elapsed >= timeoutSeconds) {
-        console.log(
+        cliStatus(
           `Timeout waiting for devbox ${devboxId} to be ready after ${timeoutSeconds} seconds (error: ${error})`,
         );
         return false;
       }
 
-      console.log(
-        `Error checking devbox status: ${error}, retrying in ${pollIntervalSeconds} seconds...`,
-      );
+      if (!quiet) {
+        cliStatus(
+          `Error checking devbox status: ${error}, retrying in ${pollIntervalSeconds} seconds...`,
+        );
+      }
       await new Promise((resolve) =>
         setTimeout(resolve, pollIntervalSeconds * 1000),
       );
