@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.15.0](https://github.com/runloopai/rl-cli/compare/v1.14.0...v1.15.0) (2026-04-03)
+
+
+### Features
+
+* axon list with pagination and api-client upgrade ([#184](https://github.com/runloopai/rl-cli/issues/184)) ([dc9743e](https://github.com/runloopai/rl-cli/commit/dc9743e1000cfcf6de5602bd9eed197baba63d28))
+* **cli:** add some (hidden) agent handling commands ([#187](https://github.com/runloopai/rl-cli/issues/187)) ([1a92f5f](https://github.com/runloopai/rl-cli/commit/1a92f5f6888b5eb22a45c7813450e697311ccae4))
+
+
+### Bug Fixes
+
+* clean stdout for --config-only when appending SSH config ([#192](https://github.com/runloopai/rl-cli/issues/192)) ([4428295](https://github.com/runloopai/rl-cli/commit/4428295516407978c40ab65174a939e9fa23c855))
+* **cli:** account for pending scenarios in rli display ([#185](https://github.com/runloopai/rl-cli/issues/185)) ([c82d528](https://github.com/runloopai/rl-cli/commit/c82d528e3028b4c6eaf7fb30d868c80e91edbf91))
+* widen VERSION column in agent list to prevent truncation ([#190](https://github.com/runloopai/rl-cli/issues/190)) ([c7eba09](https://github.com/runloopai/rl-cli/commit/c7eba095443f63a4256ea403d72554135fbc3a3c))
+
+
+### Performance Improvements
+
+* fetch total count in the background, not foreground ([#189](https://github.com/runloopai/rl-cli/issues/189)) ([0903d89](https://github.com/runloopai/rl-cli/commit/0903d89b57f36e715025ef73132b0616c05c753f))
+
 ## [1.14.0](https://github.com/runloopai/rl-cli/compare/v1.13.3...v1.14.0) (2026-03-25)
 
 
