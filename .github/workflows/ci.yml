@@ -131,7 +131,7 @@ jobs:
 
   dependency-check:
     runs-on: ubuntu-slim
-    if: (github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--'))
+    if: github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -151,6 +151,7 @@ jobs:
 
   ready-to-merge:
     runs-on: ubuntu-slim
+    permissions: {}
     needs: [format, lint, build, test, dependency-check]
     # Run from pull_request for non-release-please branches, or pull_request_target for release-please branches only
     if: always() && ((github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch')
