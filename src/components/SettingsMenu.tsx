@@ -5,6 +5,7 @@ import { Breadcrumb } from "./Breadcrumb.js";
 import { NavigationTips } from "./NavigationTips.js";
 import { colors } from "../utils/theme.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
+import { useMenuStore } from "../store/menuStore.js";
 
 interface SettingsMenuItem {
   key: string;
@@ -52,8 +53,26 @@ interface SettingsMenuProps {
 
 export const SettingsMenu = ({ onSelect, onBack }: SettingsMenuProps) => {
   const { exit } = useApp();
-  const [selectedIndex, setSelectedIndex] = React.useState(0);
   const { stdout } = useStdout();
+  const { settingsSelectedKey, setSettingsSelectedKey } = useMenuStore();
+
+  // Calculate initial index from persisted key
+  const initialIndex = React.useMemo(() => {
+    const index = settingsMenuItems.findIndex(
+      (item) => item.key === settingsSelectedKey,
+    );
+    return index >= 0 ? index : 0;
+  }, [settingsSelectedKey]);
+
+  const [selectedIndex, setSelectedIndex] = React.useState(initialIndex);
+
+  // Persist selection when it changes
+  React.useEffect(() => {
+    const currentKey = settingsMenuItems[selectedIndex]?.key;
+    if (currentKey && currentKey !== settingsSelectedKey) {
+      setSettingsSelectedKey(currentKey);
+    }
+  }, [selectedIndex, settingsSelectedKey, setSettingsSelectedKey]);
 
   // Get terminal dimensions for responsive layout
   const getTerminalDimensions = React.useCallback(() => {
