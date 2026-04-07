@@ -47,7 +47,10 @@ export type ScreenName =
   | "scenario-run-detail"
   | "benchmark-job-list"
   | "benchmark-job-detail"
-  | "benchmark-job-create";
+  | "benchmark-job-create"
+  | "agent-list"
+  | "agent-detail"
+  | "agent-create";
 
 export interface RouteParams {
   devboxId?: string;
@@ -79,6 +82,7 @@ export interface RouteParams {
   scenarioRunId?: string;
   benchmarkJobId?: string;
   initialBenchmarkIds?: string;
+  agentId?: string;
   [key: string]: string | ScreenName | RouteParams | undefined;
 }
 

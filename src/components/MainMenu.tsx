@@ -56,6 +56,13 @@ const allMenuItems: MenuItem[] = [
     color: colors.accent3,
   },
   {
+    key: "agents",
+    label: "Agents",
+    description: "Manage AI agents for devboxes",
+    icon: "◆",
+    color: colors.warning,
+  },
+  {
     key: "objects",
     label: "Storage Objects",
     description: "Manage files and data in cloud storage",
@@ -205,6 +212,8 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       selectByKey("blueprints");
     } else if (input === "s") {
       selectByKey("snapshots");
+    } else if (input === "a") {
+      selectByKey("agents");
     } else if (input === "o") {
       selectByKey("objects");
       /**

@@ -203,6 +203,15 @@ rli benchmark-job logs <id>              # Download devbox logs for all scenario
 rli benchmark-job list                   # List benchmark jobs
 ```
 
+### Agent Commands (alias: `agt`)
+
+```bash
+rli agent list                           # List agents
+rli agent create                         # Create a new agent
+rli agent delete <id-or-name>            # Delete an agent
+rli agent show <id-or-name>              # Show agent details
+```
+
 
 ## MCP Server (AI Integration)
 

@@ -5,7 +5,11 @@ import React from "react";
  */
 export interface UsePaginatedListConfig<T> {
   /**
-   * Fetch function that takes pagination params and returns a page of results
+   * Fetch function that takes pagination params and returns a page of results.
+   *
+   * If the result includes `nextCursor`, it will be used as `startingAt` for the
+   * next page instead of deriving it from the last item's ID. This supports
+   * merged/multi-source pagination where the cursor is opaque.
    */
   fetchPage: (params: {
     limit: number;
@@ -15,6 +19,8 @@ export interface UsePaginatedListConfig<T> {
     items: T[];
     hasMore: boolean;
     totalCount?: number;
+    /** Opaque cursor for the next page. If omitted, last item ID is used. */
+    nextCursor?: string;
   }>;
 
   /** Number of items per page */
@@ -197,7 +203,10 @@ export function useCursorPagination<T>(
         setItems(result.items);
 
         // Update cursor history for this page
-        if (result.items.length > 0) {
+        if (result.nextCursor !== undefined) {
+          // Use explicit cursor from fetchPage (supports merged/multi-source pagination)
+          cursorHistoryRef.current[page] = result.nextCursor;
+        } else if (result.items.length > 0) {
           const lastItemId = getItemIdRef.current(
             result.items[result.items.length - 1],
           );
