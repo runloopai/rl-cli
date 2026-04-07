@@ -111,6 +111,11 @@ export function useCursorPagination<T>(
   // Abort controller for cancelling in-flight count requests
   const countAbortRef = React.useRef<AbortController | null>(null);
 
+  // Cache the unfiltered (initial deps) total count to avoid re-fetching on filter clear
+  const initialDepsKeyRef = React.useRef<string>(JSON.stringify(deps));
+  const baseTotalCountRef = React.useRef<number | null>(null);
+  const depsKeyRef = React.useRef<string>(JSON.stringify(deps));
+
   // Cursor history: cursorHistory[N] = last item ID of page N
   // Used to determine startingAt for page N+1
   const cursorHistoryRef = React.useRef<(string | undefined)[]>([]);
@@ -206,8 +211,13 @@ export function useCursorPagination<T>(
         // Cancel the background count request if still pending.
         if (!result.hasMore && !hasCachedTotalCountRef.current) {
           countAbortRef.current?.abort();
-          setTotalCount(page * pageSizeRef.current + result.items.length);
+          const computedTotal =
+            page * pageSizeRef.current + result.items.length;
+          setTotalCount(computedTotal);
           hasCachedTotalCountRef.current = true;
+          if (depsKeyRef.current === initialDepsKeyRef.current) {
+            baseTotalCountRef.current = computedTotal;
+          }
         }
       } catch (err) {
         if (!isMountedRef.current) return;
@@ -226,6 +236,7 @@ export function useCursorPagination<T>(
   // Reset when deps change (e.g., filters, search)
   const depsKey = JSON.stringify(deps);
   React.useEffect(() => {
+    depsKeyRef.current = depsKey;
     // Clear cursor history when deps change
     cursorHistoryRef.current = [];
     hasCachedTotalCountRef.current = false;
@@ -243,18 +254,29 @@ export function useCursorPagination<T>(
     // Data fetch
     fetchPageData(0, true);
 
-    // Background count fetch — fires immediately alongside data
-    fetchPageRef
-      .current({ limit: 0, startingAt: undefined, includeTotalCount: true })
-      .then((result) => {
-        if (cancelled || countAbort.signal.aborted || !isMountedRef.current)
-          return;
-        if (result.totalCount !== undefined) {
-          setTotalCount(result.totalCount);
-          hasCachedTotalCountRef.current = true;
-        }
-      })
-      .catch(() => {}); // count failure is non-critical
+    // If returning to unfiltered state and we have a cached base count, reuse it
+    const isUnfiltered = depsKey === initialDepsKeyRef.current;
+    if (isUnfiltered && baseTotalCountRef.current !== null) {
+      setTotalCount(baseTotalCountRef.current);
+      hasCachedTotalCountRef.current = true;
+    } else {
+      // Background count fetch — fires immediately alongside data
+      fetchPageRef
+        .current({ limit: 0, startingAt: undefined, includeTotalCount: true })
+        .then((result) => {
+          if (cancelled || countAbort.signal.aborted || !isMountedRef.current)
+            return;
+          if (result.totalCount !== undefined) {
+            setTotalCount(result.totalCount);
+            hasCachedTotalCountRef.current = true;
+            // Cache the unfiltered total count
+            if (isUnfiltered) {
+              baseTotalCountRef.current = result.totalCount;
+            }
+          }
+        })
+        .catch(() => {}); // count failure is non-critical
+    }
 
     return () => {
       cancelled = true;
