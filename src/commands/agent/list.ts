@@ -16,16 +16,93 @@ interface ListOptions {
   output?: string;
 }
 
-// Column widths (NAME is dynamic, takes remaining space)
-const COL_VERSION = 18;
-const COL_VISIBILITY = 10;
-const COL_ID = 30;
-const COL_CREATED = 10;
-const FIXED_WIDTH = COL_VERSION + COL_VISIBILITY + COL_ID + COL_CREATED + 4; // 4 for spacing
+interface ColumnDef {
+  header: string;
+  raw: (agent: Agent) => string;
+  styled: (agent: Agent) => string;
+}
 
-function truncate(str: string, maxLen: number): string {
-  if (str.length <= maxLen) return str;
-  return str.slice(0, maxLen - 1) + "…";
+const columns: ColumnDef[] = [
+  {
+    header: "NAME",
+    raw: (a) => (a.is_public ? "➰ " : "") + a.name,
+    styled(a) {
+      return this.raw(a);
+    },
+  },
+  {
+    header: "SOURCE",
+    raw: (a) => (a as any).source?.type || "-",
+    styled(a) {
+      return this.raw(a);
+    },
+  },
+  {
+    header: "VERSION",
+    raw: (a) => {
+      const pkg =
+        (a as any).source?.npm?.package_name ||
+        (a as any).source?.pip?.package_name;
+      return pkg ? `${pkg}@${a.version}` : a.version;
+    },
+    styled(a) {
+      const pkg =
+        (a as any).source?.npm?.package_name ||
+        (a as any).source?.pip?.package_name;
+      return pkg ? chalk.dim(pkg + "@") + a.version : a.version;
+    },
+  },
+  {
+    header: "VISIBILITY",
+    raw: (a) => (a.is_public ? "public" : "private"),
+    styled(a) {
+      return a.is_public
+        ? chalk.green(this.raw(a))
+        : chalk.dim(this.raw(a));
+    },
+  },
+  {
+    header: "ID",
+    raw: (a) => a.id,
+    styled(a) {
+      return chalk.dim(a.id);
+    },
+  },
+  {
+    header: "CREATED",
+    raw: (a) => formatTimeAgo(a.create_time_ms),
+    styled(a) {
+      return chalk.dim(this.raw(a));
+    },
+  },
+];
+
+function computeColumnWidths(agents: Agent[]): number[] {
+  const minPad = 2;
+  const maxPad = 4;
+  const termWidth = process.stdout.columns || 120;
+
+  // Min width per column: max of header and all row values, plus minimum padding
+  const minWidths = columns.map((col) => {
+    const maxContent = agents.reduce(
+      (w, a) => Math.max(w, col.raw(a).length),
+      col.header.length,
+    );
+    return maxContent + minPad;
+  });
+
+  const totalMin = minWidths.reduce((s, w) => s + w, 0);
+  const slack = termWidth - totalMin;
+  const extraPerCol = Math.min(
+    maxPad - minPad,
+    Math.max(0, Math.floor(slack / columns.length)),
+  );
+
+  return minWidths.map((w) => w + extraPerCol);
+}
+
+function padStyled(raw: string, styled: string, width: number): string {
+  return styled + " ".repeat(Math.max(0, width - raw.length));
 }
 
 function printTable(agents: Agent[]): void {
@@ -34,38 +111,20 @@ function printTable(agents: Agent[]): void {
     return;
   }
 
+  const widths = computeColumnWidths(agents);
   const termWidth = process.stdout.columns || 120;
-  const nameWidth = Math.max(10, termWidth - FIXED_WIDTH);
 
   // Header
-  const header =
-    "NAME".padEnd(nameWidth) +
-    " " +
-    "VERSION".padEnd(COL_VERSION) +
-    " " +
-    "VISIBILITY".padEnd(COL_VISIBILITY) +
-    " " +
-    "ID".padEnd(COL_ID) +
-    " " +
-    "CREATED".padEnd(COL_CREATED);
+  const header = columns.map((col, i) => col.header.padEnd(widths[i])).join("");
   console.log(chalk.bold(header));
   console.log(chalk.dim("─".repeat(Math.min(header.length, termWidth))));
 
+  // Rows
   for (const agent of agents) {
-    const name = truncate(agent.name, nameWidth).padEnd(nameWidth);
-    const version = truncate(agent.version, COL_VERSION).padEnd(COL_VERSION);
-    const visibility = (agent.is_public ? "public" : "private").padEnd(
-      COL_VISIBILITY,
-    );
-    const visibilityColored = agent.is_public
-      ? chalk.green(visibility)
-      : chalk.dim(visibility);
-    const id = truncate(agent.id, COL_ID).padEnd(COL_ID);
-    const created = formatTimeAgo(agent.create_time_ms).padEnd(COL_CREATED);
-
-    console.log(
-      `${name} ${version} ${visibilityColored} ${chalk.dim(id)} ${chalk.dim(created)}`,
-    );
+    const line = columns
+      .map((col, i) => padStyled(col.raw(agent), col.styled(agent), widths[i]))
+      .join("");
+    console.log(line);
   }
 
   console.log();
