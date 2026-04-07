@@ -56,9 +56,7 @@ const columns: ColumnDef[] = [
     header: "VISIBILITY",
     raw: (a) => (a.is_public ? "public" : "private"),
     styled(a) {
-      return a.is_public
-        ? chalk.green(this.raw(a))
-        : chalk.dim(this.raw(a));
+      return a.is_public ? chalk.green(this.raw(a)) : chalk.dim(this.raw(a));
     },
   },
   {
