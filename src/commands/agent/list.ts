@@ -25,7 +25,7 @@ interface ColumnDef {
 const columns: ColumnDef[] = [
   {
     header: "NAME",
-    raw: (a) => (a.is_public ? "➰ " : "") + a.name,
+    raw: (a) => a.name,
     styled(a) {
       return this.raw(a);
     },
@@ -50,13 +50,6 @@ const columns: ColumnDef[] = [
         (a as any).source?.npm?.package_name ||
         (a as any).source?.pip?.package_name;
       return pkg ? chalk.dim(pkg + "@") + a.version : a.version;
-    },
-  },
-  {
-    header: "VISIBILITY",
-    raw: (a) => (a.is_public ? "public" : "private"),
-    styled(a) {
-      return a.is_public ? chalk.green(this.raw(a)) : chalk.dim(this.raw(a));
     },
   },
   {
@@ -103,7 +96,18 @@ function padStyled(raw: string, styled: string, width: number): string {
   return styled + " ".repeat(Math.max(0, width - raw.length));
 }
 
-function printTable(agents: Agent[]): void {
+function printTable(agents: Agent[], isPublic: boolean): void {
+  if (isPublic) {
+    console.log(
+      chalk.dim("Showing PUBLIC agents. Use --private to see private agents"),
+    );
+  } else {
+    console.log(
+      chalk.dim("Showing PRIVATE agents. Use --public to see public agents"),
+    );
+  }
+  console.log();
+
   if (agents.length === 0) {
     console.log(chalk.dim("No agents found"));
     return;
@@ -162,7 +166,7 @@ export async function listAgentsCommand(options: ListOptions): Promise<void> {
     if (format !== "text") {
       output(agents, { format, defaultFormat: "json" });
     } else {
-      printTable(agents);
+      printTable(agents, !!options.public);
     }
   } catch (error) {
     outputError("Failed to list agents", error);
