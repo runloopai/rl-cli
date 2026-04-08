@@ -40,7 +40,7 @@ export async function listAgents(
     search?: string;
     version?: string;
   } = {
-    limit: options.limit || 50,
+    limit: options.limit,
   };
 
   if (options.startingAfter) {
@@ -95,7 +95,7 @@ export async function listPublicAgents(
   const client = getClient();
 
   const queryParams: Record<string, unknown> = {
-    limit: options.limit || 50,
+    limit: options.limit,
   };
 
   if (options.startingAfter) {

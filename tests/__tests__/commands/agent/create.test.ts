@@ -210,6 +210,63 @@ describe("createAgentCommand", () => {
     );
   });
 
+  it("should error when git source gets --package", async () => {
+    const { createAgentCommand } = await import("@/commands/agent/create.js");
+    await createAgentCommand({
+      name: "my-agent",
+      agentVersion: "1.0.0",
+      source: "git",
+      repository: "https://github.com/org/repo",
+      package: "bad-pkg",
+    });
+
+    expect(mockOutputError).toHaveBeenCalledWith(
+      "Failed to create agent",
+      expect.objectContaining({
+        message: expect.stringContaining("--package"),
+      }),
+    );
+    expect(mockCreateAgent).not.toHaveBeenCalled();
+  });
+
+  it("should error when npm source gets --repository", async () => {
+    const { createAgentCommand } = await import("@/commands/agent/create.js");
+    await createAgentCommand({
+      name: "my-agent",
+      agentVersion: "1.0.0",
+      source: "npm",
+      package: "my-pkg",
+      repository: "https://github.com/org/repo",
+    });
+
+    expect(mockOutputError).toHaveBeenCalledWith(
+      "Failed to create agent",
+      expect.objectContaining({
+        message: expect.stringContaining("--repository"),
+      }),
+    );
+    expect(mockCreateAgent).not.toHaveBeenCalled();
+  });
+
+  it("should error when object source gets --ref", async () => {
+    const { createAgentCommand } = await import("@/commands/agent/create.js");
+    await createAgentCommand({
+      name: "my-agent",
+      agentVersion: "1.0.0",
+      source: "object",
+      objectId: "obj_123",
+      ref: "main",
+    });
+
+    expect(mockOutputError).toHaveBeenCalledWith(
+      "Failed to create agent",
+      expect.objectContaining({
+        message: expect.stringContaining("--ref"),
+      }),
+    );
+    expect(mockCreateAgent).not.toHaveBeenCalled();
+  });
+
   it("should error on unknown source type", async () => {
     const { createAgentCommand } = await import("@/commands/agent/create.js");
     await createAgentCommand({

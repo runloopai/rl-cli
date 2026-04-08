@@ -31,7 +31,8 @@ interface CreateOptions {
   tunnel?: string;
   gateways?: string[];
   mcp?: string[];
-  agent?: string;
+  agent?: string[];
+  agentPath?: string;
   output?: string;
 }
 
@@ -293,15 +294,27 @@ export async function createDevbox(options: CreateOptions = {}) {
     }
 
     // Handle agent mount
-    if (options.agent) {
-      const agent = await resolveAgent(options.agent);
-      if (!createRequest.mounts) createRequest.mounts = [];
-      (createRequest.mounts as unknown[]).push({
+    if (options.agent && options.agent.length > 0) {
+      if (options.agent.length > 1) {
+        throw new Error(
+          "Mounting multiple agents via rli is not supported yet",
+        );
+      }
+      const agent = await resolveAgent(options.agent[0]);
+      const mount: Record<string, unknown> = {
         type: "agent_mount",
         agent_id: agent.id,
         agent_name: null,
-        agent_path: "/home/user",
-      });
+      };
+      // agent_path only makes sense for git and object agents.  Since
+      // we don't know at this stage what type of agent it is,
+      // however, we'll let the server error inform the user if they
+      // add this option in a case where it doesn't make sense.
+      if (options.agentPath) {
+        mount.agent_path = options.agentPath;
+      }
+      if (!createRequest.mounts) createRequest.mounts = [];
+      (createRequest.mounts as unknown[]).push(mount);
     }
 
     if (Object.keys(launchParameters).length > 0) {

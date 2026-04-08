@@ -86,7 +86,8 @@ export function createProgram(): Command {
       "--mcp <specs...>",
       "MCP configurations (format: ENV_VAR_NAME=mcp_config_id_or_name,secret_id_or_name)",
     )
-    .option("--agent <agent>", "Agent to mount (name or ID)")
+    .option("--agent <agent...>", "Agent to mount (name or ID)")
+    .option("--agent-path <path>", "Path to mount the agent on the devbox")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",

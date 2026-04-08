@@ -18,75 +18,93 @@ interface CreateOptions {
   output?: string;
 }
 
+// Maps each source type to the options it accepts (beyond --setup-commands, which all types accept)
+const validOptionsBySource: Record<string, (keyof CreateOptions)[]> = {
+  npm: ["package", "registryUrl"],
+  pip: ["package", "registryUrl"],
+  git: ["repository", "ref"],
+  object: ["objectId"],
+};
+
+// All source-specific option flags (for error messages)
+const allSourceOptions: { key: keyof CreateOptions; flag: string }[] = [
+  { key: "package", flag: "--package" },
+  { key: "registryUrl", flag: "--registry-url" },
+  { key: "repository", flag: "--repository" },
+  { key: "ref", flag: "--ref" },
+  { key: "objectId", flag: "--object-id" },
+];
+
+function rejectInvalidOptions(
+  sourceType: string,
+  options: CreateOptions,
+): void {
+  const allowed = validOptionsBySource[sourceType] || [];
+  const invalid = allSourceOptions
+    .filter(
+      (opt) => options[opt.key] !== undefined && !allowed.includes(opt.key),
+    )
+    .map((opt) => opt.flag);
+
+  if (invalid.length > 0) {
+    throw new Error(
+      `${invalid.join(", ")} cannot be used with ${sourceType} source type`,
+    );
+  }
+}
+
+function buildSourceOptions(
+  sourceType: string,
+  options: CreateOptions,
+): Record<string, unknown> {
+  rejectInvalidOptions(sourceType, options);
+
+  switch (sourceType) {
+    case "npm":
+    case "pip":
+      if (!options.package) {
+        throw new Error(`--package is required for ${sourceType} source type`);
+      }
+      return {
+        package_name: options.package,
+        registry_url: options.registryUrl || undefined,
+        agent_setup: options.setupCommands || undefined,
+      };
+    case "git":
+      if (!options.repository) {
+        throw new Error("--repository is required for git source type");
+      }
+      return {
+        repository: options.repository,
+        ref: options.ref || undefined,
+        agent_setup: options.setupCommands || undefined,
+      };
+    case "object":
+      if (!options.objectId) {
+        throw new Error("--object-id is required for object source type");
+      }
+      return {
+        object_id: options.objectId,
+        agent_setup: options.setupCommands || undefined,
+      };
+    default:
+      throw new Error(
+        `Unknown source type: ${sourceType}. Use npm, pip, git, or object.`,
+      );
+  }
+}
+
 export async function createAgentCommand(
   options: CreateOptions,
 ): Promise<void> {
   try {
     const sourceType = options.source;
-    let source: any;
-
-    switch (sourceType) {
-      case "npm":
-        if (!options.package) {
-          throw new Error("--package is required for npm source type");
-        }
-        source = {
-          type: "npm",
-          npm: {
-            package_name: options.package,
-            registry_url: options.registryUrl || undefined,
-            agent_setup: options.setupCommands || undefined,
-          },
-        };
-        break;
-      case "pip":
-        if (!options.package) {
-          throw new Error("--package is required for pip source type");
-        }
-        source = {
-          type: "pip",
-          pip: {
-            package_name: options.package,
-            registry_url: options.registryUrl || undefined,
-            agent_setup: options.setupCommands || undefined,
-          },
-        };
-        break;
-      case "git":
-        if (!options.repository) {
-          throw new Error("--repository is required for git source type");
-        }
-        source = {
-          type: "git",
-          git: {
-            repository: options.repository,
-            ref: options.ref || undefined,
-            agent_setup: options.setupCommands || undefined,
-          },
-        };
-        break;
-      case "object":
-        if (!options.objectId) {
-          throw new Error("--object-id is required for object source type");
-        }
-        source = {
-          type: "object",
-          object: {
-            object_id: options.objectId,
-            agent_setup: options.setupCommands || undefined,
-          },
-        };
-        break;
-      default:
-        throw new Error(
-          `Unknown source type: ${sourceType}. Use npm, pip, git, or object.`,
-        );
-    }
+    const sourceOptions = buildSourceOptions(sourceType, options);
 
     const agent = await createAgent({
       name: options.name,
       version: options.agentVersion,
-      source,
+      source: { type: sourceType, [sourceType]: sourceOptions },
     });
 
     const format = options.output || "text";
