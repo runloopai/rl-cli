@@ -332,12 +332,15 @@ describe("ResourceDetailPage", () => {
 
   // --- Keyboard interaction ---
 
-  it("calls onBack when escape is pressed", () => {
+  it("calls onBack when escape is pressed", async () => {
     const props = createDefaultProps();
     const { stdin } = renderWithNav(
       <ResourceDetailPage {...props} />,
     );
     stdin.write("\u001B"); // escape
+    // Ink buffers a lone escape (could be start of an ANSI sequence) and
+    // flushes it via setImmediate once no more bytes arrive.
+    await new Promise((r) => setImmediate(r));
     expect(props.onBack).toHaveBeenCalled();
   });
 
