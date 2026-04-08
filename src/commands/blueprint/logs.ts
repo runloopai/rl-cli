@@ -9,6 +9,10 @@ import type {
 } from "@runloop/api-client/resources/blueprints";
 import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
+import {
+  formatTimestamp,
+  getLogLevelInfo,
+} from "../../utils/logFormatter.js";
 
 interface BlueprintLogsOptions {
   id: string;
@@ -16,56 +20,16 @@ interface BlueprintLogsOptions {
 }
 
 function formatLogLevel(level: string): string {
-  const normalized = level.toUpperCase();
-  switch (normalized) {
-    case "ERROR":
-    case "ERR":
-      return chalk.red.bold("ERROR");
-    case "WARN":
-    case "WARNING":
-      return chalk.yellow.bold("WARN ");
-    case "INFO":
-      return chalk.blue("INFO ");
-    case "DEBUG":
-      return chalk.gray("DEBUG");
+  const { name, color } = getLogLevelInfo(level);
+  switch (color) {
+    case "red":
+      return chalk.red.bold(name);
+    case "yellow":
+      return chalk.yellow.bold(name);
+    case "blue":
+      return chalk.blue(name);
     default:
-      return chalk.gray(normalized.padEnd(5));
-  }
-}
-
-function formatTimestamp(timestampMs: number): string {
-  const date = new Date(timestampMs);
-  const now = new Date();
-
-  const isToday = date.toDateString() === now.toDateString();
-  const isThisYear = date.getFullYear() === now.getFullYear();
-
-  const time = date.toLocaleTimeString("en-US", {
-    hour12: false,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-  const ms = date.getMilliseconds().toString().padStart(3, "0");
-
-  if (isToday) {
-    // Today: show time with milliseconds for fine granularity
-    return chalk.dim(`${time}.${ms}`);
-  } else if (isThisYear) {
-    // This year: show "Jan 5 15:44:03"
-    const monthDay = date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-    return chalk.dim(`${monthDay} ${time}`);
-  } else {
-    // Older: show "Jan 5, 2024 15:44:03"
-    const fullDate = date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-    return chalk.dim(`${fullDate} ${time}`);
+      return chalk.gray(name);
   }
 }
 
@@ -107,7 +71,7 @@ function formatLogEntry(log: BlueprintBuildLog): string {
   const parts: string[] = [];
 
   // Timestamp
-  parts.push(formatTimestamp(log.timestamp_ms));
+  parts.push(chalk.dim(formatTimestamp(log.timestamp_ms)));
 
   // Level
   parts.push(formatLogLevel(log.level));
