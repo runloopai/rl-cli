@@ -1,0 +1,25 @@
+diff --git a/dist/src/index.js b/dist/src/index.js
+index 4e20dd93082d8459e65eb740aff7c6da9f5d063b..9b7d816009d49c1f55821c9b5f1d96b802c09de8 100644
+--- a/dist/src/index.js
++++ b/dist/src/index.js
+@@ -8,9 +8,17 @@
+  */
+ 
+ // @ts-ignore untyped from Emscripten
+-import loadYoga from '../binaries/yoga-wasm-base64-esm.js';
++import loadYogaImpl from '../binaries/yoga-wasm-base64-esm.js';
+ import wrapAssembly from "./wrapAssembly.js";
+-const Yoga = wrapAssembly(await loadYoga());
+-export default Yoga;
++// Avoid top-level await for Bun/compilers. Export yogaReady to await before using default.
++let _yoga = null;
++export const yogaReady = loadYogaImpl().then((m) => { _yoga = wrapAssembly(m); return _yoga; });
++const YogaProxy = new Proxy({}, {
++  get(_, prop) {
++    if (_yoga !== null) return _yoga[prop];
++    throw new Error('Yoga not loaded. Await import("yoga-layout").yogaReady before using.');
++  }
++});
++export default YogaProxy;
+ export * from "./generated/YGEnums.js";
+ //# sourceMappingURL=index.js.map
