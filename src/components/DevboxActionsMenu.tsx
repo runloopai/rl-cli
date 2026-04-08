@@ -380,7 +380,10 @@ export const DevboxActionsMenu = ({
       ] as const;
       const currentFieldIndex = snapshotFields.indexOf(snapshotFormField);
 
-      if (input === "q" || key.escape) {
+      const isInTextField =
+        snapshotFormField === "name" ||
+        snapshotFormField === "commit_message";
+      if (key.escape || (!isInTextField && input === "q")) {
         // Cancel snapshot form
         setSnapshotFormMode(false);
         setSnapshotName("");
