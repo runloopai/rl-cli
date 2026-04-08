@@ -22,7 +22,9 @@ export function createProgram(): Command {
   // Custom --version handling: warn when other args are present
   program.option("-V, --version", "output the version number");
   program.on("option:version", () => {
-    const otherArgs = process.argv.slice(2).filter((a) => a !== "--version" && a !== "-V");
+    const otherArgs = process.argv
+      .slice(2)
+      .filter((a) => a !== "--version" && a !== "-V");
     if (otherArgs.length > 0) {
       console.log(`RLI version: ${VERSION}   (other args ignored)`);
     } else {
@@ -1186,7 +1188,10 @@ export function createProgram(): Command {
     .command("create")
     .description("Create a new agent")
     .requiredOption("--name <name>", "Agent name")
-    .requiredOption("--agent-version <version>", "Version string (semver or SHA)")
+    .requiredOption(
+      "--agent-version <version>",
+      "Version string (semver or SHA)",
+    )
     .requiredOption("--source <type>", "Source type: npm|pip|git|object")
     .option("--package <name>", "Package name (for npm/pip sources)")
     .option("--registry-url <url>", "Registry URL (for npm/pip sources)")

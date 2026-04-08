@@ -88,6 +88,8 @@ async function confirmAndDelete(
       { format, defaultFormat: "json" },
     );
   } else {
-    console.log(chalk.green("✓") + ` Agent "${agent.name}" (${agent.id}) deleted`);
+    console.log(
+      chalk.green("✓") + ` Agent "${agent.name}" (${agent.id}) deleted`,
+    );
   }
 }
