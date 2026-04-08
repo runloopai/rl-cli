@@ -250,6 +250,29 @@ pnpm run build
 
 # Watch mode
 pnpm run dev
+```
+
+### Debugging the TUI
+
+If the TUI crashes (e.g. when pressing Enter on a form field), you can capture logs to inspect the error:
+
+**Option 1 – stderr to file (no debug env)**  
+Useful to see uncaught errors and stack traces that the app writes to stderr:
+
+```bash
+pnpm run build
+pnpm run start:debug
+# Reproduce the crash, then:
+cat debug.log
+```
+
+**Option 2 – run under Node with inspector**  
+To get a stack trace from an uncaught exception, run with Node’s inspector and reproduce the crash; the process will pause and you can inspect the stack:
+
+```bash
+node --inspect-brk dist/cli.js
+# Attach Chrome/Edge to the URL shown (e.g. chrome://inspect) and resume; reproduce the crash.
+```
 
 ## Contributing
 
