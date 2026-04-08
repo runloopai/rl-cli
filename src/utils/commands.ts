@@ -16,9 +16,20 @@ export function createProgram(): Command {
   program
     .name("rli")
     .description("Beautiful CLI for Runloop devbox management")
-    .version(VERSION)
     .showHelpAfterError()
     .showSuggestionAfterError();
+
+  // Custom --version handling: warn when other args are present
+  program.option("-V, --version", "output the version number");
+  program.on("option:version", () => {
+    const otherArgs = process.argv.slice(2).filter((a) => a !== "--version" && a !== "-V");
+    if (otherArgs.length > 0) {
+      console.log(`RLI version: ${VERSION}   (other args ignored)`);
+    } else {
+      console.log(VERSION);
+    }
+    process.exit(0);
+  });
 
   // Devbox commands
   const devbox = program
@@ -73,6 +84,7 @@ export function createProgram(): Command {
       "--mcp <specs...>",
       "MCP configurations (format: ENV_VAR_NAME=mcp_config_id_or_name,secret_id_or_name)",
     )
+    .option("--agent <agent>", "Agent to mount (name or ID)")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
@@ -1149,7 +1161,7 @@ export function createProgram(): Command {
 
   // Agent commands
   const agent = program
-    .command("agent", { hidden: true })
+    .command("agent")
     .description("Manage agents")
     .alias("agt");
 
@@ -1168,6 +1180,46 @@ export function createProgram(): Command {
     .action(async (options) => {
       const { listAgentsCommand } = await import("../commands/agent/list.js");
       await listAgentsCommand(options);
+    });
+
+  agent
+    .command("create")
+    .description("Create a new agent")
+    .requiredOption("--name <name>", "Agent name")
+    .requiredOption("--agent-version <version>", "Version string (semver or SHA)")
+    .requiredOption("--source <type>", "Source type: npm|pip|git|object")
+    .option("--package <name>", "Package name (for npm/pip sources)")
+    .option("--registry-url <url>", "Registry URL (for npm/pip sources)")
+    .option("--repository <url>", "Git repository URL (for git source)")
+    .option("--ref <ref>", "Git ref - branch/tag/commit (for git source)")
+    .option("--object-id <id>", "Object ID (for object source)")
+    .option(
+      "--setup-commands <commands...>",
+      "Setup commands to run after installation",
+    )
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (options) => {
+      const { createAgentCommand } =
+        await import("../commands/agent/create.js");
+      await createAgentCommand(options);
+    });
+
+  agent
+    .command("delete <id-or-name>")
+    .description("Delete an agent")
+    .alias("rm")
+    .option("-y, --yes", "Skip confirmation prompt")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (idOrName, options) => {
+      const { deleteAgentCommand } =
+        await import("../commands/agent/delete.js");
+      await deleteAgentCommand(idOrName, options);
     });
 
   agent
