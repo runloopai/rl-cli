@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.16.0](https://github.com/runloopai/rl-cli/compare/v1.15.0...v1.16.0) (2026-04-09)
+
+
+### Features
+
+* update agents support in rli command line ([#200](https://github.com/runloopai/rl-cli/issues/200)) ([512d41f](https://github.com/runloopai/rl-cli/commit/512d41f2211ee608772c34426428fb1dff8a5a87))
+
+
+### Bug Fixes
+
+* "Showing 1-0 of 0" in TUI, cache unfiltered total count through search reset ([#196](https://github.com/runloopai/rl-cli/issues/196)) ([8170888](https://github.com/runloopai/rl-cli/commit/8170888a2372943fc2a75bda3a850b39b046dd63))
+* don't reset settings TUI menu cursor on back ([#198](https://github.com/runloopai/rl-cli/issues/198)) ([7a0796d](https://github.com/runloopai/rl-cli/commit/7a0796d42359060f1e380fdaa0cf2afea8a8661c))
+* improve column width handling for rli agent list ([#199](https://github.com/runloopai/rl-cli/issues/199)) ([d4aa73f](https://github.com/runloopai/rl-cli/commit/d4aa73faf9f9120a9ef29637d431487e062fe25e))
+
 ## [1.15.0](https://github.com/runloopai/rl-cli/compare/v1.14.0...v1.15.0) (2026-04-03)
 
 
