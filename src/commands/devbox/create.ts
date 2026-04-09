@@ -4,6 +4,11 @@
 
 import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
+import {
+  listAgents,
+  getAgent,
+  type Agent,
+} from "../../services/agentService.js";
 
 interface CreateOptions {
   name?: string;
@@ -26,6 +31,8 @@ interface CreateOptions {
   tunnel?: string;
   gateways?: string[];
   mcp?: string[];
+  agent?: string[];
+  agentPath?: string;
   output?: string;
 }
 
@@ -145,6 +152,19 @@ function parseMcpSpecs(
     result[envVarName] = { mcp_config: mcpConfig, secret };
   }
   return result;
+}
+
+async function resolveAgent(idOrName: string): Promise<Agent> {
+  if (idOrName.startsWith("agt_")) {
+    return getAgent(idOrName);
+  }
+  const result = await listAgents({ name: idOrName });
+  const matches = result.agents.filter((a) => a.name === idOrName);
+  if (matches.length === 0) {
+    throw new Error(`No agent found with name: ${idOrName}`);
+  }
+  matches.sort((a, b) => b.create_time_ms - a.create_time_ms);
+  return matches[0];
 }
 
 export async function createDevbox(options: CreateOptions = {}) {
@@ -271,6 +291,30 @@ export async function createDevbox(options: CreateOptions = {}) {
     // Handle MCP configs
     if (options.mcp && options.mcp.length > 0) {
       createRequest.mcp = parseMcpSpecs(options.mcp);
+    }
+
+    // Handle agent mount
+    if (options.agent && options.agent.length > 0) {
+      if (options.agent.length > 1) {
+        throw new Error(
+          "Mounting multiple agents via rli is not supported yet",
+        );
+      }
+      const agent = await resolveAgent(options.agent[0]);
+      const mount: Record<string, unknown> = {
+        type: "agent_mount",
+        agent_id: agent.id,
+        agent_name: null,
+      };
+      // agent_path only makes sense for git and object agents.  Since
+      // we don't know at this stage what type of agent it is,
+      // however, we'll let the server error inform the user if they
+      // add this option in a case where it doesn't make sense.
+      if (options.agentPath) {
+        mount.agent_path = options.agentPath;
+      }
+      if (!createRequest.mounts) createRequest.mounts = [];
+      (createRequest.mounts as unknown[]).push(mount);
     }
 
     if (Object.keys(launchParameters).length > 0) {

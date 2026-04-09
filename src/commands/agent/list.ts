@@ -96,18 +96,10 @@ function padStyled(raw: string, styled: string, width: number): string {
   return styled + " ".repeat(Math.max(0, width - raw.length));
 }
 
-function printTable(agents: Agent[], isPublic: boolean): void {
-  if (isPublic) {
-    console.log(
-      chalk.dim("Showing PUBLIC agents. Use --private to see private agents"),
-    );
-  } else {
-    console.log(
-      chalk.dim("Showing PRIVATE agents. Use --public to see public agents"),
-    );
-  }
-  console.log();
-
+/**
+ * Render a table of agents to stdout. Reusable by other commands.
+ */
+export function printAgentTable(agents: Agent[]): void {
   if (agents.length === 0) {
     console.log(chalk.dim("No agents found"));
     return;
@@ -133,6 +125,21 @@ function printTable(agents: Agent[], isPublic: boolean): void {
   console.log(
     chalk.dim(`${agents.length} agent${agents.length !== 1 ? "s" : ""}`),
   );
+}
+
+function printTable(agents: Agent[], isPublic: boolean): void {
+  if (isPublic) {
+    console.log(
+      chalk.dim("Showing PUBLIC agents. Use --private to see private agents"),
+    );
+  } else {
+    console.log(
+      chalk.dim("Showing PRIVATE agents. Use --public to see public agents"),
+    );
+  }
+  console.log();
+
+  printAgentTable(agents);
 }
 
 /**
