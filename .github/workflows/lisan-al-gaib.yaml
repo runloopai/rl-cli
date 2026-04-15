@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: runloopai/checkout@main
 
-      - uses: runloopai/lisan-al-gaib-action@jason/playground
+      - uses: runloopai/lisan-al-gaib-action@main
         with:
           ecosystems: npm,actions
           bypass-keyword: cve-fix
