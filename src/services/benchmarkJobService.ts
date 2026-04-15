@@ -19,6 +19,84 @@ export type BenchmarkRun = BenchmarkRunView;
 export type ScenarioRun = ScenarioRunView;
 export type { BenchmarkJobCreateParams };
 
+/**
+ * Extract clone parameters from a benchmark job for navigating to the create screen.
+ * Handles source type detection, agent config mapping (with secrets format variants),
+ * and orchestrator config extraction.
+ */
+export function buildCloneParams(job: BenchmarkJob): Record<string, string> {
+  const params: Record<string, string> = {
+    cloneFromJobId: job.id,
+    cloneJobName: job.name ?? "",
+  };
+
+  // Determine source type and extract IDs
+  if (job.job_spec) {
+    const spec = job.job_spec as any;
+
+    if (spec.scenario_ids && Array.isArray(spec.scenario_ids)) {
+      params.cloneSourceType = "scenarios";
+      params.initialScenarioIds = spec.scenario_ids.join(",");
+    } else if (spec.benchmark_id) {
+      params.cloneSourceType = "benchmark";
+      params.initialBenchmarkIds = spec.benchmark_id;
+    } else if (job.job_source) {
+      const source = job.job_source as any;
+      if (source.scenario_ids && Array.isArray(source.scenario_ids)) {
+        params.cloneSourceType = "scenarios";
+        params.initialScenarioIds = source.scenario_ids.join(",");
+      } else if (source.benchmark_id) {
+        params.cloneSourceType = "benchmark";
+        params.initialBenchmarkIds = source.benchmark_id;
+      }
+    }
+  }
+
+  // Extract agent configs
+  if (job.job_spec?.agent_configs) {
+    const agentConfigs = job.job_spec.agent_configs.map((a: any) => {
+      const env = a.agent_environment;
+      const secrets =
+        env?.secrets ??
+        env?.secret_names ??
+        (typeof env?.secret_refs === "object" && env.secret_refs
+          ? env.secret_refs
+          : undefined);
+      return {
+        agentId: a.agent_id,
+        name: a.name,
+        modelName: a.model_name,
+        timeoutSeconds: a.timeout_seconds,
+        kwargs: a.kwargs,
+        environmentVariables: env?.environment_variables,
+        secrets,
+      };
+    });
+    params.cloneAgentConfigs = JSON.stringify(agentConfigs);
+
+    // Also extract legacy fields for form initialization
+    params.cloneAgentIds = job.job_spec.agent_configs
+      .map((a: any) => a.agent_id)
+      .join(",");
+    params.cloneAgentNames = job.job_spec.agent_configs
+      .map((a: any) => a.name)
+      .join(",");
+  }
+
+  // Extract orchestrator config
+  if (job.job_spec?.orchestrator_config) {
+    const orch = job.job_spec.orchestrator_config;
+    params.cloneOrchestratorConfig = JSON.stringify({
+      nAttempts: orch.n_attempts,
+      nConcurrentTrials: orch.n_concurrent_trials,
+      quiet: orch.quiet,
+      timeoutMultiplier: orch.timeout_multiplier,
+    });
+  }
+
+  return params;
+}
+
 export interface ListBenchmarkJobsOptions {
   limit?: number;
   startingAfter?: string;
