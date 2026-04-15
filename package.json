@@ -30,7 +30,6 @@
     "docs:commands": "pnpm run build && node scripts/generate-command-docs.js",
     "prepare": "husky"
   },
-  "packageManager": "pnpm@9.15.4",
   "keywords": [
     "runloop",
     "cli",

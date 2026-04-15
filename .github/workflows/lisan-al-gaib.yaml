@@ -1,0 +1,26 @@
+name: "Dependency Check"
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/lisan-al-gaib.yaml
+      - pnpm-lock.yaml
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: runloopai/checkout@main
+
+      - uses: runloopai/lisan-al-gaib-action@jason/playground
+        with:
+          ecosystems: npm,actions
+          bypass-keyword: cve-fix
+          age-overrides: |
+            npm:
+              - '@runloop/api-client'
+
