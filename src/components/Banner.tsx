@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Box, Text, useStdout } from "ink";
-import BigText from "ink-big-text";
 import Gradient from "ink-gradient";
 import { isLightMode } from "../utils/theme.js";
 
@@ -88,9 +87,19 @@ const LIGHT_FRAMES = precomputeFrames(
   LIGHT_SHIMMER_COLORS.filter((_, i) => i % 2 === 0),
 );
 
-// Minimum width to show the full BigText banner (simple3d font needs ~80 chars for "RUNLOOP.ai")
+// Pre-rendered "RUNLOOP.ai" in simple3d font (previously rendered by cfonts via ink-big-text)
+const BANNER_ART = `\
+                          ___
+ _ __   __  __    ___    /\\_ \\      ___     ___    _____          __      __
+/\\\` __\\/\\ \\/\\ \\ /' _ \`\\  \\//\\ \\    / __\`\\  / __\`\\ /\\ '__\`\\      /'__\`\\   /\\_\\
+\\ \\ \\/ \\ \\ \\_\\ \\/\\ \\/\\ \\   \\_\\ \\_ /\\ \\_\\ \\/\\ \\_\\ \\\\ \\ \\_\\ \\    /\\ \\_\\.\\_  \\/\\ \\
+ \\ \\_\\  \\ \\____/\\ \\_\\ \\_\\  /\\____\\\\ \\____/\\ \\____/ \\ \\ ,__/ __ \\ \\__/.\\_\\ \\ \\ \\
+  \\/_/   \\/___/  \\/_/\\/_/  \\/____/ \\/___/  \\/___/   \\ \\ \\/ /\\_\\ \\/__/\\/_/  \\/_/
+                                                     \\/_/  \\/_/                `;
+
+// Minimum width to show the full banner (simple3d font needs ~80 chars for "RUNLOOP.ai")
 const MIN_WIDTH_FOR_BIG_BANNER = 90;
-// Minimum height to show the full BigText banner - require generous room (40 lines)
+// Minimum height to show the full banner - require generous room (40 lines)
 const MIN_HEIGHT_FOR_BIG_BANNER = 40;
 
 // Animation interval in ms
@@ -169,7 +178,7 @@ export const Banner = React.memo(() => {
   return (
     <Box flexDirection="column" alignItems="flex-start" paddingX={1}>
       <Gradient colors={currentColors}>
-        <BigText text="RUNLOOP.ai" font="simple3d" />
+        <Text>{BANNER_ART}</Text>
       </Gradient>
     </Box>
   );

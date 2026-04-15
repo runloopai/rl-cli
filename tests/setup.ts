@@ -65,7 +65,6 @@ jest.mock("ink", () => ({
 }));
 
 // Mock ESM-only Ink dependencies so Jest doesn't parse their ESM bundles
-jest.mock("ink-big-text", () => ({ __esModule: true, default: () => null }));
 jest.mock("ink-gradient", () => ({ __esModule: true, default: () => null }));
 
 // Mock app UI components that import Ink deps, to avoid pulling in ESM from node_modules
