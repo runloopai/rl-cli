@@ -122,13 +122,19 @@ const ListGatewayConfigsUI = ({
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const client = getClient();
       const pageConfigs: GatewayConfigListItem[] = [];
 
       // Build query params
       const queryParams: Record<string, unknown> = {
         limit: params.limit,
+        // Only request total_count on first page (expensive for backend)
+        include_total_count: params.includeTotalCount === true,
       };
       if (params.startingAt) {
         queryParams.starting_after = params.startingAt;
@@ -140,7 +146,9 @@ const ListGatewayConfigsUI = ({
       // Fetch ONE page only
       const page = (await client.gatewayConfigs.list(
         queryParams,
-      )) as unknown as GatewayConfigsCursorIDPage<GatewayConfigListItem>;
+      )) as unknown as GatewayConfigsCursorIDPage<GatewayConfigListItem> & {
+        total_count?: number;
+      };
 
       // Extract data and create defensive copies
       if (page.gateway_configs && Array.isArray(page.gateway_configs)) {
@@ -163,7 +171,7 @@ const ListGatewayConfigsUI = ({
       const result = {
         items: pageConfigs,
         hasMore: page.has_more || false,
-        totalCount: pageConfigs.length,
+        totalCount: page.total_count,
       };
 
       return result;
@@ -304,7 +312,15 @@ const ListGatewayConfigsUI = ({
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + configs.length;
+  const endIndex =
+    totalCount > 0
+      ? Math.min(startIndex + configs.length, totalCount)
+      : startIndex + configs.length;
+  const showingRange = navigating
+    ? `${startIndex + 1}+`
+    : endIndex === startIndex + 1
+      ? `${startIndex + 1}`
+      : `${startIndex + 1}-${endIndex}`;
 
   const executeOperation = async (
     config: GatewayConfigListItem,
@@ -653,7 +669,7 @@ const ListGatewayConfigsUI = ({
           data={configs}
           keyExtractor={(config: GatewayConfigListItem) => config.id}
           selectedIndex={selectedIndex}
-          title={`gateway_configs[${hasMore ? `${totalCount}+` : totalCount}]`}
+          title={`gateway_configs[${totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
@@ -667,14 +683,18 @@ const ListGatewayConfigsUI = ({
       {/* Statistics Bar - hide when popup is shown */}
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
-          <Text color={colors.primary} bold>
-            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
-          </Text>
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            total
-          </Text>
-          {totalPages > 1 && (
+          {totalCount > 0 && (
+            <>
+              <Text color={colors.primary} bold>
+                {figures.hamburger} {totalCount}
+              </Text>
+              <Text color={colors.textDim} dimColor>
+                {" "}
+                total
+              </Text>
+            </>
+          )}
+          {totalCount > 0 && totalPages > 1 && (
             <>
               <Text color={colors.textDim} dimColor>
                 {" "}
@@ -686,20 +706,22 @@ const ListGatewayConfigsUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of{" "}
-                  {hasMore ? `${totalPages}+` : totalPages}
+                  Page {currentPage + 1} of {totalPages}
                 </Text>
               )}
             </>
           )}
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            •{" "}
-          </Text>
-          <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of{" "}
-            {hasMore ? `${totalCount}+` : totalCount}
-          </Text>
+          {endIndex > startIndex && (
+            <>
+              <Text color={colors.textDim} dimColor>
+                {totalCount > 0 ? " • " : ""}
+              </Text>
+              <Text color={colors.textDim} dimColor>
+                Showing {showingRange}
+                {totalCount > 0 ? ` of ${totalCount}` : ""}
+              </Text>
+            </>
+          )}
           {search.submittedSearchQuery && (
             <>
               <Text color={colors.textDim} dimColor>

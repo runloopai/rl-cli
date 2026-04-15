@@ -16,9 +16,22 @@ export function createProgram(): Command {
   program
     .name("rli")
     .description("Beautiful CLI for Runloop devbox management")
-    .version(VERSION)
     .showHelpAfterError()
     .showSuggestionAfterError();
+
+  // Custom --version handling: warn when other args are present
+  program.option("-V, --version", "output the version number");
+  program.on("option:version", () => {
+    const otherArgs = process.argv
+      .slice(2)
+      .filter((a) => a !== "--version" && a !== "-V");
+    if (otherArgs.length > 0) {
+      console.log(`RLI version: ${VERSION}   (other args ignored)`);
+    } else {
+      console.log(VERSION);
+    }
+    process.exit(0);
+  });
 
   // Devbox commands
   const devbox = program
@@ -73,6 +86,8 @@ export function createProgram(): Command {
       "--mcp <specs...>",
       "MCP configurations (format: ENV_VAR_NAME=mcp_config_id_or_name,secret_id_or_name)",
     )
+    .option("--agent <agent...>", "Agent to mount (name or ID)")
+    .option("--agent-path <path>", "Path to mount the agent on the devbox")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
@@ -1012,6 +1027,44 @@ export function createProgram(): Command {
       await installMcpConfig();
     });
 
+  // Axon commands (beta)
+  const axon = program.command("axon").description("Manage axons (beta)");
+
+  axon
+    .command("list")
+    .description("List active axons")
+    .option("--limit <n>", "Max axons to return (0 = unlimited)", "0")
+    .option(
+      "--starting-after <id>",
+      "Starting point for cursor pagination (axon ID)",
+    )
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (options) => {
+      const { listAxonsCommand } = await import("../commands/axon/list.js");
+      await listAxonsCommand(options);
+    });
+
+  // Scenario commands
+  const scenario = program
+    .command("scenario")
+    .description("Manage scenarios")
+    .alias("scn");
+
+  scenario
+    .command("info <id>")
+    .description("Display scenario definition details")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (id, options) => {
+      const { scenarioInfo } = await import("../commands/scenario/info.js");
+      await scenarioInfo(id, options);
+    });
+
   // Benchmark job commands
   const benchmarkJob = program
     .command("benchmark-job")
@@ -1077,6 +1130,20 @@ export function createProgram(): Command {
     });
 
   benchmarkJob
+    .command("logs <id>")
+    .description(
+      "Download devbox logs for all scenario runs in a benchmark job",
+    )
+    .option("-o, --output-dir <path>", "Output directory")
+    .option("--run <id>", "Download logs for a specific benchmark run only")
+    .option("--scenario <id>", "Download logs for a specific scenario run only")
+    .action(async (id, options) => {
+      const { downloadBenchmarkJobLogs } =
+        await import("../commands/benchmark-job/logs.js");
+      await downloadBenchmarkJobLogs(id, options);
+    });
+
+  benchmarkJob
     .command("list")
     .description("List benchmark jobs")
     .option("--days <n>", "Show jobs from the last N days (default: 1)")
@@ -1093,6 +1160,84 @@ export function createProgram(): Command {
       const { listBenchmarkJobsCommand } =
         await import("../commands/benchmark-job/list.js");
       await listBenchmarkJobsCommand(options);
+    });
+
+  // Agent commands
+  const agent = program
+    .command("agent")
+    .description("Manage agents")
+    .alias("agt");
+
+  agent
+    .command("list")
+    .description("List agents")
+    .option("--full", "Show all versions for all agents")
+    .option("--name <name>", "Filter by name (partial match)")
+    .option("--search <query>", "Search by agent ID or name")
+    .option("--public", "Show only public agents")
+    .option("--private", "Show only private agents")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (options) => {
+      const { listAgentsCommand } = await import("../commands/agent/list.js");
+      await listAgentsCommand(options);
+    });
+
+  agent
+    .command("create")
+    .description("Create a new agent")
+    .requiredOption("--name <name>", "Agent name")
+    .requiredOption(
+      "--agent-version <version>",
+      "Version string (semver or SHA)",
+    )
+    .requiredOption("--source <type>", "Source type: npm|pip|git|object")
+    .option("--package <name>", "Package name (for npm/pip sources)")
+    .option("--registry-url <url>", "Registry URL (for npm/pip sources)")
+    .option("--repository <url>", "Git repository URL (for git source)")
+    .option("--ref <ref>", "Git ref - branch/tag/commit (for git source)")
+    .option("--object-id <id>", "Object ID (for object source)")
+    .option(
+      "--setup-commands <commands...>",
+      "Setup commands to run after installation",
+    )
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (options) => {
+      const { createAgentCommand } =
+        await import("../commands/agent/create.js");
+      await createAgentCommand(options);
+    });
+
+  agent
+    .command("delete <id-or-name>")
+    .description("Delete an agent")
+    .alias("rm")
+    .option("-y, --yes", "Skip confirmation prompt")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (idOrName, options) => {
+      const { deleteAgentCommand } =
+        await import("../commands/agent/delete.js");
+      await deleteAgentCommand(idOrName, options);
+    });
+
+  agent
+    .command("show <id-or-name>")
+    .description("Show agent details")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (idOrName, options) => {
+      const { showAgentCommand } = await import("../commands/agent/show.js");
+      await showAgentCommand(idOrName, options);
     });
 
   // Hidden command: 'rli mcp' without subcommand starts the server (for Claude Desktop config compatibility)

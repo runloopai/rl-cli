@@ -167,20 +167,43 @@ export function output(data: unknown, options: SimpleOutputOptions = {}): void {
  * outputError('Failed to get devbox', error);
  */
 export function outputError(message: string, error?: Error | unknown): never {
-  const errorMessage =
-    error instanceof Error ? error.message : String(error || message);
   console.error(`Error: ${message}`);
-  // Only print the error message if it adds new information
-  // Skip if: same as message, message contains it, or it contains the message
-  const messageLower = message.toLowerCase();
-  const errorLower = errorMessage.toLowerCase();
-  const isRedundant =
-    errorMessage === message ||
-    messageLower.includes(errorLower) ||
-    errorLower.includes(messageLower);
-  if (error && !isRedundant) {
-    console.error(`  ${errorMessage}`);
+
+  if (error && typeof error === "object") {
+    // Extract API error details (status code, response body)
+    const apiError = error as {
+      status?: number;
+      error?: unknown;
+      message?: string;
+    };
+
+    if (apiError.status) {
+      console.error(`  HTTP ${apiError.status}`);
+    }
+
+    // Show the error body if it has useful detail beyond the message
+    if (
+      apiError.error &&
+      typeof apiError.error === "object" &&
+      Object.keys(apiError.error).length > 0
+    ) {
+      const body = JSON.stringify(apiError.error);
+      console.error(`  ${body}`);
+    }
+
+    // Show the error message if it adds info beyond what we already printed
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const messageLower = message.toLowerCase();
+    const errorLower = errorMessage.toLowerCase();
+    const isRedundant =
+      errorMessage === message ||
+      messageLower.includes(errorLower) ||
+      errorLower.includes(messageLower);
+    if (!isRedundant && !apiError.status) {
+      console.error(`  ${errorMessage}`);
+    }
   }
+
   processUtils.exit(1);
 }
 

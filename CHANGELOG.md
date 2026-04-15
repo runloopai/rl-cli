@@ -1,5 +1,74 @@
 # Changelog
 
+## [1.15.0](https://github.com/runloopai/rl-cli/compare/v1.14.0...v1.15.0) (2026-04-03)
+
+
+### Features
+
+* axon list with pagination and api-client upgrade ([#184](https://github.com/runloopai/rl-cli/issues/184)) ([dc9743e](https://github.com/runloopai/rl-cli/commit/dc9743e1000cfcf6de5602bd9eed197baba63d28))
+* **cli:** add some (hidden) agent handling commands ([#187](https://github.com/runloopai/rl-cli/issues/187)) ([1a92f5f](https://github.com/runloopai/rl-cli/commit/1a92f5f6888b5eb22a45c7813450e697311ccae4))
+
+
+### Bug Fixes
+
+* clean stdout for --config-only when appending SSH config ([#192](https://github.com/runloopai/rl-cli/issues/192)) ([4428295](https://github.com/runloopai/rl-cli/commit/4428295516407978c40ab65174a939e9fa23c855))
+* **cli:** account for pending scenarios in rli display ([#185](https://github.com/runloopai/rl-cli/issues/185)) ([c82d528](https://github.com/runloopai/rl-cli/commit/c82d528e3028b4c6eaf7fb30d868c80e91edbf91))
+* widen VERSION column in agent list to prevent truncation ([#190](https://github.com/runloopai/rl-cli/issues/190)) ([c7eba09](https://github.com/runloopai/rl-cli/commit/c7eba095443f63a4256ea403d72554135fbc3a3c))
+
+
+### Performance Improvements
+
+* fetch total count in the background, not foreground ([#189](https://github.com/runloopai/rl-cli/issues/189)) ([0903d89](https://github.com/runloopai/rl-cli/commit/0903d89b57f36e715025ef73132b0616c05c753f))
+
+## [1.14.0](https://github.com/runloopai/rl-cli/compare/v1.13.3...v1.14.0) (2026-03-25)
+
+
+### Features
+
+* add 'logs' command to download info from devboxes ([#164](https://github.com/runloopai/rl-cli/issues/164)) ([d5354be](https://github.com/runloopai/rl-cli/commit/d5354bedaecc68faf44e7c4063d2f76a4b57c808))
+* use total_count field from Pagination API response ([#175](https://github.com/runloopai/rl-cli/issues/175)) ([4e84f30](https://github.com/runloopai/rl-cli/commit/4e84f3024d5281cc33a54cd6299ef2fc7fc77ecf))
+
+
+### Bug Fixes
+
+* **benchmark:** fix benchmark id when creating job with benchmark ([#170](https://github.com/runloopai/rl-cli/issues/170)) ([2c73cba](https://github.com/runloopai/rl-cli/commit/2c73cbadf74d4d5cf9f8532111147654587822e1))
+* bmj list now counts finished scenarios from in-progress runs ([#168](https://github.com/runloopai/rl-cli/issues/168)) ([123f1d4](https://github.com/runloopai/rl-cli/commit/123f1d44f846da67ac2e31478fe4e1316f58991b))
+* **cli:** show failure reason when benchmark job fails with no outcomes ([#182](https://github.com/runloopai/rl-cli/issues/182)) ([817b5cd](https://github.com/runloopai/rl-cli/commit/817b5cd36dc3f10ed5f2fa9c3af8b7aefcf5a9a1))
+* **cli:** use allSettled() instead of all() so one bad download doesn't spoil the barrel ([#178](https://github.com/runloopai/rl-cli/issues/178)) ([8f4145a](https://github.com/runloopai/rl-cli/commit/8f4145a356f3899fb651518591f1fd3652bc2dec))
+* don't reset TUI menu cursor on back ([#181](https://github.com/runloopai/rl-cli/issues/181)) ([6cc35a7](https://github.com/runloopai/rl-cli/commit/6cc35a7fdd9b947d0921bb973f0137ed26dfd4ce))
+* eliminate flicker in bmj watch and show job elapsed time ([#167](https://github.com/runloopai/rl-cli/issues/167)) ([9b1deed](https://github.com/runloopai/rl-cli/commit/9b1deedf0d495b0a2651ec912a18fa8c7e9c1a7c))
+* prevent double devbox creation when pressing Enter in interactive form ([#173](https://github.com/runloopai/rl-cli/issues/173)) ([23f8a28](https://github.com/runloopai/rl-cli/commit/23f8a282e3184fdfb4253868e698676dd352671f))
+* scenarios sometimes listed as in progress after bmj completes ([#174](https://github.com/runloopai/rl-cli/issues/174)) ([78f8f55](https://github.com/runloopai/rl-cli/commit/78f8f5533a8d0f9a2d546323b28b7244aff4c32a))
+* update broken tests ([#169](https://github.com/runloopai/rl-cli/issues/169)) ([d8b35a2](https://github.com/runloopai/rl-cli/commit/d8b35a2b4c22cf8422e240bbcf067a97b7944cd0))
+
+
+### Performance Improvements
+
+* **cli:** parallelize scenario log downloads with max concurrency of 50 ([#176](https://github.com/runloopai/rl-cli/issues/176)) ([a5828a2](https://github.com/runloopai/rl-cli/commit/a5828a286eff127d00e119b633aa357aed24700c))
+* **cli:** parallelize scenario run fetching and name resolution in bmj logs ([#179](https://github.com/runloopai/rl-cli/issues/179)) ([227d0fd](https://github.com/runloopai/rl-cli/commit/227d0fd607ad5d5a1f188cae246d3d1d8587e714))
+
+## [1.13.3](https://github.com/runloopai/rl-cli/compare/v1.13.2...v1.13.3) (2026-03-09)
+
+
+### Bug Fixes
+
+* **benchmark:** set default agent timeout -&gt; 2 hours ([#162](https://github.com/runloopai/rl-cli/issues/162)) ([869fb89](https://github.com/runloopai/rl-cli/commit/869fb8956d975a1e88c27bd7d7b664162ac6d64f))
+
+## [1.13.2](https://github.com/runloopai/rl-cli/compare/v1.13.1...v1.13.2) (2026-03-09)
+
+
+### Bug Fixes
+
+* **benchmark:** increase id column so full id visible in bechmark-job.list ([#159](https://github.com/runloopai/rl-cli/issues/159)) ([a472f0a](https://github.com/runloopai/rl-cli/commit/a472f0a07dd5d1c275e5e79cfeead08ab6f97fae))
+* **benchmark:** remove default agent timeout ([#160](https://github.com/runloopai/rl-cli/issues/160)) ([97fcfcc](https://github.com/runloopai/rl-cli/commit/97fcfcc7c51808bf751a607cfee03ba80e906a70))
+
+## [1.13.1](https://github.com/runloopai/rl-cli/compare/v1.13.0...v1.13.1) (2026-03-07)
+
+
+### Bug Fixes
+
+* disable unfinished benchmark features in interactive UX ([#157](https://github.com/runloopai/rl-cli/issues/157)) ([fd84d31](https://github.com/runloopai/rl-cli/commit/fd84d31617e112cae0774625691327cefdc443a8))
+
 ## [1.13.0](https://github.com/runloopai/rl-cli/compare/v1.12.0...v1.13.0) (2026-03-06)
 
 

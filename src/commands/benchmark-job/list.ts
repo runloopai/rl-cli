@@ -5,6 +5,7 @@
 import chalk from "chalk";
 import {
   listBenchmarkJobs,
+  listBenchmarkRunScenarioRuns,
   type BenchmarkJob,
 } from "../../services/benchmarkJobService.js";
 import { output, outputError } from "../../utils/output.js";
@@ -54,7 +55,16 @@ interface JobStats {
   avgScore: number | null;
 }
 
-function aggregateJobStats(job: BenchmarkJob): JobStats {
+// Scenario run states that count as finished
+const SCENARIO_DONE_STATES = new Set([
+  "completed",
+  "failed",
+  "canceled",
+  "timeout",
+  "error",
+]);
+
+async function aggregateJobStats(job: BenchmarkJob): Promise<JobStats> {
   const outcomes = job.benchmark_outcomes || [];
   const scenarioCount = job.job_spec?.scenario_ids?.length || 0;
   const agentCount = job.job_spec?.agent_configs?.length || 1;
@@ -65,12 +75,45 @@ function aggregateJobStats(job: BenchmarkJob): JobStats {
   let scoreSum = 0;
   let scoreCount = 0;
 
+  // Count from completed benchmark runs
   for (const outcome of outcomes) {
     done += outcome.n_completed + outcome.n_failed + outcome.n_timeout;
     errors += outcome.n_failed + outcome.n_timeout;
     if (outcome.average_score !== undefined && outcome.average_score !== null) {
       scoreSum += outcome.average_score;
       scoreCount++;
+    }
+  }
+
+  // Count finished scenarios from in-progress benchmark runs
+  const inProgressRuns = job.in_progress_runs || [];
+  if (inProgressRuns.length > 0) {
+    const runResults = await Promise.all(
+      inProgressRuns.map((run) =>
+        listBenchmarkRunScenarioRuns(run.benchmark_run_id),
+      ),
+    );
+    for (const scenarioRuns of runResults) {
+      let runScoreSum = 0;
+      let runScoreCount = 0;
+      for (const sr of scenarioRuns) {
+        const state = sr.state?.toLowerCase() || "";
+        if (SCENARIO_DONE_STATES.has(state)) {
+          done++;
+          if (state !== "completed") {
+            errors++;
+          }
+          const score = sr.scoring_contract_result?.score;
+          if (score !== undefined && score !== null) {
+            runScoreSum += score;
+            runScoreCount++;
+          }
+        }
+      }
+      if (runScoreCount > 0) {
+        scoreSum += runScoreSum / runScoreCount;
+        scoreCount++;
+      }
     }
   }
 
@@ -106,7 +149,7 @@ function colorState(state: string): string {
 // --- Table printing ---
 
 // Fixed column widths (excluding NAME which is dynamic)
-const COL_ID = 16;
+const COL_ID = 30;
 const COL_STARTED = 10;
 const COL_STATUS = 14;
 const COL_DONE = 9;
@@ -120,7 +163,7 @@ function truncate(str: string, maxLen: number): string {
   return str.slice(0, maxLen - 1) + "…";
 }
 
-function printTable(jobs: BenchmarkJob[]): void {
+async function printTable(jobs: BenchmarkJob[]): Promise<void> {
   if (jobs.length === 0) {
     console.log(chalk.dim("No benchmark jobs found"));
     return;
@@ -149,7 +192,7 @@ function printTable(jobs: BenchmarkJob[]): void {
 
   // Rows
   for (const job of jobs) {
-    const stats = aggregateJobStats(job);
+    const stats = await aggregateJobStats(job);
 
     const id = truncate(job.id, COL_ID).padEnd(COL_ID);
     const name = truncate(job.name || "", nameWidth).padEnd(nameWidth);
@@ -262,7 +305,7 @@ export async function listBenchmarkJobsCommand(
     if (format !== "text") {
       output(jobs, { format, defaultFormat: "json" });
     } else {
-      printTable(jobs);
+      await printTable(jobs);
     }
   } catch (error) {
     outputError("Failed to list benchmark jobs", error);

@@ -42,3 +42,18 @@ export function getSettingsUrl(): string {
   const baseUrl = getBaseUrl();
   return `${baseUrl}/settings`;
 }
+
+/**
+ * Hostname for V2 devbox tunnel URLs (matches RUNLOOP_ENV / API host).
+ */
+export function getTunnelBaseHost(): string {
+  const env = process.env.RUNLOOP_ENV?.toLowerCase();
+  return env === "dev" ? "tunnel.runloop.pro" : "tunnel.runloop.ai";
+}
+
+/**
+ * Tunnel URL pattern with a literal `{port}` placeholder for display.
+ */
+export function getDevboxTunnelUrlPattern(tunnelKey: string): string {
+  return `https://{port}-${tunnelKey}.${getTunnelBaseHost()}`;
+}

@@ -78,13 +78,19 @@ const ListDevboxesUI = ({
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const client = getClient();
       const pageDevboxes: Devbox[] = [];
 
       // Build query params
       const queryParams: Record<string, unknown> = {
         limit: params.limit,
+        // Only request total_count on first page (expensive for backend)
+        include_total_count: params.includeTotalCount === true,
       };
       if (params.startingAt) {
         queryParams.starting_after = params.startingAt;
@@ -99,7 +105,7 @@ const ListDevboxesUI = ({
       // Fetch ONE page only
       const page = (await client.devboxes.list(
         queryParams,
-      )) as unknown as DevboxesCursorIDPage<Devbox>;
+      )) as unknown as DevboxesCursorIDPage<Devbox> & { total_count?: number };
 
       // Extract data and create defensive copies using JSON serialization
       if (page.devboxes && Array.isArray(page.devboxes)) {
@@ -111,7 +117,7 @@ const ListDevboxesUI = ({
       const result = {
         items: pageDevboxes,
         hasMore: page.has_more || false,
-        totalCount: pageDevboxes.length,
+        totalCount: page.total_count,
       };
 
       return result;
@@ -419,7 +425,15 @@ const ListDevboxesUI = ({
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + devboxes.length;
+  const endIndex =
+    totalCount > 0
+      ? Math.min(startIndex + devboxes.length, totalCount)
+      : startIndex + devboxes.length;
+  const showingRange = navigating
+    ? `${startIndex + 1}+`
+    : endIndex === startIndex + 1
+      ? `${startIndex + 1}`
+      : `${startIndex + 1}-${endIndex}`;
 
   // Filter operations based on devbox status
   const hasTunnel = !!(
@@ -709,7 +723,7 @@ const ListDevboxesUI = ({
           data={devboxes}
           keyExtractor={(devbox: Devbox) => devbox.id}
           selectedIndex={selectedIndex}
-          title="devboxes"
+          title={`devboxes[${totalCount}]`}
           columns={tableColumns}
           emptyState={
             <Text color={colors.textDim}>
@@ -722,14 +736,18 @@ const ListDevboxesUI = ({
       {/* Statistics Bar - hide when popup is shown */}
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
-          <Text color={colors.primary} bold>
-            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
-          </Text>
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            total
-          </Text>
-          {totalPages > 1 && (
+          {totalCount > 0 && (
+            <>
+              <Text color={colors.primary} bold>
+                {figures.hamburger} {totalCount}
+              </Text>
+              <Text color={colors.textDim} dimColor>
+                {" "}
+                total
+              </Text>
+            </>
+          )}
+          {totalCount > 0 && totalPages > 1 && (
             <>
               <Text color={colors.textDim} dimColor>
                 {" "}
@@ -741,20 +759,26 @@ const ListDevboxesUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of{" "}
-                  {hasMore ? `${totalPages}+` : totalPages}
+                  Page {currentPage + 1} of {totalPages}
                 </Text>
               )}
             </>
           )}
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            •{" "}
-          </Text>
-          <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of{" "}
-            {hasMore ? `${totalCount}+` : totalCount}
-          </Text>
+          {devboxes.length > 0 && (
+            <>
+              {endIndex > startIndex && (
+                <>
+                  <Text color={colors.textDim} dimColor>
+                    {totalCount > 0 ? " • " : ""}
+                  </Text>
+                  <Text color={colors.textDim} dimColor>
+                    Showing {showingRange}
+                    {totalCount > 0 ? ` of ${totalCount}` : ""}
+                  </Text>
+                </>
+              )}
+            </>
+          )}
           {search.submittedSearchQuery && (
             <>
               <Text color={colors.textDim} dimColor>

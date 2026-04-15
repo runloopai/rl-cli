@@ -90,7 +90,11 @@ const ListSecretsUI = ({
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const client = getClient();
       const pageSecrets: SecretListItem[] = [];
 
@@ -237,7 +241,15 @@ const ListSecretsUI = ({
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const startIndex = currentPage * PAGE_SIZE;
-  const endIndex = startIndex + secrets.length;
+  const endIndex =
+    totalCount > 0
+      ? Math.min(startIndex + secrets.length, totalCount)
+      : startIndex + secrets.length;
+  const showingRange = navigating
+    ? `${startIndex + 1}+`
+    : endIndex === startIndex + 1
+      ? `${startIndex + 1}`
+      : `${startIndex + 1}-${endIndex}`;
 
   const executeOperation = async (
     secret: SecretListItem,
@@ -542,14 +554,18 @@ const ListSecretsUI = ({
       {/* Statistics Bar - hide when popup is shown */}
       {!showPopup && (
         <Box marginTop={1} paddingX={1}>
-          <Text color={colors.primary} bold>
-            {figures.hamburger} {hasMore ? `${totalCount}+` : totalCount}
-          </Text>
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            total
-          </Text>
-          {totalPages > 1 && (
+          {totalCount > 0 && (
+            <>
+              <Text color={colors.primary} bold>
+                {figures.hamburger} {totalCount}
+              </Text>
+              <Text color={colors.textDim} dimColor>
+                {" "}
+                total
+              </Text>
+            </>
+          )}
+          {totalCount > 0 && totalPages > 1 && (
             <>
               <Text color={colors.textDim} dimColor>
                 {" "}
@@ -561,20 +577,22 @@ const ListSecretsUI = ({
                 </Text>
               ) : (
                 <Text color={colors.textDim} dimColor>
-                  Page {currentPage + 1} of{" "}
-                  {hasMore ? `${totalPages}+` : totalPages}
+                  Page {currentPage + 1} of {totalPages}
                 </Text>
               )}
             </>
           )}
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            •{" "}
-          </Text>
-          <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of{" "}
-            {hasMore ? `${totalCount}+` : totalCount}
-          </Text>
+          {endIndex > startIndex && (
+            <>
+              <Text color={colors.textDim} dimColor>
+                {totalCount > 0 ? " • " : ""}
+              </Text>
+              <Text color={colors.textDim} dimColor>
+                Showing {showingRange}
+                {totalCount > 0 ? ` of ${totalCount}` : ""}
+              </Text>
+            </>
+          )}
           {search.submittedSearchQuery && (
             <>
               <Text color={colors.textDim} dimColor>

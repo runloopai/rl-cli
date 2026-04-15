@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-slim
     steps:
       - name: Validate PR title
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             // Fetch current PR to always get latest title, even on workflow re-runs

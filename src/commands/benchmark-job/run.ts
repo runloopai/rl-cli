@@ -205,11 +205,8 @@ async function ensureAgentSecrets(
 
 // Resolve benchmark name to ID if needed
 async function resolveBenchmarkId(benchmarkIdOrName: string): Promise<string> {
-  // If it looks like an ID (starts with bm_ or similar), return as-is
-  if (
-    benchmarkIdOrName.startsWith("bm_") ||
-    benchmarkIdOrName.startsWith("bmk_")
-  ) {
+  // If it looks like a benchmark ID, return as-is
+  if (benchmarkIdOrName.startsWith("bmd_")) {
     return benchmarkIdOrName;
   }
 
@@ -326,7 +323,7 @@ export async function runBenchmarkJob(options: RunOptions) {
     const agentConfigs = parsedAgents.map((agent) => ({
       name: agent.name,
       modelName: agent.model,
-      timeoutSeconds: options.timeout ? parseInt(options.timeout, 10) : 1800,
+      timeoutSeconds: options.timeout ? parseInt(options.timeout, 10) : 7200, // Default to 2 hours
       environmentVariables:
         Object.keys(providedEnvVars).length > 0 ? providedEnvVars : undefined,
       secrets,
@@ -343,8 +340,10 @@ export async function runBenchmarkJob(options: RunOptions) {
 
     // Output result
     if (!options.output || options.output === "text") {
-      console.log(`Benchmark job created: ${job.id}`);
-      console.log(`Follow the run with rli benchmark-job watch ${job.id}`);
+      console.log(
+        `Benchmark job created: ${job.id} (agent timeout = ${agentConfigs[0].timeoutSeconds}s)`,
+      );
+      console.log(`Follow the run with "rli benchmark-job watch ${job.id}"`);
     } else {
       output(job, { format: options.output, defaultFormat: "json" });
     }

@@ -850,6 +850,8 @@ export function BenchmarkJobCreateScreen({
             if (!isNaN(timeout) && timeout > 0) {
               config.timeoutSeconds = timeout;
             }
+          } else {
+            config.timeoutSeconds = 7200; // Default to 2 hours
           }
 
           return config;

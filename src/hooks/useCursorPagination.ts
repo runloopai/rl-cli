@@ -7,7 +7,11 @@ export interface UsePaginatedListConfig<T> {
   /**
    * Fetch function that takes pagination params and returns a page of results
    */
-  fetchPage: (params: { limit: number; startingAt?: string }) => Promise<{
+  fetchPage: (params: {
+    limit: number;
+    startingAt?: string;
+    includeTotalCount?: boolean;
+  }) => Promise<{
     items: T[];
     hasMore: boolean;
     totalCount?: number;
@@ -101,7 +105,16 @@ export function useCursorPagination<T>(
   const [currentPage, setCurrentPage] = React.useState(0);
   const [hasMore, setHasMore] = React.useState(false);
   const [totalCount, setTotalCount] = React.useState(0);
-  const maxTotalCountRef = React.useRef(0);
+  // Track if we have a cached total count from the API (to avoid re-requesting)
+  const hasCachedTotalCountRef = React.useRef(false);
+
+  // Abort controller for cancelling in-flight count requests
+  const countAbortRef = React.useRef<AbortController | null>(null);
+
+  // Cache the unfiltered (initial deps) total count to avoid re-fetching on filter clear
+  const initialDepsKeyRef = React.useRef<string>(JSON.stringify(deps));
+  const baseTotalCountRef = React.useRef<number | null>(null);
+  const depsKeyRef = React.useRef<string>(JSON.stringify(deps));
 
   // Cursor history: cursorHistory[N] = last item ID of page N
   // Used to determine startingAt for page N+1
@@ -171,9 +184,11 @@ export function useCursorPagination<T>(
         const startingAt =
           page > 0 ? cursorHistoryRef.current[page - 1] : undefined;
 
+        // Never request total_count in the main data fetch — it's fetched asynchronously
         const result = await fetchPageRef.current({
           limit: pageSizeRef.current,
           startingAt,
+          includeTotalCount: false,
         });
 
         if (!isMountedRef.current) return;
@@ -191,12 +206,19 @@ export function useCursorPagination<T>(
 
         // Update pagination state
         setHasMore(result.hasMore);
-        // Compute cumulative total: items seen on all previous pages + current page.
-        // Use a high-water mark so the count never decreases when navigating back.
-        const computed = page * pageSizeRef.current + result.items.length;
-        const newTotal = Math.max(computed, maxTotalCountRef.current);
-        maxTotalCountRef.current = newTotal;
-        setTotalCount(newTotal);
+
+        // If has_more is false on any page, we know the exact total count.
+        // Cancel the background count request if still pending.
+        if (!result.hasMore && !hasCachedTotalCountRef.current) {
+          countAbortRef.current?.abort();
+          const computedTotal =
+            page * pageSizeRef.current + result.items.length;
+          setTotalCount(computedTotal);
+          hasCachedTotalCountRef.current = true;
+          if (depsKeyRef.current === initialDepsKeyRef.current) {
+            baseTotalCountRef.current = computedTotal;
+          }
+        }
       } catch (err) {
         if (!isMountedRef.current) return;
         setError(err as Error);
@@ -214,15 +236,52 @@ export function useCursorPagination<T>(
   // Reset when deps change (e.g., filters, search)
   const depsKey = JSON.stringify(deps);
   React.useEffect(() => {
+    depsKeyRef.current = depsKey;
     // Clear cursor history when deps change
     cursorHistoryRef.current = [];
-    maxTotalCountRef.current = 0;
+    hasCachedTotalCountRef.current = false;
     setCurrentPage(0);
     setItems([]);
     setHasMore(false);
-    setTotalCount(0);
-    // Fetch page 0
+    // Don't reset totalCount to 0 — keep old value visible while new count loads
+    // Fire both data and count requests immediately in parallel.
+    // If the data request returns first with hasMore=false, cancel the count request.
+    countAbortRef.current?.abort();
+    const countAbort = new AbortController();
+    countAbortRef.current = countAbort;
+    let cancelled = false;
+
+    // Data fetch
     fetchPageData(0, true);
+
+    // If returning to unfiltered state and we have a cached base count, reuse it
+    const isUnfiltered = depsKey === initialDepsKeyRef.current;
+    if (isUnfiltered && baseTotalCountRef.current !== null) {
+      setTotalCount(baseTotalCountRef.current);
+      hasCachedTotalCountRef.current = true;
+    } else {
+      // Background count fetch — fires immediately alongside data
+      fetchPageRef
+        .current({ limit: 0, startingAt: undefined, includeTotalCount: true })
+        .then((result) => {
+          if (cancelled || countAbort.signal.aborted || !isMountedRef.current)
+            return;
+          if (result.totalCount !== undefined) {
+            setTotalCount(result.totalCount);
+            hasCachedTotalCountRef.current = true;
+            // Cache the unfiltered total count
+            if (isUnfiltered) {
+              baseTotalCountRef.current = result.totalCount;
+            }
+          }
+        })
+        .catch(() => {}); // count failure is non-critical
+    }
+
+    return () => {
+      cancelled = true;
+      countAbort.abort();
+    };
   }, [depsKey, fetchPageData]);
 
   // Polling effect - STOP polling when there's an error to avoid flickering

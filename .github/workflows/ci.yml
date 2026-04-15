@@ -22,7 +22,7 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -50,7 +50,7 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -78,7 +78,7 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -107,7 +107,7 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -122,16 +122,37 @@ jobs:
         run: pnpm run test:components
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: component-coverage
           path: coverage/
           retention-days: 7
 
+  dependency-check:
+    runs-on: ubuntu-slim
+    if: github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+      - name: Fetch base ref
+        run: git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
+
+      - name: Check dependency age (supply-chain gate)
+        uses: runloopai/dependency-age-check-action@main
+        with:
+          ecosystems: npm
+          min-age-days: "14"
+          base-ref: origin/${{ github.event.pull_request.base.ref }}
+
   ready-to-merge:
     runs-on: ubuntu-slim
-    needs: [format, lint, build, test]
+    permissions: {}
+    needs: [format, lint, build, test, dependency-check]
     # Run from pull_request for non-release-please branches, or pull_request_target for release-please branches only
     if: always() && ((github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch')
     steps:
@@ -140,7 +161,8 @@ jobs:
           if [[ "${{ needs.format.result }}" != "success" ]] || \
              [[ "${{ needs.lint.result }}" != "success" ]] || \
              [[ "${{ needs.build.result }}" != "success" ]] || \
-             [[ "${{ needs.test.result }}" != "success" ]]; then
+             [[ "${{ needs.test.result }}" != "success" ]] || \
+             [[ "${{ needs.dependency-check.result }}" != "success" && "${{ needs.dependency-check.result }}" != "skipped" ]]; then
             echo "One or more required jobs failed"
             exit 1
           fi

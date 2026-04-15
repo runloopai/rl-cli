@@ -391,13 +391,17 @@ export function BenchmarkListScreen() {
               )}
             </>
           )}
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            •{" "}
-          </Text>
-          <Text color={colors.textDim} dimColor>
-            Showing {startIndex + 1}-{endIndex} of {totalCount}
-          </Text>
+          {endIndex > startIndex && (
+            <>
+              <Text color={colors.textDim} dimColor>
+                {" "}
+                •{" "}
+              </Text>
+              <Text color={colors.textDim} dimColor>
+                Showing {startIndex + 1}-{endIndex} of {totalCount}
+              </Text>
+            </>
+          )}
         </Box>
       )}
 
