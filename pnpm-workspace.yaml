@@ -1,0 +1,3 @@
+minimumReleaseAge: 20160
+minimumReleaseAgeExclude:
+  - '@runloop/api-client'

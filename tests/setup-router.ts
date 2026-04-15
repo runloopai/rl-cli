@@ -127,8 +127,7 @@ jest.mock("ink-spinner", () => ({
   default: () => null,
 }));
 
-// Mock ink-big-text and ink-gradient (these cause ESM issues)
-jest.mock("ink-big-text", () => ({ __esModule: true, default: () => null }));
+// Mock ink-gradient (causes ESM issues)
 jest.mock("ink-gradient", () => ({ __esModule: true, default: () => null }));
 
 // Note: We do NOT mock 'ink' - we use ink-testing-library which needs real ink
@@ -400,7 +399,7 @@ jest.mock("../src/utils/exec.ts", () => ({
   execCommand: jest.fn(),
 }));
 
-// Mock Banner component (uses ink-big-text which is ESM)
+// Mock Banner component (uses ink-gradient which is ESM)
 jest.mock("../src/components/Banner.tsx", () => ({
   __esModule: true,
   Banner: () => null,
