@@ -36,7 +36,7 @@ export function BenchmarkListScreen() {
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showPopup, setShowPopup] = React.useState(false);
   const [selectedOperation, setSelectedOperation] = React.useState(0);
-  const [showPublic, setShowPublic] = React.useState(false);
+  const [showPublic, setShowPublic] = React.useState(true);
 
   // Search state
   const search = useListSearch({
@@ -347,7 +347,7 @@ export function BenchmarkListScreen() {
           data={benchmarks}
           keyExtractor={(benchmark: Benchmark) => benchmark.id}
           selectedIndex={selectedIndex}
-          title={`benchmarks[${totalCount}] ${showPublic ? "(public)" : "(private)"}`}
+          title={`benchmarks[${totalCount}] ${showPublic ? "(public)" : "(custom)"}`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
