@@ -77,6 +77,32 @@ function repoBasename(repo: string): string | undefined {
   return m?.[1];
 }
 
+function adjustFileExtension(name: string, contentType?: string): string {
+  // Strip common archive extensions to predict post-extraction filename
+  const archiveExts = /\.(tar\.gz|tar\.bz2|tar\.xz|tgz|gz|bz2|xz|zip|tar)$/i;
+  const stripped = name.replace(archiveExts, "");
+  if (stripped !== name) return stripped;
+
+  // For tar content types, strip the last extension
+  if (contentType && /tar|gzip|x-compressed/i.test(contentType)) {
+    const dotIdx = name.lastIndexOf(".");
+    if (dotIdx > 0) return name.substring(0, dotIdx);
+  }
+
+  return name;
+}
+
+function getDefaultObjectMountPath(obj: ObjectListItem): string {
+  if (obj.name) {
+    const adjusted = adjustFileExtension(obj.name, obj.content_type);
+    const sanitized = sanitizeMountSegment(adjusted);
+    if (sanitized) return `${DEFAULT_MOUNT_PATH}/${sanitized}`;
+  }
+  // Fallback: use last 8 chars of ID
+  const suffix = obj.id.slice(-8);
+  return `${DEFAULT_MOUNT_PATH}/object_${suffix}`;
+}
+
 function getDefaultAgentPath(agent: Agent, mount: AgentMountInfo): string {
   // For git agents, use the repo basename
   const source = agent.source as
@@ -806,7 +832,7 @@ export const DevboxCreatePage = ({
   const handleObjectSelect = React.useCallback((objects: ObjectListItem[]) => {
     if (objects.length > 0) {
       const obj = objects[0];
-      const defaultPath = `/home/user/${obj.name || obj.id}`;
+      const defaultPath = getDefaultObjectMountPath(obj);
       setFormData((prev) => ({
         ...prev,
         objectMounts: [

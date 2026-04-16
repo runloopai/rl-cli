@@ -14,6 +14,7 @@ import {
   type AgentMountInfo,
   type ObjectMountInfo,
 } from "../../utils/mountValidation.js";
+import { getObject } from "../../services/objectService.js";
 
 interface CreateOptions {
   name?: string;
@@ -157,6 +158,55 @@ function parseMcpSpecs(
     result[envVarName] = { mcp_config: mcpConfig, secret };
   }
   return result;
+}
+
+const DEFAULT_MOUNT_PATH = "/home/user";
+
+function sanitizeMountSegment(input: string): string {
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
+function adjustFileExtension(name: string, contentType?: string): string {
+  const archiveExts = /\.(tar\.gz|tar\.bz2|tar\.xz|tgz|gz|bz2|xz|zip|tar)$/i;
+  const stripped = name.replace(archiveExts, "");
+  if (stripped !== name) return stripped;
+  if (contentType && /tar|gzip|x-compressed/i.test(contentType)) {
+    const dotIdx = name.lastIndexOf(".");
+    if (dotIdx > 0) return name.substring(0, dotIdx);
+  }
+  return name;
+}
+
+function repoBasename(repo: string): string | undefined {
+  const cleaned = repo
+    .trim()
+    .replace(/[?#].*$/, "")
+    .replace(/\/+$/, "");
+  const m = cleaned.match(/(?:[/:])([^/:\s]+?)(?:\.git)?$/);
+  return m?.[1];
+}
+
+function getDefaultAgentMountPath(agent: Agent): string {
+  const source = agent.source as
+    | { type?: string; git?: { repository?: string } }
+    | undefined;
+  if (source?.git?.repository) {
+    const base = repoBasename(source.git.repository);
+    if (base) {
+      const s = sanitizeMountSegment(base);
+      if (s) return `${DEFAULT_MOUNT_PATH}/${s}`;
+    }
+  }
+  if (agent.name) {
+    const s = sanitizeMountSegment(agent.name);
+    if (s) return `${DEFAULT_MOUNT_PATH}/${s}`;
+  }
+  return `${DEFAULT_MOUNT_PATH}/agent`;
 }
 
 async function resolveAgent(idOrName: string): Promise<Agent> {
@@ -317,18 +367,32 @@ export async function createDevbox(options: CreateOptions = {}) {
       }
     }
 
-    // Parse object mounts (format: object_id:/mount/path)
+    // Parse object mounts (format: object_id or object_id:/mount/path)
     const objectMounts: { object_id: string; object_path: string }[] = [];
     if (options.object && options.object.length > 0) {
       for (const spec of options.object) {
         const colonIdx = spec.indexOf(":");
-        if (colonIdx <= 0 || spec[colonIdx + 1] !== "/") {
-          throw new Error(
-            `Invalid object mount format: "${spec}". Expected format: object_id:/mount/path`,
-          );
+        let objectId: string;
+        let objectPath: string;
+        if (colonIdx > 0 && spec[colonIdx + 1] === "/") {
+          objectId = spec.substring(0, colonIdx);
+          objectPath = spec.substring(colonIdx + 1);
+        } else {
+          // No path specified — fetch object to generate default
+          objectId = spec;
+          const obj = await getObject(objectId);
+          const name = (obj as any).name as string | undefined;
+          const contentType = (obj as any).content_type as string | undefined;
+          if (name) {
+            const adjusted = adjustFileExtension(name, contentType);
+            const s = sanitizeMountSegment(adjusted);
+            objectPath = s
+              ? `${DEFAULT_MOUNT_PATH}/${s}`
+              : `${DEFAULT_MOUNT_PATH}/object_${objectId.slice(-8)}`;
+          } else {
+            objectPath = `${DEFAULT_MOUNT_PATH}/object_${objectId.slice(-8)}`;
+          }
         }
-        const objectId = spec.substring(0, colonIdx);
-        const objectPath = spec.substring(colonIdx + 1);
         objectMounts.push({ object_id: objectId, object_path: objectPath });
       }
     }
@@ -336,18 +400,24 @@ export async function createDevbox(options: CreateOptions = {}) {
     // Validate all mount constraints together (agents + objects)
     if (resolvedAgents.length > 0 || objectMounts.length > 0) {
       const agentMountInfos: AgentMountInfo[] = resolvedAgents.map(
-        ({ agent, path }) => ({
-          agent_id: agent.id,
-          agent_name: agent.name,
-          agent_path: path,
-          source_type: agent.source?.type,
-          package_name:
-            agent.source?.type === "npm"
-              ? agent.source.npm?.package_name
-              : agent.source?.type === "pip"
-                ? agent.source.pip?.package_name
-                : undefined,
-        }),
+        ({ agent, path }) => {
+          const sourceType = agent.source?.type;
+          const needsPath = sourceType === "git" || sourceType === "object";
+          const effectivePath =
+            path || (needsPath ? getDefaultAgentMountPath(agent) : undefined);
+          return {
+            agent_id: agent.id,
+            agent_name: agent.name,
+            agent_path: effectivePath,
+            source_type: sourceType,
+            package_name:
+              sourceType === "npm"
+                ? agent.source?.npm?.package_name
+                : sourceType === "pip"
+                  ? agent.source?.pip?.package_name
+                  : undefined,
+          };
+        },
       );
       const objectMountInfos: ObjectMountInfo[] = objectMounts.map((om) => ({
         object_id: om.object_id,
@@ -370,8 +440,12 @@ export async function createDevbox(options: CreateOptions = {}) {
           agent_id: agent.id,
           agent_name: null,
         };
-        if (path) {
-          mount.agent_path = path;
+        const sourceType = agent.source?.type;
+        const needsPath = sourceType === "git" || sourceType === "object";
+        const effectivePath =
+          path || (needsPath ? getDefaultAgentMountPath(agent) : undefined);
+        if (effectivePath) {
+          mount.agent_path = effectivePath;
         }
         (createRequest.mounts as unknown[]).push(mount);
       }

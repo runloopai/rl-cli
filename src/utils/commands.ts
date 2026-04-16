@@ -92,7 +92,7 @@ export function createProgram(): Command {
     )
     .option(
       "--object <object...>",
-      "Objects to mount (format: object_id:/mount/path)",
+      "Objects to mount (format: object_id or object_id:/mount/path)",
     )
     .option(
       "-o, --output [format]",
