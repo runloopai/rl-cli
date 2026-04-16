@@ -38,6 +38,15 @@ import type { McpConfig } from "../store/mcpConfigStore.js";
 import { SecretCreatePage } from "./SecretCreatePage.js";
 import { GatewayConfigCreatePage } from "./GatewayConfigCreatePage.js";
 import { McpConfigCreatePage } from "./McpConfigCreatePage.js";
+import {
+  listAgents,
+  listPublicAgents,
+  type Agent,
+} from "../services/agentService.js";
+import {
+  validateMounts as validateMountConstraints,
+  type AgentMountInfo,
+} from "../utils/mountValidation.js";
 
 // Secret list interface for the picker
 interface SecretListItem {
@@ -67,7 +76,9 @@ type FormField =
   | "network_policy_id"
   | "tunnel_auth_mode"
   | "gateways"
-  | "mcpConfigs";
+  | "mcpConfigs"
+  | "agent"
+  | "objectMounts";
 
 // Gateway configuration for devbox
 interface GatewaySpec {
@@ -115,6 +126,29 @@ interface FormData {
   tunnel_auth_mode: "none" | "open" | "authenticated";
   gateways: GatewaySpec[];
   mcpConfigs: McpSpec[];
+  agentMounts: Array<{
+    agent_id: string;
+    agent_name: string;
+    agent_path: string;
+    source_type?: string;
+    version?: string;
+    package_name?: string;
+  }>;
+  objectMounts: Array<{
+    object_id: string;
+    object_name: string;
+    object_path: string;
+  }>;
+}
+
+// Object list interface for the picker
+interface ObjectListItem {
+  id: string;
+  name?: string;
+  content_type?: string;
+  size_bytes?: number;
+  state?: string;
+  create_time_ms?: number;
 }
 
 const architectures = ["arm64", "x86_64"] as const;
@@ -128,6 +162,87 @@ const resourceSizes = [
   "CUSTOM_SIZE",
 ] as const;
 const tunnelAuthModes = ["none", "open", "authenticated"] as const;
+
+// Agent picker wrapper that adds Tab key to switch between private/public
+function AgentPickerWithTabs({
+  agentTab,
+  setAgentTab,
+  buildAgentColumns,
+  onSelect,
+  onCancel,
+}: {
+  agentTab: "private" | "public";
+  setAgentTab: (tab: "private" | "public") => void;
+  buildAgentColumns: (tw: number) => Column<Agent>[];
+  onSelect: (agents: Agent[]) => void;
+  onCancel: () => void;
+}) {
+  useInput((input, key) => {
+    if (key.tab) {
+      setAgentTab(agentTab === "private" ? "public" : "private");
+    }
+  });
+
+  return (
+    <Box flexDirection="column">
+      <Box paddingX={2} marginBottom={0}>
+        <Text
+          color={agentTab === "private" ? colors.primary : colors.textDim}
+          bold={agentTab === "private"}
+        >
+          Private
+        </Text>
+        <Text color={colors.textDim}> | </Text>
+        <Text
+          color={agentTab === "public" ? colors.primary : colors.textDim}
+          bold={agentTab === "public"}
+        >
+          Public
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          (Tab to switch)
+        </Text>
+      </Box>
+      <ResourcePicker<Agent>
+        key={`agent-picker-${agentTab}`}
+        config={{
+          title: `Select Agent (${agentTab})`,
+          fetchPage: async (params) => {
+            const fetchFn =
+              agentTab === "public" ? listPublicAgents : listAgents;
+            const result = await fetchFn({
+              limit: params.limit,
+              startingAfter: params.startingAt,
+              search: params.search,
+              privateOnly: agentTab === "private" ? true : undefined,
+            });
+            return {
+              items: result.agents,
+              hasMore: result.hasMore,
+              totalCount: result.totalCount,
+            };
+          },
+          getItemId: (a) => a.id,
+          getItemLabel: (a) => a.name,
+          columns: buildAgentColumns,
+          mode: "single",
+          additionalOverhead: 1,
+          emptyMessage: `No ${agentTab} agents found`,
+          searchPlaceholder: "Search agents...",
+          breadcrumbItems: [
+            { label: "Devboxes" },
+            { label: "Create" },
+            { label: "Select Agent", active: true },
+          ],
+        }}
+        onSelect={onSelect}
+        onCancel={onCancel}
+        initialSelected={[]}
+      />
+    </Box>
+  );
+}
 
 export const DevboxCreatePage = ({
   onBack,
@@ -151,6 +266,8 @@ export const DevboxCreatePage = ({
     tunnel_auth_mode: "none",
     gateways: [],
     mcpConfigs: [],
+    agentMounts: [],
+    objectMounts: [],
   });
   const [metadataKey, setMetadataKey] = React.useState("");
   const [metadataValue, setMetadataValue] = React.useState("");
@@ -232,6 +349,23 @@ export const DevboxCreatePage = ({
   const mcpFormFields = ["attach", "mcpConfig", "secret"] as const;
   const mcpFormFieldIndex = mcpFormFields.indexOf(mcpFormField);
 
+  // Agent picker states
+  const [showAgentPicker, setShowAgentPicker] = React.useState(false);
+  const [agentTab, setAgentTab] = React.useState<"private" | "public">(
+    "private",
+  );
+  const [inAgentMountSection, setInAgentMountSection] = React.useState(false);
+  const [selectedAgentMountIndex, setSelectedAgentMountIndex] =
+    React.useState(0);
+
+  // Object mount picker states
+  const [showObjectPicker, setShowObjectPicker] = React.useState(false);
+  const [inObjectMountSection, setInObjectMountSection] = React.useState(false);
+  const [selectedObjectMountIndex, setSelectedObjectMountIndex] =
+    React.useState(0);
+  const [editingObjectMountPath, setEditingObjectMountPath] =
+    React.useState(false);
+
   const baseFields: Array<{
     key: FormField;
     label: string;
@@ -285,7 +419,9 @@ export const DevboxCreatePage = ({
       | "picker"
       | "source"
       | "gateways"
-      | "mcpConfigs";
+      | "mcpConfigs"
+      | "agent"
+      | "objectMounts";
     placeholder?: string;
   }> = [
     {
@@ -323,6 +459,18 @@ export const DevboxCreatePage = ({
       label: "MCP Configs (optional)",
       type: "mcpConfigs",
       placeholder: "Configure MCP server connections...",
+    },
+    {
+      key: "agent",
+      label: "Agents (optional)",
+      type: "agent",
+      placeholder: "Mount agents...",
+    },
+    {
+      key: "objectMounts",
+      label: "Object Mounts (optional)",
+      type: "objectMounts",
+      placeholder: "Mount storage objects...",
     },
     { key: "metadata", label: "Metadata (optional)", type: "metadata" },
   ];
@@ -404,6 +552,28 @@ export const DevboxCreatePage = ({
       // Submit form with Ctrl+S
       if (input === "s" && key.ctrl) {
         handleCreate();
+        return;
+      }
+
+      // Enter key on agent field to open agent picker or enter section
+      if (currentField === "agent" && key.return) {
+        if (formData.agentMounts.length > 0) {
+          setInAgentMountSection(true);
+          setSelectedAgentMountIndex(0);
+        } else {
+          setShowAgentPicker(true);
+        }
+        return;
+      }
+
+      // Enter key on objectMounts field to open object picker or enter section
+      if (currentField === "objectMounts" && key.return) {
+        if (formData.objectMounts.length > 0) {
+          setInObjectMountSection(true);
+          setSelectedObjectMountIndex(0);
+        } else {
+          setShowObjectPicker(true);
+        }
         return;
       }
 
@@ -500,9 +670,74 @@ export const DevboxCreatePage = ({
         !showMcpPicker &&
         !showMcpSecretPicker &&
         !showInlineMcpSecretCreate &&
-        !showInlineMcpConfigCreate,
+        !showInlineMcpConfigCreate &&
+        !showAgentPicker &&
+        !showObjectPicker &&
+        !inAgentMountSection &&
+        !inObjectMountSection,
     },
   );
+
+  // Handle agent selection - adds agent to agentMounts array
+  const handleAgentSelect = React.useCallback((agents: Agent[]) => {
+    if (agents.length > 0) {
+      const agent = agents[0];
+      setFormData((prev) => {
+        // Check for duplicate agent ID or name
+        const isDuplicateId = prev.agentMounts.some(
+          (m) => m.agent_id === agent.id,
+        );
+        const isDuplicateName =
+          agent.name &&
+          prev.agentMounts.some(
+            (m) => m.agent_name.toLowerCase() === agent.name.toLowerCase(),
+          );
+        if (isDuplicateId || isDuplicateName) {
+          return prev; // silently skip duplicate
+        }
+        return {
+          ...prev,
+          agentMounts: [
+            ...prev.agentMounts,
+            {
+              agent_id: agent.id,
+              agent_name: agent.name,
+              agent_path: "",
+              source_type: agent.source?.type,
+              version: agent.version,
+              package_name:
+                agent.source?.type === "npm"
+                  ? agent.source.npm?.package_name
+                  : agent.source?.type === "pip"
+                    ? agent.source.pip?.package_name
+                    : undefined,
+            },
+          ],
+        };
+      });
+    }
+    setShowAgentPicker(false);
+  }, []);
+
+  // Handle object selection for mounting
+  const handleObjectSelect = React.useCallback((objects: ObjectListItem[]) => {
+    if (objects.length > 0) {
+      const obj = objects[0];
+      const defaultPath = `/home/user/${obj.name || obj.id}`;
+      setFormData((prev) => ({
+        ...prev,
+        objectMounts: [
+          ...prev.objectMounts,
+          {
+            object_id: obj.id,
+            object_name: obj.name || obj.id,
+            object_path: defaultPath,
+          },
+        ],
+      }));
+    }
+    setShowObjectPicker(false);
+  }, []);
 
   // Handle blueprint selection
   const handleBlueprintSelect = React.useCallback((blueprints: Blueprint[]) => {
@@ -968,6 +1203,127 @@ export const DevboxCreatePage = ({
     },
   );
 
+  // Agent mount section input handler
+  useInput(
+    (input, key) => {
+      const maxIndex = formData.agentMounts.length + 1; // items + "Add" + "Done"
+
+      if (key.escape) {
+        setInAgentMountSection(false);
+        return;
+      }
+
+      if (key.upArrow && selectedAgentMountIndex > 0) {
+        setSelectedAgentMountIndex(selectedAgentMountIndex - 1);
+        return;
+      }
+
+      if (key.downArrow && selectedAgentMountIndex < maxIndex) {
+        setSelectedAgentMountIndex(selectedAgentMountIndex + 1);
+        return;
+      }
+
+      if (key.return) {
+        // "Add" button
+        if (selectedAgentMountIndex === formData.agentMounts.length) {
+          setInAgentMountSection(false);
+          setShowAgentPicker(true);
+          return;
+        }
+        // "Done" button
+        if (selectedAgentMountIndex === formData.agentMounts.length + 1) {
+          setInAgentMountSection(false);
+          return;
+        }
+      }
+
+      // Delete mount
+      if (
+        input === "d" &&
+        selectedAgentMountIndex < formData.agentMounts.length
+      ) {
+        setFormData((prev) => ({
+          ...prev,
+          agentMounts: prev.agentMounts.filter(
+            (_, idx) => idx !== selectedAgentMountIndex,
+          ),
+        }));
+        if (
+          selectedAgentMountIndex >= formData.agentMounts.length - 1 &&
+          selectedAgentMountIndex > 0
+        ) {
+          setSelectedAgentMountIndex(selectedAgentMountIndex - 1);
+        }
+        return;
+      }
+    },
+    {
+      isActive: inAgentMountSection && !showAgentPicker,
+    },
+  );
+
+  // Object mount section input handler
+  useInput(
+    (input, key) => {
+      const maxIndex = formData.objectMounts.length + 1; // +1 for "Add", +1 for "Done"
+
+      if (key.escape) {
+        setInObjectMountSection(false);
+        setEditingObjectMountPath(false);
+        return;
+      }
+
+      if (key.upArrow && selectedObjectMountIndex > 0) {
+        setSelectedObjectMountIndex(selectedObjectMountIndex - 1);
+        setEditingObjectMountPath(false);
+        return;
+      }
+
+      if (key.downArrow && selectedObjectMountIndex < maxIndex) {
+        setSelectedObjectMountIndex(selectedObjectMountIndex + 1);
+        setEditingObjectMountPath(false);
+        return;
+      }
+
+      if (key.return) {
+        // "Add" button
+        if (selectedObjectMountIndex === formData.objectMounts.length) {
+          setInObjectMountSection(false);
+          setShowObjectPicker(true);
+          return;
+        }
+        // "Done" button
+        if (selectedObjectMountIndex === formData.objectMounts.length + 1) {
+          setInObjectMountSection(false);
+          return;
+        }
+      }
+
+      // Delete mount
+      if (
+        input === "d" &&
+        selectedObjectMountIndex < formData.objectMounts.length
+      ) {
+        setFormData((prev) => ({
+          ...prev,
+          objectMounts: prev.objectMounts.filter(
+            (_, idx) => idx !== selectedObjectMountIndex,
+          ),
+        }));
+        if (
+          selectedObjectMountIndex >= formData.objectMounts.length - 1 &&
+          selectedObjectMountIndex > 0
+        ) {
+          setSelectedObjectMountIndex(selectedObjectMountIndex - 1);
+        }
+        return;
+      }
+    },
+    {
+      isActive: inObjectMountSection && !showObjectPicker,
+    },
+  );
+
   // Validate custom resource configuration
   const validateCustomResources = (): string | null => {
     if (formData.resource_size !== "CUSTOM_SIZE") {
@@ -1105,6 +1461,59 @@ export const DevboxCreatePage = ({
         createParams.tunnel = {
           auth_mode: formData.tunnel_auth_mode,
         };
+      }
+
+      // Validate mount constraints before creating
+      const agentMountInfos: AgentMountInfo[] = formData.agentMounts.map(
+        (am) => ({
+          agent_id: am.agent_id,
+          agent_name: am.agent_name,
+          agent_path: am.agent_path || undefined,
+          source_type: am.source_type,
+          package_name: am.package_name,
+        }),
+      );
+      const mountErrors = validateMountConstraints(
+        agentMountInfos,
+        formData.objectMounts.map((om) => ({
+          object_id: om.object_id,
+          object_path: om.object_path,
+        })),
+      );
+      if (mountErrors.length > 0) {
+        throw new Error(
+          `Mount validation failed: ${mountErrors.map((e) => e.message).join("; ")}`,
+        );
+      }
+
+      // Add mounts (agents + objects)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mounts: any[] = [];
+
+      for (const am of formData.agentMounts) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const agentMount: any = {
+          type: "agent_mount",
+          agent_id: am.agent_id,
+          agent_name: null,
+        };
+        if (am.agent_path) {
+          agentMount.agent_path = am.agent_path;
+        }
+        mounts.push(agentMount);
+      }
+
+      for (const om of formData.objectMounts) {
+        mounts.push({
+          type: "object_mount",
+          object_id: om.object_id,
+          object_path: om.object_path,
+        });
+      }
+
+      if (mounts.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (createParams as any).mounts = mounts;
       }
 
       const devbox = await client.devboxes.create(createParams);
@@ -1881,6 +2290,188 @@ export const DevboxCreatePage = ({
           setShowMcpSecretPicker(false);
           setMcpFormField("secret");
         }}
+        initialSelected={[]}
+      />
+    );
+  }
+
+  // Agent picker
+  if (showAgentPicker) {
+    const formatAgentVersion = (a: Agent): string => {
+      // Hide version for object-based agents
+      if (a.source?.type === "object") return "";
+      const v = a.version || "";
+      // Truncate long versions (git SHAs) like runloop-fe does
+      if (v.length > 16) return `${v.slice(0, 8)}…${v.slice(-4)}`;
+      return v;
+    };
+
+    const buildAgentColumns = (tw: number): Column<Agent>[] => {
+      const fixedWidth = 6;
+      const idWidth = 25;
+      const versionWidth = 20;
+      const sourceWidth = 8;
+      const nameWidth = Math.min(
+        40,
+        Math.max(
+          15,
+          Math.floor(
+            (tw - fixedWidth - idWidth - versionWidth - sourceWidth) * 0.5,
+          ),
+        ),
+      );
+      const timeWidth = Math.max(
+        18,
+        tw - fixedWidth - idWidth - nameWidth - versionWidth - sourceWidth,
+      );
+      return [
+        createTextColumn<Agent>("id", "ID", (a) => a.id, {
+          width: idWidth + 1,
+          color: colors.idColor,
+        }),
+        createTextColumn<Agent>("name", "Name", (a) => a.name, {
+          width: nameWidth,
+        }),
+        createTextColumn<Agent>(
+          "source",
+          "Source",
+          (a) => a.source?.type || "",
+          { width: sourceWidth, color: colors.textDim },
+        ),
+        createTextColumn<Agent>("version", "Version", formatAgentVersion, {
+          width: versionWidth,
+          color: colors.textDim,
+        }),
+        createTextColumn<Agent>(
+          "created",
+          "Created",
+          (a) => (a.create_time_ms ? formatTimeAgo(a.create_time_ms) : ""),
+          { width: timeWidth, color: colors.textDim },
+        ),
+      ];
+    };
+
+    return (
+      <AgentPickerWithTabs
+        agentTab={agentTab}
+        setAgentTab={setAgentTab}
+        buildAgentColumns={buildAgentColumns}
+        onSelect={handleAgentSelect}
+        onCancel={() => setShowAgentPicker(false)}
+      />
+    );
+  }
+
+  // Object picker for mounting
+  if (showObjectPicker) {
+    const formatBytes = (bytes?: number): string => {
+      if (bytes == null) return "";
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      if (bytes < 1024 * 1024 * 1024)
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+      return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+    };
+
+    const buildObjectColumns = (tw: number): Column<ObjectListItem>[] => {
+      const fixedWidth = 6;
+      const idWidth = 25;
+      const typeWidth = 10;
+      const stateWidth = 10;
+      const sizeWidth = 10;
+      const baseWidth =
+        fixedWidth + idWidth + typeWidth + stateWidth + sizeWidth;
+      const nameWidth = Math.min(
+        30,
+        Math.max(12, Math.floor((tw - baseWidth) * 0.5)),
+      );
+      const timeWidth = Math.max(18, tw - baseWidth - nameWidth);
+      return [
+        createTextColumn<ObjectListItem>("id", "ID", (o) => o.id, {
+          width: idWidth + 1,
+          color: colors.idColor,
+        }),
+        createTextColumn<ObjectListItem>("name", "Name", (o) => o.name || "", {
+          width: nameWidth,
+        }),
+        createTextColumn<ObjectListItem>(
+          "type",
+          "Type",
+          (o) => o.content_type || "",
+          { width: typeWidth, color: colors.textDim },
+        ),
+        createTextColumn<ObjectListItem>(
+          "state",
+          "State",
+          (o) => o.state || "",
+          { width: stateWidth, color: colors.textDim },
+        ),
+        createTextColumn<ObjectListItem>(
+          "size",
+          "Size",
+          (o) => formatBytes(o.size_bytes),
+          { width: sizeWidth, color: colors.textDim },
+        ),
+        createTextColumn<ObjectListItem>(
+          "created",
+          "Created",
+          (o) => (o.create_time_ms ? formatTimeAgo(o.create_time_ms) : ""),
+          { width: timeWidth, color: colors.textDim },
+        ),
+      ];
+    };
+
+    return (
+      <ResourcePicker<ObjectListItem>
+        key="object-picker"
+        config={{
+          title: "Select Object to Mount",
+          fetchPage: async (params) => {
+            const client = getClient();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const queryParams: Record<string, any> = {
+              limit: params.limit,
+            };
+            if (params.startingAt) {
+              queryParams.starting_after = params.startingAt;
+            }
+            if (params.search) {
+              queryParams.search = params.search;
+            }
+            const result = await client.objects.list(queryParams);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const pageResult = result as any;
+            const objects = (pageResult.objects || []).map(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (o: any) => ({
+                id: o.id,
+                name: o.name,
+                content_type: o.content_type,
+                size_bytes: o.size_bytes,
+                state: o.state,
+                create_time_ms: o.create_time_ms,
+              }),
+            );
+            return {
+              items: objects,
+              hasMore: pageResult.has_more || false,
+              totalCount: pageResult.total_count,
+            };
+          },
+          getItemId: (o) => o.id,
+          getItemLabel: (o) => o.name || o.id,
+          columns: buildObjectColumns,
+          mode: "single",
+          emptyMessage: "No objects found",
+          searchPlaceholder: "Search objects...",
+          breadcrumbItems: [
+            { label: "Devboxes" },
+            { label: "Create" },
+            { label: "Select Object", active: true },
+          ],
+        }}
+        onSelect={handleObjectSelect}
+        onCancel={() => setShowObjectPicker(false)}
         initialSelected={[]}
       />
     );
@@ -2875,6 +3466,216 @@ export const DevboxCreatePage = ({
             );
           }
 
+          if (field.type === "agent") {
+            const agentCount = formData.agentMounts.length;
+            return (
+              <Box key={field.key} flexDirection="column" marginBottom={0}>
+                <Box>
+                  <Text color={isActive ? colors.primary : colors.textDim}>
+                    {isActive ? figures.pointer : " "} {field.label}:{" "}
+                  </Text>
+                  <Text color={colors.text}>{agentCount} configured</Text>
+                  {isActive && (
+                    <Text color={colors.textDim} dimColor>
+                      {agentCount > 0
+                        ? " [Enter to manage]"
+                        : " [Enter to add]"}
+                    </Text>
+                  )}
+                </Box>
+                {!inAgentMountSection &&
+                  formData.agentMounts.map((am) => {
+                    const showVersion =
+                      am.version && am.source_type !== "object";
+                    const fmtVersion = showVersion
+                      ? am.version!.length > 16
+                        ? `${am.version!.slice(0, 8)}…${am.version!.slice(-4)}`
+                        : am.version
+                      : "";
+                    return (
+                      <Box key={am.agent_id} marginLeft={2}>
+                        <Text color={colors.textDim} dimColor>
+                          {figures.pointer} {am.agent_name || am.agent_id}
+                          {am.source_type ? ` [${am.source_type}]` : ""}
+                          {fmtVersion ? ` v${fmtVersion}` : ""}
+                          {am.agent_path ? ` → ${am.agent_path}` : ""}
+                        </Text>
+                      </Box>
+                    );
+                  })}
+                {inAgentMountSection && (
+                  <>
+                    {formData.agentMounts.map((am, idx) => (
+                      <Box key={am.agent_id} marginLeft={2}>
+                        <Text
+                          color={
+                            selectedAgentMountIndex === idx
+                              ? colors.primary
+                              : colors.textDim
+                          }
+                        >
+                          {selectedAgentMountIndex === idx
+                            ? figures.pointer
+                            : " "}{" "}
+                          {am.agent_name || am.agent_id}
+                          <Text color={colors.textDim} dimColor>
+                            {am.source_type ? ` [${am.source_type}]` : ""}
+                            {am.version && am.source_type !== "object"
+                              ? ` v${am.version.length > 16 ? `${am.version.slice(0, 8)}…${am.version.slice(-4)}` : am.version}`
+                              : ""}
+                            {am.agent_path ? ` → ${am.agent_path}` : ""}
+                          </Text>
+                        </Text>
+                      </Box>
+                    ))}
+                    <Box marginLeft={2}>
+                      <Text
+                        color={
+                          selectedAgentMountIndex === agentCount
+                            ? colors.success
+                            : colors.textDim
+                        }
+                        bold={selectedAgentMountIndex === agentCount}
+                      >
+                        {selectedAgentMountIndex === agentCount
+                          ? figures.pointer
+                          : " "}{" "}
+                        + Add Agent
+                      </Text>
+                    </Box>
+                    <Box marginLeft={2}>
+                      <Text
+                        color={
+                          selectedAgentMountIndex === agentCount + 1
+                            ? colors.primary
+                            : colors.textDim
+                        }
+                        bold={selectedAgentMountIndex === agentCount + 1}
+                      >
+                        {selectedAgentMountIndex === agentCount + 1
+                          ? figures.pointer
+                          : " "}{" "}
+                        Done
+                      </Text>
+                    </Box>
+                    <Box
+                      borderStyle="single"
+                      borderColor={colors.border}
+                      paddingX={1}
+                    >
+                      <Text color={colors.textDim} dimColor>
+                        {`${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedAgentMountIndex === agentCount ? "Add" : selectedAgentMountIndex === agentCount + 1 ? "Done" : "Select"} • [d] Remove • [esc] Back`}
+                      </Text>
+                    </Box>
+                  </>
+                )}
+              </Box>
+            );
+          }
+
+          if (field.type === "objectMounts") {
+            return (
+              <Box key={field.key} flexDirection="column" marginBottom={0}>
+                <Box>
+                  <Text color={isActive ? colors.primary : colors.textDim}>
+                    {isActive ? figures.pointer : " "} {field.label}:{" "}
+                  </Text>
+                  <Text color={colors.text}>
+                    {formData.objectMounts.length} configured
+                  </Text>
+                  {isActive && (
+                    <Text color={colors.textDim} dimColor>
+                      {formData.objectMounts.length > 0
+                        ? " [Enter to manage]"
+                        : " [Enter to add]"}
+                    </Text>
+                  )}
+                </Box>
+                {!inObjectMountSection && formData.objectMounts.length > 0 && (
+                  <Box marginLeft={2} flexDirection="column">
+                    {formData.objectMounts.map((om, idx) => (
+                      <Text key={idx} color={colors.textDim} dimColor>
+                        {figures.pointer} {om.object_name} → {om.object_path}
+                      </Text>
+                    ))}
+                  </Box>
+                )}
+                {inObjectMountSection && (
+                  <Box
+                    flexDirection="column"
+                    marginTop={1}
+                    borderStyle="round"
+                    borderColor={colors.primary}
+                    paddingX={1}
+                  >
+                    <Text color={colors.primary} bold>
+                      {figures.hamburger} Object Mounts
+                    </Text>
+                    {formData.objectMounts.map((om, idx) => {
+                      const isSelected = idx === selectedObjectMountIndex;
+                      return (
+                        <Box key={idx} marginTop={idx === 0 ? 1 : 0}>
+                          <Text
+                            color={isSelected ? colors.primary : colors.textDim}
+                          >
+                            {isSelected ? figures.pointer : " "}{" "}
+                          </Text>
+                          <Text color={colors.text}>{om.object_name}</Text>
+                          <Text color={colors.textDim}> → </Text>
+                          {editingObjectMountPath && isSelected ? (
+                            <Text color={colors.primary}>
+                              {om.object_path}
+                              <Text color={colors.textDim}>│</Text>
+                            </Text>
+                          ) : (
+                            <Text color={colors.info}>{om.object_path}</Text>
+                          )}
+                        </Box>
+                      );
+                    })}
+                    <Box marginTop={1}>
+                      <Text
+                        color={
+                          selectedObjectMountIndex ===
+                          formData.objectMounts.length
+                            ? colors.success
+                            : colors.textDim
+                        }
+                      >
+                        {selectedObjectMountIndex ===
+                        formData.objectMounts.length
+                          ? figures.pointer
+                          : " "}{" "}
+                        + Add object mount
+                      </Text>
+                    </Box>
+                    <Box marginTop={1}>
+                      <Text
+                        color={
+                          selectedObjectMountIndex ===
+                          formData.objectMounts.length + 1
+                            ? colors.primary
+                            : colors.textDim
+                        }
+                      >
+                        {selectedObjectMountIndex ===
+                        formData.objectMounts.length + 1
+                          ? figures.pointer
+                          : " "}{" "}
+                        Done
+                      </Text>
+                    </Box>
+                    <Box marginTop={1}>
+                      <Text color={colors.textDim} dimColor>
+                        {`${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] Select • [d] Remove • [esc] Back`}
+                      </Text>
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            );
+          }
+
           return null;
         })}
       </Box>
@@ -2898,15 +3699,19 @@ export const DevboxCreatePage = ({
           </Box>
         )}
 
-      {!inMetadataSection && !inGatewaySection && !inMcpSection && (
-        <NavigationTips
-          showArrows
-          tips={[
-            { key: "Enter", label: "Create" },
-            { key: "q", label: "Cancel" },
-          ]}
-        />
-      )}
+      {!inMetadataSection &&
+        !inGatewaySection &&
+        !inMcpSection &&
+        !inAgentMountSection &&
+        !inObjectMountSection && (
+          <NavigationTips
+            showArrows
+            tips={[
+              { key: "Enter", label: "Create" },
+              { key: "q", label: "Cancel" },
+            ]}
+          />
+        )}
     </>
   );
 };

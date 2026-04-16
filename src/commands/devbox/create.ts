@@ -9,6 +9,10 @@ import {
   getAgent,
   type Agent,
 } from "../../services/agentService.js";
+import {
+  validateMounts,
+  type AgentMountInfo,
+} from "../../utils/mountValidation.js";
 
 interface CreateOptions {
   name?: string;
@@ -32,7 +36,6 @@ interface CreateOptions {
   gateways?: string[];
   mcp?: string[];
   agent?: string[];
-  agentPath?: string;
   output?: string;
 }
 
@@ -293,28 +296,61 @@ export async function createDevbox(options: CreateOptions = {}) {
       createRequest.mcp = parseMcpSpecs(options.mcp);
     }
 
-    // Handle agent mount
+    // Handle agent mounts (supports multiple agents)
+    // Format: --agent name_or_id or --agent name_or_id:/mount/path
     if (options.agent && options.agent.length > 0) {
-      if (options.agent.length > 1) {
+      const resolvedAgents: { agent: Agent; path?: string }[] = [];
+      for (const spec of options.agent) {
+        const colonIdx = spec.indexOf(":");
+        // Only treat colon as separator if what follows looks like an absolute path
+        let idOrName: string;
+        let path: string | undefined;
+        if (colonIdx > 0 && spec[colonIdx + 1] === "/") {
+          idOrName = spec.substring(0, colonIdx);
+          path = spec.substring(colonIdx + 1);
+        } else {
+          idOrName = spec;
+        }
+        const agent = await resolveAgent(idOrName);
+        resolvedAgents.push({ agent, path });
+      }
+
+      // Build agent mount info for validation
+      const agentMountInfos: AgentMountInfo[] = resolvedAgents.map(
+        ({ agent, path }) => ({
+          agent_id: agent.id,
+          agent_name: agent.name,
+          agent_path: path,
+          source_type: agent.source?.type,
+          package_name:
+            agent.source?.type === "npm"
+              ? agent.source.npm?.package_name
+              : agent.source?.type === "pip"
+                ? agent.source.pip?.package_name
+                : undefined,
+        }),
+      );
+
+      // Validate mount constraints
+      const validationErrors = validateMounts(agentMountInfos, []);
+      if (validationErrors.length > 0) {
         throw new Error(
-          "Mounting multiple agents via rli is not supported yet",
+          `Mount validation failed:\n${validationErrors.map((e) => `  - ${e.message}`).join("\n")}`,
         );
       }
-      const agent = await resolveAgent(options.agent[0]);
-      const mount: Record<string, unknown> = {
-        type: "agent_mount",
-        agent_id: agent.id,
-        agent_name: null,
-      };
-      // agent_path only makes sense for git and object agents.  Since
-      // we don't know at this stage what type of agent it is,
-      // however, we'll let the server error inform the user if they
-      // add this option in a case where it doesn't make sense.
-      if (options.agentPath) {
-        mount.agent_path = options.agentPath;
-      }
+
       if (!createRequest.mounts) createRequest.mounts = [];
-      (createRequest.mounts as unknown[]).push(mount);
+      for (const { agent, path } of resolvedAgents) {
+        const mount: Record<string, unknown> = {
+          type: "agent_mount",
+          agent_id: agent.id,
+          agent_name: null,
+        };
+        if (path) {
+          mount.agent_path = path;
+        }
+        (createRequest.mounts as unknown[]).push(mount);
+      }
     }
 
     if (Object.keys(launchParameters).length > 0) {
