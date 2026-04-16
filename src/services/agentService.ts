@@ -2,10 +2,77 @@
  * Agent Service - Handles API calls for agents
  */
 import { getClient } from "../utils/client.js";
+import { formatTimeAgo } from "../utils/time.js";
 import type { AgentView } from "@runloop/api-client/resources/agents";
 
 // Re-export types
 export type Agent = AgentView;
+
+// ---------------------------------------------------------------------------
+// Shared agent column definitions
+// ---------------------------------------------------------------------------
+
+export interface AgentColumn {
+  key: string;
+  label: string;
+  width: number;
+  getValue: (agent: Agent) => string;
+}
+
+/**
+ * Return the version string, prefixed with the package name when it differs
+ * from the agent name. Handles scoped packages (e.g. @scope/pkg) correctly.
+ */
+function agentVersionText(agent: Agent): string {
+  const src = (agent as any).source;
+  const pkg: string | undefined =
+    src?.npm?.package_name || src?.pip?.package_name;
+  const version = agent.version || "";
+
+  // Strip leading @ and any scope prefix for comparison (e.g. "@scope/pkg" -> "pkg")
+  const barePkg = pkg?.replace(/^@[^/]+\//, "") ?? "";
+  const showPkg = pkg && barePkg !== agent.name;
+
+  if (showPkg && version) {
+    return `${pkg}@${version}`;
+  }
+  if (showPkg) {
+    return pkg!;
+  }
+  return version;
+}
+
+// Fixed column widths (content + padding). These values never change.
+const SOURCE_WIDTH = 10; // values: "npm", "pip", "git", "object", "-"
+const ID_WIDTH = 27;     // agent IDs are ~25 chars
+const CREATED_WIDTH = 12; // e.g. "3d ago", "2mo ago"
+const MIN_FLEX_WIDTH = 10; // minimum for each flexible column (name, version)
+const FIXED_TOTAL = SOURCE_WIDTH + ID_WIDTH + CREATED_WIDTH;
+
+/**
+ * Build agent column definitions with widths fitted to `availableWidth`.
+ *
+ * Column order: NAME, SOURCE, VERSION, ID, CREATED.
+ * SOURCE, ID, and CREATED have fixed widths. The remaining space is split
+ * evenly between NAME and VERSION so the row fills `availableWidth` exactly.
+ * No data scanning is needed — widths depend only on terminal size.
+ */
+export function getAgentColumns(
+  _agents: Agent[],
+  availableWidth: number,
+): AgentColumn[] {
+  const flexSpace = Math.max(MIN_FLEX_WIDTH * 2, availableWidth - FIXED_TOTAL);
+  const nameWidth = Math.ceil(flexSpace / 2);
+  const versionWidth = Math.floor(flexSpace / 2);
+
+  return [
+    { key: "name", label: "NAME", width: nameWidth, getValue: (a) => a.name },
+    { key: "source", label: "SOURCE", width: SOURCE_WIDTH, getValue: (a) => (a as any).source?.type || "-" },
+    { key: "version", label: "VERSION", width: versionWidth, getValue: agentVersionText },
+    { key: "id", label: "ID", width: ID_WIDTH, getValue: (a) => a.id },
+    { key: "created", label: "CREATED", width: CREATED_WIDTH, getValue: (a) => formatTimeAgo(a.create_time_ms) },
+  ];
+}
 
 export interface ListAgentsOptions {
   limit?: number;
@@ -65,7 +132,7 @@ export async function listAgents(
     queryParams.version = options.version;
   }
 
-  // Use raw HTTP to get has_more from the API response directly
+  // Use raw HTTP to get has_more and total_count from the API response directly
   const response = await (client as any).get("/v1/agents", {
     query: queryParams,
   });
@@ -73,7 +140,7 @@ export async function listAgents(
 
   return {
     agents,
-    totalCount: agents.length,
+    totalCount: response.total_count ?? agents.length,
     hasMore: response.has_more || false,
   };
 }
@@ -116,7 +183,7 @@ export async function listPublicAgents(
 
   return {
     agents,
-    totalCount: agents.length,
+    totalCount: response.total_count ?? agents.length,
     hasMore: response.has_more || false,
   };
 }

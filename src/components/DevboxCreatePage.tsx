@@ -14,7 +14,12 @@ import { SuccessMessage } from "./SuccessMessage.js";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { NavigationTips } from "./NavigationTips.js";
 import { MetadataDisplay } from "./MetadataDisplay.js";
-import { ResourcePicker, createTextColumn, Column } from "./ResourcePicker.js";
+import {
+  ResourcePicker,
+  createTextColumn,
+  Column,
+} from "./ResourcePicker.js";
+import { buildAgentTableColumns } from "./agentColumns.js";
 import { formatTimeAgo } from "./ResourceListView.js";
 import { getStatusDisplay } from "./StatusBadge.js";
 import {
@@ -30,6 +35,11 @@ import { listSnapshots } from "../services/snapshotService.js";
 import { listNetworkPolicies } from "../services/networkPolicyService.js";
 import { listGatewayConfigs } from "../services/gatewayConfigService.js";
 import { listMcpConfigs } from "../services/mcpConfigService.js";
+import {
+  listAgents,
+  listPublicAgents,
+  type Agent,
+} from "../services/agentService.js";
 import type { Blueprint } from "../store/blueprintStore.js";
 import type { Snapshot } from "../store/snapshotStore.js";
 import type { NetworkPolicy } from "../store/networkPolicyStore.js";
@@ -67,7 +77,8 @@ type FormField =
   | "network_policy_id"
   | "tunnel_auth_mode"
   | "gateways"
-  | "mcpConfigs";
+  | "mcpConfigs"
+  | "agent";
 
 // Gateway configuration for devbox
 interface GatewaySpec {
@@ -115,6 +126,7 @@ interface FormData {
   tunnel_auth_mode: "none" | "open" | "authenticated";
   gateways: GatewaySpec[];
   mcpConfigs: McpSpec[];
+  agent_id: string;
 }
 
 const architectures = ["arm64", "x86_64"] as const;
@@ -151,6 +163,7 @@ export const DevboxCreatePage = ({
     tunnel_auth_mode: "none",
     gateways: [],
     mcpConfigs: [],
+    agent_id: "",
   });
   const [metadataKey, setMetadataKey] = React.useState("");
   const [metadataValue, setMetadataValue] = React.useState("");
@@ -231,6 +244,14 @@ export const DevboxCreatePage = ({
 
   const mcpFormFields = ["attach", "mcpConfig", "secret"] as const;
   const mcpFormFieldIndex = mcpFormFields.indexOf(mcpFormField);
+
+  // Agent picker states
+  const [showAgentPicker, setShowAgentPicker] = React.useState(false);
+  const [selectedAgentName, setSelectedAgentName] = React.useState<string>("");
+  const [agentPickerTab, setAgentPickerTab] = React.useState<
+    "private" | "public"
+  >("private");
+  const [agentPickerMerged, setAgentPickerMerged] = React.useState(false);
 
   const baseFields: Array<{
     key: FormField;
@@ -323,6 +344,12 @@ export const DevboxCreatePage = ({
       label: "MCP Configs (optional)",
       type: "mcpConfigs",
       placeholder: "Configure MCP server connections...",
+    },
+    {
+      key: "agent",
+      label: "Agent (optional)",
+      type: "picker",
+      placeholder: "Select an agent to mount...",
     },
     { key: "metadata", label: "Metadata (optional)", type: "metadata" },
   ];
@@ -458,6 +485,10 @@ export const DevboxCreatePage = ({
         setShowNetworkPolicyPicker(true);
         return;
       }
+      if (currentField === "agent" && key.return) {
+        setShowAgentPicker(true);
+        return;
+      }
 
       // Enter on the create button to submit
       if (currentField === "create" && key.return) {
@@ -500,7 +531,8 @@ export const DevboxCreatePage = ({
         !showMcpPicker &&
         !showMcpSecretPicker &&
         !showInlineMcpSecretCreate &&
-        !showInlineMcpConfigCreate,
+        !showInlineMcpConfigCreate &&
+        !showAgentPicker,
     },
   );
 
@@ -545,6 +577,28 @@ export const DevboxCreatePage = ({
       setShowNetworkPolicyPicker(false);
     },
     [],
+  );
+
+  // Handle agent selection
+  const handleAgentSelect = React.useCallback((agents: Agent[]) => {
+    if (agents.length > 0) {
+      const agent = agents[0];
+      setFormData((prev) => ({ ...prev, agent_id: agent.id }));
+      setSelectedAgentName(agent.name || agent.id);
+    }
+    setShowAgentPicker(false);
+  }, []);
+
+  // Handle tab switching in agent picker
+  useInput(
+    (input, key) => {
+      if (key.tab) {
+        setAgentPickerTab((prev) =>
+          prev === "private" ? "public" : "private",
+        );
+      }
+    },
+    { isActive: showAgentPicker },
   );
 
   // Handle gateway config selection
@@ -964,7 +1018,8 @@ export const DevboxCreatePage = ({
         !showMcpPicker &&
         !showMcpSecretPicker &&
         !showInlineMcpSecretCreate &&
-        !showInlineMcpConfigCreate,
+        !showInlineMcpConfigCreate &&
+        !showAgentPicker,
     },
   );
 
@@ -1105,6 +1160,16 @@ export const DevboxCreatePage = ({
         createParams.tunnel = {
           auth_mode: formData.tunnel_auth_mode,
         };
+      }
+
+      // Add agent mount
+      if (formData.agent_id) {
+        if (!createParams.mounts) createParams.mounts = [];
+        createParams.mounts.push({
+          type: "agent_mount",
+          agent_id: formData.agent_id,
+          agent_name: null,
+        } as any);
       }
 
       const devbox = await client.devboxes.create(createParams);
@@ -1421,6 +1486,174 @@ export const DevboxCreatePage = ({
           formData.network_policy_id ? [formData.network_policy_id] : []
         }
       />
+    );
+  }
+
+  // Agent picker
+  if (showAgentPicker) {
+    return (
+      <Box flexDirection="column">
+        <Box paddingX={2} marginBottom={1}>
+          <Text
+            color={
+              agentPickerTab === "private" ? colors.primary : colors.textDim
+            }
+            bold={agentPickerTab === "private"}
+          >
+            {agentPickerTab === "private" ? "▸ " : "  "}Private
+          </Text>
+          <Text color={colors.textDim}> | </Text>
+          <Text
+            color={
+              agentPickerTab === "public" ? colors.primary : colors.textDim
+            }
+            bold={agentPickerTab === "public"}
+          >
+            {agentPickerTab === "public" ? "▸ " : "  "}Public
+          </Text>
+          <Text color={colors.textDim} dimColor>
+            {" "}
+            [Tab] Switch
+          </Text>
+        </Box>
+        <ResourcePicker<Agent>
+          extraDeps={[agentPickerTab, agentPickerMerged]}
+          extraOverhead={2}
+          config={{
+            title:
+              agentPickerTab === "private"
+                ? "Select Agent (Private)"
+                : "Select Agent (Public)",
+            fetchPage: async (params) => {
+              if (agentPickerTab === "private") {
+                // When searching by name (not an exact agent ID), also show public results
+                const isIdSearch =
+                  params.search && /^agt_/i.test(params.search.trim());
+                if (params.search && !isIdSearch) {
+                  setAgentPickerMerged(true);
+                  // Merged pagination: decode dual cursors from opaque nextCursor
+                  let privateCursor: string | undefined;
+                  let publicCursor: string | undefined;
+                  if (params.startingAt) {
+                    try {
+                      const parsed = JSON.parse(params.startingAt);
+                      privateCursor = parsed.p || undefined;
+                      publicCursor = parsed.q || undefined;
+                    } catch {
+                      privateCursor = params.startingAt;
+                    }
+                  }
+
+                  // Fetch private first
+                  const privateResult = await listAgents({
+                    limit: params.limit,
+                    startingAfter: privateCursor,
+                    search: params.search,
+                  });
+
+                  let publicAgentsConsumed: Agent[] = [];
+                  let publicHasMore = false;
+                  let publicTotalCount = 0;
+                  let lastFetchedPublicId = publicCursor;
+
+                  // Only include public agents when private is exhausted,
+                  // preventing cross-page duplicates
+                  if (!privateResult.hasMore) {
+                    const remainingSlots =
+                      params.limit - privateResult.agents.length;
+                    if (remainingSlots > 0) {
+                      const privateIds = new Set(
+                        privateResult.agents.map((a) => a.id),
+                      );
+                      const publicResult = await listPublicAgents({
+                        limit: remainingSlots,
+                        startingAfter: publicCursor,
+                        search: params.search,
+                      });
+
+                      const uniquePublic = publicResult.agents
+                        .filter((a) => !privateIds.has(a.id));
+                      publicAgentsConsumed = uniquePublic.slice(
+                        0,
+                        remainingSlots,
+                      );
+                      publicHasMore =
+                        publicResult.hasMore ||
+                        uniquePublic.length > remainingSlots;
+                      publicTotalCount = publicResult.totalCount;
+
+                      lastFetchedPublicId =
+                        publicResult.agents.length > 0
+                          ? publicResult.agents[publicResult.agents.length - 1]
+                              .id
+                          : publicCursor;
+                    }
+                  }
+
+                  const allItems = [
+                    ...privateResult.agents,
+                    ...publicAgentsConsumed,
+                  ];
+                  const lastPrivate =
+                    privateResult.agents.length > 0
+                      ? privateResult.agents[privateResult.agents.length - 1].id
+                      : privateCursor;
+
+                  return {
+                    items: allItems,
+                    hasMore: privateResult.hasMore || publicHasMore,
+                    totalCount: privateResult.totalCount + publicTotalCount,
+                    nextCursor: JSON.stringify({
+                      p: lastPrivate,
+                      q: lastFetchedPublicId,
+                    }),
+                  };
+                }
+
+                // Not searching, or searching by exact agent ID: private-only fetch
+                setAgentPickerMerged(false);
+                const result = await listAgents({
+                  limit: params.limit,
+                  startingAfter: params.startingAt,
+                  search: params.search || undefined,
+                });
+                return {
+                  items: result.agents,
+                  hasMore: result.hasMore,
+                  totalCount: result.totalCount,
+                };
+              } else {
+                // Public tab: only fetch public agents
+                setAgentPickerMerged(false);
+                const publicResult = await listPublicAgents({
+                  search: params.search,
+                  limit: params.limit,
+                  startingAfter: params.startingAt,
+                });
+                return {
+                  items: publicResult.agents,
+                  hasMore: publicResult.hasMore,
+                  totalCount: publicResult.totalCount,
+                };
+              }
+            },
+            getItemId: (agent) => agent.id,
+            getItemLabel: (agent) => agent.name || agent.id,
+            columns: buildAgentTableColumns,
+            mode: "single",
+            emptyMessage: "No agents found",
+            searchPlaceholder: "Search agents...",
+            breadcrumbItems: [
+              { label: "Devboxes" },
+              { label: "Create" },
+              { label: "Select Agent", active: true },
+            ],
+          }}
+          onSelect={handleAgentSelect}
+          onCancel={() => setShowAgentPicker(false)}
+          initialSelected={formData.agent_id ? [formData.agent_id] : []}
+        />
+      </Box>
     );
   }
 
@@ -2034,7 +2267,9 @@ export const DevboxCreatePage = ({
             const displayName =
               field.key === "network_policy_id"
                 ? selectedNetworkPolicyName || value
-                : value;
+                : field.key === "agent"
+                  ? selectedAgentName || value
+                  : value;
 
             return (
               <Box key={field.key} marginBottom={0}>

@@ -43,6 +43,8 @@ export interface ResourcePickerConfig<T> {
     items: T[];
     hasMore: boolean;
     totalCount?: number;
+    /** Opaque cursor for the next page. If omitted, last item ID is used. */
+    nextCursor?: string;
   }>;
 
   /** Extract unique ID from an item */
@@ -94,6 +96,12 @@ export interface ResourcePickerProps<T> {
 
   /** Initially selected item IDs */
   initialSelected?: string[];
+
+  /** Extra dependencies that reset pagination when changed (e.g., tab switches) */
+  extraDeps?: unknown[];
+
+  /** Extra lines of overhead to account for (e.g., tab bar rendered above the picker) */
+  extraOverhead?: number;
 }
 
 /**
@@ -104,11 +112,19 @@ export function ResourcePicker<T>({
   onSelect,
   onCancel,
   initialSelected = [],
+  extraDeps = [],
+  extraOverhead = 0,
 }: ResourcePickerProps<T>) {
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(
     new Set(initialSelected),
   );
+  // Track full item objects for cross-page multi-select
+  const selectedItemsRef = React.useRef<Map<string, T>>(new Map());
+  // Keep a ref to selectedIds so checkbox render closures stay current
+  // without needing selectedIds in the columns memo deps
+  const selectedIdsRef = React.useRef(selectedIds);
+  selectedIdsRef.current = selectedIds;
 
   // Search state
   const search = useListSearch({
@@ -118,7 +134,7 @@ export function ResourcePicker<T>({
 
   // Calculate overhead for viewport height
   // Matches list pages: breadcrumb(4) + table chrome(4) + stats(2) + nav tips(2) + buffer(1) = 13
-  const overhead = 13 + search.getSearchOverhead();
+  const overhead = 13 + search.getSearchOverhead() + extraOverhead;
   const { viewportHeight, terminalWidth } = useViewportHeight({
     overhead,
     minHeight: 5,
@@ -126,14 +142,33 @@ export function ResourcePicker<T>({
 
   const PAGE_SIZE = viewportHeight;
 
-  // Resolve columns - support both static array and function that receives terminalWidth
+  // Resolve columns - support both static array and function that receives terminalWidth.
+  // For multi-select, prepend a checkbox column. The render function reads selectedIds
+  // via ref so the columns array stays stable across selection changes and arrow navigation.
   const resolvedColumns = React.useMemo(() => {
     if (!config.columns) return undefined;
-    if (typeof config.columns === "function") {
-      return config.columns(terminalWidth);
-    }
-    return config.columns;
-  }, [config.columns, terminalWidth]);
+    const baseCols =
+      typeof config.columns === "function"
+        ? config.columns(terminalWidth)
+        : config.columns;
+
+    if (config.mode !== "multi") return baseCols;
+
+    const checkboxCol = createComponentColumn<T>(
+      "_selection",
+      "",
+      (row) => {
+        const isChecked = selectedIdsRef.current.has(config.getItemId(row));
+        return (
+          <Text color={isChecked ? colors.success : colors.textDim}>
+            {isChecked ? figures.checkboxOn : figures.checkboxOff}{" "}
+          </Text>
+        );
+      },
+      { width: 3 },
+    );
+    return [checkboxCol, ...baseCols];
+  }, [config.columns, config.mode, config.getItemId, terminalWidth]);
 
   // Store fetchPage in a ref to avoid dependency issues
   const fetchPageRef = React.useRef(config.fetchPage);
@@ -171,7 +206,7 @@ export function ResourcePicker<T>({
     getItemId: config.getItemId,
     pollInterval: 0, // No polling for picker
     pollingEnabled: false,
-    deps: [PAGE_SIZE, search.submittedSearchQuery],
+    deps: [PAGE_SIZE, search.submittedSearchQuery, ...extraDeps],
   });
 
   // Handle Ctrl+C to exit
@@ -184,6 +219,17 @@ export function ResourcePicker<T>({
     }
   }, [items.length, selectedIndex]);
 
+  // Backfill selectedItemsRef with loaded items that match initialSelected IDs.
+  // This ensures items selected before re-entering the picker are tracked for confirm.
+  React.useEffect(() => {
+    for (const item of items) {
+      const id = config.getItemId(item);
+      if (selectedIds.has(id) && !selectedItemsRef.current.has(id)) {
+        selectedItemsRef.current.set(id, item);
+      }
+    }
+  }, [items, config.getItemId, selectedIds]);
+
   const selectedItem = items[selectedIndex];
   const minSelection = config.minSelection ?? 1;
   const canConfirm =
@@ -191,7 +237,7 @@ export function ResourcePicker<T>({
       ? selectedItem !== undefined
       : selectedIds.size >= minSelection;
 
-  // Toggle selection for multi-select
+  // Toggle selection for multi-select, tracking full item objects
   const toggleSelection = React.useCallback(
     (item: T) => {
       const id = config.getItemId(item);
@@ -199,11 +245,13 @@ export function ResourcePicker<T>({
         const next = new Set(prev);
         if (next.has(id)) {
           next.delete(id);
+          selectedItemsRef.current.delete(id);
         } else {
           if (config.maxSelection && next.size >= config.maxSelection) {
-            return prev; // Don't add if at max
+            return prev;
           }
           next.add(id);
+          selectedItemsRef.current.set(id, item);
         }
         return next;
       });
@@ -211,24 +259,19 @@ export function ResourcePicker<T>({
     [config.getItemId, config.maxSelection],
   );
 
-  // Handle confirmation
+  // Handle confirmation — returns all selected items across all pages
   const handleConfirm = React.useCallback(() => {
     if (config.mode === "single") {
       if (selectedItem) {
         onSelect([selectedItem]);
       }
     } else {
-      const selectedItems = items.filter((item) =>
-        selectedIds.has(config.getItemId(item)),
-      );
-      // Also include items from previous pages that were selected
-      // For now, we only return items from current view
-      // A more complete implementation would track full item objects
-      if (selectedItems.length >= minSelection) {
-        onSelect(selectedItems);
+      const allSelected = Array.from(selectedItemsRef.current.values());
+      if (allSelected.length >= minSelection) {
+        onSelect(allSelected);
       }
     }
-  }, [config, selectedItem, selectedIds, items, minSelection, onSelect]);
+  }, [config.mode, selectedItem, minSelection, onSelect]);
 
   // Calculate pagination info for display
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -343,31 +386,7 @@ export function ResourcePicker<T>({
           keyExtractor={config.getItemId}
           selectedIndex={selectedIndex}
           title={`${config.title.toLowerCase()}[${totalCount}]${config.mode === "multi" ? ` (${selectedIds.size} selected)` : ""}`}
-          columns={
-            config.mode === "multi"
-              ? [
-                  // Prepend checkbox column for multi-select mode
-                  createComponentColumn<T>(
-                    "_selection",
-                    "",
-                    (row) => {
-                      const isChecked = selectedIds.has(config.getItemId(row));
-                      return (
-                        <Text
-                          color={isChecked ? colors.success : colors.textDim}
-                        >
-                          {isChecked
-                            ? figures.checkboxOn
-                            : figures.checkboxOff}{" "}
-                        </Text>
-                      );
-                    },
-                    { width: 3 },
-                  ),
-                  ...resolvedColumns,
-                ]
-              : resolvedColumns
-          }
+          columns={resolvedColumns}
           emptyState={
             <Text color={colors.textDim}>
               {figures.info} {config.emptyMessage || "No items found"}

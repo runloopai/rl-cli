@@ -25,6 +25,9 @@ export function MenuScreen() {
       case "objects":
         navigate("object-list");
         break;
+      case "agents":
+        navigate("agent-list");
+        break;
       case "benchmarks":
         navigate("benchmark-menu");
         break;
