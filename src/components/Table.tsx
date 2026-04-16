@@ -10,8 +10,13 @@ export interface Column<T> {
   label: string;
   /** Width of the column (number of characters) */
   width: number;
-  /** Function to render the cell content */
-  render: (row: T, index: number, isSelected: boolean) => React.ReactNode;
+  /** Function to render the cell content. isDisabled is true when the row is grayed out. */
+  render: (
+    row: T,
+    index: number,
+    isSelected: boolean,
+    isDisabled?: boolean,
+  ) => React.ReactNode;
   /** Whether to show this column based on terminal width (optional) */
   visible?: boolean;
 }
@@ -31,6 +36,8 @@ export interface TableProps<T> {
   keyExtractor: (row: T) => string;
   /** Optional title to display in border header */
   title?: string;
+  /** Check if a row is disabled (grayed out) */
+  isRowDisabled?: (row: T) => boolean;
 }
 
 /**
@@ -45,6 +52,7 @@ export function Table<T>({
   emptyState,
   keyExtractor,
   title,
+  isRowDisabled,
 }: TableProps<T>) {
   // Safety: Handle null/undefined data
   if (!data || !Array.isArray(data)) {
@@ -122,14 +130,24 @@ export function Table<T>({
         {data.map((row, index) => {
           const isSelected = index === selectedIndex;
           const rowKey = keyExtractor(row);
+          const disabled = isRowDisabled?.(row) ?? false;
 
           return (
             <Box key={rowKey} width="100%">
               {/* Selection pointer */}
               {showSelection && (
                 <>
-                  <Text color={isSelected ? colors.primary : colors.textDim}>
-                    {isSelected ? figures.pointer : " "}
+                  <Text
+                    color={
+                      disabled
+                        ? colors.textDim
+                        : isSelected
+                          ? colors.primary
+                          : colors.textDim
+                    }
+                    dimColor={disabled}
+                  >
+                    {isSelected && !disabled ? figures.pointer : " "}
                   </Text>
                   <Text> </Text>
                 </>
@@ -138,7 +156,12 @@ export function Table<T>({
               {/* Render each column */}
               {visibleColumns.map((column, colIndex) => (
                 <React.Fragment key={`${rowKey}-${column.key}-${colIndex}`}>
-                  {column.render(row, index, isSelected)}
+                  {column.render(
+                    row,
+                    index,
+                    disabled ? false : isSelected,
+                    disabled,
+                  )}
                 </React.Fragment>
               ))}
               {/* Spacer to fill remaining width */}
@@ -171,7 +194,7 @@ export function createTextColumn<T>(
     label,
     width: options?.width || 20,
     visible: options?.visible,
-    render: (row, index, isSelected) => {
+    render: (row, index, isSelected, isDisabled) => {
       const value = String(getValue(row) || "");
       const rawWidth = options?.width || 20;
       // CRITICAL: Sanitize width to prevent padEnd from creating invalid strings that crash Yoga
@@ -192,10 +215,10 @@ export function createTextColumn<T>(
 
       return (
         <Text
-          color={isSelected ? colors.text : color}
-          bold={bold}
-          dimColor={dimColor}
-          inverse={isSelected}
+          color={isDisabled ? colors.textDim : isSelected ? colors.text : color}
+          bold={isDisabled ? false : bold}
+          dimColor={isDisabled || dimColor}
+          inverse={isDisabled ? false : isSelected}
           wrap="truncate"
         >
           {padded}

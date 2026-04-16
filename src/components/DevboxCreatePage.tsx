@@ -171,12 +171,14 @@ function AgentPickerWithTabs({
   buildAgentColumns,
   onSelect,
   onCancel,
+  isAgentDisabled,
 }: {
   agentTab: "private" | "public";
   setAgentTab: (tab: "private" | "public") => void;
   buildAgentColumns: (tw: number) => Column<Agent>[];
   onSelect: (agents: Agent[]) => void;
   onCancel: () => void;
+  isAgentDisabled?: (agent: Agent) => string | null;
 }) {
   useInput((input, key) => {
     if (key.tab) {
@@ -229,6 +231,7 @@ function AgentPickerWithTabs({
           columns: buildAgentColumns,
           mode: "single",
           additionalOverhead: 1,
+          isItemDisabled: isAgentDisabled,
           emptyMessage: `No ${agentTab} agents found`,
           searchPlaceholder: "Search agents...",
           breadcrumbItems: [
@@ -2368,6 +2371,12 @@ export const DevboxCreatePage = ({
         buildAgentColumns={buildAgentColumns}
         onSelect={handleAgentSelect}
         onCancel={() => setShowAgentPicker(false)}
+        isAgentDisabled={(agent) => {
+          if (formData.agentMounts.some((m) => m.agent_id === agent.id)) {
+            return "Already selected";
+          }
+          return null;
+        }}
       />
     );
   }
