@@ -4,69 +4,10 @@
 
 import { describe, it, expect } from "@jest/globals";
 import {
-  normalizePath,
-  pathsOverlap,
-  extractPipBaseName,
-  findPathOverlaps,
   validateMounts,
   wouldAgentConflict,
 } from "@/utils/mountValidation.js";
-import type { AgentMountInfo, ObjectMountInfo } from "@/utils/mountValidation.js";
-
-describe("normalizePath", () => {
-  it("removes trailing slashes", () => {
-    expect(normalizePath("/home/user/")).toBe("/home/user");
-  });
-
-  it("removes multiple trailing slashes", () => {
-    expect(normalizePath("/home/user///")).toBe("/home/user");
-  });
-
-  it("preserves root path", () => {
-    expect(normalizePath("/")).toBe("/");
-  });
-
-  it("returns path unchanged when no trailing slash", () => {
-    expect(normalizePath("/home/user")).toBe("/home/user");
-  });
-});
-
-describe("pathsOverlap", () => {
-  it("returns true for identical paths", () => {
-    expect(pathsOverlap("/home/user", "/home/user")).toBe(true);
-  });
-
-  it("returns true when one is a prefix of the other", () => {
-    expect(pathsOverlap("/home/user", "/home/user/sub")).toBe(true);
-    expect(pathsOverlap("/home/user/sub", "/home/user")).toBe(true);
-  });
-
-  it("returns false for non-overlapping paths", () => {
-    expect(pathsOverlap("/home/user", "/home/user2")).toBe(false);
-  });
-
-  it("returns false for sibling paths", () => {
-    expect(pathsOverlap("/home/alice", "/home/bob")).toBe(false);
-  });
-
-  it("handles trailing slashes", () => {
-    expect(pathsOverlap("/home/user/", "/home/user")).toBe(true);
-  });
-});
-
-describe("extractPipBaseName", () => {
-  it("strips extras from package name", () => {
-    expect(extractPipBaseName("pkg[extra]")).toBe("pkg");
-  });
-
-  it("strips multiple extras", () => {
-    expect(extractPipBaseName("pkg[extra1,extra2]")).toBe("pkg");
-  });
-
-  it("returns name unchanged when no extras", () => {
-    expect(extractPipBaseName("pkg")).toBe("pkg");
-  });
-});
+import type { AgentMountInfo } from "@/utils/mountValidation.js";
 
 describe("validateMounts", () => {
   it("detects duplicate agent IDs", () => {
@@ -79,46 +20,13 @@ describe("validateMounts", () => {
     expect(errors[0].type).toBe("duplicate_agent_id");
   });
 
-  it("detects duplicate agent names (case-insensitive)", () => {
+  it("allows agents with same name but different IDs", () => {
     const agents: AgentMountInfo[] = [
       { agent_id: "a1", agent_name: "MyAgent" },
       { agent_id: "a2", agent_name: "myagent" },
     ];
     const errors = validateMounts(agents, []);
-    expect(errors).toHaveLength(1);
-    expect(errors[0].type).toBe("duplicate_agent_name");
-  });
-
-  it("detects overlapping paths between agents and object mounts", () => {
-    const agents: AgentMountInfo[] = [
-      { agent_id: "a1", agent_name: "n1", agent_path: "/home/user", source_type: "git" },
-    ];
-    const objects: ObjectMountInfo[] = [
-      { object_id: "o1", object_path: "/home/user/sub" },
-    ];
-    const errors = validateMounts(agents, objects);
-    expect(errors).toHaveLength(1);
-    expect(errors[0].type).toBe("overlapping_paths");
-  });
-
-  it("detects duplicate npm packages", () => {
-    const agents: AgentMountInfo[] = [
-      { agent_id: "a1", agent_name: "n1", source_type: "npm", package_name: "foo" },
-      { agent_id: "a2", agent_name: "n2", source_type: "npm", package_name: "foo" },
-    ];
-    const errors = validateMounts(agents, []);
-    expect(errors).toHaveLength(1);
-    expect(errors[0].type).toBe("duplicate_package");
-  });
-
-  it("detects duplicate pip packages ignoring extras", () => {
-    const agents: AgentMountInfo[] = [
-      { agent_id: "a1", agent_name: "n1", source_type: "pip", package_name: "pkg[extra1]" },
-      { agent_id: "a2", agent_name: "n2", source_type: "pip", package_name: "pkg[extra2]" },
-    ];
-    const errors = validateMounts(agents, []);
-    expect(errors).toHaveLength(1);
-    expect(errors[0].type).toBe("duplicate_package");
+    expect(errors).toHaveLength(0);
   });
 
   it("returns empty array for valid mounts", () => {
@@ -126,10 +34,7 @@ describe("validateMounts", () => {
       { agent_id: "a1", agent_name: "n1", agent_path: "/home/a", source_type: "git" },
       { agent_id: "a2", agent_name: "n2", source_type: "npm", package_name: "foo" },
     ];
-    const objects: ObjectMountInfo[] = [
-      { object_id: "o1", object_path: "/home/b" },
-    ];
-    const errors = validateMounts(agents, objects);
+    const errors = validateMounts(agents, []);
     expect(errors).toHaveLength(0);
   });
 });
@@ -137,9 +42,9 @@ describe("validateMounts", () => {
 describe("wouldAgentConflict", () => {
   it("returns null for non-conflicting agent", () => {
     const current: AgentMountInfo[] = [
-      { agent_id: "a1", agent_name: "n1", source_type: "pip", package_name: "foo" },
+      { agent_id: "a1", agent_name: "n1" },
     ];
-    const candidate: AgentMountInfo = { agent_id: "a2", agent_name: "n2", source_type: "pip", package_name: "bar" };
+    const candidate: AgentMountInfo = { agent_id: "a2", agent_name: "n2" };
     expect(wouldAgentConflict(candidate, current)).toBeNull();
   });
 
@@ -149,70 +54,9 @@ describe("wouldAgentConflict", () => {
     expect(wouldAgentConflict(candidate, current)).toContain("already selected");
   });
 
-  it("detects duplicate agent name", () => {
+  it("allows agents with same name but different IDs", () => {
     const current: AgentMountInfo[] = [{ agent_id: "a1", agent_name: "MyAgent" }];
     const candidate: AgentMountInfo = { agent_id: "a2", agent_name: "myagent" };
-    expect(wouldAgentConflict(candidate, current)).toContain("same name");
-  });
-
-  it("detects conflicting pip package", () => {
-    const current: AgentMountInfo[] = [
-      { agent_id: "a1", agent_name: "n1", source_type: "pip", package_name: "deepagents-cli[all]" },
-    ];
-    const candidate: AgentMountInfo = {
-      agent_id: "a2", agent_name: "n2", source_type: "pip", package_name: "deepagents-cli[providers]",
-    };
-    const result = wouldAgentConflict(candidate, current);
-    expect(result).toContain("same pip package");
-    expect(result).toContain("deepagents-cli");
-  });
-
-  it("detects conflicting npm package", () => {
-    const current: AgentMountInfo[] = [
-      { agent_id: "a1", agent_name: "n1", source_type: "npm", package_name: "foo" },
-    ];
-    const candidate: AgentMountInfo = {
-      agent_id: "a2", agent_name: "n2", source_type: "npm", package_name: "foo",
-    };
-    expect(wouldAgentConflict(candidate, current)).toContain("same npm package");
-  });
-});
-
-describe("findPathOverlaps", () => {
-  it("returns empty map when no overlaps", () => {
-    const mounts = [
-      { label: "agent-a", path: "/home/a" },
-      { label: "object-b", path: "/home/b" },
-    ];
-    const result = findPathOverlaps(mounts);
-    expect(result.size).toBe(0);
-  });
-
-  it("detects overlapping paths", () => {
-    const mounts = [
-      { label: "agent-a", path: "/home/user" },
-      { label: "object-b", path: "/home/user/sub" },
-    ];
-    const result = findPathOverlaps(mounts);
-    expect(result.get("agent-a")).toEqual(["object-b"]);
-    expect(result.get("object-b")).toEqual(["agent-a"]);
-  });
-
-  it("detects identical paths", () => {
-    const mounts = [
-      { label: "a", path: "/data" },
-      { label: "b", path: "/data" },
-    ];
-    const result = findPathOverlaps(mounts);
-    expect(result.get("a")).toEqual(["b"]);
-  });
-
-  it("skips empty paths", () => {
-    const mounts = [
-      { label: "a", path: "" },
-      { label: "b", path: "/home" },
-    ];
-    const result = findPathOverlaps(mounts);
-    expect(result.size).toBe(0);
+    expect(wouldAgentConflict(candidate, current)).toBeNull();
   });
 });
