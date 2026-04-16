@@ -208,7 +208,7 @@ rli benchmark-job list                   # List benchmark jobs
 ```bash
 rli agent list                           # List agents
 rli agent create                         # Create a new agent
-rli agent delete <id-or-name>            # Delete an agent
+rli agent delete <id-or-name>            # Delete a private agent
 rli agent show <id-or-name>              # Show agent details
 ```
 

@@ -86,8 +86,10 @@ export function createProgram(): Command {
       "--mcp <specs...>",
       "MCP configurations (format: ENV_VAR_NAME=mcp_config_id_or_name,secret_id_or_name)",
     )
-    .option("--agent <agent...>", "Agent to mount (name or ID)")
-    .option("--agent-path <path>", "Path to mount the agent on the devbox")
+    .option(
+      "--agent <agent...>",
+      "Agents to mount (format: name_or_id or name_or_id:/mount/path)",
+    )
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
@@ -1176,9 +1178,11 @@ export function createProgram(): Command {
     .option("--search <query>", "Search by agent ID or name")
     .option("--public", "Show only public agents")
     .option("--private", "Show only private agents")
+    .option("--limit <n>", "Max results to return (0 = unlimited)", "0")
+    .option("--starting-after <id>", "Cursor for pagination (agent ID)")
     .option(
       "-o, --output [format]",
-      "Output format: text|json|yaml (default: text)",
+      "Output format: text|json|yaml (default: json)",
     )
     .action(async (options) => {
       const { listAgentsCommand } = await import("../commands/agent/list.js");
@@ -1215,7 +1219,7 @@ export function createProgram(): Command {
 
   agent
     .command("delete <id-or-name>")
-    .description("Delete an agent")
+    .description("Delete a private agent")
     .alias("rm")
     .option("-y, --yes", "Skip confirmation prompt")
     .option(
