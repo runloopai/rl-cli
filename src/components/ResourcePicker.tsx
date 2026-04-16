@@ -80,6 +80,9 @@ export interface ResourcePickerConfig<T> {
 
   /** Label for the create new action (default: "Create new") */
   createNewLabel?: string;
+
+  /** Additional lines of overhead from wrapper components (e.g., tab headers) */
+  additionalOverhead?: number;
 }
 
 export interface ResourcePickerProps<T> {
@@ -118,7 +121,8 @@ export function ResourcePicker<T>({
 
   // Calculate overhead for viewport height
   // Matches list pages: breadcrumb(4) + table chrome(4) + stats(2) + nav tips(2) + buffer(1) = 13
-  const overhead = 13 + search.getSearchOverhead();
+  const overhead =
+    13 + search.getSearchOverhead() + (config.additionalOverhead || 0);
   const { viewportHeight, terminalWidth } = useViewportHeight({
     overhead,
     minHeight: 5,
