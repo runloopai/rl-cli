@@ -1161,10 +1161,11 @@ export const DevboxCreatePage = ({
       // Add agent mount
       if (formData.agent_id) {
         if (!createParams.mounts) createParams.mounts = [];
+        // TODO: remove `as any` once SDK types include agent_mount
         createParams.mounts.push({
           type: "agent_mount",
           agent_id: formData.agent_id,
-          agent_name: null,
+          agent_name: undefined,
         } as any);
       }
 
@@ -1574,9 +1575,7 @@ export const DevboxCreatePage = ({
                         0,
                         remainingSlots,
                       );
-                      publicHasMore =
-                        publicResult.hasMore ||
-                        uniquePublic.length > remainingSlots;
+                      publicHasMore = publicResult.hasMore;
                       publicTotalCount = publicResult.totalCount;
 
                       lastFetchedPublicId =
@@ -1648,7 +1647,7 @@ export const DevboxCreatePage = ({
           }}
           onSelect={handleAgentSelect}
           onCancel={() => setShowAgentPicker(false)}
-          initialSelected={formData.agent_id ? [formData.agent_id] : []}
+          initialSelected={[]}
         />
       </Box>
     );
