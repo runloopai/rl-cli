@@ -1,9 +1,11 @@
 /**
- * AgentCreateScreen - Screen wrapper for agent creation
+ * AgentCreateScreen - Form for creating a new agent
+ *
+ * Uses the standard form pattern: all visible fields with arrow key navigation,
+ * left/right to change source type, Enter on Create button to submit.
  */
 import React from "react";
 import { Box, Text, useInput } from "ink";
-import TextInput from "ink-text-input";
 import figures from "figures";
 import { useNavigation } from "../store/navigationStore.js";
 import {
@@ -13,12 +15,19 @@ import {
 import { Breadcrumb } from "../components/Breadcrumb.js";
 import { NavigationTips } from "../components/NavigationTips.js";
 import { SpinnerComponent } from "../components/Spinner.js";
-import { ErrorMessage } from "../components/ErrorMessage.js";
 import { SuccessMessage } from "../components/SuccessMessage.js";
+import {
+  FormTextInput,
+  FormSelect,
+  FormActionButton,
+  useFormSelectNavigation,
+} from "../components/form/index.js";
 import { colors } from "../utils/theme.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 
-type SourceType = "npm" | "pip" | "git" | "object";
+const SOURCE_TYPES = ["npm", "pip", "git", "object"] as const;
+type SourceType = (typeof SOURCE_TYPES)[number];
+
 type FormField =
   | "name"
   | "version"
@@ -28,90 +37,133 @@ type FormField =
   | "repository"
   | "ref"
   | "objectId"
-  | "confirm";
+  | "create";
 
-interface FormData {
-  name: string;
-  version: string;
-  sourceType: SourceType;
-  packageName: string;
-  registryUrl: string;
-  repository: string;
-  ref: string;
-  objectId: string;
+interface FieldDef {
+  key: FormField;
+  label: string;
 }
 
-const SOURCE_TYPES: SourceType[] = ["npm", "pip", "git", "object"];
-
-const fieldOrder: FormField[] = [
-  "name",
-  "version",
-  "sourceType",
-  "packageName",
-  "registryUrl",
-  "repository",
-  "ref",
-  "objectId",
-  "confirm",
+/** Fields that are always shown */
+const baseFields: FieldDef[] = [
+  { key: "name", label: "Name (required)" },
+  { key: "version", label: "Version (required)" },
+  { key: "sourceType", label: "Source Type" },
 ];
-const getFieldOrder = (f: FormField) => fieldOrder.indexOf(f);
+
+/** Source-type-specific fields */
+const sourceFields: Record<SourceType, FieldDef[]> = {
+  npm: [
+    { key: "packageName", label: "Package Name (required)" },
+    { key: "registryUrl", label: "Registry URL (optional)" },
+  ],
+  pip: [
+    { key: "packageName", label: "Package Name (required)" },
+    { key: "registryUrl", label: "Registry URL (optional)" },
+  ],
+  git: [
+    { key: "repository", label: "Repository URL (required)" },
+    { key: "ref", label: "Ref (optional)" },
+  ],
+  object: [{ key: "objectId", label: "Object ID (required)" }],
+};
+
+const createButton: FieldDef = { key: "create", label: "Create Agent" };
+
+function getVisibleFields(sourceType: SourceType): FieldDef[] {
+  return [...baseFields, ...sourceFields[sourceType], createButton];
+}
 
 export function AgentCreateScreen() {
   const { goBack, navigate } = useNavigation();
   useExitOnCtrlC();
 
   const [currentField, setCurrentField] = React.useState<FormField>("name");
-  const [formData, setFormData] = React.useState<FormData>({
+  const [formData, setFormData] = React.useState({
     name: "",
     version: "",
-    sourceType: "npm",
+    sourceType: "npm" as SourceType,
     packageName: "",
     registryUrl: "",
     repository: "",
     ref: "",
     objectId: "",
   });
-  const [sourceTypeIndex, setSourceTypeIndex] = React.useState(0);
-  const [creating, setCreating] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
+  const [validationError, setValidationError] = React.useState<string | null>(
+    null,
+  );
   const [success, setSuccess] = React.useState(false);
-  const [createdAgentId, setCreatedAgentId] = React.useState<string>("");
+  const [createdAgentId, setCreatedAgentId] = React.useState("");
 
-  const getNextField = (): FormField | null => {
-    switch (currentField) {
-      case "name":
-        return "version";
-      case "version":
-        return "sourceType";
-      case "sourceType": {
-        const st = SOURCE_TYPES[sourceTypeIndex];
-        if (st === "npm" || st === "pip") return "packageName";
-        if (st === "git") return "repository";
-        if (st === "object") return "objectId";
-        return "confirm";
+  const fields = getVisibleFields(formData.sourceType);
+  const currentFieldIndex = fields.findIndex((f) => f.key === currentField);
+
+  // When source type changes, clear source-specific fields and ensure
+  // currentField is still valid (it may have been a field from the old type)
+  const handleSourceTypeChange = React.useCallback(
+    (newType: SourceType) => {
+      setFormData((prev) => ({
+        ...prev,
+        sourceType: newType,
+        packageName: "",
+        registryUrl: "",
+        repository: "",
+        ref: "",
+        objectId: "",
+      }));
+      // If current field isn't in the new field set, stay on sourceType
+      const newFields = getVisibleFields(newType);
+      if (!newFields.some((f) => f.key === currentField)) {
+        setCurrentField("sourceType");
       }
-      case "packageName":
-        return "registryUrl";
-      case "registryUrl":
-        return "confirm";
-      case "repository":
-        return "ref";
-      case "ref":
-        return "confirm";
-      case "objectId":
-        return "confirm";
-      default:
-        return null;
-    }
-  };
+    },
+    [currentField],
+  );
+
+  const handleSourceTypeNav = useFormSelectNavigation(
+    formData.sourceType,
+    SOURCE_TYPES,
+    handleSourceTypeChange,
+    currentField === "sourceType",
+  );
 
   const handleSubmit = async () => {
-    setCreating(true);
+    setValidationError(null);
+
+    if (!formData.name.trim()) {
+      setValidationError("Name is required");
+      setCurrentField("name");
+      return;
+    }
+    if (!formData.version.trim()) {
+      setValidationError("Version is required");
+      setCurrentField("version");
+      return;
+    }
+
+    const st = formData.sourceType;
+    if ((st === "npm" || st === "pip") && !formData.packageName.trim()) {
+      setValidationError("Package name is required");
+      setCurrentField("packageName");
+      return;
+    }
+    if (st === "git" && !formData.repository.trim()) {
+      setValidationError("Repository URL is required");
+      setCurrentField("repository");
+      return;
+    }
+    if (st === "object" && !formData.objectId.trim()) {
+      setValidationError("Object ID is required");
+      setCurrentField("objectId");
+      return;
+    }
+
+    setSubmitting(true);
     setError(null);
     try {
-      const st = SOURCE_TYPES[sourceTypeIndex];
       let source: CreateAgentOptions["source"];
-
       if (st === "npm") {
         source = {
           type: "npm",
@@ -150,70 +202,56 @@ export function AgentCreateScreen() {
       });
 
       setCreatedAgentId(agent.id);
+      setSubmitting(false);
       setSuccess(true);
     } catch (err) {
       setError(err as Error);
-      setCreating(false);
+      setSubmitting(false);
     }
   };
 
   useInput(
-    (input, key) => {
+    (_input, key) => {
       if (success) {
         if (key.return) {
           navigate("agent-detail", { agentId: createdAgentId });
         } else if (key.escape) {
-          goBack();
+          navigate("agent-list");
         }
         return;
       }
-
-      if (error) {
-        if (key.return || key.escape) {
-          setError(null);
-        }
-        return;
-      }
-
-      if (creating) return;
 
       if (key.escape) {
         goBack();
         return;
       }
 
-      if (currentField === "sourceType") {
-        if (key.upArrow && sourceTypeIndex > 0) {
-          setSourceTypeIndex(sourceTypeIndex - 1);
-        } else if (key.downArrow && sourceTypeIndex < SOURCE_TYPES.length - 1) {
-          setSourceTypeIndex(sourceTypeIndex + 1);
-        } else if (key.return) {
-          setFormData({
-            ...formData,
-            sourceType: SOURCE_TYPES[sourceTypeIndex],
-          });
-          const next = getNextField();
-          if (next) setCurrentField(next);
-        }
+      // Source type left/right navigation
+      if (handleSourceTypeNav(_input, key)) return;
+
+      // Arrow up/down field navigation
+      if (key.upArrow && currentFieldIndex > 0) {
+        setCurrentField(fields[currentFieldIndex - 1].key);
+        setValidationError(null);
+        return;
+      }
+      if (key.downArrow && currentFieldIndex < fields.length - 1) {
+        setCurrentField(fields[currentFieldIndex + 1].key);
+        setValidationError(null);
         return;
       }
 
-      if (currentField === "confirm") {
-        if (key.return) {
-          handleSubmit();
-        }
+      // Enter on create button submits
+      if (key.return && currentField === "create") {
+        handleSubmit();
         return;
-      }
-
-      if (key.return) {
-        const next = getNextField();
-        if (next) setCurrentField(next);
       }
     },
-    { isActive: !creating },
+    { isActive: !submitting },
   );
 
-  if (creating && !success && !error) {
+  // Submitting spinner
+  if (submitting) {
     return (
       <>
         <Breadcrumb
@@ -224,6 +262,7 @@ export function AgentCreateScreen() {
     );
   }
 
+  // Success screen
   if (success) {
     return (
       <>
@@ -233,72 +272,22 @@ export function AgentCreateScreen() {
         <SuccessMessage
           message={`Agent "${formData.name}" created successfully (${createdAgentId})`}
         />
-        <Box marginTop={1} paddingX={2}>
-          <Text color={colors.textDim}>
-            Press [Enter] to view details or [Esc] to go back
-          </Text>
-        </Box>
-      </>
-    );
-  }
-
-  if (error) {
-    return (
-      <>
-        <Breadcrumb
-          items={[{ label: "Agents" }, { label: "Create", active: true }]}
+        <NavigationTips
+          tips={[
+            { key: "Enter", label: "View details" },
+            { key: "Esc", label: "Back to list" },
+          ]}
         />
-        <ErrorMessage message="Failed to create agent" error={error} />
-        <Box marginTop={1} paddingX={2}>
-          <Text color={colors.textDim}>
-            Press [Enter] or [Esc] to try again
-          </Text>
-        </Box>
       </>
     );
   }
 
-  const renderField = (
-    field: FormField,
-    label: string,
-    value: string,
-    onChange: (v: string) => void,
-  ) => {
-    const isActive = currentField === field;
-    const isCompleted = getFieldOrder(currentField) > getFieldOrder(field);
-    return (
-      <Box key={field}>
-        <Text
-          color={
-            isActive
-              ? colors.primary
-              : isCompleted
-                ? colors.success
-                : colors.textDim
-          }
-        >
-          {isActive ? figures.pointer : isCompleted ? figures.tick : " "}
-        </Text>
-        <Text> </Text>
-        <Text color={isActive ? colors.text : colors.textDim} bold={isActive}>
-          {label}:{" "}
-        </Text>
-        {isActive ? (
-          <TextInput
-            value={value}
-            onChange={onChange}
-            placeholder={`Enter ${label.toLowerCase()}...`}
-          />
-        ) : (
-          <Text color={isCompleted ? colors.text : colors.textDim}>
-            {value || "-"}
-          </Text>
-        )}
-      </Box>
-    );
+  // Determine which field has a validation error
+  const fieldError = (key: FormField): string | undefined => {
+    if (!validationError) return undefined;
+    if (currentField === key) return validationError;
+    return undefined;
   };
-
-  const st = SOURCE_TYPES[sourceTypeIndex];
 
   return (
     <Box flexDirection="column">
@@ -306,136 +295,109 @@ export function AgentCreateScreen() {
         items={[{ label: "Agents" }, { label: "Create", active: true }]}
       />
 
+      {/* Server error banner */}
+      {error && (
+        <Box paddingX={2} marginTop={1}>
+          <Text color={colors.error}>
+            {figures.cross} {error.message}
+          </Text>
+        </Box>
+      )}
+
       <Box flexDirection="column" paddingX={2} marginTop={1}>
         <Text color={colors.primary} bold>
           Create Agent
         </Text>
         <Box flexDirection="column" marginTop={1}>
-          {renderField("name", "Name", formData.name, (v) =>
-            setFormData({ ...formData, name: v }),
-          )}
-          {renderField("version", "Version", formData.version, (v) =>
-            setFormData({ ...formData, version: v }),
-          )}
-
-          {/* Source type selector */}
-          {getFieldOrder(currentField) >= getFieldOrder("sourceType") && (
-            <Box flexDirection="column">
-              <Box>
-                <Text
-                  color={
-                    currentField === "sourceType"
-                      ? colors.primary
-                      : getFieldOrder(currentField) >
-                          getFieldOrder("sourceType")
-                        ? colors.success
-                        : colors.textDim
-                  }
-                >
-                  {currentField === "sourceType"
-                    ? figures.pointer
-                    : getFieldOrder(currentField) > getFieldOrder("sourceType")
-                      ? figures.tick
-                      : " "}
-                </Text>
-                <Text> </Text>
-                <Text
-                  color={
-                    currentField === "sourceType" ? colors.text : colors.textDim
-                  }
-                  bold={currentField === "sourceType"}
-                >
-                  Source Type:{" "}
-                </Text>
-                {currentField !== "sourceType" && (
-                  <Text>{SOURCE_TYPES[sourceTypeIndex]}</Text>
-                )}
-              </Box>
-              {currentField === "sourceType" && (
-                <Box flexDirection="column" marginLeft={4}>
-                  {SOURCE_TYPES.map((s, i) => (
-                    <Box key={s}>
-                      <Text
-                        color={
-                          i === sourceTypeIndex
-                            ? colors.primary
-                            : colors.textDim
-                        }
-                      >
-                        {i === sourceTypeIndex
-                          ? figures.radioOn
-                          : figures.radioOff}
-                      </Text>
-                      <Text
-                        color={
-                          i === sourceTypeIndex ? colors.text : colors.textDim
-                        }
-                      >
-                        {" "}
-                        {s}
-                      </Text>
-                    </Box>
-                  ))}
-                </Box>
-              )}
-            </Box>
-          )}
+          <FormTextInput
+            label="Name"
+            value={formData.name}
+            onChange={(v) => setFormData({ ...formData, name: v })}
+            isActive={currentField === "name"}
+            placeholder="Enter agent name..."
+            error={fieldError("name")}
+          />
+          <FormTextInput
+            label="Version"
+            value={formData.version}
+            onChange={(v) => setFormData({ ...formData, version: v })}
+            isActive={currentField === "version"}
+            placeholder="e.g. 1.0.0 or a 40-char SHA"
+            error={fieldError("version")}
+          />
+          <FormSelect
+            label="Source Type"
+            value={formData.sourceType}
+            options={SOURCE_TYPES}
+            onChange={handleSourceTypeChange}
+            isActive={currentField === "sourceType"}
+          />
 
           {/* Source-specific fields */}
-          {getFieldOrder(currentField) > getFieldOrder("sourceType") && (
+          {(formData.sourceType === "npm" ||
+            formData.sourceType === "pip") && (
             <>
-              {(st === "npm" || st === "pip") &&
-                renderField(
-                  "packageName",
-                  "Package Name",
-                  formData.packageName,
-                  (v) => setFormData({ ...formData, packageName: v }),
-                )}
-              {(st === "npm" || st === "pip") &&
-                getFieldOrder(currentField) >= getFieldOrder("registryUrl") &&
-                renderField(
-                  "registryUrl",
-                  "Registry URL (optional)",
-                  formData.registryUrl,
-                  (v) => setFormData({ ...formData, registryUrl: v }),
-                )}
-              {st === "git" &&
-                renderField(
-                  "repository",
-                  "Repository URL",
-                  formData.repository,
-                  (v) => setFormData({ ...formData, repository: v }),
-                )}
-              {st === "git" &&
-                getFieldOrder(currentField) >= getFieldOrder("ref") &&
-                renderField("ref", "Ref (optional)", formData.ref, (v) =>
-                  setFormData({ ...formData, ref: v }),
-                )}
-              {st === "object" &&
-                renderField("objectId", "Object ID", formData.objectId, (v) =>
-                  setFormData({ ...formData, objectId: v }),
-                )}
+              <FormTextInput
+                label="Package Name"
+                value={formData.packageName}
+                onChange={(v) => setFormData({ ...formData, packageName: v })}
+                isActive={currentField === "packageName"}
+                placeholder="e.g. @scope/my-agent"
+                error={fieldError("packageName")}
+              />
+              <FormTextInput
+                label="Registry URL"
+                value={formData.registryUrl}
+                onChange={(v) => setFormData({ ...formData, registryUrl: v })}
+                isActive={currentField === "registryUrl"}
+                placeholder="(optional)"
+              />
             </>
           )}
-
-          {/* Confirm */}
-          {currentField === "confirm" && (
-            <Box marginTop={1}>
-              <Text color={colors.success} bold>
-                {figures.pointer} Press [Enter] to create agent
-              </Text>
-            </Box>
+          {formData.sourceType === "git" && (
+            <>
+              <FormTextInput
+                label="Repository URL"
+                value={formData.repository}
+                onChange={(v) => setFormData({ ...formData, repository: v })}
+                isActive={currentField === "repository"}
+                placeholder="e.g. https://github.com/org/repo"
+                error={fieldError("repository")}
+              />
+              <FormTextInput
+                label="Ref"
+                value={formData.ref}
+                onChange={(v) => setFormData({ ...formData, ref: v })}
+                isActive={currentField === "ref"}
+                placeholder="(optional) branch, tag, or commit"
+              />
+            </>
           )}
+          {formData.sourceType === "object" && (
+            <FormTextInput
+              label="Object ID"
+              value={formData.objectId}
+              onChange={(v) => setFormData({ ...formData, objectId: v })}
+              isActive={currentField === "objectId"}
+              placeholder="Enter object ID..."
+              error={fieldError("objectId")}
+            />
+          )}
+
+          <Box marginTop={1}>
+            <FormActionButton
+              label="Create Agent"
+              isActive={currentField === "create"}
+            />
+          </Box>
         </Box>
       </Box>
 
       <NavigationTips
         paddingX={2}
+        showArrows
         tips={[
-          {
-            key: "Enter",
-            label: currentField === "confirm" ? "Create" : "Next",
-          },
+          { key: "Enter", label: "Create", condition: currentField === "create" },
           { key: "Esc", label: "Cancel" },
         ]}
       />
