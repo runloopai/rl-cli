@@ -22,6 +22,12 @@ export function MenuScreen() {
       case "settings":
         navigate("settings-menu");
         break;
+      case "agents":
+        navigate("agent-list");
+        break;
+      case "axons":
+        navigate("axon-list");
+        break;
       case "objects":
         navigate("object-list");
         break;

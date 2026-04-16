@@ -45,6 +45,10 @@ const KNOWN_SCREENS: Set<ScreenName> = new Set([
   "secret-list",
   "secret-detail",
   "secret-create",
+  "agent-list",
+  "agent-detail",
+  "axon-list",
+  "axon-detail",
   "object-list",
   "object-detail",
   "ssh-session",
@@ -121,6 +125,10 @@ import { SettingsMenuScreen } from "../screens/SettingsMenuScreen.js";
 import { SecretListScreen } from "../screens/SecretListScreen.js";
 import { SecretDetailScreen } from "../screens/SecretDetailScreen.js";
 import { SecretCreateScreen } from "../screens/SecretCreateScreen.js";
+import { AgentListScreen } from "../screens/AgentListScreen.js";
+import { AgentDetailScreen } from "../screens/AgentDetailScreen.js";
+import { AxonListScreen } from "../screens/AxonListScreen.js";
+import { AxonDetailScreen } from "../screens/AxonDetailScreen.js";
 import { ObjectListScreen } from "../screens/ObjectListScreen.js";
 import { ObjectDetailScreen } from "../screens/ObjectDetailScreen.js";
 import { SSHSessionScreen } from "../screens/SSHSessionScreen.js";
@@ -310,6 +318,18 @@ export function Router() {
       )}
       {currentScreen === "secret-create" && (
         <SecretCreateScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "agent-list" && (
+        <AgentListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "agent-detail" && (
+        <AgentDetailScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "axon-list" && (
+        <AxonListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "axon-detail" && (
+        <AxonDetailScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "object-list" && (
         <ObjectListScreen key={currentScreen} {...params} />

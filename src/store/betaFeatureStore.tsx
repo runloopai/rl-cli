@@ -25,7 +25,7 @@ interface BetaFeatureContextValue {
 /**
  * Known beta features that can be enabled
  */
-export type BetaFeature = never;
+export type BetaFeature = "axons";
 
 const BetaFeatureContext = React.createContext<BetaFeatureContextValue | null>(
   null,

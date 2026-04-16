@@ -36,6 +36,10 @@ export type ScreenName =
   | "secret-list"
   | "secret-detail"
   | "secret-create"
+  | "agent-list"
+  | "agent-detail"
+  | "axon-list"
+  | "axon-detail"
   | "object-list"
   | "object-detail"
   | "ssh-session"
@@ -58,6 +62,8 @@ export interface RouteParams {
   gatewayConfigId?: string;
   mcpConfigId?: string;
   secretId?: string;
+  agentId?: string;
+  axonId?: string;
   objectId?: string;
   operation?: string;
   focusDevboxId?: string;
