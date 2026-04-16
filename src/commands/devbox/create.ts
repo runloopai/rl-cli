@@ -12,6 +12,7 @@ import {
 import {
   validateMounts,
   type AgentMountInfo,
+  type ObjectMountInfo,
 } from "../../utils/mountValidation.js";
 
 interface CreateOptions {
@@ -36,6 +37,7 @@ interface CreateOptions {
   gateways?: string[];
   mcp?: string[];
   agent?: string[];
+  object?: string[];
   output?: string;
 }
 
@@ -350,6 +352,63 @@ export async function createDevbox(options: CreateOptions = {}) {
           mount.agent_path = path;
         }
         (createRequest.mounts as unknown[]).push(mount);
+      }
+    }
+
+    // Handle object mounts (format: object_id:/mount/path)
+    if (options.object && options.object.length > 0) {
+      const objectMountInfos: ObjectMountInfo[] = [];
+      const objectMounts: { object_id: string; object_path: string }[] = [];
+
+      for (const spec of options.object) {
+        const colonIdx = spec.indexOf(":");
+        if (colonIdx <= 0 || spec[colonIdx + 1] !== "/") {
+          throw new Error(
+            `Invalid object mount format: "${spec}". Expected format: object_id:/mount/path`,
+          );
+        }
+        const objectId = spec.substring(0, colonIdx);
+        const objectPath = spec.substring(colonIdx + 1);
+        objectMountInfos.push({ object_id: objectId, object_path: objectPath });
+        objectMounts.push({ object_id: objectId, object_path: objectPath });
+      }
+
+      // Validate mount constraints (including any agent mounts already added)
+      const agentMountInfos: AgentMountInfo[] = options.agent
+        ? (
+            (createRequest.mounts as
+              | {
+                  agent_id?: string;
+                  agent_name?: string;
+                  agent_path?: string;
+                  type: string;
+                }[]
+              | undefined) || []
+          )
+            .filter((m) => m.type === "agent_mount")
+            .map((m) => ({
+              agent_id: m.agent_id!,
+              agent_name: m.agent_name || "",
+              agent_path: m.agent_path,
+            }))
+        : [];
+      const validationErrors = validateMounts(
+        agentMountInfos,
+        objectMountInfos,
+      );
+      if (validationErrors.length > 0) {
+        throw new Error(
+          `Mount validation failed:\n${validationErrors.map((e) => `  - ${e.message}`).join("\n")}`,
+        );
+      }
+
+      if (!createRequest.mounts) createRequest.mounts = [];
+      for (const om of objectMounts) {
+        (createRequest.mounts as unknown[]).push({
+          type: "object_mount",
+          object_id: om.object_id,
+          object_path: om.object_path,
+        });
       }
     }
 
