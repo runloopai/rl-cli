@@ -83,6 +83,9 @@ export interface ResourcePickerConfig<T> {
 
   /** Additional lines of overhead from wrapper components (e.g., tab headers) */
   additionalOverhead?: number;
+
+  /** Check if an item is disabled (grayed out, unselectable). Return reason string or null. */
+  isItemDisabled?: (item: T) => string | null;
 }
 
 export interface ResourcePickerProps<T> {
@@ -181,12 +184,25 @@ export function ResourcePicker<T>({
   // Handle Ctrl+C to exit
   useExitOnCtrlC();
 
-  // Ensure selected index is within bounds
+  // Ensure selected index is within bounds and not on a disabled item
   React.useEffect(() => {
     if (items.length > 0 && selectedIndex >= items.length) {
       setSelectedIndex(Math.max(0, items.length - 1));
     }
-  }, [items.length, selectedIndex]);
+    // Skip to first non-disabled item if current is disabled
+    if (
+      items.length > 0 &&
+      selectedIndex < items.length &&
+      config.isItemDisabled?.(items[selectedIndex])
+    ) {
+      for (let i = 0; i < items.length; i++) {
+        if (!config.isItemDisabled!(items[i])) {
+          setSelectedIndex(i);
+          break;
+        }
+      }
+    }
+  }, [items, selectedIndex, config.isItemDisabled]);
 
   const selectedItem = items[selectedIndex];
   const minSelection = config.minSelection ?? 1;
@@ -248,11 +264,22 @@ export function ResourcePicker<T>({
 
     const pageItems = items.length;
 
-    // Navigation
+    // Helper to find next non-disabled index
+    const findNextEnabled = (from: number, direction: 1 | -1): number => {
+      let idx = from + direction;
+      while (idx >= 0 && idx < pageItems) {
+        const item = items[idx];
+        if (!item || !config.isItemDisabled?.(item)) return idx;
+        idx += direction;
+      }
+      return from; // stay put if all items in direction are disabled
+    };
+
+    // Navigation (skip disabled items)
     if (key.upArrow && selectedIndex > 0) {
-      setSelectedIndex(selectedIndex - 1);
+      setSelectedIndex(findNextEnabled(selectedIndex, -1));
     } else if (key.downArrow && selectedIndex < pageItems - 1) {
-      setSelectedIndex(selectedIndex + 1);
+      setSelectedIndex(findNextEnabled(selectedIndex, 1));
     } else if (
       (input === "n" || key.rightArrow) &&
       !loading &&
@@ -270,12 +297,16 @@ export function ResourcePicker<T>({
       prevPage();
       setSelectedIndex(0);
     } else if (input === " " && config.mode === "multi" && selectedItem) {
-      // Space toggles selection in multi mode
-      toggleSelection(selectedItem);
+      // Space toggles selection in multi mode (skip if disabled)
+      if (!config.isItemDisabled?.(selectedItem)) {
+        toggleSelection(selectedItem);
+      }
     } else if (key.return) {
       if (config.mode === "single" && selectedItem) {
-        // Enter selects in single mode
-        onSelect([selectedItem]);
+        // Enter selects in single mode (skip if disabled)
+        if (!config.isItemDisabled?.(selectedItem)) {
+          onSelect([selectedItem]);
+        }
       } else if (config.mode === "multi" && canConfirm) {
         // Enter confirms in multi mode
         handleConfirm();
@@ -346,6 +377,11 @@ export function ResourcePicker<T>({
           data={items}
           keyExtractor={config.getItemId}
           selectedIndex={selectedIndex}
+          isRowDisabled={
+            config.isItemDisabled
+              ? (item) => config.isItemDisabled!(item) !== null
+              : undefined
+          }
           title={`${config.title.toLowerCase()}[${totalCount}]${config.mode === "multi" ? ` (${selectedIds.size} selected)` : ""}`}
           columns={
             config.mode === "multi"
