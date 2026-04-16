@@ -2395,7 +2395,7 @@ export const DevboxCreatePage = ({
     const buildObjectColumns = (tw: number): Column<ObjectListItem>[] => {
       const fixedWidth = 6;
       const idWidth = 25;
-      const typeWidth = 10;
+      const typeWidth = 12;
       const stateWidth = 10;
       const sizeWidth = 10;
       const baseWidth =
