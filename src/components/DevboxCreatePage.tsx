@@ -46,7 +46,6 @@ import {
 import {
   validateMounts as validateMountConstraints,
   wouldAgentConflict,
-  findPathOverlaps,
   type AgentMountInfo,
 } from "../utils/mountValidation.js";
 
@@ -445,25 +444,6 @@ export const DevboxCreatePage = ({
     React.useState(0);
   const [editingObjectMountPath, setEditingObjectMountPath] =
     React.useState(false);
-
-  // Compute mount path overlaps across all agent and object mounts
-  const mountPathOverlaps = React.useMemo(() => {
-    const allPaths: Array<{ label: string; path: string }> = [];
-    for (const am of formData.agentMounts) {
-      if (am.agent_path) {
-        allPaths.push({
-          label: am.agent_name || am.agent_id,
-          path: am.agent_path,
-        });
-      }
-    }
-    for (const om of formData.objectMounts) {
-      if (om.object_path) {
-        allPaths.push({ label: om.object_name, path: om.object_path });
-      }
-    }
-    return findPathOverlaps(allPaths);
-  }, [formData.agentMounts, formData.objectMounts]);
 
   const baseFields: Array<{
     key: FormField;
@@ -3643,23 +3623,14 @@ export const DevboxCreatePage = ({
                           ? `${am.version!.slice(0, 8)}…${am.version!.slice(-4)}`
                           : am.version
                         : "";
-                      const mountLabel = am.agent_name || am.agent_id;
-                      const overlaps = mountPathOverlaps.get(mountLabel);
                       return (
                         <Box key={am.agent_id} flexDirection="column">
                           <Text color={colors.textDim} dimColor>
-                            {figures.pointer} {mountLabel}
+                            {figures.pointer} {am.agent_name || am.agent_id}
                             {am.source_type ? ` [${am.source_type}]` : ""}
                             {fmtVersion ? ` v${fmtVersion}` : ""}
                             {am.agent_path ? ` → ${am.agent_path}` : ""}
                           </Text>
-                          {overlaps && (
-                            <Text color={colors.warning}>
-                              {"  "}
-                              {figures.warning} Overlapping path with{" "}
-                              {overlaps.join(", ")}
-                            </Text>
-                          )}
                         </Box>
                       );
                     })}
@@ -3685,8 +3656,6 @@ export const DevboxCreatePage = ({
                           ? `${am.version!.slice(0, 8)}…${am.version!.slice(-4)}`
                           : am.version
                         : "";
-                      const mountLabel = am.agent_name || am.agent_id;
-                      const overlaps = mountPathOverlaps.get(mountLabel);
                       return (
                         <Box
                           key={am.agent_id}
@@ -3701,7 +3670,9 @@ export const DevboxCreatePage = ({
                             >
                               {isSelected ? figures.pointer : " "}{" "}
                             </Text>
-                            <Text color={colors.text}>{mountLabel}</Text>
+                            <Text color={colors.text}>
+                              {am.agent_name || am.agent_id}
+                            </Text>
                             <Text color={colors.textDim}>
                               {am.source_type ? ` [${am.source_type}]` : ""}
                               {fmtVersion ? ` v${fmtVersion}` : ""}
@@ -3734,13 +3705,6 @@ export const DevboxCreatePage = ({
                               </>
                             )}
                           </Box>
-                          {overlaps && (
-                            <Text color={colors.warning}>
-                              {"    "}
-                              {figures.warning} Overlapping path with{" "}
-                              {overlaps.join(", ")}
-                            </Text>
-                          )}
                         </Box>
                       );
                     })}
@@ -3812,24 +3776,13 @@ export const DevboxCreatePage = ({
                 </Box>
                 {!inObjectMountSection && formData.objectMounts.length > 0 && (
                   <Box marginLeft={2} flexDirection="column">
-                    {formData.objectMounts.map((om, idx) => {
-                      const overlaps = mountPathOverlaps.get(om.object_name);
-                      return (
-                        <Box key={idx} flexDirection="column">
-                          <Text color={colors.textDim} dimColor>
-                            {figures.pointer} {om.object_name} →{" "}
-                            {om.object_path}
-                          </Text>
-                          {overlaps && (
-                            <Text color={colors.warning}>
-                              {"  "}
-                              {figures.warning} Overlapping path with{" "}
-                              {overlaps.join(", ")}
-                            </Text>
-                          )}
-                        </Box>
-                      );
-                    })}
+                    {formData.objectMounts.map((om, idx) => (
+                      <Box key={idx}>
+                        <Text color={colors.textDim} dimColor>
+                          {figures.pointer} {om.object_name} → {om.object_path}
+                        </Text>
+                      </Box>
+                    ))}
                   </Box>
                 )}
                 {inObjectMountSection && (
@@ -3845,7 +3798,6 @@ export const DevboxCreatePage = ({
                     </Text>
                     {formData.objectMounts.map((om, idx) => {
                       const isSelected = idx === selectedObjectMountIndex;
-                      const overlaps = mountPathOverlaps.get(om.object_name);
                       return (
                         <Box
                           key={idx}
@@ -3882,13 +3834,6 @@ export const DevboxCreatePage = ({
                               <Text color={colors.info}>{om.object_path}</Text>
                             )}
                           </Box>
-                          {overlaps && (
-                            <Text color={colors.warning}>
-                              {"    "}
-                              {figures.warning} Overlapping path with{" "}
-                              {overlaps.join(", ")}
-                            </Text>
-                          )}
                         </Box>
                       );
                     })}
