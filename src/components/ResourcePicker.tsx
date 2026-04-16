@@ -121,7 +121,8 @@ export function ResourcePicker<T>({
 
   // Calculate overhead for viewport height
   // Matches list pages: breadcrumb(4) + table chrome(4) + stats(2) + nav tips(2) + buffer(1) = 13
-  const overhead = 13 + search.getSearchOverhead() + (config.additionalOverhead || 0);
+  const overhead =
+    13 + search.getSearchOverhead() + (config.additionalOverhead || 0);
   const { viewportHeight, terminalWidth } = useViewportHeight({
     overhead,
     minHeight: 5,

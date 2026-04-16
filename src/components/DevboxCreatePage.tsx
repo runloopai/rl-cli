@@ -679,72 +679,65 @@ export const DevboxCreatePage = ({
   );
 
   // Handle agent selection - adds agent to agentMounts array
-  const handleAgentSelect = React.useCallback(
-    (agents: Agent[]) => {
-      if (agents.length > 0) {
-        const agent = agents[0];
-        setFormData((prev) => {
-          // Check for duplicate agent ID or name
-          const isDuplicateId = prev.agentMounts.some(
-            (m) => m.agent_id === agent.id,
+  const handleAgentSelect = React.useCallback((agents: Agent[]) => {
+    if (agents.length > 0) {
+      const agent = agents[0];
+      setFormData((prev) => {
+        // Check for duplicate agent ID or name
+        const isDuplicateId = prev.agentMounts.some(
+          (m) => m.agent_id === agent.id,
+        );
+        const isDuplicateName =
+          agent.name &&
+          prev.agentMounts.some(
+            (m) => m.agent_name.toLowerCase() === agent.name.toLowerCase(),
           );
-          const isDuplicateName =
-            agent.name &&
-            prev.agentMounts.some(
-              (m) =>
-                m.agent_name.toLowerCase() === agent.name.toLowerCase(),
-            );
-          if (isDuplicateId || isDuplicateName) {
-            return prev; // silently skip duplicate
-          }
-          return {
-            ...prev,
-            agentMounts: [
-              ...prev.agentMounts,
-              {
-                agent_id: agent.id,
-                agent_name: agent.name,
-                agent_path: "",
-                source_type: agent.source?.type,
-                version: agent.version,
-                package_name:
-                  agent.source?.type === "npm"
-                    ? agent.source.npm?.package_name
-                    : agent.source?.type === "pip"
-                      ? agent.source.pip?.package_name
-                      : undefined,
-              },
-            ],
-          };
-        });
-      }
-      setShowAgentPicker(false);
-    },
-    [],
-  );
-
-  // Handle object selection for mounting
-  const handleObjectSelect = React.useCallback(
-    (objects: ObjectListItem[]) => {
-      if (objects.length > 0) {
-        const obj = objects[0];
-        const defaultPath = `/home/user/${obj.name || obj.id}`;
-        setFormData((prev) => ({
+        if (isDuplicateId || isDuplicateName) {
+          return prev; // silently skip duplicate
+        }
+        return {
           ...prev,
-          objectMounts: [
-            ...prev.objectMounts,
+          agentMounts: [
+            ...prev.agentMounts,
             {
-              object_id: obj.id,
-              object_name: obj.name || obj.id,
-              object_path: defaultPath,
+              agent_id: agent.id,
+              agent_name: agent.name,
+              agent_path: "",
+              source_type: agent.source?.type,
+              version: agent.version,
+              package_name:
+                agent.source?.type === "npm"
+                  ? agent.source.npm?.package_name
+                  : agent.source?.type === "pip"
+                    ? agent.source.pip?.package_name
+                    : undefined,
             },
           ],
-        }));
-      }
-      setShowObjectPicker(false);
-    },
-    [],
-  );
+        };
+      });
+    }
+    setShowAgentPicker(false);
+  }, []);
+
+  // Handle object selection for mounting
+  const handleObjectSelect = React.useCallback((objects: ObjectListItem[]) => {
+    if (objects.length > 0) {
+      const obj = objects[0];
+      const defaultPath = `/home/user/${obj.name || obj.id}`;
+      setFormData((prev) => ({
+        ...prev,
+        objectMounts: [
+          ...prev.objectMounts,
+          {
+            object_id: obj.id,
+            object_name: obj.name || obj.id,
+            object_path: defaultPath,
+          },
+        ],
+      }));
+    }
+    setShowObjectPicker(false);
+  }, []);
 
   // Handle blueprint selection
   const handleBlueprintSelect = React.useCallback((blueprints: Blueprint[]) => {
@@ -2318,8 +2311,19 @@ export const DevboxCreatePage = ({
       const idWidth = 25;
       const versionWidth = 20;
       const sourceWidth = 8;
-      const nameWidth = Math.min(40, Math.max(15, Math.floor((tw - fixedWidth - idWidth - versionWidth - sourceWidth) * 0.5)));
-      const timeWidth = Math.max(18, tw - fixedWidth - idWidth - nameWidth - versionWidth - sourceWidth);
+      const nameWidth = Math.min(
+        40,
+        Math.max(
+          15,
+          Math.floor(
+            (tw - fixedWidth - idWidth - versionWidth - sourceWidth) * 0.5,
+          ),
+        ),
+      );
+      const timeWidth = Math.max(
+        18,
+        tw - fixedWidth - idWidth - nameWidth - versionWidth - sourceWidth,
+      );
       return [
         createTextColumn<Agent>("id", "ID", (a) => a.id, {
           width: idWidth + 1,
@@ -2334,17 +2338,14 @@ export const DevboxCreatePage = ({
           (a) => a.source?.type || "",
           { width: sourceWidth, color: colors.textDim },
         ),
-        createTextColumn<Agent>(
-          "version",
-          "Version",
-          formatAgentVersion,
-          { width: versionWidth, color: colors.textDim },
-        ),
+        createTextColumn<Agent>("version", "Version", formatAgentVersion, {
+          width: versionWidth,
+          color: colors.textDim,
+        }),
         createTextColumn<Agent>(
           "created",
           "Created",
-          (a) =>
-            a.create_time_ms ? formatTimeAgo(a.create_time_ms) : "",
+          (a) => (a.create_time_ms ? formatTimeAgo(a.create_time_ms) : ""),
           { width: timeWidth, color: colors.textDim },
         ),
       ];
@@ -2367,7 +2368,8 @@ export const DevboxCreatePage = ({
       if (bytes == null) return "";
       if (bytes < 1024) return `${bytes} B`;
       if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-      if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+      if (bytes < 1024 * 1024 * 1024)
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
       return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
     };
 
@@ -2377,20 +2379,21 @@ export const DevboxCreatePage = ({
       const typeWidth = 10;
       const stateWidth = 10;
       const sizeWidth = 10;
-      const baseWidth = fixedWidth + idWidth + typeWidth + stateWidth + sizeWidth;
-      const nameWidth = Math.min(30, Math.max(12, Math.floor((tw - baseWidth) * 0.5)));
+      const baseWidth =
+        fixedWidth + idWidth + typeWidth + stateWidth + sizeWidth;
+      const nameWidth = Math.min(
+        30,
+        Math.max(12, Math.floor((tw - baseWidth) * 0.5)),
+      );
       const timeWidth = Math.max(18, tw - baseWidth - nameWidth);
       return [
         createTextColumn<ObjectListItem>("id", "ID", (o) => o.id, {
           width: idWidth + 1,
           color: colors.idColor,
         }),
-        createTextColumn<ObjectListItem>(
-          "name",
-          "Name",
-          (o) => o.name || "",
-          { width: nameWidth },
-        ),
+        createTextColumn<ObjectListItem>("name", "Name", (o) => o.name || "", {
+          width: nameWidth,
+        }),
         createTextColumn<ObjectListItem>(
           "type",
           "Type",
@@ -2412,8 +2415,7 @@ export const DevboxCreatePage = ({
         createTextColumn<ObjectListItem>(
           "created",
           "Created",
-          (o) =>
-            o.create_time_ms ? formatTimeAgo(o.create_time_ms) : "",
+          (o) => (o.create_time_ms ? formatTimeAgo(o.create_time_ms) : ""),
           { width: timeWidth, color: colors.textDim },
         ),
       ];
@@ -3472,9 +3474,7 @@ export const DevboxCreatePage = ({
                   <Text color={isActive ? colors.primary : colors.textDim}>
                     {isActive ? figures.pointer : " "} {field.label}:{" "}
                   </Text>
-                  <Text color={colors.text}>
-                    {agentCount} configured
-                  </Text>
+                  <Text color={colors.text}>{agentCount} configured</Text>
                   {isActive && (
                     <Text color={colors.textDim} dimColor>
                       {agentCount > 0
@@ -3485,7 +3485,8 @@ export const DevboxCreatePage = ({
                 </Box>
                 {!inAgentMountSection &&
                   formData.agentMounts.map((am) => {
-                    const showVersion = am.version && am.source_type !== "object";
+                    const showVersion =
+                      am.version && am.source_type !== "object";
                     const fmtVersion = showVersion
                       ? am.version!.length > 16
                         ? `${am.version!.slice(0, 8)}…${am.version!.slice(-4)}`
@@ -3590,16 +3591,15 @@ export const DevboxCreatePage = ({
                     </Text>
                   )}
                 </Box>
-                {!inObjectMountSection &&
-                  formData.objectMounts.length > 0 && (
-                    <Box marginLeft={2} flexDirection="column">
-                      {formData.objectMounts.map((om, idx) => (
-                        <Text key={idx} color={colors.textDim} dimColor>
-                          {figures.pointer} {om.object_name} → {om.object_path}
-                        </Text>
-                      ))}
-                    </Box>
-                  )}
+                {!inObjectMountSection && formData.objectMounts.length > 0 && (
+                  <Box marginLeft={2} flexDirection="column">
+                    {formData.objectMounts.map((om, idx) => (
+                      <Text key={idx} color={colors.textDim} dimColor>
+                        {figures.pointer} {om.object_name} → {om.object_path}
+                      </Text>
+                    ))}
+                  </Box>
+                )}
                 {inObjectMountSection && (
                   <Box
                     flexDirection="column"
@@ -3622,8 +3622,7 @@ export const DevboxCreatePage = ({
                           </Text>
                           <Text color={colors.text}>{om.object_name}</Text>
                           <Text color={colors.textDim}> → </Text>
-                          {editingObjectMountPath &&
-                          isSelected ? (
+                          {editingObjectMountPath && isSelected ? (
                             <Text color={colors.primary}>
                               {om.object_path}
                               <Text color={colors.textDim}>│</Text>
@@ -3700,15 +3699,19 @@ export const DevboxCreatePage = ({
           </Box>
         )}
 
-      {!inMetadataSection && !inGatewaySection && !inMcpSection && !inAgentMountSection && !inObjectMountSection && (
-        <NavigationTips
-          showArrows
-          tips={[
-            { key: "Enter", label: "Create" },
-            { key: "q", label: "Cancel" },
-          ]}
-        />
-      )}
+      {!inMetadataSection &&
+        !inGatewaySection &&
+        !inMcpSection &&
+        !inAgentMountSection &&
+        !inObjectMountSection && (
+          <NavigationTips
+            showArrows
+            tips={[
+              { key: "Enter", label: "Create" },
+              { key: "q", label: "Cancel" },
+            ]}
+          />
+        )}
     </>
   );
 };

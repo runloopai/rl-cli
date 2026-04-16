@@ -18,7 +18,11 @@ export interface ObjectMountInfo {
 }
 
 export interface ValidationError {
-  type: "duplicate_agent_id" | "duplicate_agent_name" | "overlapping_paths" | "duplicate_package";
+  type:
+    | "duplicate_agent_id"
+    | "duplicate_agent_name"
+    | "overlapping_paths"
+    | "duplicate_package";
   message: string;
 }
 
@@ -117,7 +121,12 @@ export function validateMounts(
   // Collect all mount paths (agent paths for git/object agents + object mount paths)
   const allPaths: string[] = [];
   for (const agent of agents) {
-    if (agent.agent_path && (agent.source_type === "git" || agent.source_type === "object" || !agent.source_type)) {
+    if (
+      agent.agent_path &&
+      (agent.source_type === "git" ||
+        agent.source_type === "object" ||
+        !agent.source_type)
+    ) {
       allPaths.push(normalizePath(agent.agent_path));
     }
   }

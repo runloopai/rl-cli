@@ -12,7 +12,10 @@ import {
   type ResourceOperation,
 } from "../components/ResourceDetailPage.js";
 import { getAgent, deleteAgent, type Agent } from "../services/agentService.js";
-import { getObject, buildObjectDetailFields } from "../services/objectService.js";
+import {
+  getObject,
+  buildObjectDetailFields,
+} from "../services/objectService.js";
 import { useResourceDetail } from "../hooks/useResourceDetail.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
@@ -37,8 +40,9 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
   });
 
   // Fetch underlying object details for object-based agents
-  const [objectDetails, setObjectDetails] =
-    React.useState<Awaited<ReturnType<typeof getObject>> | null>(null);
+  const [objectDetails, setObjectDetails] = React.useState<Awaited<
+    ReturnType<typeof getObject>
+  > | null>(null);
 
   React.useEffect(() => {
     const source = (agent as any)?.source;
@@ -62,10 +66,7 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
     return (
       <>
         <Breadcrumb
-          items={[
-            { label: "Agents" },
-            { label: "Loading...", active: true },
-          ]}
+          items={[{ label: "Agents" }, { label: "Loading...", active: true }]}
         />
         <SpinnerComponent message="Loading agent details..." />
       </>
@@ -315,7 +316,7 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
       resourceType="Agents"
       getDisplayName={(a) => a.name}
       getId={(a) => a.id}
-      getStatus={() => (agent as any).is_public ? "public" : "private"}
+      getStatus={() => ((agent as any).is_public ? "public" : "private")}
       detailSections={detailSections}
       operations={operations}
       onOperation={handleOperation}

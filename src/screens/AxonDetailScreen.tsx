@@ -24,10 +24,7 @@ interface AxonDetailScreenProps {
 export function AxonDetailScreen({ axonId }: AxonDetailScreenProps) {
   const { goBack } = useNavigation();
 
-  const {
-    data: axon,
-    error,
-  } = useResourceDetail<Axon>({
+  const { data: axon, error } = useResourceDetail<Axon>({
     id: axonId,
     fetch: getAxon,
   });
@@ -36,10 +33,7 @@ export function AxonDetailScreen({ axonId }: AxonDetailScreenProps) {
     return (
       <>
         <Breadcrumb
-          items={[
-            { label: "Axons" },
-            { label: "Loading...", active: true },
-          ]}
+          items={[{ label: "Axons" }, { label: "Loading...", active: true }]}
         />
         <SpinnerComponent message="Loading axon details..." />
       </>
@@ -52,10 +46,7 @@ export function AxonDetailScreen({ axonId }: AxonDetailScreenProps) {
         <Breadcrumb
           items={[{ label: "Axons" }, { label: "Error", active: true }]}
         />
-        <ErrorMessage
-          message="Failed to load axon details"
-          error={error}
-        />
+        <ErrorMessage message="Failed to load axon details" error={error} />
       </>
     );
   }
