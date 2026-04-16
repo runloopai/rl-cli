@@ -14,11 +14,7 @@ import { SuccessMessage } from "./SuccessMessage.js";
 import { Breadcrumb } from "./Breadcrumb.js";
 import { NavigationTips } from "./NavigationTips.js";
 import { MetadataDisplay } from "./MetadataDisplay.js";
-import {
-  ResourcePicker,
-  createTextColumn,
-  Column,
-} from "./ResourcePicker.js";
+import { ResourcePicker, createTextColumn, Column } from "./ResourcePicker.js";
 import { buildAgentTableColumns } from "./agentColumns.js";
 import { formatTimeAgo } from "./ResourceListView.js";
 import { getStatusDisplay } from "./StatusBadge.js";
@@ -1571,8 +1567,9 @@ export const DevboxCreatePage = ({
                         search: params.search,
                       });
 
-                      const uniquePublic = publicResult.agents
-                        .filter((a) => !privateIds.has(a.id));
+                      const uniquePublic = publicResult.agents.filter(
+                        (a) => !privateIds.has(a.id),
+                      );
                       publicAgentsConsumed = uniquePublic.slice(
                         0,
                         remainingSlots,

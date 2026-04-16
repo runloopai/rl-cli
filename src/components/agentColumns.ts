@@ -29,9 +29,7 @@ const TABLE_CHROME = 6;
  * Accounts for table border/pointer chrome so columns fill the available
  * content area exactly. Pass as the `columns` prop to Table or ResourcePicker.
  */
-export function buildAgentTableColumns(
-  terminalWidth: number,
-): Column<Agent>[] {
+export function buildAgentTableColumns(terminalWidth: number): Column<Agent>[] {
   const availableWidth = terminalWidth - TABLE_CHROME;
   const agentCols = getAgentColumns([], availableWidth);
 

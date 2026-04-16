@@ -44,7 +44,7 @@ function agentVersionText(agent: Agent): string {
 
 // Fixed column widths (content + padding). These values never change.
 const SOURCE_WIDTH = 10; // values: "npm", "pip", "git", "object", "-"
-const ID_WIDTH = 27;     // agent IDs are ~25 chars
+const ID_WIDTH = 27; // agent IDs are ~25 chars
 const CREATED_WIDTH = 12; // e.g. "3d ago", "2mo ago"
 const MIN_FLEX_WIDTH = 10; // minimum for each flexible column (name, version)
 const FIXED_TOTAL = SOURCE_WIDTH + ID_WIDTH + CREATED_WIDTH;
@@ -67,10 +67,25 @@ export function getAgentColumns(
 
   return [
     { key: "name", label: "NAME", width: nameWidth, getValue: (a) => a.name },
-    { key: "source", label: "SOURCE", width: SOURCE_WIDTH, getValue: (a) => (a as any).source?.type || "-" },
-    { key: "version", label: "VERSION", width: versionWidth, getValue: agentVersionText },
+    {
+      key: "source",
+      label: "SOURCE",
+      width: SOURCE_WIDTH,
+      getValue: (a) => (a as any).source?.type || "-",
+    },
+    {
+      key: "version",
+      label: "VERSION",
+      width: versionWidth,
+      getValue: agentVersionText,
+    },
     { key: "id", label: "ID", width: ID_WIDTH, getValue: (a) => a.id },
-    { key: "created", label: "CREATED", width: CREATED_WIDTH, getValue: (a) => formatTimeAgo(a.create_time_ms) },
+    {
+      key: "created",
+      label: "CREATED",
+      width: CREATED_WIDTH,
+      getValue: (a) => formatTimeAgo(a.create_time_ms),
+    },
   ];
 }
 
