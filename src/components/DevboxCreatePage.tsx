@@ -367,6 +367,8 @@ export const DevboxCreatePage = ({
   const [inAgentMountSection, setInAgentMountSection] = React.useState(false);
   const [selectedAgentMountIndex, setSelectedAgentMountIndex] =
     React.useState(0);
+  const [editingAgentMountPath, setEditingAgentMountPath] =
+    React.useState(false);
 
   // Object mount picker states
   const [showObjectPicker, setShowObjectPicker] = React.useState(false);
@@ -1239,6 +1241,15 @@ export const DevboxCreatePage = ({
   // Agent mount section input handler
   useInput(
     (input, key) => {
+      if (editingAgentMountPath) {
+        // In path editing mode, only handle escape to exit
+        if (key.escape || key.return) {
+          setEditingAgentMountPath(false);
+          return;
+        }
+        return; // Let TextInput handle everything else
+      }
+
       const maxIndex = formData.agentMounts.length + 1; // items + "Add" + "Done"
 
       if (key.escape) {
@@ -1266,6 +1277,18 @@ export const DevboxCreatePage = ({
         // "Done" button
         if (selectedAgentMountIndex === formData.agentMounts.length + 1) {
           setInAgentMountSection(false);
+          return;
+        }
+      }
+
+      // Edit mount path (only for git/object agents that have paths)
+      if (
+        input === "e" &&
+        selectedAgentMountIndex < formData.agentMounts.length
+      ) {
+        const am = formData.agentMounts[selectedAgentMountIndex];
+        if (am.source_type === "git" || am.source_type === "object") {
+          setEditingAgentMountPath(true);
           return;
         }
       }
@@ -1298,23 +1321,28 @@ export const DevboxCreatePage = ({
   // Object mount section input handler
   useInput(
     (input, key) => {
+      if (editingObjectMountPath) {
+        if (key.escape || key.return) {
+          setEditingObjectMountPath(false);
+          return;
+        }
+        return; // Let TextInput handle everything else
+      }
+
       const maxIndex = formData.objectMounts.length + 1; // +1 for "Add", +1 for "Done"
 
       if (key.escape) {
         setInObjectMountSection(false);
-        setEditingObjectMountPath(false);
         return;
       }
 
       if (key.upArrow && selectedObjectMountIndex > 0) {
         setSelectedObjectMountIndex(selectedObjectMountIndex - 1);
-        setEditingObjectMountPath(false);
         return;
       }
 
       if (key.downArrow && selectedObjectMountIndex < maxIndex) {
         setSelectedObjectMountIndex(selectedObjectMountIndex + 1);
-        setEditingObjectMountPath(false);
         return;
       }
 
@@ -1330,6 +1358,15 @@ export const DevboxCreatePage = ({
           setInObjectMountSection(false);
           return;
         }
+      }
+
+      // Edit mount path
+      if (
+        input === "e" &&
+        selectedObjectMountIndex < formData.objectMounts.length
+      ) {
+        setEditingObjectMountPath(true);
+        return;
       }
 
       // Delete mount
@@ -3595,10 +3632,31 @@ export const DevboxCreatePage = ({
                               {am.source_type ? ` [${am.source_type}]` : ""}
                               {fmtVersion ? ` v${fmtVersion}` : ""}
                             </Text>
-                            {am.agent_path && (
+                            {(am.agent_path ||
+                              (editingAgentMountPath && isSelected)) && (
                               <>
                                 <Text color={colors.textDim}> → </Text>
-                                <Text color={colors.info}>{am.agent_path}</Text>
+                                {editingAgentMountPath && isSelected ? (
+                                  <TextInput
+                                    value={am.agent_path || ""}
+                                    onChange={(value) => {
+                                      setFormData((prev) => ({
+                                        ...prev,
+                                        agentMounts: prev.agentMounts.map(
+                                          (m, i) =>
+                                            i === idx
+                                              ? { ...m, agent_path: value }
+                                              : m,
+                                        ),
+                                      }));
+                                    }}
+                                    placeholder="/home/user/agent"
+                                  />
+                                ) : (
+                                  <Text color={colors.info}>
+                                    {am.agent_path}
+                                  </Text>
+                                )}
                               </>
                             )}
                           </Box>
@@ -3649,7 +3707,9 @@ export const DevboxCreatePage = ({
                     )}
                     <Box marginTop={1}>
                       <Text color={colors.textDim} dimColor>
-                        {`${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] Select • [d] Remove • [esc] Back`}
+                        {editingAgentMountPath
+                          ? "Type to edit path • [Enter/esc] Done"
+                          : `${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] Select • [e] Edit path • [d] Remove • [esc] Back`}
                       </Text>
                     </Box>
                   </Box>
@@ -3729,10 +3789,21 @@ export const DevboxCreatePage = ({
                             <Text color={colors.text}>{om.object_name}</Text>
                             <Text color={colors.textDim}> → </Text>
                             {editingObjectMountPath && isSelected ? (
-                              <Text color={colors.primary}>
-                                {om.object_path}
-                                <Text color={colors.textDim}>│</Text>
-                              </Text>
+                              <TextInput
+                                value={om.object_path}
+                                onChange={(value) => {
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    objectMounts: prev.objectMounts.map(
+                                      (m, i) =>
+                                        i === idx
+                                          ? { ...m, object_path: value }
+                                          : m,
+                                    ),
+                                  }));
+                                }}
+                                placeholder="/home/user/object"
+                              />
                             ) : (
                               <Text color={colors.info}>{om.object_path}</Text>
                             )}
@@ -3781,7 +3852,9 @@ export const DevboxCreatePage = ({
                     </Box>
                     <Box marginTop={1}>
                       <Text color={colors.textDim} dimColor>
-                        {`${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] Select • [d] Remove • [esc] Back`}
+                        {editingObjectMountPath
+                          ? "Type to edit path • [Enter/esc] Done"
+                          : `${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] Select • [e] Edit path • [d] Remove • [esc] Back`}
                       </Text>
                     </Box>
                   </Box>
