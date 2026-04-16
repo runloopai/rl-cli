@@ -7,6 +7,7 @@ import {
   normalizePath,
   pathsOverlap,
   extractPipBaseName,
+  findPathOverlaps,
   validateMounts,
   wouldAgentConflict,
 } from "@/utils/mountValidation.js";
@@ -174,5 +175,44 @@ describe("wouldAgentConflict", () => {
       agent_id: "a2", agent_name: "n2", source_type: "npm", package_name: "foo",
     };
     expect(wouldAgentConflict(candidate, current)).toContain("same npm package");
+  });
+});
+
+describe("findPathOverlaps", () => {
+  it("returns empty map when no overlaps", () => {
+    const mounts = [
+      { label: "agent-a", path: "/home/a" },
+      { label: "object-b", path: "/home/b" },
+    ];
+    const result = findPathOverlaps(mounts);
+    expect(result.size).toBe(0);
+  });
+
+  it("detects overlapping paths", () => {
+    const mounts = [
+      { label: "agent-a", path: "/home/user" },
+      { label: "object-b", path: "/home/user/sub" },
+    ];
+    const result = findPathOverlaps(mounts);
+    expect(result.get("agent-a")).toEqual(["object-b"]);
+    expect(result.get("object-b")).toEqual(["agent-a"]);
+  });
+
+  it("detects identical paths", () => {
+    const mounts = [
+      { label: "a", path: "/data" },
+      { label: "b", path: "/data" },
+    ];
+    const result = findPathOverlaps(mounts);
+    expect(result.get("a")).toEqual(["b"]);
+  });
+
+  it("skips empty paths", () => {
+    const mounts = [
+      { label: "a", path: "" },
+      { label: "b", path: "/home" },
+    ];
+    const result = findPathOverlaps(mounts);
+    expect(result.size).toBe(0);
   });
 });
