@@ -705,6 +705,8 @@ export const DevboxCreatePage = ({
         const conflict = wouldAgentConflict(candidateMount, prev.agentMounts);
         if (conflict) {
           setAgentConflictWarning(conflict);
+          setInAgentMountSection(true);
+          setSelectedAgentMountIndex(prev.agentMounts.length); // point to "+ Add Agent"
           return prev;
         }
         setAgentConflictWarning(null);
@@ -3491,74 +3493,91 @@ export const DevboxCreatePage = ({
                     </Text>
                   )}
                 </Box>
-                {!inAgentMountSection &&
-                  formData.agentMounts.map((am) => {
-                    const showVersion =
-                      am.version && am.source_type !== "object";
-                    const fmtVersion = showVersion
-                      ? am.version!.length > 16
-                        ? `${am.version!.slice(0, 8)}…${am.version!.slice(-4)}`
-                        : am.version
-                      : "";
-                    return (
-                      <Box key={am.agent_id} marginLeft={2}>
-                        <Text color={colors.textDim} dimColor>
+                {!inAgentMountSection && formData.agentMounts.length > 0 && (
+                  <Box marginLeft={2} flexDirection="column">
+                    {formData.agentMounts.map((am) => {
+                      const showVersion =
+                        am.version && am.source_type !== "object";
+                      const fmtVersion = showVersion
+                        ? am.version!.length > 16
+                          ? `${am.version!.slice(0, 8)}…${am.version!.slice(-4)}`
+                          : am.version
+                        : "";
+                      return (
+                        <Text key={am.agent_id} color={colors.textDim} dimColor>
                           {figures.pointer} {am.agent_name || am.agent_id}
                           {am.source_type ? ` [${am.source_type}]` : ""}
                           {fmtVersion ? ` v${fmtVersion}` : ""}
                           {am.agent_path ? ` → ${am.agent_path}` : ""}
                         </Text>
-                      </Box>
-                    );
-                  })}
+                      );
+                    })}
+                  </Box>
+                )}
                 {inAgentMountSection && (
-                  <>
-                    {formData.agentMounts.map((am, idx) => (
-                      <Box key={am.agent_id} marginLeft={2}>
-                        <Text
-                          color={
-                            selectedAgentMountIndex === idx
-                              ? colors.primary
-                              : colors.textDim
-                          }
-                        >
-                          {selectedAgentMountIndex === idx
-                            ? figures.pointer
-                            : " "}{" "}
-                          {am.agent_name || am.agent_id}
-                          <Text color={colors.textDim} dimColor>
-                            {am.source_type ? ` [${am.source_type}]` : ""}
-                            {am.version && am.source_type !== "object"
-                              ? ` v${am.version.length > 16 ? `${am.version.slice(0, 8)}…${am.version.slice(-4)}` : am.version}`
-                              : ""}
-                            {am.agent_path ? ` → ${am.agent_path}` : ""}
+                  <Box
+                    flexDirection="column"
+                    marginTop={1}
+                    borderStyle="round"
+                    borderColor={colors.primary}
+                    paddingX={1}
+                  >
+                    <Text color={colors.primary} bold>
+                      {figures.hamburger} Agent Mounts
+                    </Text>
+                    {formData.agentMounts.map((am, idx) => {
+                      const isSelected = selectedAgentMountIndex === idx;
+                      const showVersion =
+                        am.version && am.source_type !== "object";
+                      const fmtVersion = showVersion
+                        ? am.version!.length > 16
+                          ? `${am.version!.slice(0, 8)}…${am.version!.slice(-4)}`
+                          : am.version
+                        : "";
+                      return (
+                        <Box key={am.agent_id} marginTop={idx === 0 ? 1 : 0}>
+                          <Text
+                            color={isSelected ? colors.primary : colors.textDim}
+                          >
+                            {isSelected ? figures.pointer : " "}{" "}
                           </Text>
-                        </Text>
-                      </Box>
-                    ))}
-                    <Box marginLeft={2}>
+                          <Text color={colors.text}>
+                            {am.agent_name || am.agent_id}
+                          </Text>
+                          <Text color={colors.textDim}>
+                            {am.source_type ? ` [${am.source_type}]` : ""}
+                            {fmtVersion ? ` v${fmtVersion}` : ""}
+                          </Text>
+                          {am.agent_path && (
+                            <>
+                              <Text color={colors.textDim}> → </Text>
+                              <Text color={colors.info}>{am.agent_path}</Text>
+                            </>
+                          )}
+                        </Box>
+                      );
+                    })}
+                    <Box marginTop={1}>
                       <Text
                         color={
                           selectedAgentMountIndex === agentCount
                             ? colors.success
                             : colors.textDim
                         }
-                        bold={selectedAgentMountIndex === agentCount}
                       >
                         {selectedAgentMountIndex === agentCount
                           ? figures.pointer
                           : " "}{" "}
-                        + Add Agent
+                        + Add agent mount
                       </Text>
                     </Box>
-                    <Box marginLeft={2}>
+                    <Box marginTop={1}>
                       <Text
                         color={
                           selectedAgentMountIndex === agentCount + 1
                             ? colors.primary
                             : colors.textDim
                         }
-                        bold={selectedAgentMountIndex === agentCount + 1}
                       >
                         {selectedAgentMountIndex === agentCount + 1
                           ? figures.pointer
@@ -3566,23 +3585,19 @@ export const DevboxCreatePage = ({
                         Done
                       </Text>
                     </Box>
-                    <Box
-                      borderStyle="single"
-                      borderColor={colors.border}
-                      paddingX={1}
-                    >
-                      <Text color={colors.textDim} dimColor>
-                        {`${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedAgentMountIndex === agentCount ? "Add" : selectedAgentMountIndex === agentCount + 1 ? "Done" : "Select"} • [d] Remove • [esc] Back`}
-                      </Text>
-                    </Box>
                     {agentConflictWarning && (
-                      <Box marginLeft={2} marginTop={0}>
+                      <Box marginTop={1}>
                         <Text color={colors.error}>
                           {figures.cross} {agentConflictWarning}
                         </Text>
                       </Box>
                     )}
-                  </>
+                    <Box marginTop={1}>
+                      <Text color={colors.textDim} dimColor>
+                        {`${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] Select • [d] Remove • [esc] Back`}
+                      </Text>
+                    </Box>
+                  </Box>
                 )}
               </Box>
             );
