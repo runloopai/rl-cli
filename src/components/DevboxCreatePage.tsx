@@ -57,6 +57,48 @@ interface SecretListItem {
   create_time_ms?: number;
 }
 
+const DEFAULT_MOUNT_PATH = "/home/user";
+
+function sanitizeMountSegment(input: string): string {
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
+function repoBasename(repo: string): string | undefined {
+  const cleaned = repo
+    .trim()
+    .replace(/[?#].*$/, "")
+    .replace(/\/+$/, "");
+  const m = cleaned.match(/(?:[/:])([^/:\s]+?)(?:\.git)?$/);
+  return m?.[1];
+}
+
+function getDefaultAgentPath(agent: Agent, mount: AgentMountInfo): string {
+  // For git agents, use the repo basename
+  const source = agent.source as
+    | { type?: string; git?: { repository?: string } }
+    | undefined;
+  if (source?.git?.repository) {
+    const base = repoBasename(source.git.repository);
+    if (base) {
+      const sanitized = sanitizeMountSegment(base);
+      if (sanitized) return `${DEFAULT_MOUNT_PATH}/${sanitized}`;
+    }
+  }
+
+  // Fall back to agent name
+  if (mount.agent_name) {
+    const sanitized = sanitizeMountSegment(mount.agent_name);
+    if (sanitized) return `${DEFAULT_MOUNT_PATH}/${sanitized}`;
+  }
+
+  return `${DEFAULT_MOUNT_PATH}/agent`;
+}
+
 interface DevboxCreatePageProps {
   onBack: () => void;
   onCreate?: (devbox: DevboxView) => void;
@@ -735,6 +777,12 @@ export const DevboxCreatePage = ({
           return prev;
         }
         setAgentConflictWarning(null);
+        const needsPath =
+          candidateMount.source_type === "git" ||
+          candidateMount.source_type === "object";
+        const defaultPath = needsPath
+          ? getDefaultAgentPath(agent, candidateMount)
+          : "";
         return {
           ...prev,
           agentMounts: [
@@ -742,7 +790,7 @@ export const DevboxCreatePage = ({
             {
               agent_id: candidateMount.agent_id,
               agent_name: candidateMount.agent_name,
-              agent_path: candidateMount.agent_path || "",
+              agent_path: candidateMount.agent_path || defaultPath,
               source_type: candidateMount.source_type,
               version: agent.version,
               package_name: candidateMount.package_name,
