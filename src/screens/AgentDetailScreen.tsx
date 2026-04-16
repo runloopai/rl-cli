@@ -198,7 +198,7 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
       label: "Create Devbox with Agent",
       color: colors.success,
       icon: figures.play,
-      shortcut: "c",
+      shortcut: "n",
     },
     ...(isPublic
       ? []
