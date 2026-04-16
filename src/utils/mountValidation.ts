@@ -98,6 +98,31 @@ export function pathsOverlap(a: string, b: string): boolean {
   return na.startsWith(nb + "/") || nb.startsWith(na + "/");
 }
 
+/**
+ * Given a list of labeled mount paths, find which ones overlap with each other.
+ * Returns a map from label to an array of overlapping labels.
+ */
+export function findPathOverlaps(
+  mounts: Array<{ label: string; path: string }>,
+): Map<string, string[]> {
+  const result = new Map<string, string[]>();
+  for (let i = 0; i < mounts.length; i++) {
+    const a = mounts[i];
+    if (!a.path) continue;
+    for (let j = i + 1; j < mounts.length; j++) {
+      const b = mounts[j];
+      if (!b.path) continue;
+      if (pathsOverlap(a.path, b.path)) {
+        if (!result.has(a.label)) result.set(a.label, []);
+        result.get(a.label)!.push(b.label);
+        if (!result.has(b.label)) result.set(b.label, []);
+        result.get(b.label)!.push(a.label);
+      }
+    }
+  }
+  return result;
+}
+
 /** Strip [extras] suffix from pip package name: "pkg[extra]" → "pkg" */
 export function extractPipBaseName(pkg: string): string {
   const bracketIdx = pkg.indexOf("[");
