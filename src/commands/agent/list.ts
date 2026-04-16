@@ -44,7 +44,7 @@ export function printAgentTable(agents: Agent[]): void {
   }
 
   const termWidth = process.stdout.columns || 120;
-  const columns = getAgentColumns(agents, termWidth);
+  const columns = getAgentColumns(agents, termWidth, false);
 
   // Header
   const header = columns.map((col) => col.label.padEnd(col.width)).join("");

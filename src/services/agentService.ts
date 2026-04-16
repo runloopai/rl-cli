@@ -49,44 +49,82 @@ const CREATED_WIDTH = 12; // e.g. "3d ago", "2mo ago"
 const MIN_FLEX_WIDTH = 10; // minimum for each flexible column (name, version)
 const FIXED_TOTAL = SOURCE_WIDTH + ID_WIDTH + CREATED_WIDTH;
 
+/** Column spec before width calculation */
+interface AgentColumnSpec {
+  key: string;
+  label: string;
+  getValue: (agent: Agent) => string;
+  /** Fixed width (used in trimToFit mode). Flex columns leave this undefined. */
+  fixedWidth?: number;
+}
+
+const columnSpecs: AgentColumnSpec[] = [
+  { key: "name", label: "NAME", getValue: (a) => a.name },
+  {
+    key: "source",
+    label: "SOURCE",
+    fixedWidth: SOURCE_WIDTH,
+    getValue: (a) => (a as any).source?.type || "-",
+  },
+  { key: "version", label: "VERSION", getValue: agentVersionText },
+  { key: "id", label: "ID", fixedWidth: ID_WIDTH, getValue: (a) => a.id },
+  {
+    key: "created",
+    label: "CREATED",
+    fixedWidth: CREATED_WIDTH,
+    getValue: (a) => formatTimeAgo(a.create_time_ms),
+  },
+];
+
 /**
  * Build agent column definitions with widths fitted to `availableWidth`.
  *
  * Column order: NAME, SOURCE, VERSION, ID, CREATED.
- * SOURCE, ID, and CREATED have fixed widths. The remaining space is split
- * evenly between NAME and VERSION so the row fills `availableWidth` exactly.
- * No data scanning is needed — widths depend only on terminal size.
+ *
+ * When `trimToFit` is true (TUI), SOURCE/ID/CREATED use fixed widths and
+ * the remaining space is split evenly between NAME and VERSION. Content
+ * that overflows is truncated by the Table component.
+ *
+ * When `trimToFit` is false (CLI), each column is sized to its widest
+ * value (or header) plus padding. Columns may exceed `availableWidth`
+ * so that all content is visible and columns always align.
  */
 export function getAgentColumns(
-  _agents: Agent[],
+  agents: Agent[],
   availableWidth: number,
+  trimToFit = true,
 ): AgentColumn[] {
-  const flexSpace = Math.max(MIN_FLEX_WIDTH * 2, availableWidth - FIXED_TOTAL);
-  const nameWidth = Math.ceil(flexSpace / 2);
-  const versionWidth = Math.floor(flexSpace / 2);
+  if (trimToFit) {
+    // TUI mode: fixed widths with flex split
+    const flexSpace = Math.max(
+      MIN_FLEX_WIDTH * 2,
+      availableWidth - FIXED_TOTAL,
+    );
+    const nameWidth = Math.ceil(flexSpace / 2);
+    const versionWidth = Math.floor(flexSpace / 2);
 
-  return [
-    { key: "name", label: "NAME", width: nameWidth, getValue: (a) => a.name },
-    {
-      key: "source",
-      label: "SOURCE",
-      width: SOURCE_WIDTH,
-      getValue: (a) => (a as any).source?.type || "-",
-    },
-    {
-      key: "version",
-      label: "VERSION",
-      width: versionWidth,
-      getValue: agentVersionText,
-    },
-    { key: "id", label: "ID", width: ID_WIDTH, getValue: (a) => a.id },
-    {
-      key: "created",
-      label: "CREATED",
-      width: CREATED_WIDTH,
-      getValue: (a) => formatTimeAgo(a.create_time_ms),
-    },
-  ];
+    return columnSpecs.map((spec) => ({
+      key: spec.key,
+      label: spec.label,
+      width: spec.fixedWidth ?? (spec.key === "name" ? nameWidth : versionWidth),
+      getValue: spec.getValue,
+    }));
+  }
+
+  // CLI mode: size each column to its content
+  const COL_PAD = 2;
+  return columnSpecs.map((spec) => {
+    let maxLen = spec.label.length;
+    for (const agent of agents) {
+      maxLen = Math.max(maxLen, spec.getValue(agent).length);
+    }
+    return {
+      key: spec.key,
+      label: spec.label,
+      width: maxLen + COL_PAD,
+      getValue: spec.getValue,
+    };
+  });
 }
 
 export interface ListAgentsOptions {
