@@ -26,6 +26,58 @@ export interface ValidationError {
   message: string;
 }
 
+/**
+ * Check if adding a candidate agent to the current selection would cause conflicts.
+ * Returns the conflict reason string, or null if no conflict.
+ */
+export function wouldAgentConflict(
+  candidate: AgentMountInfo,
+  currentSelection: AgentMountInfo[],
+): string | null {
+  // Duplicate ID
+  if (currentSelection.some((a) => a.agent_id === candidate.agent_id)) {
+    return `This agent is already selected`;
+  }
+
+  // Duplicate name
+  if (candidate.agent_name) {
+    const candidateLower = candidate.agent_name.toLowerCase();
+    const conflicting = currentSelection.find(
+      (a) => a.agent_name?.toLowerCase() === candidateLower,
+    );
+    if (conflicting) {
+      return `Conflicts with selected agent "${conflicting.agent_name}" (same name)`;
+    }
+  }
+
+  // Duplicate npm package
+  if (candidate.source_type === "npm" && candidate.package_name) {
+    const conflicting = currentSelection.find(
+      (a) =>
+        a.source_type === "npm" && a.package_name === candidate.package_name,
+    );
+    if (conflicting) {
+      return `Conflicts with selected agent "${conflicting.agent_name || conflicting.agent_id}" (same npm package \`${candidate.package_name}\`)`;
+    }
+  }
+
+  // Duplicate pip package
+  if (candidate.source_type === "pip" && candidate.package_name) {
+    const base = extractPipBaseName(candidate.package_name);
+    const conflicting = currentSelection.find(
+      (a) =>
+        a.source_type === "pip" &&
+        a.package_name &&
+        extractPipBaseName(a.package_name) === base,
+    );
+    if (conflicting) {
+      return `Conflicts with selected agent "${conflicting.agent_name || conflicting.agent_id}" (same pip package \`${base}\`)`;
+    }
+  }
+
+  return null;
+}
+
 /** Remove trailing slashes from a path. */
 export function normalizePath(path: string): string {
   let normalized = path;

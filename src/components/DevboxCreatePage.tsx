@@ -45,6 +45,7 @@ import {
 } from "../services/agentService.js";
 import {
   validateMounts as validateMountConstraints,
+  wouldAgentConflict,
   type AgentMountInfo,
 } from "../utils/mountValidation.js";
 
@@ -348,6 +349,11 @@ export const DevboxCreatePage = ({
 
   const mcpFormFields = ["attach", "mcpConfig", "secret"] as const;
   const mcpFormFieldIndex = mcpFormFields.indexOf(mcpFormField);
+
+  // Agent conflict warning (shown inline, auto-clears)
+  const [agentConflictWarning, setAgentConflictWarning] = React.useState<
+    string | null
+  >(null);
 
   // Agent picker states
   const [showAgentPicker, setShowAgentPicker] = React.useState(false);
@@ -682,35 +688,37 @@ export const DevboxCreatePage = ({
   const handleAgentSelect = React.useCallback((agents: Agent[]) => {
     if (agents.length > 0) {
       const agent = agents[0];
+      const candidateMount: AgentMountInfo = {
+        agent_id: agent.id,
+        agent_name: agent.name,
+        agent_path: "",
+        source_type: agent.source?.type,
+        package_name:
+          agent.source?.type === "npm"
+            ? agent.source.npm?.package_name
+            : agent.source?.type === "pip"
+              ? agent.source.pip?.package_name
+              : undefined,
+      };
+
       setFormData((prev) => {
-        // Check for duplicate agent ID or name
-        const isDuplicateId = prev.agentMounts.some(
-          (m) => m.agent_id === agent.id,
-        );
-        const isDuplicateName =
-          agent.name &&
-          prev.agentMounts.some(
-            (m) => m.agent_name.toLowerCase() === agent.name.toLowerCase(),
-          );
-        if (isDuplicateId || isDuplicateName) {
-          return prev; // silently skip duplicate
+        const conflict = wouldAgentConflict(candidateMount, prev.agentMounts);
+        if (conflict) {
+          setAgentConflictWarning(conflict);
+          return prev;
         }
+        setAgentConflictWarning(null);
         return {
           ...prev,
           agentMounts: [
             ...prev.agentMounts,
             {
-              agent_id: agent.id,
-              agent_name: agent.name,
-              agent_path: "",
-              source_type: agent.source?.type,
+              agent_id: candidateMount.agent_id,
+              agent_name: candidateMount.agent_name,
+              agent_path: candidateMount.agent_path || "",
+              source_type: candidateMount.source_type,
               version: agent.version,
-              package_name:
-                agent.source?.type === "npm"
-                  ? agent.source.npm?.package_name
-                  : agent.source?.type === "pip"
-                    ? agent.source.pip?.package_name
-                    : undefined,
+              package_name: candidateMount.package_name,
             },
           ],
         };
@@ -3567,6 +3575,13 @@ export const DevboxCreatePage = ({
                         {`${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedAgentMountIndex === agentCount ? "Add" : selectedAgentMountIndex === agentCount + 1 ? "Done" : "Select"} • [d] Remove • [esc] Back`}
                       </Text>
                     </Box>
+                    {agentConflictWarning && (
+                      <Box marginLeft={2} marginTop={0}>
+                        <Text color={colors.error}>
+                          {figures.cross} {agentConflictWarning}
+                        </Text>
+                      </Box>
+                    )}
                   </>
                 )}
               </Box>

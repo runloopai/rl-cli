@@ -8,6 +8,7 @@ import {
   pathsOverlap,
   extractPipBaseName,
   validateMounts,
+  wouldAgentConflict,
 } from "@/utils/mountValidation.js";
 import type { AgentMountInfo, ObjectMountInfo } from "@/utils/mountValidation.js";
 
@@ -129,5 +130,49 @@ describe("validateMounts", () => {
     ];
     const errors = validateMounts(agents, objects);
     expect(errors).toHaveLength(0);
+  });
+});
+
+describe("wouldAgentConflict", () => {
+  it("returns null for non-conflicting agent", () => {
+    const current: AgentMountInfo[] = [
+      { agent_id: "a1", agent_name: "n1", source_type: "pip", package_name: "foo" },
+    ];
+    const candidate: AgentMountInfo = { agent_id: "a2", agent_name: "n2", source_type: "pip", package_name: "bar" };
+    expect(wouldAgentConflict(candidate, current)).toBeNull();
+  });
+
+  it("detects duplicate agent ID", () => {
+    const current: AgentMountInfo[] = [{ agent_id: "a1", agent_name: "n1" }];
+    const candidate: AgentMountInfo = { agent_id: "a1", agent_name: "n2" };
+    expect(wouldAgentConflict(candidate, current)).toContain("already selected");
+  });
+
+  it("detects duplicate agent name", () => {
+    const current: AgentMountInfo[] = [{ agent_id: "a1", agent_name: "MyAgent" }];
+    const candidate: AgentMountInfo = { agent_id: "a2", agent_name: "myagent" };
+    expect(wouldAgentConflict(candidate, current)).toContain("same name");
+  });
+
+  it("detects conflicting pip package", () => {
+    const current: AgentMountInfo[] = [
+      { agent_id: "a1", agent_name: "n1", source_type: "pip", package_name: "deepagents-cli[all]" },
+    ];
+    const candidate: AgentMountInfo = {
+      agent_id: "a2", agent_name: "n2", source_type: "pip", package_name: "deepagents-cli[providers]",
+    };
+    const result = wouldAgentConflict(candidate, current);
+    expect(result).toContain("same pip package");
+    expect(result).toContain("deepagents-cli");
+  });
+
+  it("detects conflicting npm package", () => {
+    const current: AgentMountInfo[] = [
+      { agent_id: "a1", agent_name: "n1", source_type: "npm", package_name: "foo" },
+    ];
+    const candidate: AgentMountInfo = {
+      agent_id: "a2", agent_name: "n2", source_type: "npm", package_name: "foo",
+    };
+    expect(wouldAgentConflict(candidate, current)).toContain("same npm package");
   });
 });
