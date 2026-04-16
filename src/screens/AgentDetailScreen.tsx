@@ -28,7 +28,7 @@ interface AgentDetailScreenProps {
 }
 
 export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
-  const { goBack } = useNavigation();
+  const { goBack, navigate } = useNavigation();
 
   const {
     data: agent,
@@ -192,20 +192,31 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
   }
 
   const isPublic = (agent as any).is_public;
-  const operations: ResourceOperation[] = isPublic
-    ? []
-    : [
-        {
-          key: "delete",
-          label: "Delete Agent",
-          color: colors.error,
-          icon: figures.cross,
-          shortcut: "d",
-        },
-      ];
+  const operations: ResourceOperation[] = [
+    {
+      key: "create-devbox",
+      label: "Create Devbox with Agent",
+      color: colors.success,
+      icon: figures.play,
+      shortcut: "c",
+    },
+    ...(isPublic
+      ? []
+      : [
+          {
+            key: "delete",
+            label: "Delete Agent",
+            color: colors.error,
+            icon: figures.cross,
+            shortcut: "d",
+          },
+        ]),
+  ];
 
   const handleOperation = async (operation: string) => {
-    if (operation === "delete") {
+    if (operation === "create-devbox") {
+      navigate("devbox-create", { agentId: agent.id });
+    } else if (operation === "delete") {
       setShowDeleteConfirm(true);
     }
   };
