@@ -2506,7 +2506,18 @@ export const DevboxCreatePage = ({
           if (formData.agentMounts.some((m) => m.agent_id === agent.id)) {
             return "Already selected";
           }
-          return null;
+          const candidateMount: AgentMountInfo = {
+            agent_id: agent.id,
+            agent_name: agent.name,
+            source_type: agent.source?.type,
+            package_name:
+              agent.source?.type === "npm"
+                ? agent.source.npm?.package_name
+                : agent.source?.type === "pip"
+                  ? agent.source.pip?.package_name
+                  : undefined,
+          };
+          return wouldAgentConflict(candidateMount, formData.agentMounts);
         }}
       />
     );
