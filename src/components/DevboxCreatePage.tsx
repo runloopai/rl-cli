@@ -247,7 +247,6 @@ export const DevboxCreatePage = ({
   const [agentPickerTab, setAgentPickerTab] = React.useState<
     "private" | "public"
   >("private");
-  const [agentPickerMerged, setAgentPickerMerged] = React.useState(false);
 
   const baseFields: Array<{
     key: FormField;
@@ -1514,7 +1513,7 @@ export const DevboxCreatePage = ({
           </Text>
         </Box>
         <ResourcePicker<Agent>
-          extraDeps={[agentPickerTab, agentPickerMerged]}
+          extraDeps={[agentPickerTab]}
           extraOverhead={2}
           config={{
             title:
@@ -1527,7 +1526,7 @@ export const DevboxCreatePage = ({
                 const isIdSearch =
                   params.search && /^agt_/i.test(params.search.trim());
                 if (params.search && !isIdSearch) {
-                  setAgentPickerMerged(true);
+
                   // Merged pagination: decode dual cursors from opaque nextCursor
                   let privateCursor: string | undefined;
                   let publicCursor: string | undefined;
@@ -1607,7 +1606,7 @@ export const DevboxCreatePage = ({
                 }
 
                 // Not searching, or searching by exact agent ID: private-only fetch
-                setAgentPickerMerged(false);
+
                 const result = await listAgents({
                   limit: params.limit,
                   startingAfter: params.startingAt,
@@ -1620,7 +1619,7 @@ export const DevboxCreatePage = ({
                 };
               } else {
                 // Public tab: only fetch public agents
-                setAgentPickerMerged(false);
+
                 const publicResult = await listPublicAgents({
                   search: params.search,
                   limit: params.limit,
