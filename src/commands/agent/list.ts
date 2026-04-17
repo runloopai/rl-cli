@@ -3,9 +3,12 @@
  */
 
 import chalk from "chalk";
-import { listAgents, type Agent } from "../../services/agentService.js";
+import {
+  listAgents,
+  getAgentColumns,
+  type Agent,
+} from "../../services/agentService.js";
 import { output, outputError } from "../../utils/output.js";
-import { formatTimeAgo } from "../../utils/time.js";
 
 interface ListOptions {
   full?: boolean;
@@ -16,81 +19,16 @@ interface ListOptions {
   output?: string;
 }
 
-interface ColumnDef {
-  header: string;
-  raw: (agent: Agent) => string;
-  styled: (agent: Agent) => string;
-}
-
-const columns: ColumnDef[] = [
-  {
-    header: "NAME",
-    raw: (a) => a.name,
-    styled(a) {
-      return this.raw(a);
-    },
+/** Styling rules keyed by column key. Columns not listed render unstyled. */
+const columnStyle: Record<string, (raw: string) => string> = {
+  id: (v) => chalk.dim(v),
+  created: (v) => chalk.dim(v),
+  version: (v) => {
+    // Dim the "pkg@" prefix when present. Use lastIndexOf to skip scoped package @ (e.g. @scope/pkg@1.0)
+    const at = v.lastIndexOf("@");
+    return at > 0 ? chalk.dim(v.slice(0, at + 1)) + v.slice(at + 1) : v;
   },
-  {
-    header: "SOURCE",
-    raw: (a) => (a as any).source?.type || "-",
-    styled(a) {
-      return this.raw(a);
-    },
-  },
-  {
-    header: "VERSION",
-    raw: (a) => {
-      const pkg =
-        (a as any).source?.npm?.package_name ||
-        (a as any).source?.pip?.package_name;
-      return pkg ? `${pkg}@${a.version}` : a.version;
-    },
-    styled(a) {
-      const pkg =
-        (a as any).source?.npm?.package_name ||
-        (a as any).source?.pip?.package_name;
-      return pkg ? chalk.dim(pkg + "@") + a.version : a.version;
-    },
-  },
-  {
-    header: "ID",
-    raw: (a) => a.id,
-    styled(a) {
-      return chalk.dim(a.id);
-    },
-  },
-  {
-    header: "CREATED",
-    raw: (a) => formatTimeAgo(a.create_time_ms),
-    styled(a) {
-      return chalk.dim(this.raw(a));
-    },
-  },
-];
-
-function computeColumnWidths(agents: Agent[]): number[] {
-  const minPad = 2;
-  const maxPad = 4;
-  const termWidth = process.stdout.columns || 120;
-
-  // Min width per column: max of header and all row values, plus minimum padding
-  const minWidths = columns.map((col) => {
-    const maxContent = agents.reduce(
-      (w, a) => Math.max(w, col.raw(a).length),
-      col.header.length,
-    );
-    return maxContent + minPad;
-  });
-
-  const totalMin = minWidths.reduce((s, w) => s + w, 0);
-  const slack = termWidth - totalMin;
-  const extraPerCol = Math.min(
-    maxPad - minPad,
-    Math.max(0, Math.floor(slack / columns.length)),
-  );
-
-  return minWidths.map((w) => w + extraPerCol);
-}
+};
 
 function padStyled(raw: string, styled: string, width: number): string {
   return styled + " ".repeat(Math.max(0, width - raw.length));
@@ -105,18 +43,23 @@ export function printAgentTable(agents: Agent[]): void {
     return;
   }
 
-  const widths = computeColumnWidths(agents);
   const termWidth = process.stdout.columns || 120;
+  const columns = getAgentColumns(agents, termWidth, false);
 
   // Header
-  const header = columns.map((col, i) => col.header.padEnd(widths[i])).join("");
+  const header = columns.map((col) => col.label.padEnd(col.width)).join("");
   console.log(chalk.bold(header));
   console.log(chalk.dim("─".repeat(Math.min(header.length, termWidth))));
 
   // Rows
   for (const agent of agents) {
     const line = columns
-      .map((col, i) => padStyled(col.raw(agent), col.styled(agent), widths[i]))
+      .map((col) => {
+        const raw = col.getValue(agent);
+        const styleFn = columnStyle[col.key];
+        const styled = styleFn ? styleFn(raw) : raw;
+        return padStyled(raw, styled, col.width);
+      })
       .join("");
     console.log(line);
   }

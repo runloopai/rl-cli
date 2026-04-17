@@ -22,6 +22,7 @@ import {
   type Scenario,
 } from "../services/scenarioService.js";
 import { listAgents, type Agent } from "../services/agentService.js";
+import { buildAgentTableColumns } from "../components/agentColumns.js";
 import {
   createBenchmarkJob,
   type BenchmarkJob,
@@ -588,21 +589,12 @@ export function BenchmarkJobCreateScreen({
       const result = await listAgents({
         limit: params.limit,
         startingAfter: params.startingAt,
+        search: params.search || undefined,
       });
-      // Apply search filter if provided
-      let filteredAgents = result.agents;
-      if (params.search) {
-        const searchLower = params.search.toLowerCase();
-        filteredAgents = result.agents.filter(
-          (agent) =>
-            agent.name.toLowerCase().includes(searchLower) ||
-            agent.id.toLowerCase().includes(searchLower),
-        );
-      }
       return {
-        items: filteredAgents,
+        items: result.agents,
         hasMore: result.hasMore,
-        totalCount: filteredAgents.length,
+        totalCount: result.totalCount,
       };
     },
     [],
@@ -672,16 +664,16 @@ export function BenchmarkJobCreateScreen({
     [fetchScenariosPage],
   );
 
-  // Memoize agent picker config (multi-select)
+  // Memoize agent picker config (single-select)
   const agentPickerConfig = React.useMemo(
     () => ({
-      title: "Select Agents",
+      title: "Select Agent",
       fetchPage: fetchAgentsPage,
       getItemId: (agent: Agent) => agent.id,
       getItemLabel: (agent: Agent) => agent.name,
       getItemStatus: (agent: Agent) => (agent.is_public ? "public" : "private"),
-      mode: "multi" as const,
-      minSelection: 1,
+      columns: buildAgentTableColumns,
+      mode: "single" as const,
       emptyMessage: "No agents found",
       searchPlaceholder: "Search agents...",
       breadcrumbItems: [
@@ -689,7 +681,7 @@ export function BenchmarkJobCreateScreen({
         { label: "Benchmarks" },
         { label: "Jobs" },
         { label: "Create" },
-        { label: "Select Agents", active: true },
+        { label: "Select Agent", active: true },
       ],
     }),
     [fetchAgentsPage],
@@ -1027,14 +1019,13 @@ export function BenchmarkJobCreateScreen({
     );
   }
 
-  // Show agent picker (multi-select)
+  // Show agent picker (single-select)
   if (screenState === "picking_agents") {
     return (
       <ResourcePicker<Agent>
         config={agentPickerConfig}
         onSelect={handleAgentSelect}
         onCancel={() => setScreenState("form")}
-        initialSelected={formData.agentIds}
       />
     );
   }

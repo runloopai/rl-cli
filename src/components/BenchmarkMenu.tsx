@@ -67,21 +67,21 @@ interface BenchmarkMenuItem {
 const benchmarkMenuItems: BenchmarkMenuItem[] = [
   {
     key: "benchmarks",
-    label: "Benchmark Defs",
+    label: "Available Benchmarks",
     description: "View benchmark definitions",
     icon: "◉",
     color: colors.primary,
   },
   {
     key: "benchmark-jobs",
-    label: "Orchestrator Jobs",
+    label: "Benchmark Orchestrator Jobs",
     description: "Run and manage benchmark jobs",
     icon: "▲",
     color: colors.warning,
   },
   {
     key: "benchmark-runs",
-    label: "Legacy Runs",
+    label: "Manual Benchmark Runs",
     description: "View and manage benchmark executions",
     icon: "◇",
     color: colors.success,
