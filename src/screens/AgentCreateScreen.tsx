@@ -334,8 +334,7 @@ export function AgentCreateScreen() {
           />
 
           {/* Source-specific fields */}
-          {(formData.sourceType === "npm" ||
-            formData.sourceType === "pip") && (
+          {(formData.sourceType === "npm" || formData.sourceType === "pip") && (
             <>
               <FormTextInput
                 label="Package Name"
@@ -397,7 +396,11 @@ export function AgentCreateScreen() {
         paddingX={2}
         showArrows
         tips={[
-          { key: "Enter", label: "Create", condition: currentField === "create" },
+          {
+            key: "Enter",
+            label: "Create",
+            condition: currentField === "create",
+          },
           { key: "Esc", label: "Cancel" },
         ]}
       />

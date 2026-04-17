@@ -106,7 +106,8 @@ export function getAgentColumns(
     return columnSpecs.map((spec) => ({
       key: spec.key,
       label: spec.label,
-      width: spec.fixedWidth ?? (spec.key === "name" ? nameWidth : versionWidth),
+      width:
+        spec.fixedWidth ?? (spec.key === "name" ? nameWidth : versionWidth),
       getValue: spec.getValue,
     }));
   }

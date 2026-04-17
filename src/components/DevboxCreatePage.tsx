@@ -1526,7 +1526,6 @@ export const DevboxCreatePage = ({
                 const isIdSearch =
                   params.search && /^agt_/i.test(params.search.trim());
                 if (params.search && !isIdSearch) {
-
                   // Merged pagination: decode dual cursors from opaque nextCursor
                   let privateCursor: string | undefined;
                   let publicCursor: string | undefined;
