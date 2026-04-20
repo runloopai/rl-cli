@@ -148,6 +148,7 @@ jobs:
           ecosystems: npm
           min-age-days: "14"
           base-ref: origin/${{ github.event.pull_request.base.ref }}
+          bypass-keyword: "bypass-age-gate"
 
   ready-to-merge:
     runs-on: ubuntu-slim
