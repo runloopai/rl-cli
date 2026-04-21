@@ -8,6 +8,7 @@ import { Breadcrumb } from "./Breadcrumb.js";
 import { NavigationTips } from "./NavigationTips.js";
 import { colors } from "../utils/theme.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
+import { useMenuStore } from "../store/menuStore.js";
 
 /*
 Some useful icon chars
@@ -102,8 +103,26 @@ interface BenchmarkMenuProps {
 
 export const BenchmarkMenu = ({ onSelect, onBack }: BenchmarkMenuProps) => {
   const { exit } = useApp();
-  const [selectedIndex, setSelectedIndex] = React.useState(0);
   const { stdout } = useStdout();
+  const { benchmarkSelectedKey, setBenchmarkSelectedKey } = useMenuStore();
+
+  // Calculate initial index from persisted key
+  const initialIndex = React.useMemo(() => {
+    const index = benchmarkMenuItems.findIndex(
+      (item) => item.key === benchmarkSelectedKey,
+    );
+    return index >= 0 ? index : 0;
+  }, [benchmarkSelectedKey]);
+
+  const [selectedIndex, setSelectedIndex] = React.useState(initialIndex);
+
+  // Persist selection when it changes
+  React.useEffect(() => {
+    const currentKey = benchmarkMenuItems[selectedIndex]?.key;
+    if (currentKey && currentKey !== benchmarkSelectedKey) {
+      setBenchmarkSelectedKey(currentKey);
+    }
+  }, [selectedIndex, benchmarkSelectedKey, setBenchmarkSelectedKey]);
 
   // Get terminal dimensions for responsive layout
   const getTerminalDimensions = React.useCallback(() => {

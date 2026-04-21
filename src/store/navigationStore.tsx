@@ -19,11 +19,11 @@ export type ScreenName =
   | "devbox-actions"
   | "devbox-exec"
   | "devbox-create"
+  | "snapshot-list"
+  | "snapshot-detail"
   | "blueprint-list"
   | "blueprint-detail"
   | "blueprint-logs"
-  | "snapshot-list"
-  | "snapshot-detail"
   | "network-policy-list"
   | "network-policy-detail"
   | "network-policy-create"
@@ -36,6 +36,12 @@ export type ScreenName =
   | "secret-list"
   | "secret-detail"
   | "secret-create"
+  | "agents-objects-menu"
+  | "agent-list"
+  | "agent-detail"
+  | "agent-create"
+  | "axon-list"
+  | "axon-detail"
   | "object-list"
   | "object-detail"
   | "ssh-session"
@@ -47,10 +53,7 @@ export type ScreenName =
   | "scenario-run-detail"
   | "benchmark-job-list"
   | "benchmark-job-detail"
-  | "benchmark-job-create"
-  | "agent-list"
-  | "agent-detail"
-  | "agent-create";
+  | "benchmark-job-create";
 
 export interface RouteParams {
   devboxId?: string;
@@ -61,6 +64,8 @@ export interface RouteParams {
   gatewayConfigId?: string;
   mcpConfigId?: string;
   secretId?: string;
+  agentId?: string;
+  axonId?: string;
   objectId?: string;
   operation?: string;
   focusDevboxId?: string;
@@ -82,7 +87,6 @@ export interface RouteParams {
   scenarioRunId?: string;
   benchmarkJobId?: string;
   initialBenchmarkIds?: string;
-  agentId?: string;
   [key: string]: string | ScreenName | RouteParams | undefined;
 }
 

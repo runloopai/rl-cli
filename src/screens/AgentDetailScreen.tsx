@@ -2,16 +2,20 @@
  * AgentDetailScreen - Detail page for agents
  */
 import React from "react";
-import { Box, Text } from "ink";
+import { Text } from "ink";
 import figures from "figures";
 import { useNavigation } from "../store/navigationStore.js";
-import { getAgent, deleteAgent, type Agent } from "../services/agentService.js";
 import {
   ResourceDetailPage,
   formatTimestamp,
   type DetailSection,
   type ResourceOperation,
 } from "../components/ResourceDetailPage.js";
+import { getAgent, deleteAgent, type Agent } from "../services/agentService.js";
+import {
+  getObject,
+  buildObjectDetailFields,
+} from "../services/objectService.js";
 import { useResourceDetail } from "../hooks/useResourceDetail.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
@@ -26,11 +30,30 @@ interface AgentDetailScreenProps {
 export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
   const { goBack } = useNavigation();
 
-  const { data: agent, error } = useResourceDetail<Agent>({
+  const {
+    data: agent,
+    loading,
+    error,
+  } = useResourceDetail<Agent>({
     id: agentId,
     fetch: getAgent,
-    pollInterval: 5000,
   });
+
+  // Fetch underlying object details for object-based agents
+  const [objectDetails, setObjectDetails] = React.useState<Awaited<
+    ReturnType<typeof getObject>
+  > | null>(null);
+
+  React.useEffect(() => {
+    const source = (agent as any)?.source;
+    if (source?.type === "object" && source.object?.object_id) {
+      getObject(source.object.object_id)
+        .then((obj) => setObjectDetails(obj))
+        .catch(() => {
+          /* silently ignore - object may have been deleted */
+        });
+    }
+  }, [agent]);
 
   const [deleting, setDeleting] = React.useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
@@ -78,67 +101,24 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
     );
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const source = (agent as any).source;
+
   // Build detail sections
   const detailSections: DetailSection[] = [];
 
   const basicFields = [];
   basicFields.push({ label: "Version", value: agent.version });
-  basicFields.push({
-    label: "Public",
-    value: agent.is_public ? "Yes" : "No",
-  });
   if (agent.create_time_ms) {
     basicFields.push({
       label: "Created",
       value: formatTimestamp(agent.create_time_ms),
     });
   }
-
-  if (agent.source) {
-    basicFields.push({
-      label: "Source Type",
-      value: agent.source.type || "-",
-    });
-    if (agent.source.npm) {
-      basicFields.push({
-        label: "Package",
-        value: agent.source.npm.package_name,
-      });
-      if (agent.source.npm.registry_url) {
-        basicFields.push({
-          label: "Registry",
-          value: agent.source.npm.registry_url,
-        });
-      }
-    }
-    if (agent.source.pip) {
-      basicFields.push({
-        label: "Package",
-        value: agent.source.pip.package_name,
-      });
-      if (agent.source.pip.registry_url) {
-        basicFields.push({
-          label: "Registry",
-          value: agent.source.pip.registry_url,
-        });
-      }
-    }
-    if (agent.source.git) {
-      basicFields.push({
-        label: "Repository",
-        value: agent.source.git.repository,
-      });
-      if (agent.source.git.ref) {
-        basicFields.push({ label: "Ref", value: agent.source.git.ref });
-      }
-    }
-    if (agent.source.object) {
-      basicFields.push({
-        label: "Object ID",
-        value: agent.source.object.object_id,
-      });
-    }
-  }
+  basicFields.push({
+    label: "Public",
+    value: (agent as any).is_public ? "Yes" : "No",
+  });
 
   detailSections.push({
     title: "Details",
@@ -147,15 +127,82 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
     fields: basicFields,
   });
 
-  const operations: ResourceOperation[] = [
-    {
-      key: "delete",
-      label: "Delete",
-      color: colors.error,
-      icon: figures.cross,
-      shortcut: "d",
-    },
-  ];
+  // Source section
+  if (source) {
+    const sourceFields = [{ label: "Type", value: source.type || "-" }];
+
+    if (source.npm) {
+      sourceFields.push({
+        label: "Package",
+        value: source.npm.package_name,
+      });
+      if (source.npm.registry_url) {
+        sourceFields.push({
+          label: "Registry",
+          value: source.npm.registry_url,
+        });
+      }
+    } else if (source.pip) {
+      sourceFields.push({
+        label: "Package",
+        value: source.pip.package_name,
+      });
+      if (source.pip.registry_url) {
+        sourceFields.push({
+          label: "Registry",
+          value: source.pip.registry_url,
+        });
+      }
+    } else if (source.git) {
+      sourceFields.push({
+        label: "Repository",
+        value: source.git.repository,
+      });
+      if (source.git.ref) {
+        sourceFields.push({ label: "Ref", value: source.git.ref });
+      }
+    } else if (source.object) {
+      sourceFields.push({
+        label: "Object ID",
+        value: source.object.object_id,
+      });
+    }
+
+    detailSections.push({
+      title: "Source",
+      icon: figures.info,
+      color: colors.info,
+      fields: sourceFields,
+    });
+
+    // Add a dedicated "Object Details" section for object-based agents,
+    // reusing the same field builder as the Object detail screen
+    if (source?.type === "object" && objectDetails) {
+      const objectFields = buildObjectDetailFields(objectDetails);
+      if (objectDetails.name) {
+        objectFields.unshift({ label: "Name", value: objectDetails.name });
+      }
+      detailSections.push({
+        title: "Object Details",
+        icon: figures.squareSmallFilled,
+        color: colors.secondary,
+        fields: objectFields,
+      });
+    }
+  }
+
+  const isPublic = (agent as any).is_public;
+  const operations: ResourceOperation[] = isPublic
+    ? []
+    : [
+        {
+          key: "delete",
+          label: "Delete Agent",
+          color: colors.error,
+          icon: figures.cross,
+          shortcut: "d",
+        },
+      ];
 
   const handleOperation = async (operation: string) => {
     if (operation === "delete") {
@@ -178,6 +225,7 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
 
   const buildDetailLines = (a: Agent): React.ReactElement[] => {
     const lines: React.ReactElement[] = [];
+
     lines.push(
       <Text key="title" color={colors.warning} bold>
         Agent Details
@@ -201,12 +249,6 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
         Version: {a.version}
       </Text>,
     );
-    lines.push(
-      <Text key="public" dimColor>
-        {" "}
-        Public: {a.is_public ? "Yes" : "No"}
-      </Text>,
-    );
     if (a.create_time_ms) {
       lines.push(
         <Text key="created" dimColor>
@@ -217,53 +259,7 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
     }
     lines.push(<Text key="space"> </Text>);
 
-    if (a.source) {
-      lines.push(
-        <Text key="source-title" color={colors.warning} bold>
-          Source
-        </Text>,
-      );
-      lines.push(
-        <Text key="source-type" dimColor>
-          {" "}
-          Type: {a.source.type}
-        </Text>,
-      );
-      if (a.source.npm) {
-        lines.push(
-          <Text key="npm-pkg" dimColor>
-            {" "}
-            Package: {a.source.npm.package_name}
-          </Text>,
-        );
-      }
-      if (a.source.pip) {
-        lines.push(
-          <Text key="pip-pkg" dimColor>
-            {" "}
-            Package: {a.source.pip.package_name}
-          </Text>,
-        );
-      }
-      if (a.source.git) {
-        lines.push(
-          <Text key="git-repo" dimColor>
-            {" "}
-            Repository: {a.source.git.repository}
-          </Text>,
-        );
-      }
-      if (a.source.object) {
-        lines.push(
-          <Text key="obj-id" dimColor>
-            {" "}
-            Object ID: {a.source.object.object_id}
-          </Text>,
-        );
-      }
-      lines.push(<Text key="source-space"> </Text>);
-    }
-
+    // Raw JSON
     lines.push(
       <Text key="json-title" color={colors.warning} bold>
         Raw JSON
@@ -286,7 +282,7 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
     return (
       <ConfirmationPrompt
         title="Delete Agent"
-        message={`Are you sure you want to delete "${agent.name}"?`}
+        message={`Are you sure you want to delete "${agent.name}" (${agent.id})?`}
         details="This action cannot be undone."
         breadcrumbItems={[
           { label: "Agents" },
@@ -320,7 +316,7 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
       resourceType="Agents"
       getDisplayName={(a) => a.name}
       getId={(a) => a.id}
-      getStatus={(a) => (a.is_public ? "public" : "private")}
+      getStatus={() => ((agent as any).is_public ? "public" : "private")}
       detailSections={detailSections}
       operations={operations}
       onOperation={handleOperation}

@@ -136,6 +136,7 @@ export interface ListAgentsOptions {
   name?: string;
   search?: string;
   version?: string;
+  includeTotalCount?: boolean;
 }
 
 export interface ListAgentsResult {
@@ -160,9 +161,14 @@ export async function listAgents(
     name?: string;
     search?: string;
     version?: string;
+    include_total_count?: boolean;
   } = {
     limit: options.limit,
   };
+
+  if (options.includeTotalCount !== undefined) {
+    queryParams.include_total_count = options.includeTotalCount;
+  }
 
   if (options.startingAfter) {
     queryParams.starting_after = options.startingAfter;
@@ -227,6 +233,9 @@ export async function listPublicAgents(
   }
   if (options.search) {
     queryParams.search = options.search;
+  }
+  if (options.includeTotalCount !== undefined) {
+    queryParams.include_total_count = options.includeTotalCount;
   }
 
   // SDK doesn't have agents.listPublic yet, use raw HTTP call
