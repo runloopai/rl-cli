@@ -39,6 +39,7 @@ import { SecretCreatePage } from "./SecretCreatePage.js";
 import { GatewayConfigCreatePage } from "./GatewayConfigCreatePage.js";
 import { McpConfigCreatePage } from "./McpConfigCreatePage.js";
 import {
+  getAgent,
   listAgents,
   listPublicAgents,
   type Agent,
@@ -60,6 +61,7 @@ interface DevboxCreatePageProps {
   onCreate?: (devbox: DevboxView) => void;
   initialBlueprintId?: string;
   initialSnapshotId?: string;
+  initialAgentId?: string;
 }
 
 type FormField =
@@ -254,6 +256,7 @@ export const DevboxCreatePage = ({
   onCreate,
   initialBlueprintId,
   initialSnapshotId,
+  initialAgentId,
 }: DevboxCreatePageProps) => {
   const [currentField, setCurrentField] = React.useState<FormField>("create");
   const [formData, setFormData] = React.useState<FormData>({
@@ -372,6 +375,46 @@ export const DevboxCreatePage = ({
     React.useState(0);
   const [editingObjectMountPath, setEditingObjectMountPath] =
     React.useState(false);
+
+  // Load initial agent if provided (e.g., from "Create Devbox" on agent detail)
+  React.useEffect(() => {
+    if (!initialAgentId) return;
+    let cancelled = false;
+    getAgent(initialAgentId).then((agent) => {
+      if (cancelled) return;
+      const source = (agent as unknown as Record<string, unknown>).source as
+        | {
+            type?: string;
+            npm?: { package_name?: string };
+            pip?: { package_name?: string };
+          }
+        | undefined;
+      setFormData((prev) => ({
+        ...prev,
+        agentMounts: [
+          ...prev.agentMounts,
+          {
+            agent_id: agent.id,
+            agent_name: agent.name,
+            agent_path: "",
+            source_type: source?.type,
+            version: (agent as unknown as Record<string, unknown>).version as
+              | string
+              | undefined,
+            package_name:
+              source?.type === "npm"
+                ? source.npm?.package_name
+                : source?.type === "pip"
+                  ? source.pip?.package_name
+                  : undefined,
+          },
+        ],
+      }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialAgentId]);
 
   const baseFields: Array<{
     key: FormField;
