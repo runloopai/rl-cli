@@ -54,6 +54,8 @@ export const StreamingLogsViewer = ({
   const pollIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(
     null,
   );
+  /** Tracks the latest log timestamp_ms seen, used for dedup on subsequent polls. */
+  const lastTimestampRef = React.useRef<number>(0);
 
   // Calculate viewport - overhead increased to reduce overdraw/flashing
   const logsViewport = useViewportHeight({ overhead: 11, minHeight: 10 });
@@ -61,38 +63,36 @@ export const StreamingLogsViewer = ({
   // Handle Ctrl+C
   useExitOnCtrlC();
 
-  // Fetch logs function - only update state if logs actually changed
+  // Fetch logs function - deduplicates by timestamp to only append new entries
   const fetchLogs = React.useCallback(async () => {
     try {
       const newLogs = await getDevboxLogs(devboxId);
 
-      // Only update logs state if the logs have actually changed
-      // This prevents unnecessary re-renders that cause flashing in non-tmux terminals
       setLogs((prevLogs) => {
-        // Quick length check first
-        if (prevLogs.length !== newLogs.length) {
+        if (prevLogs.length === 0) {
+          // Initial load: show all logs and record the latest timestamp.
+          const maxTs = newLogs.reduce(
+            (m: number, l: AnyLog) =>
+              Math.max(m, "timestamp_ms" in l ? (l.timestamp_ms ?? 0) : 0),
+            0,
+          );
+          lastTimestampRef.current = maxTs;
           return newLogs;
         }
-        // If same length, check if last log entry is different (most common case for streaming)
-        if (newLogs.length > 0) {
-          const prevLast = prevLogs[prevLogs.length - 1];
-          const newLast = newLogs[newLogs.length - 1];
-          // Compare by timestamp and message for efficiency
-          if (
-            prevLast &&
-            newLast &&
-            "timestamp" in prevLast &&
-            "timestamp" in newLast &&
-            "message" in prevLast &&
-            "message" in newLast &&
-            prevLast.timestamp === newLast.timestamp &&
-            prevLast.message === newLast.message
-          ) {
-            // Logs haven't changed, return previous state to avoid re-render
-            return prevLogs;
-          }
-        }
-        return newLogs;
+        // Subsequent polls: only append entries newer than the last seen timestamp.
+        const cutoff = lastTimestampRef.current;
+        const newEntries = newLogs.filter(
+          (l: AnyLog) =>
+            ("timestamp_ms" in l ? (l.timestamp_ms ?? 0) : 0) > cutoff,
+        );
+        if (newEntries.length === 0) return prevLogs;
+        const maxTs = newEntries.reduce(
+          (m: number, l: AnyLog) =>
+            Math.max(m, "timestamp_ms" in l ? (l.timestamp_ms ?? 0) : 0),
+          0,
+        );
+        lastTimestampRef.current = maxTs;
+        return [...prevLogs, ...newEntries];
       });
       setError(null);
       if (loading) setLoading(false);
