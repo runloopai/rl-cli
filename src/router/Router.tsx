@@ -28,11 +28,11 @@ const KNOWN_SCREENS: Set<ScreenName> = new Set([
   "devbox-actions",
   "devbox-exec",
   "devbox-create",
+  "snapshot-list",
+  "snapshot-detail",
   "blueprint-list",
   "blueprint-detail",
   "blueprint-logs",
-  "snapshot-list",
-  "snapshot-detail",
   "network-policy-list",
   "network-policy-detail",
   "network-policy-create",
@@ -45,6 +45,12 @@ const KNOWN_SCREENS: Set<ScreenName> = new Set([
   "secret-list",
   "secret-detail",
   "secret-create",
+  "agents-objects-menu",
+  "agent-list",
+  "agent-detail",
+  "agent-create",
+  "axon-list",
+  "axon-detail",
   "object-list",
   "object-detail",
   "ssh-session",
@@ -58,9 +64,6 @@ const KNOWN_SCREENS: Set<ScreenName> = new Set([
   "benchmark-job-list",
   "benchmark-job-detail",
   "benchmark-job-create",
-  "agent-list",
-  "agent-detail",
-  "agent-create",
 ]);
 
 /**
@@ -108,11 +111,11 @@ import { DevboxDetailScreen } from "../screens/DevboxDetailScreen.js";
 import { DevboxActionsScreen } from "../screens/DevboxActionsScreen.js";
 import { DevboxExecScreen } from "../screens/DevboxExecScreen.js";
 import { DevboxCreateScreen } from "../screens/DevboxCreateScreen.js";
+import { SnapshotListScreen } from "../screens/SnapshotListScreen.js";
+import { SnapshotDetailScreen } from "../screens/SnapshotDetailScreen.js";
 import { BlueprintListScreen } from "../screens/BlueprintListScreen.js";
 import { BlueprintDetailScreen } from "../screens/BlueprintDetailScreen.js";
 import { BlueprintLogsScreen } from "../screens/BlueprintLogsScreen.js";
-import { SnapshotListScreen } from "../screens/SnapshotListScreen.js";
-import { SnapshotDetailScreen } from "../screens/SnapshotDetailScreen.js";
 import { NetworkPolicyListScreen } from "../screens/NetworkPolicyListScreen.js";
 import { NetworkPolicyDetailScreen } from "../screens/NetworkPolicyDetailScreen.js";
 import { NetworkPolicyCreateScreen } from "../screens/NetworkPolicyCreateScreen.js";
@@ -124,6 +127,12 @@ import { SettingsMenuScreen } from "../screens/SettingsMenuScreen.js";
 import { SecretListScreen } from "../screens/SecretListScreen.js";
 import { SecretDetailScreen } from "../screens/SecretDetailScreen.js";
 import { SecretCreateScreen } from "../screens/SecretCreateScreen.js";
+import { AgentsObjectsMenuScreen } from "../screens/AgentsObjectsMenuScreen.js";
+import { AgentListScreen } from "../screens/AgentListScreen.js";
+import { AgentDetailScreen } from "../screens/AgentDetailScreen.js";
+import { AgentCreateScreen } from "../screens/AgentCreateScreen.js";
+import { AxonListScreen } from "../screens/AxonListScreen.js";
+import { AxonDetailScreen } from "../screens/AxonDetailScreen.js";
 import { ObjectListScreen } from "../screens/ObjectListScreen.js";
 import { ObjectDetailScreen } from "../screens/ObjectDetailScreen.js";
 import { SSHSessionScreen } from "../screens/SSHSessionScreen.js";
@@ -137,9 +146,6 @@ import { ScenarioRunDetailScreen } from "../screens/ScenarioRunDetailScreen.js";
 import { BenchmarkJobListScreen } from "../screens/BenchmarkJobListScreen.js";
 import { BenchmarkJobDetailScreen } from "../screens/BenchmarkJobDetailScreen.js";
 import { BenchmarkJobCreateScreen } from "../screens/BenchmarkJobCreateScreen.js";
-import { AgentListScreen } from "../screens/AgentListScreen.js";
-import { AgentDetailScreen } from "../screens/AgentDetailScreen.js";
-import { AgentCreateScreen } from "../screens/AgentCreateScreen.js";
 
 /**
  * Router component that renders the current screen
@@ -277,6 +283,12 @@ export function Router() {
       {currentScreen === "devbox-create" && (
         <DevboxCreateScreen key={currentScreen} {...params} />
       )}
+      {currentScreen === "snapshot-list" && (
+        <SnapshotListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "snapshot-detail" && (
+        <SnapshotDetailScreen key={currentScreen} {...params} />
+      )}
       {currentScreen === "blueprint-list" && (
         <BlueprintListScreen key={currentScreen} {...params} />
       )}
@@ -285,12 +297,6 @@ export function Router() {
       )}
       {currentScreen === "blueprint-logs" && (
         <BlueprintLogsScreen key={currentScreen} {...params} />
-      )}
-      {currentScreen === "snapshot-list" && (
-        <SnapshotListScreen key={currentScreen} {...params} />
-      )}
-      {currentScreen === "snapshot-detail" && (
-        <SnapshotDetailScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "network-policy-list" && (
         <NetworkPolicyListScreen key={currentScreen} {...params} />
@@ -321,6 +327,24 @@ export function Router() {
       )}
       {currentScreen === "secret-create" && (
         <SecretCreateScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "agents-objects-menu" && (
+        <AgentsObjectsMenuScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "agent-list" && (
+        <AgentListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "agent-detail" && (
+        <AgentDetailScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "agent-create" && (
+        <AgentCreateScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "axon-list" && (
+        <AxonListScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "axon-detail" && (
+        <AxonDetailScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "object-list" && (
         <ObjectListScreen key={currentScreen} {...params} />
@@ -363,15 +387,6 @@ export function Router() {
           key={`benchmark-job-create-${params.cloneFromJobId ?? "new"}`}
           {...params}
         />
-      )}
-      {currentScreen === "agent-list" && (
-        <AgentListScreen key={currentScreen} {...params} />
-      )}
-      {currentScreen === "agent-detail" && (
-        <AgentDetailScreen key={currentScreen} {...params} />
-      )}
-      {currentScreen === "agent-create" && (
-        <AgentCreateScreen key={currentScreen} {...params} />
       )}
       {!KNOWN_SCREENS.has(currentScreen) && (
         <UnknownScreen key={currentScreen} screenName={currentScreen} />

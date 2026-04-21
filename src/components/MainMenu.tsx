@@ -26,25 +26,11 @@ interface MenuItem {
 
 const allMenuItems: MenuItem[] = [
   {
-    key: "benchmarks",
-    label: "Benchmarks",
-    description: "Performance testing and evaluation",
-    icon: "▷",
-    color: colors.success,
-  },
-  {
     key: "devboxes",
     label: "Devboxes",
     description: "Manage cloud development environments",
     icon: "◉",
     color: colors.accent1,
-  },
-  {
-    key: "blueprints",
-    label: "Blueprints",
-    description: "Create and manage devbox templates",
-    icon: "▣",
-    color: colors.accent2,
   },
   {
     key: "snapshots",
@@ -54,18 +40,25 @@ const allMenuItems: MenuItem[] = [
     color: colors.accent3,
   },
   {
-    key: "agents",
-    label: "Agents",
-    description: "Manage AI agents for devboxes",
+    key: "blueprints",
+    label: "Blueprints",
+    description: "Create and manage devbox templates",
+    icon: "▣",
+    color: colors.accent2,
+  },
+  {
+    key: "agents-objects",
+    label: "Agents & Objects",
+    description: "Agents, objects, and event streams",
     icon: "◆",
     color: colors.warning,
   },
   {
-    key: "objects",
-    label: "Storage Objects",
-    description: "Manage files and data in cloud storage",
-    icon: "▤",
-    color: colors.secondary,
+    key: "benchmarks",
+    label: "Benchmarks",
+    description: "Performance testing and evaluation",
+    icon: "▷",
+    color: colors.success,
   },
   {
     key: "settings",
@@ -206,14 +199,12 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       exit();
     } else if (input === "d") {
       selectByKey("devboxes");
-    } else if (input === "b") {
-      selectByKey("blueprints");
     } else if (input === "s") {
       selectByKey("snapshots");
+    } else if (input === "b") {
+      selectByKey("blueprints");
     } else if (input === "a") {
-      selectByKey("agents");
-    } else if (input === "o") {
-      selectByKey("objects");
+      selectByKey("agents-objects");
     } else if (input === "e") {
       selectByKey("benchmarks");
     } else if (input === "n") {

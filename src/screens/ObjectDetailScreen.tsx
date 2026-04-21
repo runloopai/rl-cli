@@ -126,10 +126,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
     return (
       <>
         <Breadcrumb
-          items={[
-            { label: "Storage Objects" },
-            { label: "Loading...", active: true },
-          ]}
+          items={[{ label: "Objects" }, { label: "Loading...", active: true }]}
         />
         <SpinnerComponent message="Loading object details..." />
       </>
@@ -141,10 +138,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
     return (
       <>
         <Breadcrumb
-          items={[
-            { label: "Storage Objects" },
-            { label: "Error", active: true },
-          ]}
+          items={[{ label: "Objects" }, { label: "Error", active: true }]}
         />
         <ErrorMessage
           message="Failed to load object details"
@@ -159,14 +153,11 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
     return (
       <>
         <Breadcrumb
-          items={[
-            { label: "Storage Objects" },
-            { label: "Not Found", active: true },
-          ]}
+          items={[{ label: "Objects" }, { label: "Not Found", active: true }]}
         />
         <ErrorMessage
-          message={`Storage object ${objectId || "unknown"} not found`}
-          error={new Error("Storage object not found")}
+          message={`Object ${objectId || "unknown"} not found`}
+          error={new Error("Object not found")}
         />
       </>
     );
@@ -290,7 +281,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
     // Core Information
     lines.push(
       <Text key="core-title" color={colors.warning} bold>
-        Storage Object Details
+        Object Details
       </Text>,
     );
     lines.push(
@@ -426,7 +417,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
       <>
         <Breadcrumb
           items={[
-            { label: "Storage Objects" },
+            { label: "Objects" },
             { label: storageObject.name || storageObject.id },
             { label: "Download", active: true },
           ]}
@@ -451,7 +442,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
       <>
         <Breadcrumb
           items={[
-            { label: "Storage Objects" },
+            { label: "Objects" },
             { label: storageObject.name || storageObject.id },
             { label: "Downloading...", active: true },
           ]}
@@ -467,12 +458,12 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
       <>
         <Breadcrumb
           items={[
-            { label: "Storage Objects" },
+            { label: "Objects" },
             { label: storageObject.name || storageObject.id },
             { label: "Download", active: true },
           ]}
         />
-        <Header title="Download Storage Object" />
+        <Header title="Download Object" />
         <Box flexDirection="column" marginTop={1}>
           <Text color={colors.text}>
             {figures.arrowRight} Downloading:{" "}
@@ -510,11 +501,11 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   if (showDeleteConfirm && storageObject) {
     return (
       <ConfirmationPrompt
-        title="Delete Storage Object"
+        title="Delete Object"
         message={`Are you sure you want to delete "${storageObject.name || storageObject.id}"?`}
         details="This action cannot be undone."
         breadcrumbItems={[
-          { label: "Storage Objects" },
+          { label: "Objects" },
           { label: storageObject.name || storageObject.id },
           { label: "Delete", active: true },
         ]}
@@ -530,12 +521,12 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
       <>
         <Breadcrumb
           items={[
-            { label: "Storage Objects" },
+            { label: "Objects" },
             { label: storageObject.name || storageObject.id },
             { label: "Deleting...", active: true },
           ]}
         />
-        <SpinnerComponent message="Deleting storage object..." />
+        <SpinnerComponent message="Deleting object..." />
       </>
     );
   }
@@ -543,7 +534,7 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   return (
     <ResourceDetailPage
       resource={storageObject}
-      resourceType="Storage Objects"
+      resourceType="Objects"
       getDisplayName={(obj) => obj.name || obj.id}
       getId={(obj) => obj.id}
       getStatus={(obj) => obj.state || "unknown"}
