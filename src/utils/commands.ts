@@ -91,6 +91,10 @@ export function createProgram(): Command {
       "Agents to mount (format: name_or_id or name_or_id:/mount/path)",
     )
     .option(
+      "--object <object...>",
+      "Objects to mount (format: object_id or object_id:/mount/path)",
+    )
+    .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
     )

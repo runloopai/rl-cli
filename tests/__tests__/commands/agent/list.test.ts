@@ -5,15 +5,21 @@
 import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 
 const mockListAgents = jest.fn();
+const mockListPublicAgents = jest.fn();
+const mockDeleteAgent = jest.fn();
 jest.unstable_mockModule("@/services/agentService.js", () => ({
   listAgents: mockListAgents,
+  listPublicAgents: mockListPublicAgents,
+  deleteAgent: mockDeleteAgent,
 }));
 
 const mockOutput = jest.fn();
 const mockOutputError = jest.fn();
+const mockParseLimit = jest.fn().mockReturnValue(50);
 jest.unstable_mockModule("@/utils/output.js", () => ({
   output: mockOutput,
   outputError: mockOutputError,
+  parseLimit: mockParseLimit,
 }));
 
 const sampleAgents = [
@@ -125,75 +131,23 @@ describe("listAgentsCommand", () => {
     );
   });
 
-  it("should show PRIVATE banner by default", async () => {
+  it("should output deduped agents in default (non-TUI) mode", async () => {
     mockListAgents.mockResolvedValue({ agents: sampleAgents });
 
     const { listAgentsCommand } = await import("@/commands/agent/list.js");
-    const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
     await listAgentsCommand({});
 
-    const allOutput = logSpy.mock.calls.map((c) => String(c[0])).join("\n");
-    expect(allOutput).toContain("PRIVATE");
-    expect(allOutput).toContain("--public");
-
-    logSpy.mockRestore();
-  });
-
-  it("should show PUBLIC banner with --public flag", async () => {
-    mockListAgents.mockResolvedValue({ agents: [] });
-
-    const { listAgentsCommand } = await import("@/commands/agent/list.js");
-    const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-    await listAgentsCommand({ public: true });
-
-    const allOutput = logSpy.mock.calls.map((c) => String(c[0])).join("\n");
-    expect(allOutput).toContain("PUBLIC");
-    expect(allOutput).toContain("--private");
-
-    logSpy.mockRestore();
-  });
-
-  it("should size columns to fit content", async () => {
-    const agents = [
-      {
-        id: "agt_short",
-        name: "a",
-        version: "1",
-        is_public: false,
-        create_time_ms: 1000,
-      },
-      {
-        id: "agt_a_much_longer_id_value",
-        name: "a-much-longer-agent-name",
-        version: "12.345.6789",
-        is_public: false,
-        create_time_ms: 2000,
-      },
-    ];
-    mockListAgents.mockResolvedValue({ agents });
-
-    const { listAgentsCommand } = await import("@/commands/agent/list.js");
-    const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-    await listAgentsCommand({});
-
-    // Find the header line (first line after the banner and blank line)
-    const lines = logSpy.mock.calls.map((c) => String(c[0]));
-    // Header row contains all column names
-    const headerLine = lines.find(
-      (l) => l.includes("NAME") && l.includes("ID") && l.includes("VERSION"),
+    // CLI command delegates to output() with deduped agents
+    expect(mockOutput).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "claude-code", version: "2.0.65" }),
+        expect.objectContaining({ name: "my-agent", version: "0.1.0" }),
+      ]),
+      expect.any(Object),
     );
-    expect(headerLine).toBeDefined();
-
-    // The two data rows should have their IDs starting at the same column offset
-    const dataLines = lines.filter((l) => l.includes("agt_"));
-    expect(dataLines).toHaveLength(2);
-
-    // Both IDs should be at the same column position (aligned)
-    const idPos0 = dataLines[0].indexOf("agt_");
-    const idPos1 = dataLines[1].indexOf("agt_");
-    expect(idPos0).toBe(idPos1);
-
-    logSpy.mockRestore();
+    // Should have deduped claude-code to only the latest version
+    const outputAgents = mockOutput.mock.calls[0][0] as typeof sampleAgents;
+    expect(outputAgents).toHaveLength(2);
   });
 
   it("should handle API errors gracefully", async () => {
