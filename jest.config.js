@@ -96,6 +96,9 @@ export default {
   // Module file extensions
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   
+  // Force exit after tests complete (Ink components can leave timers open)
+  forceExit: true,
+
   // Clear mocks between tests
   clearMocks: true,
   
