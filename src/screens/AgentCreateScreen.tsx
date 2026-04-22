@@ -48,21 +48,23 @@ interface FieldDef {
 /** Fields that are always shown */
 const baseFields: FieldDef[] = [
   { key: "name", label: "Name (required)" },
-  { key: "version", label: "Version (required)" },
   { key: "sourceType", label: "Source Type" },
 ];
 
 /** Source-type-specific fields */
 const sourceFields: Record<SourceType, FieldDef[]> = {
   npm: [
+    { key: "version", label: "Version (optional)" },
     { key: "packageName", label: "Package Name (required)" },
     { key: "registryUrl", label: "Registry URL (optional)" },
   ],
   pip: [
+    { key: "version", label: "Version (optional)" },
     { key: "packageName", label: "Package Name (required)" },
     { key: "registryUrl", label: "Registry URL (optional)" },
   ],
   git: [
+    { key: "version", label: "Version (optional)" },
     { key: "repository", label: "Repository URL (required)" },
     { key: "ref", label: "Ref (optional)" },
   ],
@@ -140,13 +142,8 @@ export function AgentCreateScreen() {
       setCurrentField("name");
       return;
     }
-    if (!formData.version.trim()) {
-      setValidationError("Version is required");
-      setCurrentField("version");
-      return;
-    }
-
     const st = formData.sourceType;
+
     if ((st === "npm" || st === "pip") && !formData.packageName.trim()) {
       setValidationError("Package name is required");
       setCurrentField("packageName");
@@ -200,7 +197,9 @@ export function AgentCreateScreen() {
 
       const agent = await createAgent({
         name: formData.name,
-        version: formData.version,
+        ...(formData.version.trim()
+          ? { version: formData.version.trim() }
+          : {}),
         source,
       });
 
@@ -354,14 +353,6 @@ export function AgentCreateScreen() {
             placeholder="Enter agent name..."
             error={fieldError("name")}
           />
-          <FormTextInput
-            label="Version"
-            value={formData.version}
-            onChange={(v) => setFormData({ ...formData, version: v })}
-            isActive={currentField === "version"}
-            placeholder="e.g. 1.0.0 or a 40-char SHA"
-            error={fieldError("version")}
-          />
           <FormSelect
             label="Source Type"
             value={formData.sourceType}
@@ -373,6 +364,14 @@ export function AgentCreateScreen() {
           {/* Source-specific fields */}
           {(formData.sourceType === "npm" || formData.sourceType === "pip") && (
             <>
+              <FormTextInput
+                label="Version"
+                value={formData.version}
+                onChange={(v) => setFormData({ ...formData, version: v })}
+                isActive={currentField === "version"}
+                placeholder="(optional) e.g. 1.0.0"
+                error={fieldError("version")}
+              />
               <FormTextInput
                 label="Package Name"
                 value={formData.packageName}
@@ -392,6 +391,14 @@ export function AgentCreateScreen() {
           )}
           {formData.sourceType === "git" && (
             <>
+              <FormTextInput
+                label="Version"
+                value={formData.version}
+                onChange={(v) => setFormData({ ...formData, version: v })}
+                isActive={currentField === "version"}
+                placeholder="(optional) e.g. 1.0.0 or a 40-char SHA"
+                error={fieldError("version")}
+              />
               <FormTextInput
                 label="Repository URL"
                 value={formData.repository}
