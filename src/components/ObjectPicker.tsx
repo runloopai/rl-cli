@@ -36,6 +36,8 @@ export interface ObjectPickerProps {
   breadcrumbItems?: BreadcrumbItem[];
   /** Initially selected object IDs */
   initialSelected?: string[];
+  /** Additional lines of overhead from wrapper components (e.g., tab headers) */
+  additionalOverhead?: number;
 }
 
 /**
@@ -141,6 +143,7 @@ export function ObjectPicker({
   title = "Select Object",
   breadcrumbItems,
   initialSelected = [],
+  additionalOverhead,
 }: ObjectPickerProps) {
   return (
     <ResourcePicker<ObjectListItem>
@@ -155,6 +158,7 @@ export function ObjectPicker({
         emptyMessage: "No objects found",
         searchPlaceholder: "Search objects...",
         breadcrumbItems,
+        additionalOverhead,
       }}
       onSelect={onSelect}
       onCancel={onCancel}
