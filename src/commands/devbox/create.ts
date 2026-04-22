@@ -10,6 +10,12 @@ import {
   type Agent,
 } from "../../services/agentService.js";
 import { getObject } from "../../services/objectService.js";
+import {
+  DEFAULT_MOUNT_PATH,
+  sanitizeMountSegment,
+  adjustFileExtension,
+  getDefaultAgentMountPath,
+} from "../../utils/mount.js";
 
 interface CreateOptions {
   name?: string;
@@ -153,53 +159,6 @@ function parseMcpSpecs(
     result[envVarName] = { mcp_config: mcpConfig, secret };
   }
   return result;
-}
-
-const DEFAULT_MOUNT_PATH = "/home/user";
-
-function sanitizeMountSegment(input: string): string {
-  return input
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_|_$/g, "");
-}
-
-function adjustFileExtension(name: string, contentType?: string): string {
-  const archiveExts = /\.(tar\.gz|tar\.bz2|tar\.xz|tgz|gz|bz2|xz|zip|tar)$/i;
-  const stripped = name.replace(archiveExts, "");
-  if (stripped !== name) return stripped;
-  if (contentType && /tar|gzip|x-compressed/i.test(contentType)) {
-    const dotIdx = name.lastIndexOf(".");
-    if (dotIdx > 0) return name.substring(0, dotIdx);
-  }
-  return name;
-}
-
-function repoBasename(repo: string): string | undefined {
-  const cleaned = repo
-    .trim()
-    .replace(/[?#].*$/, "")
-    .replace(/\/+$/, "");
-  const m = cleaned.match(/(?:[/:])([^/:\s]+?)(?:\.git)?$/);
-  return m?.[1];
-}
-
-function getDefaultAgentMountPath(agent: Agent): string {
-  const source = agent.source;
-  if (source?.git?.repository) {
-    const base = repoBasename(source.git.repository);
-    if (base) {
-      const s = sanitizeMountSegment(base);
-      if (s) return `${DEFAULT_MOUNT_PATH}/${s}`;
-    }
-  }
-  if (agent.name) {
-    const s = sanitizeMountSegment(agent.name);
-    if (s) return `${DEFAULT_MOUNT_PATH}/${s}`;
-  }
-  return `${DEFAULT_MOUNT_PATH}/agent`;
 }
 
 async function resolveAgent(idOrName: string): Promise<Agent> {
