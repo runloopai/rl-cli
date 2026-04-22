@@ -63,6 +63,7 @@ export function getDefaultObjectMountPath(obj: {
     const sanitized = sanitizeMountSegment(adjusted);
     if (sanitized) return `${DEFAULT_MOUNT_PATH}/${sanitized}`;
   }
-  const suffix = obj.id.slice(-8);
+  const idPart = obj.id.includes("_") ? obj.id.split("_").pop()! : obj.id;
+  const suffix = idPart.slice(-8);
   return `${DEFAULT_MOUNT_PATH}/object_${suffix}`;
 }

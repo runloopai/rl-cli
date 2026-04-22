@@ -47,6 +47,7 @@ import {
   getDefaultAgentMountPath,
   getDefaultObjectMountPath,
 } from "../utils/mount.js";
+import { formatFileSize } from "../services/objectService.js";
 
 // Secret list interface for the picker
 interface SecretListItem {
@@ -2597,15 +2598,6 @@ export const DevboxCreatePage = ({
 
   // Object picker for mounting
   if (showObjectPicker) {
-    const formatBytes = (bytes?: number): string => {
-      if (bytes == null) return "";
-      if (bytes < 1024) return `${bytes} B`;
-      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-      if (bytes < 1024 * 1024 * 1024)
-        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-      return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
-    };
-
     const buildObjectColumns = (tw: number): Column<ObjectListItem>[] => {
       const fixedWidth = 6;
       const idWidth = 25;
@@ -2642,7 +2634,7 @@ export const DevboxCreatePage = ({
         createTextColumn<ObjectListItem>(
           "size",
           "Size",
-          (o) => formatBytes(o.size_bytes),
+          (o) => formatFileSize(o.size_bytes),
           { width: sizeWidth, color: colors.textDim },
         ),
         createTextColumn<ObjectListItem>(

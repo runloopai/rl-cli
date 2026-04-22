@@ -208,11 +208,11 @@ describe("getDefaultObjectMountPath", () => {
     ).toBe(`${DEFAULT_MOUNT_PATH}/object_efgh5678`);
   });
 
-  it("uses last 8 chars of id for fallback", () => {
+  it("uses last 8 chars of id part after underscore for fallback", () => {
     expect(
       getDefaultObjectMountPath({
         id: "obj_short",
       }),
-    ).toBe(`${DEFAULT_MOUNT_PATH}/object_bj_short`);
+    ).toBe(`${DEFAULT_MOUNT_PATH}/object_short`);
   });
 });
