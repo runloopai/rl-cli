@@ -15,6 +15,7 @@ import { Breadcrumb } from "./Breadcrumb.js";
 import { NavigationTips } from "./NavigationTips.js";
 import { MetadataDisplay } from "./MetadataDisplay.js";
 import { ResourcePicker, createTextColumn, Column } from "./ResourcePicker.js";
+import { ObjectPicker, type ObjectListItem } from "./ObjectPicker.js";
 import { formatTimeAgo } from "./ResourceListView.js";
 import { getStatusDisplay } from "./StatusBadge.js";
 import {
@@ -141,16 +142,6 @@ interface FormData {
     object_name: string;
     object_path: string;
   }>;
-}
-
-// Object list interface for the picker
-interface ObjectListItem {
-  id: string;
-  name?: string;
-  content_type?: string;
-  size_bytes?: number;
-  state?: string;
-  create_time_ms?: number;
 }
 
 const architectures = ["arm64", "x86_64"] as const;
@@ -2421,112 +2412,15 @@ export const DevboxCreatePage = ({
 
   // Object picker for mounting
   if (showObjectPicker) {
-    const formatBytes = (bytes?: number): string => {
-      if (bytes == null) return "";
-      if (bytes < 1024) return `${bytes} B`;
-      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-      if (bytes < 1024 * 1024 * 1024)
-        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-      return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
-    };
-
-    const buildObjectColumns = (tw: number): Column<ObjectListItem>[] => {
-      const fixedWidth = 6;
-      const idWidth = 25;
-      const typeWidth = 12;
-      const stateWidth = 10;
-      const sizeWidth = 10;
-      const baseWidth =
-        fixedWidth + idWidth + typeWidth + stateWidth + sizeWidth;
-      const nameWidth = Math.min(
-        30,
-        Math.max(12, Math.floor((tw - baseWidth) * 0.5)),
-      );
-      const timeWidth = Math.max(18, tw - baseWidth - nameWidth);
-      return [
-        createTextColumn<ObjectListItem>("id", "ID", (o) => o.id, {
-          width: idWidth + 1,
-          color: colors.idColor,
-        }),
-        createTextColumn<ObjectListItem>("name", "Name", (o) => o.name || "", {
-          width: nameWidth,
-        }),
-        createTextColumn<ObjectListItem>(
-          "type",
-          "Type",
-          (o) => o.content_type || "",
-          { width: typeWidth, color: colors.textDim },
-        ),
-        createTextColumn<ObjectListItem>(
-          "state",
-          "State",
-          (o) => o.state || "",
-          { width: stateWidth, color: colors.textDim },
-        ),
-        createTextColumn<ObjectListItem>(
-          "size",
-          "Size",
-          (o) => formatBytes(o.size_bytes),
-          { width: sizeWidth, color: colors.textDim },
-        ),
-        createTextColumn<ObjectListItem>(
-          "created",
-          "Created",
-          (o) => (o.create_time_ms ? formatTimeAgo(o.create_time_ms) : ""),
-          { width: timeWidth, color: colors.textDim },
-        ),
-      ];
-    };
-
     return (
-      <ResourcePicker<ObjectListItem>
-        key="object-picker"
-        config={{
-          title: "Select Object to Mount",
-          fetchPage: async (params) => {
-            const client = getClient();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const queryParams: Record<string, any> = {
-              limit: params.limit,
-            };
-            if (params.startingAt) {
-              queryParams.starting_after = params.startingAt;
-            }
-            if (params.search) {
-              queryParams.search = params.search;
-            }
-            const result = await client.objects.list(queryParams);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const pageResult = result as any;
-            const objects = (pageResult.objects || []).map(
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (o: any) => ({
-                id: o.id,
-                name: o.name,
-                content_type: o.content_type,
-                size_bytes: o.size_bytes,
-                state: o.state,
-                create_time_ms: o.create_time_ms,
-              }),
-            );
-            return {
-              items: objects,
-              hasMore: pageResult.has_more || false,
-              totalCount: pageResult.total_count,
-            };
-          },
-          getItemId: (o) => o.id,
-          getItemLabel: (o) => o.name || o.id,
-          columns: buildObjectColumns,
-          mode: "single",
-          emptyMessage: "No objects found",
-          searchPlaceholder: "Search objects...",
-          breadcrumbItems: [
-            { label: "Devboxes" },
-            { label: "Create" },
-            { label: "Select Object", active: true },
-          ],
-        }}
+      <ObjectPicker
+        mode="single"
+        title="Select Object to Mount"
+        breadcrumbItems={[
+          { label: "Devboxes" },
+          { label: "Create" },
+          { label: "Select Object", active: true },
+        ]}
         onSelect={handleObjectSelect}
         onCancel={() => setShowObjectPicker(false)}
         initialSelected={[]}

@@ -17,18 +17,20 @@ import { NavigationTips } from "../components/NavigationTips.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { SuccessMessage } from "../components/SuccessMessage.js";
 import {
+  FormField,
   FormTextInput,
   FormSelect,
   FormActionButton,
   useFormSelectNavigation,
 } from "../components/form/index.js";
+import { ObjectPicker } from "../components/ObjectPicker.js";
 import { colors } from "../utils/theme.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 
 const SOURCE_TYPES = ["npm", "pip", "git", "object"] as const;
 type SourceType = (typeof SOURCE_TYPES)[number];
 
-type FormField =
+type FormFieldKey =
   | "name"
   | "version"
   | "sourceType"
@@ -40,7 +42,7 @@ type FormField =
   | "create";
 
 interface FieldDef {
-  key: FormField;
+  key: FormFieldKey;
   label: string;
 }
 
@@ -78,7 +80,7 @@ export function AgentCreateScreen() {
   const { goBack, navigate } = useNavigation();
   useExitOnCtrlC();
 
-  const [currentField, setCurrentField] = React.useState<FormField>("name");
+  const [currentField, setCurrentField] = React.useState<FormFieldKey>("name");
   const [formData, setFormData] = React.useState({
     name: "",
     version: "",
@@ -96,6 +98,7 @@ export function AgentCreateScreen() {
   );
   const [success, setSuccess] = React.useState(false);
   const [createdAgentId, setCreatedAgentId] = React.useState("");
+  const [showObjectPicker, setShowObjectPicker] = React.useState(false);
 
   const fields = getVisibleFields(formData.sourceType);
   const currentFieldIndex = fields.findIndex((f) => f.key === currentField);
@@ -246,9 +249,42 @@ export function AgentCreateScreen() {
         handleSubmit();
         return;
       }
+
+      // Enter on objectId field opens object picker
+      if (
+        key.return &&
+        currentField === "objectId" &&
+        formData.sourceType === "object"
+      ) {
+        setShowObjectPicker(true);
+        return;
+      }
     },
-    { isActive: !submitting },
+    { isActive: !submitting && !showObjectPicker },
   );
+
+  // Object picker for selecting object source
+  if (showObjectPicker) {
+    return (
+      <ObjectPicker
+        mode="single"
+        title="Select Object"
+        breadcrumbItems={[
+          { label: "Agents" },
+          { label: "Create" },
+          { label: "Select Object", active: true },
+        ]}
+        onSelect={(objects) => {
+          if (objects.length > 0) {
+            setFormData((prev) => ({ ...prev, objectId: objects[0].id }));
+          }
+          setShowObjectPicker(false);
+        }}
+        onCancel={() => setShowObjectPicker(false)}
+        initialSelected={formData.objectId ? [formData.objectId] : []}
+      />
+    );
+  }
 
   // Submitting spinner
   if (submitting) {
@@ -283,7 +319,7 @@ export function AgentCreateScreen() {
   }
 
   // Determine which field has a validation error
-  const fieldError = (key: FormField): string | undefined => {
+  const fieldError = (key: FormFieldKey): string | undefined => {
     if (!validationError) return undefined;
     if (currentField === key) return validationError;
     return undefined;
@@ -373,14 +409,18 @@ export function AgentCreateScreen() {
             </>
           )}
           {formData.sourceType === "object" && (
-            <FormTextInput
+            <FormField
               label="Object ID"
-              value={formData.objectId}
-              onChange={(v) => setFormData({ ...formData, objectId: v })}
               isActive={currentField === "objectId"}
-              placeholder="Enter object ID..."
               error={fieldError("objectId")}
-            />
+            >
+              <Text
+                color={formData.objectId ? colors.text : colors.textDim}
+                dimColor={!formData.objectId}
+              >
+                {formData.objectId || "(Press Enter to select)"}
+              </Text>
+            </FormField>
           )}
 
           <Box marginTop={1}>
