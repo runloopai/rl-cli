@@ -383,26 +383,34 @@ export const DevboxCreatePage = ({
     getAgent(initialAgentId)
       .then((agent) => {
         if (cancelled) return;
-        const source = agent.source;
-        setFormData((prev) => ({
-          ...prev,
-          agentMounts: [
-            ...prev.agentMounts,
-            {
-              agent_id: agent.id,
-              agent_name: agent.name,
-              agent_path: "",
-              source_type: source?.type,
-              version: agent.version,
-              package_name:
-                source?.type === "npm"
-                  ? source.npm?.package_name
-                  : source?.type === "pip"
-                    ? source.pip?.package_name
-                    : undefined,
-            },
-          ],
-        }));
+        setFormData((prev) => {
+          // Skip if this agent is already mounted
+          if (prev.agentMounts.some((m) => m.agent_id === agent.id)) {
+            return prev;
+          }
+          const source = agent.source;
+          const sourceType = source?.type;
+          const needsPath = sourceType === "git" || sourceType === "object";
+          return {
+            ...prev,
+            agentMounts: [
+              ...prev.agentMounts,
+              {
+                agent_id: agent.id,
+                agent_name: agent.name,
+                agent_path: needsPath ? getDefaultAgentMountPath(agent) : "",
+                source_type: sourceType,
+                version: agent.version,
+                package_name:
+                  sourceType === "npm"
+                    ? source?.npm?.package_name
+                    : sourceType === "pip"
+                      ? source?.pip?.package_name
+                      : undefined,
+              },
+            ],
+          };
+        });
       })
       .catch(() => {
         /* silently ignore — agent may not be accessible */
