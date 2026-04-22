@@ -270,6 +270,7 @@ export function AgentCreateScreen() {
       <ObjectPicker
         mode="single"
         title="Select Object"
+        additionalOverhead={0}
         breadcrumbItems={[
           { label: "Agents" },
           { label: "Create" },
