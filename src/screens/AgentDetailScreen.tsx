@@ -203,7 +203,7 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
         },
       ];
 
-  const handleOperation = async (operation: string) => {
+  const handleOperation = (operation: string) => {
     if (operation === "delete") {
       setShowDeleteConfirm(true);
     }

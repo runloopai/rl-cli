@@ -210,6 +210,7 @@ export const ListAgentsUI = ({
     null,
   );
   const [operationLoading, setOperationLoading] = React.useState(false);
+  const [needsRefresh, setNeedsRefresh] = React.useState(false);
 
   // Search state
   const search = useListSearch({
@@ -374,6 +375,14 @@ export const ListAgentsUI = ({
 
   useExitOnCtrlC();
 
+  // Refresh list after a successful delete
+  React.useEffect(() => {
+    if (needsRefresh) {
+      setNeedsRefresh(false);
+      refresh();
+    }
+  }, [needsRefresh, refresh]);
+
   React.useEffect(() => {
     if (agents.length > 0 && selectedIndex >= agents.length) {
       setSelectedIndex(Math.max(0, agents.length - 1));
@@ -428,7 +437,7 @@ export const ListAgentsUI = ({
         setExecutingOperation(null);
         setSelectedAgent(null);
         if (wasDelete && !hadError) {
-          setTimeout(() => refresh(), 0);
+          setNeedsRefresh(true);
         }
       }
       return;
