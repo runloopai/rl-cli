@@ -67,10 +67,12 @@ const columns: ColumnDef[] = [
   {
     header: "VERSION",
     raw: (a) => {
+      if (!a.version) return "-";
       const pkg = a.source?.npm?.package_name || a.source?.pip?.package_name;
       return pkg ? `${pkg}@${a.version}` : a.version;
     },
     styled(a) {
+      if (!a.version) return "-";
       const pkg = a.source?.npm?.package_name || a.source?.pip?.package_name;
       return pkg ? chalk.dim(pkg + "@") + a.version : a.version;
     },
@@ -325,8 +327,8 @@ export const ListAgentsUI = ({
         "version",
         "Version",
         (a: Agent) => {
-          if (a.source?.type === "object") return "";
           const v = a.version || "";
+          if (!v) return "-";
           if (v.length > 16) return `${v.slice(0, 8)}…${v.slice(-4)}`;
           return v;
         },

@@ -29,6 +29,8 @@ function agentVersionText(agent: Agent): string {
     src?.npm?.package_name || src?.pip?.package_name;
   const version = agent.version || "";
 
+  if (!version && !pkg) return "-";
+
   // Strip leading @ and any scope prefix for comparison (e.g. "@scope/pkg" -> "pkg")
   const barePkg = pkg?.replace(/^@[^/]+\//, "") ?? "";
   const showPkg = pkg && barePkg !== agent.name;
@@ -39,7 +41,7 @@ function agentVersionText(agent: Agent): string {
   if (showPkg) {
     return pkg!;
   }
-  return version;
+  return version || "-";
 }
 
 // Fixed column widths (content + padding). These values never change.
