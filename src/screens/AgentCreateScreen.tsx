@@ -30,7 +30,7 @@ import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 const SOURCE_TYPES = ["npm", "pip", "git", "object"] as const;
 type SourceType = (typeof SOURCE_TYPES)[number];
 
-type FormFieldKey =
+type AgentFormField =
   | "name"
   | "version"
   | "sourceType"
@@ -42,7 +42,7 @@ type FormFieldKey =
   | "create";
 
 interface FieldDef {
-  key: FormFieldKey;
+  key: AgentFormField;
   label: string;
 }
 
@@ -80,7 +80,8 @@ export function AgentCreateScreen() {
   const { goBack, navigate } = useNavigation();
   useExitOnCtrlC();
 
-  const [currentField, setCurrentField] = React.useState<FormFieldKey>("name");
+  const [currentField, setCurrentField] =
+    React.useState<AgentFormField>("name");
   const [formData, setFormData] = React.useState({
     name: "",
     version: "",
@@ -319,7 +320,7 @@ export function AgentCreateScreen() {
   }
 
   // Determine which field has a validation error
-  const fieldError = (key: FormFieldKey): string | undefined => {
+  const fieldError = (key: AgentFormField): string | undefined => {
     if (!validationError) return undefined;
     if (currentField === key) return validationError;
     return undefined;
