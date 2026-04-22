@@ -60,7 +60,7 @@ const columns: ColumnDef[] = [
   },
   {
     header: "SOURCE",
-    raw: (a) => (a as any).source?.type || "-",
+    raw: (a) => a.source?.type || "-",
     styled(a) {
       return this.raw(a);
     },
@@ -68,15 +68,11 @@ const columns: ColumnDef[] = [
   {
     header: "VERSION",
     raw: (a) => {
-      const pkg =
-        (a as any).source?.npm?.package_name ||
-        (a as any).source?.pip?.package_name;
+      const pkg = a.source?.npm?.package_name || a.source?.pip?.package_name;
       return pkg ? `${pkg}@${a.version}` : a.version;
     },
     styled(a) {
-      const pkg =
-        (a as any).source?.npm?.package_name ||
-        (a as any).source?.pip?.package_name;
+      const pkg = a.source?.npm?.package_name || a.source?.pip?.package_name;
       return pkg ? chalk.dim(pkg + "@") + a.version : a.version;
     },
   },
@@ -345,7 +341,7 @@ export const ListAgentsUI = ({
       createTextColumn(
         "source",
         "Source",
-        (a: Agent) => (a as any).source?.type || "-",
+        (a: Agent) => a.source?.type || "-",
         {
           width: sourceWidth,
           color: colors.textDim,

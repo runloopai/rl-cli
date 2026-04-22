@@ -45,7 +45,7 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
   > | null>(null);
 
   React.useEffect(() => {
-    const source = (agent as any)?.source;
+    const source = agent?.source;
     if (source?.type === "object" && source.object?.object_id) {
       getObject(source.object.object_id)
         .then((obj) => setObjectDetails(obj))
@@ -101,8 +101,7 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const source = (agent as any).source;
+  const source = agent.source;
 
   // Build detail sections
   const detailSections: DetailSection[] = [];
@@ -117,7 +116,7 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
   }
   basicFields.push({
     label: "Public",
-    value: (agent as any).is_public ? "Yes" : "No",
+    value: agent.is_public ? "Yes" : "No",
   });
 
   detailSections.push({
@@ -191,7 +190,7 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
     }
   }
 
-  const isPublic = (agent as any).is_public;
+  const isPublic = agent.is_public;
   const operations: ResourceOperation[] = isPublic
     ? []
     : [
@@ -316,7 +315,7 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
       resourceType="Agents"
       getDisplayName={(a) => a.name}
       getId={(a) => a.id}
-      getStatus={() => ((agent as any).is_public ? "public" : "private")}
+      getStatus={() => (agent.is_public ? "public" : "private")}
       detailSections={detailSections}
       operations={operations}
       onOperation={handleOperation}
