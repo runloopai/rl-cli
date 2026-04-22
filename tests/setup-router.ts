@@ -16,7 +16,6 @@ if (existsSync(envPath)) {
 }
 
 // Set default test environment variables
-process.env.RUNLOOP_ENV = process.env.RUNLOOP_ENV || "dev";
 process.env.RUNLOOP_API_KEY = process.env.RUNLOOP_API_KEY || "ak_test_key";
 process.env.RUNLOOP_BASE_URL =
   process.env.RUNLOOP_BASE_URL || "https://api.runloop.pro";

@@ -4,6 +4,7 @@
 import React from 'react';
 import { render } from 'ink-testing-library';
 import { Breadcrumb } from '../../../src/components/Breadcrumb.js';
+import { _resetBaseDomainCache } from '../../../src/utils/config.js';
 
 describe('Breadcrumb', () => {
   it('renders without crashing', () => {
@@ -55,17 +56,19 @@ describe('Breadcrumb', () => {
     expect(frame).not.toContain(longLabel);
   });
 
-  it('shows dev environment indicator when RUNLOOP_ENV is dev', () => {
-    const originalEnv = process.env.RUNLOOP_ENV;
-    process.env.RUNLOOP_ENV = 'dev';
-    
+  it('shows non-default domain indicator when RUNLOOP_BASE_URL is custom', () => {
+    const originalUrl = process.env.RUNLOOP_BASE_URL;
+    process.env.RUNLOOP_BASE_URL = 'https://api.runloop.pro';
+    _resetBaseDomainCache();
+
     const { lastFrame } = render(
       <Breadcrumb items={[{ label: 'Home', active: true }]} />
     );
-    
-    expect(lastFrame()).toContain('(dev)');
-    
-    process.env.RUNLOOP_ENV = originalEnv;
+
+    expect(lastFrame()).toContain('runloop.pro');
+
+    process.env.RUNLOOP_BASE_URL = originalUrl;
+    _resetBaseDomainCache();
   });
 });
 

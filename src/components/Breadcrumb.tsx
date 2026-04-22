@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Text, useStdout } from "ink";
 import { colors } from "../utils/theme.js";
+import { runloopBaseDomain } from "../utils/config.js";
 import { UpdateNotification } from "./UpdateNotification.js";
 
 export interface BreadcrumbItem {
@@ -38,8 +39,8 @@ export const Breadcrumb = ({
   showVersionCheck = false,
   compactMode: compactModeProp,
 }: BreadcrumbProps) => {
-  const env = process.env.RUNLOOP_ENV?.toLowerCase();
-  const isDevEnvironment = env === "dev";
+  const baseDomain = runloopBaseDomain();
+  const isNonDefaultDomain = baseDomain !== "runloop.ai";
   const { stdout } = useStdout();
 
   const [terminalWidth, setTerminalWidth] = React.useState(() =>
@@ -109,10 +110,10 @@ export const Breadcrumb = ({
           <Text color={colors.primary} bold>
             rl
           </Text>
-          {isDevEnvironment && mode !== "minimal" && (
-            <Text color={colors.error} bold>
+          {isNonDefaultDomain && mode !== "minimal" && (
+            <Text color={colors.warning} bold>
               {" "}
-              (dev)
+              ({baseDomain})
             </Text>
           )}
           {displayItems.length > 0 && <Text color={colors.textDim}> › </Text>}

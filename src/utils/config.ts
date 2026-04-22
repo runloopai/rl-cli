@@ -31,16 +31,107 @@ export function clearConfig(): void {
   config.clear();
 }
 
-export function baseUrl(): string {
-  return process.env.RUNLOOP_ENV === "dev"
-    ? "https://api.runloop.pro"
-    : "https://api.runloop.ai";
+const DEFAULT_BASE_URL = "https://api.runloop.ai";
+const DEFAULT_BASE_DOMAIN = "runloop.ai";
+let _cachedBaseDomain: string | null = null;
+
+/**
+ * Validate RUNLOOP_BASE_URL at startup. If set, it must be a well-formed
+ * `https://api.<domain>` URL. Exits with an error if malformed. No-op if unset.
+ */
+export function checkBaseDomain(): void {
+  const raw = process.env.RUNLOOP_BASE_URL?.trim();
+  if (!raw) return;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    console.error(
+      `Error: RUNLOOP_BASE_URL is not a valid URL: ${raw}\n` +
+        `Expected format: https://api.<domain> (e.g. https://api.runloop.ai)`,
+    );
+    process.exit(1);
+  }
+
+  if (parsed.protocol !== "https:") {
+    console.error(
+      `Error: RUNLOOP_BASE_URL must use https, got ${parsed.protocol}\n` +
+        `Expected format: https://api.<domain>`,
+    );
+    process.exit(1);
+  }
+
+  if (!parsed.hostname.startsWith("api.") || parsed.hostname === "api.") {
+    console.error(
+      `Error: RUNLOOP_BASE_URL hostname must start with "api." followed by a domain: ${raw}\n` +
+        `Expected format: https://api.<domain> (e.g. https://api.runloop.ai)`,
+    );
+    process.exit(1);
+  }
+
+  if (parsed.port || parsed.pathname.replace(/\/+$/, "") || parsed.search || parsed.hash) {
+    console.error(
+      `Error: RUNLOOP_BASE_URL must not contain port, path, query, or fragment: ${raw}\n` +
+        `Expected format: https://api.<domain>`,
+    );
+    process.exit(1);
+  }
 }
 
+/**
+ * Returns the bare domain from RUNLOOP_BASE_URL (e.g. "runloop.ai" from
+ * "https://api.runloop.ai"). Defaults to "runloop.ai" when unset.
+ */
+export function runloopBaseDomain(): string {
+  if (_cachedBaseDomain !== null) return _cachedBaseDomain;
+
+  const raw = process.env.RUNLOOP_BASE_URL?.trim();
+  if (!raw) {
+    _cachedBaseDomain = DEFAULT_BASE_DOMAIN;
+    return _cachedBaseDomain;
+  }
+
+  try {
+    const hostname = new URL(raw).hostname;
+    _cachedBaseDomain = hostname.startsWith("api.")
+      ? hostname.slice(4)
+      : hostname;
+  } catch {
+    _cachedBaseDomain = DEFAULT_BASE_DOMAIN;
+  }
+
+  return _cachedBaseDomain;
+}
+
+/** @internal — for tests only */
+export function _resetBaseDomainCache(): void {
+  _cachedBaseDomain = null;
+}
+
+/** Full API base URL from RUNLOOP_BASE_URL, or the default. */
+export function baseUrl(): string {
+  return process.env.RUNLOOP_BASE_URL?.trim() || DEFAULT_BASE_URL;
+}
+
+/** Web platform origin for deep links (settings, devbox pages). */
+export function platformBaseUrl(): string {
+  return `https://platform.${runloopBaseDomain()}`;
+}
+
+/** Hostname for devbox tunnel URLs (`{port}-{key}.tunnel.<domain>`). */
+export function tunnelBaseHostname(): string {
+  return `tunnel.${runloopBaseDomain()}`;
+}
+
+/** SSH gateway hostname (TLS/SNI), without port. */
+export function sshGatewayHostname(): string {
+  return `ssh.${runloopBaseDomain()}`;
+}
+
+/** `host:443` for `openssl s_client -connect` (SSH over HTTPS). */
 export function sshUrl(): string {
-  return process.env.RUNLOOP_ENV === "dev"
-    ? "ssh.runloop.pro:443"
-    : "ssh.runloop.ai:443";
+  return `${sshGatewayHostname()}:443`;
 }
 
 export function getCacheDir(): string {
@@ -119,7 +210,7 @@ export function getApiKeyErrorMessage(): string {
 ❌ API key not configured.
 
 To get started:
-1. Go to https://platform.runloop.ai/settings and create an API key
+1. Go to ${platformBaseUrl()}/settings and create an API key
 2. Set the environment variable:
 
    export RUNLOOP_API_KEY=your_api_key_here

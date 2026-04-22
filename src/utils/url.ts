@@ -2,58 +2,36 @@
  * Utility functions for generating URLs
  */
 
-/**
- * Get the base URL for the Runloop platform based on environment
- * - dev: https://platform.runloop.pro
- * - prod or unset: https://platform.runloop.ai (default)
- */
-export function getBaseUrl(): string {
-  const env = process.env.RUNLOOP_ENV?.toLowerCase();
-
-  switch (env) {
-    case "dev":
-      return "https://platform.runloop.pro";
-    case "prod":
-    default:
-      return "https://platform.runloop.ai";
-  }
-}
+import { platformBaseUrl, tunnelBaseHostname } from "./config.js";
 
 /**
  * Generate a devbox URL for the given devbox ID
  */
 export function getDevboxUrl(devboxId: string): string {
-  const baseUrl = getBaseUrl();
-  return `${baseUrl}/devboxes/${devboxId}`;
+  return `${platformBaseUrl()}/devboxes/${devboxId}`;
 }
 
 /**
  * Generate a blueprint URL for the given blueprint ID
  */
 export function getBlueprintUrl(blueprintId: string): string {
-  const baseUrl = getBaseUrl();
-  return `${baseUrl}/blueprints/${blueprintId}`;
+  return `${platformBaseUrl()}/blueprints/${blueprintId}`;
 }
 
 /**
  * Generate a settings URL
  */
 export function getSettingsUrl(): string {
-  const baseUrl = getBaseUrl();
-  return `${baseUrl}/settings`;
+  return `${platformBaseUrl()}/settings`;
 }
 
 /**
- * Hostname for V2 devbox tunnel URLs (matches RUNLOOP_ENV / API host).
+ * Generate a tunnel URL for the given port and tunnel key.
+ * Pass a number for a real URL, or a string like "{port}" for a display pattern.
  */
-export function getTunnelBaseHost(): string {
-  const env = process.env.RUNLOOP_ENV?.toLowerCase();
-  return env === "dev" ? "tunnel.runloop.pro" : "tunnel.runloop.ai";
-}
-
-/**
- * Tunnel URL pattern with a literal `{port}` placeholder for display.
- */
-export function getDevboxTunnelUrlPattern(tunnelKey: string): string {
-  return `https://{port}-${tunnelKey}.${getTunnelBaseHost()}`;
+export function getTunnelUrl(
+  port: number | string,
+  tunnelKey: string,
+): string {
+  return `https://${port}-${tunnelKey}.${tunnelBaseHostname()}`;
 }

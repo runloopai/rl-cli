@@ -13,6 +13,7 @@ import { useVerticalLayout } from "../hooks/useVerticalLayout.js";
 import { useBetaFeatures } from "../store/betaFeatureStore.js";
 import type { BetaFeature } from "../store/betaFeatureStore.js";
 import { useMenuStore } from "../store/menuStore.js";
+import { HomeBaseUrlText } from "./HomeBaseUrlText.js";
 
 interface MenuItem {
   key: string;
@@ -284,6 +285,9 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
           })}
         </Box>
         {navTips}
+        <Box paddingX={2} flexShrink={0}>
+          <HomeBaseUrlText />
+        </Box>
       </Box>
     );
   }
@@ -332,6 +336,9 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
           })}
         </Box>
         {navTips}
+        <Box paddingX={2} flexShrink={0}>
+          <HomeBaseUrlText />
+        </Box>
       </Box>
     );
   }
@@ -390,6 +397,9 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
           })}
         </Box>
         {navTips}
+        <Box paddingX={2} flexShrink={0}>
+          <HomeBaseUrlText />
+        </Box>
       </Box>
     );
   }
@@ -494,6 +504,9 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       </Box>
 
       {navTips}
+      <Box paddingX={2} flexShrink={0}>
+        <HomeBaseUrlText />
+      </Box>
     </Box>
   );
 };
