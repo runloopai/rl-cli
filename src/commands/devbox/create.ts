@@ -355,13 +355,17 @@ export async function createDevbox(options: CreateOptions = {}) {
           if (name) {
             const adjusted = adjustFileExtension(name, contentType);
             const s = sanitizeMountSegment(adjusted);
-            const idPart = objectId.includes("_") ? objectId.split("_").pop()! : objectId;
+            const idPart = objectId.includes("_")
+              ? objectId.split("_").pop()!
+              : objectId;
             const objectPath = s
               ? `${DEFAULT_MOUNT_PATH}/${s}`
               : `${DEFAULT_MOUNT_PATH}/object_${idPart.slice(-8)}`;
             return { object_id: objectId, object_path: objectPath };
           }
-          const idPart = objectId.includes("_") ? objectId.split("_").pop()! : objectId;
+          const idPart = objectId.includes("_")
+            ? objectId.split("_").pop()!
+            : objectId;
           return {
             object_id: objectId,
             object_path: `${DEFAULT_MOUNT_PATH}/object_${idPart.slice(-8)}`,
