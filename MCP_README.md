@@ -151,8 +151,11 @@ Claude will use the MCP tools to interact with your Runloop account and provide 
 
 ## Environment Variables
 
-- `RUNLOOP_ENV` - Set to `dev` for development environment, `prod` (or leave unset) for production
-- API key is read from the CLI configuration (~/.config/rli/config.json)
+- `RUNLOOP_API_KEY` — Required unless the key is stored in the CLI config under `~/.runloop`.
+- `RUNLOOP_ENV` — `prod` or unset uses production (`https://api.runloop.ai`).
+- `RUNLOOP_BASE_URL` — Optional bare domain suffix (e.g. `runloop.ai`). The MCP server builds `api.`, `platform.`, `ssh.`, and `tunnel.` hostnames from it the same way as the CLI. Full URLs and invalid values are ignored; see [README](README.md) **Setup → API base URL**.
+
+See the main [README](README.md) **Setup → API base URL** for details and TUI behavior.
 
 ## Troubleshooting
 

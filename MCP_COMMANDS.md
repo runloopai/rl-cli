@@ -83,6 +83,24 @@ To use the development environment:
 }
 ```
 
+To point MCP at a **custom deployment** (bare domain suffix; overrides hostnames implied by `RUNLOOP_ENV`):
+
+```json
+{
+  "mcpServers": {
+    "runloop": {
+      "command": "rli",
+      "args": ["mcp", "start"],
+      "env": {
+        "RUNLOOP_BASE_URL": "example.com"
+      }
+    }
+  }
+}
+```
+
+See [README.md](README.md) (Setup → API base URL) for validation rules and the `api.` / `platform.` / `ssh.` / `tunnel.` prefix behavior.
+
 ## Available Tools
 
 Once configured, Claude can use these tools:

@@ -10,6 +10,7 @@ import Runloop from "@runloop/api-client";
 import { VERSION } from "@runloop/api-client/version.js";
 import Conf from "conf";
 import { processUtils } from "../utils/processUtils.js";
+import { baseUrl as getApiBaseUrl } from "../utils/config.js";
 
 // Client configuration
 interface Config {
@@ -45,18 +46,6 @@ function getConfig(): Config {
   }
 }
 
-function getBaseUrl(): string {
-  const env = process.env.RUNLOOP_ENV?.toLowerCase();
-
-  switch (env) {
-    case "dev":
-      return "https://api.runloop.pro";
-    case "prod":
-    default:
-      return "https://api.runloop.ai";
-  }
-}
-
 function getClient(): Runloop {
   const config = getConfig();
 
@@ -66,7 +55,7 @@ function getClient(): Runloop {
     );
   }
 
-  const baseURL = getBaseUrl();
+  const baseURL = getApiBaseUrl();
 
   return new Runloop({
     bearerToken: config.apiKey,

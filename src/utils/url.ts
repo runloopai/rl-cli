@@ -2,21 +2,14 @@
  * Utility functions for generating URLs
  */
 
+import { platformBaseUrl, tunnelBaseHostname } from "./config.js";
+
 /**
- * Get the base URL for the Runloop platform based on environment
- * - dev: https://platform.runloop.pro
- * - prod or unset: https://platform.runloop.ai (default)
+ * Web platform base URL (browser). With `RUNLOOP_BASE_URL=customer.example.com`,
+ * uses `https://platform.customer.example.com`; otherwise `RUNLOOP_ENV` picks .pro vs .ai.
  */
 export function getBaseUrl(): string {
-  const env = process.env.RUNLOOP_ENV?.toLowerCase();
-
-  switch (env) {
-    case "dev":
-      return "https://platform.runloop.pro";
-    case "prod":
-    default:
-      return "https://platform.runloop.ai";
-  }
+  return platformBaseUrl();
 }
 
 /**
@@ -44,11 +37,10 @@ export function getSettingsUrl(): string {
 }
 
 /**
- * Hostname for V2 devbox tunnel URLs (matches RUNLOOP_ENV / API host).
+ * Hostname for V2 devbox tunnel URLs (`tunnel.<RUNLOOP_BASE_URL>` when set).
  */
 export function getTunnelBaseHost(): string {
-  const env = process.env.RUNLOOP_ENV?.toLowerCase();
-  return env === "dev" ? "tunnel.runloop.pro" : "tunnel.runloop.ai";
+  return tunnelBaseHostname();
 }
 
 /**

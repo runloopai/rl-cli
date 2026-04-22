@@ -31,16 +31,98 @@ export function clearConfig(): void {
   config.clear();
 }
 
+/**
+ * Bare domain suffix from `RUNLOOP_BASE_URL`, e.g. `runloop.ai` or `example.com`.
+ * Full URLs, `api.*` hostnames, paths, ports, or invalid hostnames → null (use RUNLOOP_ENV).
+ */
+function runloopBaseDomainOrNull(): string | null {
+  const raw = process.env.RUNLOOP_BASE_URL?.trim();
+  if (!raw) return null;
+  if (/:\/\//.test(raw) || /\s/.test(raw) || raw.includes("/")) {
+    return null;
+  }
+  if (raw.includes(":")) {
+    return null;
+  }
+  const domain = raw.toLowerCase();
+  if (!isValidBareDomain(domain)) {
+    return null;
+  }
+  return domain;
+}
+
+function isValidBareDomain(domain: string): boolean {
+  if (domain.length === 0 || domain.length > 253) return false;
+  if (domain.startsWith(".") || domain.endsWith(".")) return false;
+  if (!domain.includes(".")) return false;
+  const labels = domain.split(".");
+  for (const label of labels) {
+    if (label.length === 0 || label.length > 63) return false;
+    if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(label)) return false;
+  }
+  return true;
+}
+
+function prefixedHost(prefix: string, domain: string): string {
+  return `${prefix}.${domain}`;
+}
+
+/**
+ * HTTP base URL for the Runloop API (used by the CLI client and MCP).
+ *
+ * - If `RUNLOOP_BASE_URL` is a valid bare domain, uses `https://api.<domain>`.
+ * - Else `RUNLOOP_ENV=dev` → https://api.runloop.pro; otherwise production.
+ */
 export function baseUrl(): string {
+  const domain = runloopBaseDomainOrNull();
+  if (domain) {
+    return `https://${prefixedHost("api", domain)}`;
+  }
   return process.env.RUNLOOP_ENV === "dev"
     ? "https://api.runloop.pro"
     : "https://api.runloop.ai";
 }
 
-export function sshUrl(): string {
+/**
+ * Web platform origin for deep links (settings, devbox pages in the browser).
+ */
+export function platformBaseUrl(): string {
+  const domain = runloopBaseDomainOrNull();
+  if (domain) {
+    return `https://${prefixedHost("platform", domain)}`;
+  }
   return process.env.RUNLOOP_ENV === "dev"
-    ? "ssh.runloop.pro:443"
-    : "ssh.runloop.ai:443";
+    ? "https://platform.runloop.pro"
+    : "https://platform.runloop.ai";
+}
+
+/** Hostname for devbox tunnel URLs (`{port}-{key}.<host>`). */
+export function tunnelBaseHostname(): string {
+  const domain = runloopBaseDomainOrNull();
+  if (domain) {
+    return prefixedHost("tunnel", domain);
+  }
+  return process.env.RUNLOOP_ENV === "dev"
+    ? "tunnel.runloop.pro"
+    : "tunnel.runloop.ai";
+}
+
+/** SSH gateway hostname (TLS/SNI), without port. */
+export function sshGatewayHostname(): string {
+  const domain = runloopBaseDomainOrNull();
+  if (domain) {
+    return prefixedHost("ssh", domain);
+  }
+  return process.env.RUNLOOP_ENV === "dev"
+    ? "ssh.runloop.pro"
+    : "ssh.runloop.ai";
+}
+
+/**
+ * `host:443` for `openssl s_client -connect` (SSH over HTTPS).
+ */
+export function sshUrl(): string {
+  return `${sshGatewayHostname()}:443`;
 }
 
 export function getCacheDir(): string {

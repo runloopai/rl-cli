@@ -46,13 +46,39 @@ pnpm add -g @runloop/rl-cli
 
 ## Setup
 
-Configure your API key:
+### API key
 
 ```bash
 export RUNLOOP_API_KEY=your_api_key_here
 ```
 
 Get your API key from [https://runloop.ai/settings](https://runloop.ai/settings)
+
+### API base URL (optional)
+
+The CLI and MCP server use the Runloop HTTP API. By default:
+
+- **`RUNLOOP_ENV`** — `prod` or unset uses `https://api.runloop.ai` and `dev` uses `https://api.runloop.pro`.
+- **`RUNLOOP_BASE_URL`** — Optional **bare domain suffix** only: e.g. `runloop.ai`, `runloop.pro`, or `runloop.customer.com`. Do **not** include a scheme (`https://`), path, port, or leading `api.` label. Leading/trailing whitespace is trimmed; the value is treated case-insensitively.
+
+When set and valid, the CLI and MCP use these hosts (all HTTPS on 443 except SSH, which uses TLS to `ssh.<suffix>:443`):
+
+| Service  | Host |
+|----------|------|
+| API      | `https://api.<suffix>` |
+| Platform | `https://platform.<suffix>` |
+| SSH      | `ssh.<suffix>:443` |
+| Tunnels  | `tunnel.<suffix>` (hostname for tunnel URLs) |
+
+If the value is empty, contains `://`, `/`, whitespace, `:`, or is not a valid multi-label hostname, it is **ignored** and **`RUNLOOP_ENV`** defaults apply (same as unset).
+
+Example:
+
+```bash
+export RUNLOOP_BASE_URL=runloop.customer.com
+```
+
+In **interactive (TUI) mode**, the home screen shows the resolved API base URL at the bottom (below the keyboard hints) so you can confirm which API you are using.
 
 ## Usage
 

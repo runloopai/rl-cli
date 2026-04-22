@@ -12,6 +12,7 @@ import { ConfirmationPrompt } from "./ConfirmationPrompt.js";
 import { colors } from "../utils/theme.js";
 import { openInBrowser } from "../utils/browser.js";
 import { copyToClipboard } from "../utils/clipboard.js";
+import { sshGatewayHostname } from "../utils/config.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useNavigation } from "../store/navigationStore.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
@@ -661,8 +662,7 @@ export const DevboxActionsMenu = ({
 
           const sshUser =
             devbox.launch_parameters?.user_parameters?.username || "user";
-          const env = process.env.RUNLOOP_ENV?.toLowerCase();
-          const sshHost = env === "dev" ? "ssh.runloop.pro" : "ssh.runloop.ai";
+          const sshHost = sshGatewayHostname();
           // macOS openssl doesn't support -verify_quiet, use compatible flags
           // servername should be %h (target hostname) - SSH will replace %h with the actual hostname from the SSH command
           // This matches the reference implementation where servername is the target hostname

@@ -6,6 +6,7 @@ import { homedir } from "os";
 import { getClient } from "./client.js";
 import { cliStatus } from "./cliStatus.js";
 import { processUtils } from "./processUtils.js";
+import { sshUrl as sshTlsConnectEndpoint } from "./config.js";
 
 const execAsync = promisify(exec);
 
@@ -148,11 +149,10 @@ export async function waitForReady(
 }
 
 /**
- * Get SSH URL based on environment
+ * Get SSH TLS proxy target (`ssh.<domain>:443`) from RUNLOOP_BASE_URL domain suffix or RUNLOOP_ENV.
  */
 export function getSSHUrl(): string {
-  const env = processUtils.env.RUNLOOP_ENV?.toLowerCase();
-  return env === "dev" ? "ssh.runloop.pro:443" : "ssh.runloop.ai:443";
+  return sshTlsConnectEndpoint();
 }
 
 /**
