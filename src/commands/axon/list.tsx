@@ -188,6 +188,7 @@ export const ListAxonsUI = ({
     totalCount,
     nextPage,
     prevPage,
+    refresh,
   } = useCursorPagination({
     fetchPage,
     pageSize: PAGE_SIZE,
