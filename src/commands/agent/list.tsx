@@ -13,7 +13,6 @@ import {
   type Agent,
 } from "../../services/agentService.js";
 import { output, outputError, parseLimit } from "../../utils/output.js";
-import { formatTimeAgo } from "../../utils/time.js";
 import { Breadcrumb } from "../../components/Breadcrumb.js";
 import { NavigationTips } from "../../components/NavigationTips.js";
 import { Table, createTextColumn } from "../../components/Table.js";
@@ -25,7 +24,7 @@ import { Header } from "../../components/Header.js";
 import { SearchBar } from "../../components/SearchBar.js";
 import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
 import type { Operation } from "../../components/OperationsMenu.js";
-import { formatTimeAgo as formatTimeAgoComponent } from "../../components/ResourceListView.js";
+import { formatTimeAgo } from "../../components/ResourceListView.js";
 import { colors } from "../../utils/theme.js";
 import { useViewportHeight } from "../../hooks/useViewportHeight.js";
 import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
@@ -353,8 +352,7 @@ export const ListAgentsUI = ({
       createTextColumn(
         "created",
         "Created",
-        (a: Agent) =>
-          a.create_time_ms ? formatTimeAgoComponent(a.create_time_ms) : "",
+        (a: Agent) => (a.create_time_ms ? formatTimeAgo(a.create_time_ms) : ""),
         {
           width: timeWidth,
           color: colors.textDim,
