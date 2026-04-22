@@ -287,6 +287,9 @@ export const DevboxCreatePage = ({
   const [creating, setCreating] = React.useState(false);
   const [result, setResult] = React.useState<DevboxView | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
+  const [loadAgentError, setLoadAgentError] = React.useState<string | null>(
+    null,
+  );
 
   // Source picker states (toggle between blueprint/snapshot)
   const [sourceTypeToggle, setSourceTypeToggle] = React.useState<
@@ -412,8 +415,11 @@ export const DevboxCreatePage = ({
           };
         });
       })
-      .catch(() => {
-        /* silently ignore — agent may not be accessible */
+      .catch((err) => {
+        if (cancelled) return;
+        setLoadAgentError(
+          `Could not load agent ${initialAgentId}: ${err instanceof Error ? err.message : String(err)}`,
+        );
       });
     return () => {
       cancelled = true;
@@ -2540,6 +2546,12 @@ export const DevboxCreatePage = ({
       <Breadcrumb
         items={[{ label: "Devboxes" }, { label: "Create", active: true }]}
       />
+
+      {loadAgentError && (
+        <Box paddingX={2} marginBottom={1}>
+          <Text color={colors.warning}>{figures.warning} {loadAgentError}</Text>
+        </Box>
+      )}
 
       <Box flexDirection="column" marginBottom={1}>
         {fields.map((field) => {
