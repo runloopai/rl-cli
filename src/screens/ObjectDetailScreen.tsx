@@ -176,7 +176,14 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   const detailSections: DetailSection[] = [];
 
   // Basic details section — reuse shared field builder
-  const basicFields = buildObjectDetailFields(storageObject);
+  const colorMap: Record<string, string> = {
+    error: colors.error,
+    warning: colors.warning,
+  };
+  const basicFields = buildObjectDetailFields(storageObject).map((f) => ({
+    ...f,
+    color: f.color ? (colorMap[f.color] ?? f.color) : undefined,
+  }));
   if (basicFields.length > 0) {
     detailSections.push({
       title: "Details",

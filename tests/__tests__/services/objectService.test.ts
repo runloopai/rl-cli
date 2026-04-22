@@ -82,12 +82,24 @@ describe("buildObjectDetailFields", () => {
     expect(expiresField?.value).toContain("remaining");
   });
 
-  it("shows Expired for past delete_after_time_ms", () => {
+  it("shows Expired with error color for past delete_after_time_ms", () => {
     const past = Date.now() - 1000;
     const fields = buildObjectDetailFields({
       ...baseObject,
       delete_after_time_ms: past,
     });
-    expect(fields.find((f) => f.label === "Expires")?.value).toBe("Expired");
+    const expiresField = fields.find((f) => f.label === "Expires");
+    expect(expiresField?.value).toBe("Expired");
+    expect(expiresField?.color).toBe("error");
+  });
+
+  it("shows warning color when expiry is under 10 minutes", () => {
+    const soon = Date.now() + 5 * 60000; // 5 minutes from now
+    const fields = buildObjectDetailFields({
+      ...baseObject,
+      delete_after_time_ms: soon,
+    });
+    const expiresField = fields.find((f) => f.label === "Expires");
+    expect(expiresField?.color).toBe("warning");
   });
 });

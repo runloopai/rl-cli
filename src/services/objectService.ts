@@ -2,6 +2,7 @@
  * Object Service - Handles all storage object API calls
  */
 import { getClient } from "../utils/client.js";
+import { formatTimestamp } from "../utils/time.js";
 import type { StorageObjectView } from "../store/objectStore.js";
 
 export interface ListObjectsOptions {
@@ -118,14 +119,20 @@ export async function deleteObject(id: string): Promise<void> {
   await client.objects.delete(id);
 }
 
+export interface ObjectDetailField {
+  label: string;
+  value: string;
+  color?: string;
+}
+
 /**
  * Build standard detail fields for a storage object.
  * Shared between ObjectDetailScreen and AgentDetailScreen.
  */
 export function buildObjectDetailFields(
   obj: StorageObjectView,
-): { label: string; value: string }[] {
-  const fields: { label: string; value: string }[] = [];
+): ObjectDetailField[] {
+  const fields: ObjectDetailField[] = [];
 
   if (obj.content_type) {
     fields.push({ label: "Content Type", value: obj.content_type });
@@ -142,19 +149,20 @@ export function buildObjectDetailFields(
   if (obj.create_time_ms) {
     fields.push({
       label: "Created",
-      value: new Date(obj.create_time_ms).toLocaleString(),
+      value: formatTimestamp(obj.create_time_ms) ?? "",
     });
   }
   if (obj.delete_after_time_ms) {
     const remainingMs = obj.delete_after_time_ms - Date.now();
     if (remainingMs <= 0) {
-      fields.push({ label: "Expires", value: "Expired" });
+      fields.push({ label: "Expires", value: "Expired", color: "error" });
     } else {
       const remainingMinutes = Math.floor(remainingMs / 60000);
       if (remainingMinutes < 60) {
         fields.push({
           label: "Expires",
           value: `${remainingMinutes}m remaining`,
+          color: remainingMinutes < 10 ? "warning" : undefined,
         });
       } else {
         const hours = Math.floor(remainingMinutes / 60);
