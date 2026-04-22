@@ -187,9 +187,7 @@ function repoBasename(repo: string): string | undefined {
 }
 
 function getDefaultAgentMountPath(agent: Agent): string {
-  const source = agent.source as
-    | { type?: string; git?: { repository?: string } }
-    | undefined;
+  const source = agent.source;
   if (source?.git?.repository) {
     const base = repoBasename(source.git.repository);
     if (base) {
@@ -376,8 +374,8 @@ export async function createDevbox(options: CreateOptions = {}) {
           // No path specified — fetch object to generate default
           objectId = spec;
           const obj = await getObject(objectId);
-          const name = (obj as any).name as string | undefined;
-          const contentType = (obj as any).content_type as string | undefined;
+          const name = obj.name;
+          const contentType = obj.content_type;
           if (name) {
             const adjusted = adjustFileExtension(name, contentType);
             const s = sanitizeMountSegment(adjusted);
