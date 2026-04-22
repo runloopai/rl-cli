@@ -303,50 +303,70 @@ export async function createDevbox(options: CreateOptions = {}) {
     // Parse agent mounts (format: name_or_id or name_or_id:/mount/path)
     const resolvedAgents: { agent: Agent; path?: string }[] = [];
     if (options.agent && options.agent.length > 0) {
+      const parsedAgentSpecs: { idOrName: string; path?: string }[] = [];
       for (const spec of options.agent) {
         const colonIdx = spec.indexOf(":");
         // Only treat colon as separator if what follows looks like an absolute path
-        let idOrName: string;
-        let path: string | undefined;
         if (colonIdx > 0 && spec[colonIdx + 1] === "/") {
-          idOrName = spec.substring(0, colonIdx);
-          path = spec.substring(colonIdx + 1);
+          parsedAgentSpecs.push({
+            idOrName: spec.substring(0, colonIdx),
+            path: spec.substring(colonIdx + 1),
+          });
         } else {
-          idOrName = spec;
+          parsedAgentSpecs.push({ idOrName: spec });
         }
-        const agent = await resolveAgent(idOrName);
-        resolvedAgents.push({ agent, path });
       }
+      const resolved = await Promise.all(
+        parsedAgentSpecs.map(async ({ idOrName, path }) => ({
+          agent: await resolveAgent(idOrName),
+          path,
+        })),
+      );
+      resolvedAgents.push(...resolved);
     }
 
     // Parse object mounts (format: object_id or object_id:/mount/path)
     const objectMounts: { object_id: string; object_path: string }[] = [];
     if (options.object && options.object.length > 0) {
+      const parsedObjectSpecs: {
+        objectId: string;
+        explicitPath?: string;
+      }[] = [];
       for (const spec of options.object) {
         const colonIdx = spec.indexOf(":");
-        let objectId: string;
-        let objectPath: string;
         if (colonIdx > 0 && spec[colonIdx + 1] === "/") {
-          objectId = spec.substring(0, colonIdx);
-          objectPath = spec.substring(colonIdx + 1);
+          parsedObjectSpecs.push({
+            objectId: spec.substring(0, colonIdx),
+            explicitPath: spec.substring(colonIdx + 1),
+          });
         } else {
+          parsedObjectSpecs.push({ objectId: spec });
+        }
+      }
+      const resolved = await Promise.all(
+        parsedObjectSpecs.map(async ({ objectId, explicitPath }) => {
+          if (explicitPath) {
+            return { object_id: objectId, object_path: explicitPath };
+          }
           // No path specified — fetch object to generate default
-          objectId = spec;
           const obj = await getObject(objectId);
           const name = obj.name;
           const contentType = obj.content_type;
           if (name) {
             const adjusted = adjustFileExtension(name, contentType);
             const s = sanitizeMountSegment(adjusted);
-            objectPath = s
+            const objectPath = s
               ? `${DEFAULT_MOUNT_PATH}/${s}`
               : `${DEFAULT_MOUNT_PATH}/object_${objectId.slice(-8)}`;
-          } else {
-            objectPath = `${DEFAULT_MOUNT_PATH}/object_${objectId.slice(-8)}`;
+            return { object_id: objectId, object_path: objectPath };
           }
-        }
-        objectMounts.push({ object_id: objectId, object_path: objectPath });
-      }
+          return {
+            object_id: objectId,
+            object_path: `${DEFAULT_MOUNT_PATH}/object_${objectId.slice(-8)}`,
+          };
+        }),
+      );
+      objectMounts.push(...resolved);
     }
 
     // Add mounts (agents + objects)
