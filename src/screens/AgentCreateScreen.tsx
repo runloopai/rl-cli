@@ -17,7 +17,6 @@ import { NavigationTips } from "../components/NavigationTips.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { SuccessMessage } from "../components/SuccessMessage.js";
 import {
-  FormField,
   FormTextInput,
   FormSelect,
   FormActionButton,
@@ -251,11 +250,12 @@ export function AgentCreateScreen() {
         return;
       }
 
-      // Enter on objectId field opens object picker
+      // Enter on objectId field opens object picker when empty
       if (
         key.return &&
         currentField === "objectId" &&
-        formData.sourceType === "object"
+        formData.sourceType === "object" &&
+        !formData.objectId
       ) {
         setShowObjectPicker(true);
         return;
@@ -270,7 +270,6 @@ export function AgentCreateScreen() {
       <ObjectPicker
         mode="single"
         title="Select Object"
-        additionalOverhead={0}
         breadcrumbItems={[
           { label: "Agents" },
           { label: "Create" },
@@ -411,18 +410,14 @@ export function AgentCreateScreen() {
             </>
           )}
           {formData.sourceType === "object" && (
-            <FormField
+            <FormTextInput
               label="Object ID"
+              value={formData.objectId}
+              onChange={(v) => setFormData({ ...formData, objectId: v })}
               isActive={currentField === "objectId"}
+              placeholder="Enter object ID or press Enter to pick..."
               error={fieldError("objectId")}
-            >
-              <Text
-                color={formData.objectId ? colors.text : colors.textDim}
-                dimColor={!formData.objectId}
-              >
-                {formData.objectId || "(Press Enter to select)"}
-              </Text>
-            </FormField>
+            />
           )}
 
           <Box marginTop={1}>
