@@ -3776,6 +3776,9 @@ export const DevboxCreatePage = ({
                             <Text color={colors.text}>
                               {am.agent_name || am.agent_id}
                             </Text>
+                            {editingAgentMountPath && isSelected && (
+                              <Text color={colors.warning}> [editing]</Text>
+                            )}
                             <Text color={colors.textDim}>
                               {am.source_type ? ` [${am.source_type}]` : ""}
                               {fmtVersion ? ` v${fmtVersion}` : ""}
@@ -3909,6 +3912,9 @@ export const DevboxCreatePage = ({
                               {isSelected ? figures.pointer : " "}{" "}
                             </Text>
                             <Text color={colors.text}>{om.object_name}</Text>
+                            {editingObjectMountPath && isSelected && (
+                              <Text color={colors.warning}> [editing]</Text>
+                            )}
                             <Text color={colors.textDim}> → </Text>
                             {editingObjectMountPath && isSelected ? (
                               <TextInput
