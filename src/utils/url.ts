@@ -5,7 +5,7 @@
 import { platformBaseUrl, tunnelBaseHostname } from "./config.js";
 
 /**
- * Web platform base URL (browser). With `RUNLOOP_BASE_URL=customer.example.com`,
+ * Web platform base URL (browser). With `RUNLOOP_BASE_DOMAIN=customer.example.com`,
  * uses `https://platform.customer.example.com`; otherwise `RUNLOOP_ENV` picks .pro vs .ai.
  */
 export function getBaseUrl(): string {
@@ -37,7 +37,7 @@ export function getSettingsUrl(): string {
 }
 
 /**
- * Hostname for V2 devbox tunnel URLs (`tunnel.<RUNLOOP_BASE_URL>` when set).
+ * Hostname for V2 devbox tunnel URLs (`tunnel.<RUNLOOP_BASE_DOMAIN>` when set).
  */
 export function getTunnelBaseHost(): string {
   return tunnelBaseHostname();

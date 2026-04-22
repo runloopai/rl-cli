@@ -92,14 +92,14 @@ To point MCP at a **custom deployment** (bare domain suffix; overrides hostnames
       "command": "rli",
       "args": ["mcp", "start"],
       "env": {
-        "RUNLOOP_BASE_URL": "example.com"
+        "RUNLOOP_BASE_DOMAIN": "example.com"
       }
     }
   }
 }
 ```
 
-See [README.md](README.md) (Setup → API base URL) for validation rules and the `api.` / `platform.` / `ssh.` / `tunnel.` prefix behavior.
+See [README.md](README.md) (Setup → Custom domain) for validation rules and the `api.` / `platform.` / `ssh.` / `tunnel.` prefix behavior.
 
 ## Available Tools
 

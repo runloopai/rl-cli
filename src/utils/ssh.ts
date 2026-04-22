@@ -149,7 +149,7 @@ export async function waitForReady(
 }
 
 /**
- * Get SSH TLS proxy target (`ssh.<domain>:443`) from RUNLOOP_BASE_URL domain suffix or RUNLOOP_ENV.
+ * Get SSH TLS proxy target (`ssh.<domain>:443`) from `RUNLOOP_BASE_DOMAIN` or `RUNLOOP_ENV`.
  */
 export function getSSHUrl(): string {
   return sshTlsConnectEndpoint();

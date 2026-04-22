@@ -32,11 +32,11 @@ export function clearConfig(): void {
 }
 
 /**
- * Bare domain suffix from `RUNLOOP_BASE_URL`, e.g. `runloop.ai` or `example.com`.
+ * Bare domain suffix from `RUNLOOP_BASE_DOMAIN`, e.g. `runloop.ai` or `example.com`.
  * Full URLs, `api.*` hostnames, paths, ports, or invalid hostnames → null (use RUNLOOP_ENV).
  */
 function runloopBaseDomainOrNull(): string | null {
-  const raw = process.env.RUNLOOP_BASE_URL?.trim();
+  const raw = process.env.RUNLOOP_BASE_DOMAIN?.trim();
   if (!raw) return null;
   if (/:\/\//.test(raw) || /\s/.test(raw) || raw.includes("/")) {
     return null;
@@ -70,7 +70,7 @@ function prefixedHost(prefix: string, domain: string): string {
 /**
  * HTTP base URL for the Runloop API (used by the CLI client and MCP).
  *
- * - If `RUNLOOP_BASE_URL` is a valid bare domain, uses `https://api.<domain>`.
+ * - If `RUNLOOP_BASE_DOMAIN` is a valid bare domain, uses `https://api.<domain>`.
  * - Else `RUNLOOP_ENV=dev` → https://api.runloop.pro; otherwise production.
  */
 export function baseUrl(): string {

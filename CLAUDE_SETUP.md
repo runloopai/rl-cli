@@ -153,7 +153,7 @@ If you want to connect to Runloop's development environment:
 
 ### Custom deployment domain
 
-To use a non-default Runloop deployment, set `RUNLOOP_BASE_URL` to a **bare domain suffix** (e.g. customer vanity domain). The CLI builds `api.`, `platform.`, `ssh.`, and `tunnel.` hostnames from it; invalid or full-URL values are ignored.
+To use a non-default Runloop deployment, set `RUNLOOP_BASE_DOMAIN` to a **bare domain suffix** (e.g. customer vanity domain). The CLI builds `api.`, `platform.`, `ssh.`, and `tunnel.` hostnames from it; invalid or full-URL values are ignored.
 
 ```json
 {
@@ -162,14 +162,14 @@ To use a non-default Runloop deployment, set `RUNLOOP_BASE_URL` to a **bare doma
       "command": "rli",
       "args": ["mcp", "start"],
       "env": {
-        "RUNLOOP_BASE_URL": "example.com"
+        "RUNLOOP_BASE_DOMAIN": "example.com"
       }
     }
   }
 }
 ```
 
-See the repository [README](README.md) **Setup → API base URL** for validation and the hostname table.
+See the repository [README](README.md) **Setup → Custom domain (`RUNLOOP_BASE_DOMAIN`)** for validation and the hostname table.
 
 ### Using a Specific Path
 
