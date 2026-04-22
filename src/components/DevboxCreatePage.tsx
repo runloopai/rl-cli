@@ -2549,7 +2549,9 @@ export const DevboxCreatePage = ({
 
       {loadAgentError && (
         <Box paddingX={2} marginBottom={1}>
-          <Text color={colors.warning}>{figures.warning} {loadAgentError}</Text>
+          <Text color={colors.warning}>
+            {figures.warning} {loadAgentError}
+          </Text>
         </Box>
       )}
 
