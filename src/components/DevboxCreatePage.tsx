@@ -99,9 +99,7 @@ function getDefaultObjectMountPath(obj: ObjectListItem): string {
 
 function getDefaultAgentPath(agent: Agent): string {
   // For git agents, use the repo basename
-  const source = agent.source as
-    | { type?: string; git?: { repository?: string } }
-    | undefined;
+  const source = agent.source;
   if (source?.git?.repository) {
     const base = repoBasename(source.git.repository);
     if (base) {
