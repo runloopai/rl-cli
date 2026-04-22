@@ -664,7 +664,7 @@ const ListMcpConfigsUI = ({
       {showPopup && selectedConfigItem && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            devbox={selectedConfigItem}
+            resource={selectedConfigItem}
             operations={operations.map((op) => ({
               key: op.key,
               label: op.label,

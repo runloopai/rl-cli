@@ -395,7 +395,7 @@ export function BenchmarkRunListScreen() {
       {showPopup && selectedRun && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            devbox={selectedRun}
+            resource={selectedRun}
             operations={operations.map((op) => ({
               key: op.key,
               label: op.label,

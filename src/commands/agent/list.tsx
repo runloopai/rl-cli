@@ -734,7 +734,7 @@ export const ListAgentsUI = ({
       {showPopup && selectedAgentItem && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            devbox={selectedAgentItem}
+            resource={selectedAgentItem}
             operations={operations.map((op) => ({
               key: op.key,
               label: op.label,

@@ -223,7 +223,7 @@ export const ResourceActionsMenu = (props: ResourceActionsMenuProps) => {
       <Breadcrumb items={breadcrumbItems} />
       <Box marginTop={1} justifyContent="center">
         <ActionsPopup
-          devbox={resource}
+          resource={resource}
           operations={operations.map((op) => ({
             key: op.key,
             label: op.label,

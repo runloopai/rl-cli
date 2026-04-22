@@ -809,7 +809,7 @@ const ListObjectsUI = ({
       {showPopup && selectedObjectItem && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            devbox={selectedObjectItem}
+            resource={selectedObjectItem}
             operations={operations.map((op) => ({
               key: op.key,
               label: op.label,

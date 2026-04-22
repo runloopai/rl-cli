@@ -769,7 +769,7 @@ const ListNetworkPoliciesUI = ({
       {showPopup && selectedPolicyItem && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            devbox={selectedPolicyItem}
+            resource={selectedPolicyItem}
             operations={operations.map((op) => ({
               key: op.key,
               label: op.label,

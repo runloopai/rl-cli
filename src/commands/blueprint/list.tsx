@@ -969,7 +969,7 @@ const ListBlueprintsUI = ({
       {showPopup && selectedBlueprintItem && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            devbox={selectedBlueprintItem}
+            resource={selectedBlueprintItem}
             operations={allOperations.map((op) => ({
               key: op.key,
               label: op.label,

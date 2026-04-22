@@ -454,7 +454,7 @@ export const ListAxonsUI = ({
       {showPopup && selectedAxonItem && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            devbox={selectedAxonItem}
+            resource={selectedAxonItem}
             operations={operations.map((op) => ({
               key: op.key,
               label: op.label,
