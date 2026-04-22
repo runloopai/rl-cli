@@ -380,37 +380,33 @@ export const DevboxCreatePage = ({
   React.useEffect(() => {
     if (!initialAgentId) return;
     let cancelled = false;
-    getAgent(initialAgentId).then((agent) => {
-      if (cancelled) return;
-      const source = (agent as unknown as Record<string, unknown>).source as
-        | {
-            type?: string;
-            npm?: { package_name?: string };
-            pip?: { package_name?: string };
-          }
-        | undefined;
-      setFormData((prev) => ({
-        ...prev,
-        agentMounts: [
-          ...prev.agentMounts,
-          {
-            agent_id: agent.id,
-            agent_name: agent.name,
-            agent_path: "",
-            source_type: source?.type,
-            version: (agent as unknown as Record<string, unknown>).version as
-              | string
-              | undefined,
-            package_name:
-              source?.type === "npm"
-                ? source.npm?.package_name
-                : source?.type === "pip"
-                  ? source.pip?.package_name
-                  : undefined,
-          },
-        ],
-      }));
-    });
+    getAgent(initialAgentId)
+      .then((agent) => {
+        if (cancelled) return;
+        const source = agent.source;
+        setFormData((prev) => ({
+          ...prev,
+          agentMounts: [
+            ...prev.agentMounts,
+            {
+              agent_id: agent.id,
+              agent_name: agent.name,
+              agent_path: "",
+              source_type: source?.type,
+              version: agent.version,
+              package_name:
+                source?.type === "npm"
+                  ? source.npm?.package_name
+                  : source?.type === "pip"
+                    ? source.pip?.package_name
+                    : undefined,
+            },
+          ],
+        }));
+      })
+      .catch(() => {
+        /* silently ignore — agent may not be accessible */
+      });
     return () => {
       cancelled = true;
     };
