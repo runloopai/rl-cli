@@ -1676,8 +1676,7 @@ export const DevboxCreatePage = ({
                   (a) => {
                     if (a.source?.type === "object") return "";
                     const v = a.version || "";
-                    if (v.length > 16)
-                      return `${v.slice(0, 8)}…${v.slice(-4)}`;
+                    if (v.length > 16) return `${v.slice(0, 8)}…${v.slice(-4)}`;
                     return v;
                   },
                   { width: versionWidth, color: colors.textDim },
