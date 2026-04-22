@@ -43,78 +43,16 @@ import {
   listPublicAgents,
   type Agent,
 } from "../services/agentService.js";
+import {
+  getDefaultAgentMountPath,
+  getDefaultObjectMountPath,
+} from "../utils/mount.js";
 
 // Secret list interface for the picker
 interface SecretListItem {
   id: string;
   name: string;
   create_time_ms?: number;
-}
-
-const DEFAULT_MOUNT_PATH = "/home/user";
-
-function sanitizeMountSegment(input: string): string {
-  return input
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_|_$/g, "");
-}
-
-function repoBasename(repo: string): string | undefined {
-  const cleaned = repo
-    .trim()
-    .replace(/[?#].*$/, "")
-    .replace(/\/+$/, "");
-  const m = cleaned.match(/(?:[/:])([^/:\s]+?)(?:\.git)?$/);
-  return m?.[1];
-}
-
-function adjustFileExtension(name: string, contentType?: string): string {
-  // Strip common archive extensions to predict post-extraction filename
-  const archiveExts = /\.(tar\.gz|tar\.bz2|tar\.xz|tgz|gz|bz2|xz|zip|tar)$/i;
-  const stripped = name.replace(archiveExts, "");
-  if (stripped !== name) return stripped;
-
-  // For tar content types, strip the last extension
-  if (contentType && /tar|gzip|x-compressed/i.test(contentType)) {
-    const dotIdx = name.lastIndexOf(".");
-    if (dotIdx > 0) return name.substring(0, dotIdx);
-  }
-
-  return name;
-}
-
-function getDefaultObjectMountPath(obj: ObjectListItem): string {
-  if (obj.name) {
-    const adjusted = adjustFileExtension(obj.name, obj.content_type);
-    const sanitized = sanitizeMountSegment(adjusted);
-    if (sanitized) return `${DEFAULT_MOUNT_PATH}/${sanitized}`;
-  }
-  // Fallback: use last 8 chars of ID
-  const suffix = obj.id.slice(-8);
-  return `${DEFAULT_MOUNT_PATH}/object_${suffix}`;
-}
-
-function getDefaultAgentPath(agent: Agent): string {
-  // For git agents, use the repo basename
-  const source = agent.source;
-  if (source?.git?.repository) {
-    const base = repoBasename(source.git.repository);
-    if (base) {
-      const sanitized = sanitizeMountSegment(base);
-      if (sanitized) return `${DEFAULT_MOUNT_PATH}/${sanitized}`;
-    }
-  }
-
-  // Fall back to agent name
-  if (agent.name) {
-    const sanitized = sanitizeMountSegment(agent.name);
-    if (sanitized) return `${DEFAULT_MOUNT_PATH}/${sanitized}`;
-  }
-
-  return `${DEFAULT_MOUNT_PATH}/agent`;
 }
 
 interface DevboxCreatePageProps {
@@ -753,7 +691,7 @@ export const DevboxCreatePage = ({
       const agent = agents[0];
       const sourceType = agent.source?.type;
       const needsPath = sourceType === "git" || sourceType === "object";
-      const defaultPath = needsPath ? getDefaultAgentPath(agent) : "";
+      const defaultPath = needsPath ? getDefaultAgentMountPath(agent) : "";
 
       setFormData((prev) => ({
         ...prev,
