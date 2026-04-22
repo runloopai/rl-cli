@@ -78,8 +78,6 @@ Example:
 export RUNLOOP_BASE_DOMAIN=example.com
 ```
 
-In **interactive (TUI) mode**, the home screen shows the resolved API base URL at the bottom (below the keyboard hints) so you can confirm which API you are using.
-
 ## Usage
 
 ### TUI (Interactive Mode)
