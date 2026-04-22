@@ -190,6 +190,7 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
     }
   }
 
+  // "n" is safe here — detail screens don't use n/p pagination keys
   const isPublic = agent.is_public;
   const operations: ResourceOperation[] = [
     {
