@@ -107,7 +107,7 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
   const detailSections: DetailSection[] = [];
 
   const basicFields = [];
-  if (agent.version) {
+  if (agent.version && source?.type !== "object") {
     basicFields.push({ label: "Version", value: agent.version });
   }
   if (agent.create_time_ms) {

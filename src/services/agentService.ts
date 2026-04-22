@@ -25,6 +25,8 @@ export interface AgentColumn {
  */
 function agentVersionText(agent: Agent): string {
   const src = (agent as any).source;
+  if (src?.type === "object") return "-";
+
   const pkg: string | undefined =
     src?.npm?.package_name || src?.pip?.package_name;
   const version = agent.version || "";
