@@ -375,7 +375,7 @@ const ListObjectsUI = ({
       switch (operationKey) {
         case "delete":
           await client.objects.delete(obj.id);
-          setOperationResult(`Storage object ${obj.id} deleted successfully`);
+          setOperationResult(`Object ${obj.id} deleted successfully`);
           break;
         case "download": {
           if (!targetPath) {
@@ -583,7 +583,7 @@ const ListObjectsUI = ({
       <>
         <Breadcrumb
           items={[
-            { label: "Storage Objects" },
+            { label: "Objects" },
             {
               label: selectedObject?.name || selectedObject?.id || "Object",
             },
@@ -606,12 +606,12 @@ const ListObjectsUI = ({
       <>
         <Breadcrumb
           items={[
-            { label: "Storage Objects" },
+            { label: "Objects" },
             { label: selectedObject.name || selectedObject.id },
             { label: "Download", active: true },
           ]}
         />
-        <Header title="Download Storage Object" />
+        <Header title="Download Object" />
         <Box flexDirection="column" marginTop={1}>
           <Text color={colors.text}>
             {figures.arrowRight} Downloading:{" "}
@@ -650,11 +650,11 @@ const ListObjectsUI = ({
   if (showDeleteConfirm && selectedObject) {
     return (
       <ConfirmationPrompt
-        title="Delete Storage Object"
+        title="Delete Object"
         message={`Are you sure you want to delete "${selectedObject.name || selectedObject.id}"?`}
         details="This action cannot be undone."
         breadcrumbItems={[
-          { label: "Storage Objects" },
+          { label: "Objects" },
           { label: selectedObject.name || selectedObject.id },
           { label: "Delete", active: true },
         ]}
@@ -677,14 +677,14 @@ const ListObjectsUI = ({
       operations.find((o) => o.key === executingOperation)?.label ||
       "Operation";
     const messages: Record<string, string> = {
-      delete: "Deleting storage object...",
+      delete: "Deleting object...",
       download: "Downloading...",
     };
     return (
       <>
         <Breadcrumb
           items={[
-            { label: "Storage Objects" },
+            { label: "Objects" },
             { label: selectedObject.name || selectedObject.id },
             { label: operationLabel, active: true },
           ]}
@@ -701,8 +701,8 @@ const ListObjectsUI = ({
   if (loading && objects.length === 0) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Storage Objects", active: true }]} />
-        <SpinnerComponent message="Loading storage objects..." />
+        <Breadcrumb items={[{ label: "Objects", active: true }]} />
+        <SpinnerComponent message="Loading objects..." />
       </>
     );
   }
@@ -711,8 +711,8 @@ const ListObjectsUI = ({
   if (error) {
     return (
       <>
-        <Breadcrumb items={[{ label: "Storage Objects", active: true }]} />
-        <ErrorMessage message="Failed to list storage objects" error={error} />
+        <Breadcrumb items={[{ label: "Objects", active: true }]} />
+        <ErrorMessage message="Failed to list objects" error={error} />
       </>
     );
   }
@@ -720,7 +720,7 @@ const ListObjectsUI = ({
   // Main list view
   return (
     <>
-      <Breadcrumb items={[{ label: "Storage Objects", active: true }]} />
+      <Breadcrumb items={[{ label: "Objects", active: true }]} />
 
       {/* Search bar */}
       <SearchBar
@@ -730,7 +730,7 @@ const ListObjectsUI = ({
         resultCount={totalCount}
         onSearchChange={search.setSearchQuery}
         onSearchSubmit={search.submitSearch}
-        placeholder="Search storage objects..."
+        placeholder="Search objects..."
       />
 
       {/* Table - hide when popup is shown */}
@@ -739,12 +739,11 @@ const ListObjectsUI = ({
           data={objects}
           keyExtractor={(obj: ObjectListItem) => obj.id}
           selectedIndex={selectedIndex}
-          title={`storage_objects[${totalCount}]`}
+          title={`objects[${totalCount}]`}
           columns={columns}
           emptyState={
             <Text color={colors.textDim}>
-              {figures.info} No storage objects found. Try: rli object upload{" "}
-              {"<file>"}
+              {figures.info} No objects found. Try: rli object upload {"<file>"}
             </Text>
           }
         />
@@ -810,7 +809,7 @@ const ListObjectsUI = ({
       {showPopup && selectedObjectItem && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            devbox={selectedObjectItem}
+            resource={selectedObjectItem}
             operations={operations.map((op) => ({
               key: op.key,
               label: op.label,
@@ -905,6 +904,6 @@ export async function listObjects(options: ListOptions) {
 
     output(allObjects, { format: options.output, defaultFormat: "json" });
   } catch (error) {
-    outputError("Failed to list storage objects", error);
+    outputError("Failed to list objects", error);
   }
 }

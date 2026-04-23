@@ -15,7 +15,6 @@ import { Breadcrumb } from "./Breadcrumb.js";
 import { NavigationTips } from "./NavigationTips.js";
 import { MetadataDisplay } from "./MetadataDisplay.js";
 import { ResourcePicker, createTextColumn, Column } from "./ResourcePicker.js";
-import { buildAgentTableColumns } from "./agentColumns.js";
 import { formatTimeAgo } from "./ResourceListView.js";
 import { getStatusDisplay } from "./StatusBadge.js";
 import {
@@ -1633,7 +1632,64 @@ export const DevboxCreatePage = ({
             },
             getItemId: (agent) => agent.id,
             getItemLabel: (agent) => agent.name || agent.id,
-            columns: buildAgentTableColumns,
+            columns: (tw: number): Column<Agent>[] => {
+              const fixedWidth = 6;
+              const idWidth = 25;
+              const versionWidth = 20;
+              const sourceWidth = 8;
+              const nameWidth = Math.min(
+                40,
+                Math.max(
+                  15,
+                  Math.floor(
+                    (tw - fixedWidth - idWidth - versionWidth - sourceWidth) *
+                      0.5,
+                  ),
+                ),
+              );
+              const timeWidth = Math.max(
+                18,
+                tw -
+                  fixedWidth -
+                  idWidth -
+                  nameWidth -
+                  versionWidth -
+                  sourceWidth,
+              );
+              return [
+                createTextColumn<Agent>("id", "ID", (a) => a.id, {
+                  width: idWidth + 1,
+                  color: colors.idColor,
+                }),
+                createTextColumn<Agent>("name", "Name", (a) => a.name, {
+                  width: nameWidth,
+                }),
+                createTextColumn<Agent>(
+                  "source",
+                  "Source",
+                  (a) => a.source?.type || "",
+                  { width: sourceWidth, color: colors.textDim },
+                ),
+                createTextColumn<Agent>(
+                  "version",
+                  "Version",
+                  (a) => {
+                    if (a.source?.type === "object") return "";
+                    const v = a.version || "";
+                    if (v.length > 16) return `${v.slice(0, 8)}…${v.slice(-4)}`;
+                    return v;
+                  },
+                  { width: versionWidth, color: colors.textDim },
+                ),
+                createTextColumn<Agent>(
+                  "created",
+                  "Created",
+                  (a) =>
+                    a.create_time_ms ? formatTimeAgo(a.create_time_ms) : "",
+                  { width: timeWidth, color: colors.textDim },
+                ),
+              ];
+            },
             mode: "single",
             emptyMessage: "No agents found",
             searchPlaceholder: "Search agents...",

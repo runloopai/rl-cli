@@ -409,7 +409,7 @@ export function BenchmarkListScreen() {
       {showPopup && selectedBenchmark && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            devbox={selectedBenchmark}
+            resource={selectedBenchmark}
             operations={operations.map((op) => ({
               key: op.key,
               label: op.label,

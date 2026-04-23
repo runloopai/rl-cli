@@ -11,7 +11,7 @@ interface ResourceWithId {
 }
 
 interface ActionsPopupProps {
-  devbox: ResourceWithId;
+  resource: ResourceWithId;
   operations: Array<{
     key: string;
     label: string;
@@ -24,7 +24,7 @@ interface ActionsPopupProps {
 }
 
 export const ActionsPopup = ({
-  devbox: _devbox,
+  resource: _resource,
   operations,
   selectedOperation,
   onClose: _onClose,
