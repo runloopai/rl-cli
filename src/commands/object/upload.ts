@@ -107,8 +107,7 @@ export async function uploadObject(options: UploadObjectOptions) {
     let detectedContentType: ContentType;
     let fileSize: number;
 
-    const shouldCreateArchive =
-      isTarType && (paths.length > 1 || singleIsDir);
+    const shouldCreateArchive = isTarType && (paths.length > 1 || singleIsDir);
 
     if (shouldCreateArchive) {
       const gzip = contentType === "tgz";

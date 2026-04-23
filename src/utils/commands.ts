@@ -667,9 +667,7 @@ export function createProgram(): Command {
       if (!options.output) {
         const { runInteractiveCommand } =
           await import("../utils/interactiveCommand.js");
-        await runInteractiveCommand(() =>
-          uploadObject({ paths, ...options }),
-        );
+        await runInteractiveCommand(() => uploadObject({ paths, ...options }));
       } else {
         await uploadObject({ paths, ...options });
       }
