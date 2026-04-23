@@ -2,6 +2,7 @@
  * Object Service - Handles all storage object API calls
  */
 import { getClient } from "../utils/client.js";
+import { formatTimestamp } from "../utils/time.js";
 import type { StorageObjectView } from "../store/objectStore.js";
 
 export interface ListObjectsOptions {
@@ -116,6 +117,65 @@ export async function getObject(id: string): Promise<StorageObjectView> {
 export async function deleteObject(id: string): Promise<void> {
   const client = getClient();
   await client.objects.delete(id);
+}
+
+export interface ObjectDetailField {
+  label: string;
+  value: string;
+  color?: string;
+}
+
+/**
+ * Build standard detail fields for a storage object.
+ * Shared between ObjectDetailScreen and AgentDetailScreen.
+ */
+export function buildObjectDetailFields(
+  obj: StorageObjectView,
+): ObjectDetailField[] {
+  const fields: ObjectDetailField[] = [];
+
+  if (obj.content_type) {
+    fields.push({ label: "Content Type", value: obj.content_type });
+  }
+  if (obj.size_bytes !== undefined && obj.size_bytes !== null) {
+    fields.push({ label: "Size", value: formatFileSize(obj.size_bytes) });
+  }
+  if (obj.state) {
+    fields.push({ label: "State", value: obj.state });
+  }
+  if (obj.is_public !== undefined) {
+    fields.push({ label: "Public", value: obj.is_public ? "Yes" : "No" });
+  }
+  if (obj.create_time_ms) {
+    fields.push({
+      label: "Created",
+      value: formatTimestamp(obj.create_time_ms) ?? "",
+    });
+  }
+  if (obj.delete_after_time_ms) {
+    const remainingMs = obj.delete_after_time_ms - Date.now();
+    if (remainingMs <= 0) {
+      fields.push({ label: "Expires", value: "Expired", color: "error" });
+    } else {
+      const remainingMinutes = Math.floor(remainingMs / 60000);
+      if (remainingMinutes < 60) {
+        fields.push({
+          label: "Expires",
+          value: `${remainingMinutes}m remaining`,
+          color: remainingMinutes < 10 ? "warning" : undefined,
+        });
+      } else {
+        const hours = Math.floor(remainingMinutes / 60);
+        const mins = remainingMinutes % 60;
+        fields.push({
+          label: "Expires",
+          value: `${hours}h ${mins}m remaining`,
+        });
+      }
+    }
+  }
+
+  return fields;
 }
 
 /**

@@ -15,13 +15,13 @@ import {
 import { getClient } from "../utils/client.js";
 import {
   ResourceDetailPage,
-  formatTimestamp,
   type DetailSection,
   type ResourceOperation,
 } from "../components/ResourceDetailPage.js";
 import {
   getObject,
   deleteObject,
+  buildObjectDetailFields,
   formatFileSize,
 } from "../services/objectService.js";
 import { useResourceDetail } from "../hooks/useResourceDetail.js";
@@ -175,68 +175,15 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
   // Build detail sections
   const detailSections: DetailSection[] = [];
 
-  // Basic details section
-  const basicFields = [];
-  if (storageObject.content_type) {
-    basicFields.push({
-      label: "Content Type",
-      value: storageObject.content_type,
-    });
-  }
-  if (storageObject.size_bytes !== undefined) {
-    basicFields.push({
-      label: "Size",
-      value: formatFileSize(storageObject.size_bytes),
-    });
-  }
-  if (storageObject.state) {
-    basicFields.push({
-      label: "State",
-      value: storageObject.state,
-    });
-  }
-  if (storageObject.is_public !== undefined) {
-    basicFields.push({
-      label: "Public",
-      value: storageObject.is_public ? "Yes" : "No",
-    });
-  }
-  if (storageObject.create_time_ms) {
-    basicFields.push({
-      label: "Created",
-      value: formatTimestamp(storageObject.create_time_ms),
-    });
-  }
-
-  // TTL / Expires - show remaining time before auto-deletion
-  if (storageObject.delete_after_time_ms) {
-    const now = Date.now();
-    const remainingMs = storageObject.delete_after_time_ms - now;
-
-    let ttlValue: string;
-    let ttlColor = colors.text;
-
-    if (remainingMs <= 0) {
-      ttlValue = "Expired";
-      ttlColor = colors.error;
-    } else {
-      const remainingMinutes = Math.floor(remainingMs / 60000);
-      if (remainingMinutes < 60) {
-        ttlValue = `${remainingMinutes}m remaining`;
-        ttlColor = remainingMinutes < 10 ? colors.warning : colors.text;
-      } else {
-        const hours = Math.floor(remainingMinutes / 60);
-        const mins = remainingMinutes % 60;
-        ttlValue = `${hours}h ${mins}m remaining`;
-      }
-    }
-
-    basicFields.push({
-      label: "Expires",
-      value: <Text color={ttlColor}>{ttlValue}</Text>,
-    });
-  }
-
+  // Basic details section — reuse shared field builder
+  const colorMap: Record<string, string> = {
+    error: colors.error,
+    warning: colors.warning,
+  };
+  const basicFields = buildObjectDetailFields(storageObject).map((f) => ({
+    ...f,
+    color: f.color ? (colorMap[f.color] ?? f.color) : undefined,
+  }));
   if (basicFields.length > 0) {
     detailSections.push({
       title: "Details",
