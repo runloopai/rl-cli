@@ -75,6 +75,7 @@
     "@runloop/api-client": "1.16.0",
     "@types/express": "5.0.6",
     "adm-zip": "0.5.16",
+    "tar": "^7.5.13",
     "chalk": "5.6.2",
     "commander": "14.0.2",
     "conf": "15.1.0",
