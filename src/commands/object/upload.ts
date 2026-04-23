@@ -4,9 +4,8 @@
 
 import { readFile, stat, unlink } from "fs/promises";
 import { tmpdir } from "os";
-import { basename, extname, relative, resolve } from "path";
+import { extname, join, relative, resolve } from "path";
 import { randomUUID } from "crypto";
-import { join } from "path";
 import * as tar from "tar";
 import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
