@@ -396,7 +396,7 @@ export function AgentCreateScreen() {
                 value={formData.version}
                 onChange={(v) => setFormData({ ...formData, version: v })}
                 isActive={currentField === "version"}
-                placeholder="(optional) e.g. 1.0.0 or a 40-char SHA"
+                placeholder="(optional) e.g. branch or tag"
                 error={fieldError("version")}
               />
               <FormTextInput

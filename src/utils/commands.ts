@@ -1197,10 +1197,7 @@ export function createProgram(): Command {
     .command("create")
     .description("Create a new agent")
     .requiredOption("--name <name>", "Agent name")
-    .option(
-      "--agent-version <version>",
-      "Version string (semver or SHA, optional)",
-    )
+    .option("--agent-version <version>", "Version string (optional)")
     .requiredOption("--source <type>", "Source type: npm|pip|git|object")
     .option("--package <name>", "Package name (for npm/pip sources)")
     .option("--registry-url <url>", "Registry URL (for npm/pip sources)")
