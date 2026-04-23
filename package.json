@@ -1,6 +1,6 @@
 {
   "name": "@runloop/rl-cli",
-  "version": "1.15.0",
+  "version": "1.16.0",
   "description": "Beautiful CLI for the Runloop platform",
   "type": "module",
   "bin": {
@@ -93,7 +93,9 @@
     "zustand": "5.0.10"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"],
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ],
     "overrides": {
       "tmp": "^0.2.5",
       "qs": "^6.15.1",
