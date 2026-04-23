@@ -797,7 +797,7 @@ const ListDevboxesUI = ({
       {showPopup && selectedDevbox && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            resource={selectedDevbox}
+            devbox={selectedDevbox}
             operations={operations}
             selectedOperation={selectedOperation}
             onClose={() => setShowPopup(false)}

@@ -611,7 +611,7 @@ const ListSecretsUI = ({
       {showPopup && selectedSecretItem && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            resource={selectedSecretItem}
+            devbox={selectedSecretItem}
             operations={operations.map((op) => ({
               key: op.key,
               label: op.label,

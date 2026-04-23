@@ -7,7 +7,7 @@ import { output, outputError } from "../../utils/output.js";
 
 interface CreateOptions {
   name: string;
-  agentVersion: string;
+  agentVersion?: string;
   source: string;
   package?: string;
   registryUrl?: string;
@@ -103,7 +103,7 @@ export async function createAgentCommand(
 
     const agent = await createAgent({
       name: options.name,
-      version: options.agentVersion,
+      ...(options.agentVersion ? { version: options.agentVersion } : {}),
       source: { type: sourceType, [sourceType]: sourceOptions },
     });
 

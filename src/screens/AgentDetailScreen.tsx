@@ -28,7 +28,7 @@ interface AgentDetailScreenProps {
 }
 
 export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
-  const { goBack } = useNavigation();
+  const { goBack, navigate } = useNavigation();
 
   const {
     data: agent,
@@ -107,7 +107,12 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
   const detailSections: DetailSection[] = [];
 
   const basicFields = [];
-  basicFields.push({ label: "Version", value: agent.version });
+  if (source?.type !== "object") {
+    const versionDisplay = agent.version || source?.git?.ref;
+    if (versionDisplay) {
+      basicFields.push({ label: "Version", value: versionDisplay });
+    }
+  }
   if (agent.create_time_ms) {
     basicFields.push({
       label: "Created",
@@ -190,21 +195,33 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
     }
   }
 
+  // "n" is safe here — detail screens don't use n/p pagination keys
   const isPublic = agent.is_public;
-  const operations: ResourceOperation[] = isPublic
-    ? []
-    : [
-        {
-          key: "delete",
-          label: "Delete Agent",
-          color: colors.error,
-          icon: figures.cross,
-          shortcut: "d",
-        },
-      ];
+  const operations: ResourceOperation[] = [
+    {
+      key: "create-devbox",
+      label: "Create Devbox with Agent",
+      color: colors.success,
+      icon: figures.play,
+      shortcut: "n",
+    },
+    ...(isPublic
+      ? []
+      : [
+          {
+            key: "delete",
+            label: "Delete Agent",
+            color: colors.error,
+            icon: figures.cross,
+            shortcut: "d",
+          },
+        ]),
+  ];
 
   const handleOperation = (operation: string) => {
-    if (operation === "delete") {
+    if (operation === "create-devbox") {
+      navigate("devbox-create", { agentId: agent.id });
+    } else if (operation === "delete") {
       setShowDeleteConfirm(true);
     }
   };

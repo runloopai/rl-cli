@@ -21,6 +21,7 @@ export function DevboxCreateScreen() {
       onCreate={handleCreate}
       initialBlueprintId={params.blueprintId}
       initialSnapshotId={params.snapshotId}
+      initialAgentId={params.agentId}
     />
   );
 }

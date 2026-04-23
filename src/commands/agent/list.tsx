@@ -67,12 +67,18 @@ const columns: ColumnDef[] = [
   {
     header: "VERSION",
     raw: (a) => {
+      if (a.source?.type === "object") return "-";
+      const v = a.version || a.source?.git?.ref || "";
+      if (!v) return "-";
       const pkg = a.source?.npm?.package_name || a.source?.pip?.package_name;
-      return pkg ? `${pkg}@${a.version}` : a.version;
+      return pkg ? `${pkg}@${v}` : v;
     },
     styled(a) {
+      if (a.source?.type === "object") return "-";
+      const v = a.version || a.source?.git?.ref || "";
+      if (!v) return "-";
       const pkg = a.source?.npm?.package_name || a.source?.pip?.package_name;
-      return pkg ? chalk.dim(pkg + "@") + a.version : a.version;
+      return pkg ? chalk.dim(pkg + "@") + v : v;
     },
   },
   {
@@ -325,8 +331,9 @@ export const ListAgentsUI = ({
         "version",
         "Version",
         (a: Agent) => {
-          if (a.source?.type === "object") return "";
-          const v = a.version || "";
+          if (a.source?.type === "object") return "-";
+          const v = a.version || a.source?.git?.ref || "";
+          if (!v) return "-";
           if (v.length > 16) return `${v.slice(0, 8)}…${v.slice(-4)}`;
           return v;
         },
@@ -734,7 +741,7 @@ export const ListAgentsUI = ({
       {showPopup && selectedAgentItem && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            resource={selectedAgentItem}
+            devbox={selectedAgentItem}
             operations={operations.map((op) => ({
               key: op.key,
               label: op.label,

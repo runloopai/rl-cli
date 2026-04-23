@@ -682,7 +682,7 @@ const ListSnapshotsUI = ({
       {showPopup && selectedSnapshotItem && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            resource={selectedSnapshotItem}
+            devbox={selectedSnapshotItem}
             operations={operations.map((op) => ({
               key: op.key,
               label: op.label,
