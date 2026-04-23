@@ -29,7 +29,7 @@ function agentVersionText(agent: Agent): string {
 
   const pkg: string | undefined =
     src?.npm?.package_name || src?.pip?.package_name;
-  const version = agent.version || "";
+  const version = agent.version || src?.git?.ref || "";
 
   if (!version && !pkg) return "-";
 

@@ -107,8 +107,11 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
   const detailSections: DetailSection[] = [];
 
   const basicFields = [];
-  if (agent.version && source?.type !== "object") {
-    basicFields.push({ label: "Version", value: agent.version });
+  if (source?.type !== "object") {
+    const versionDisplay = agent.version || source?.git?.ref;
+    if (versionDisplay) {
+      basicFields.push({ label: "Version", value: versionDisplay });
+    }
   }
   if (agent.create_time_ms) {
     basicFields.push({
