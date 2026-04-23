@@ -35,6 +35,15 @@ const CONTENT_TYPE_MAP: Record<string, ContentType> = {
   ".tar.gz": "tgz",
 };
 
+/**
+ * Create a tar (or tgz) archive as a Buffer from the given filesystem paths.
+ *
+ * Uses a temp file because the `tar` package's `tar.create()` only supports
+ * writing to a file path or to a stream — it has no "return a buffer"
+ * option. We write to a temp file, read it back into memory, then delete
+ * the temp file. This is the simplest reliable approach for producing a
+ * single Buffer suitable for an HTTP PUT body.
+ */
 export async function createTarBuffer(
   paths: string[],
   gzip: boolean,
