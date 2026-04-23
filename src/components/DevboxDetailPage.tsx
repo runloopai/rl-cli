@@ -12,7 +12,7 @@ import {
   type DetailSection,
   type ResourceOperation,
 } from "./ResourceDetailPage.js";
-import { getDevboxUrl, getDevboxTunnelUrlPattern } from "../utils/url.js";
+import { getDevboxUrl, getTunnelUrl } from "../utils/url.js";
 import { colors } from "../utils/theme.js";
 import { formatTimeAgo } from "../utils/time.js";
 import { getMcpConfig } from "../services/mcpConfigService.js";
@@ -339,7 +339,7 @@ export const DevboxDetailPage = ({ devbox, onBack }: DevboxDetailPageProps) => {
     if (devbox.tunnel && devbox.tunnel.tunnel_key) {
       const tunnelKey = devbox.tunnel.tunnel_key;
       const authMode = devbox.tunnel.auth_mode;
-      const tunnelUrl = getDevboxTunnelUrlPattern(tunnelKey);
+      const tunnelUrl = getTunnelUrl("{port}", tunnelKey);
 
       detailFields.push({
         label: "Tunnel",
@@ -651,7 +651,7 @@ export const DevboxDetailPage = ({ devbox, onBack }: DevboxDetailPageProps) => {
         </Text>,
       );
 
-      const tunnelUrl = getDevboxTunnelUrlPattern(devbox.tunnel.tunnel_key);
+      const tunnelUrl = getTunnelUrl("{port}", devbox.tunnel.tunnel_key);
       lines.push(
         <Text key="tunnel-url" color={colors.success}>
           {" "}

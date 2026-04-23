@@ -102,9 +102,6 @@ If you prefer to configure manually, add this to your Claude configuration file:
     "runloop": {
       "command": "rli",
       "args": ["mcp", "start"],
-      "env": {
-        "RUNLOOP_ENV": "prod"
-      }
     }
   }
 }
@@ -151,8 +148,8 @@ Claude will use the MCP tools to interact with your Runloop account and provide 
 
 ## Environment Variables
 
-- `RUNLOOP_ENV` - Set to `dev` for development environment, `prod` (or leave unset) for production
-- API key is read from the CLI configuration (~/.config/rli/config.json)
+- `RUNLOOP_BASE_URL` — Optional. Full API URL of the form `https://api.<domain>` (e.g. `https://api.runloop.pro`). Defaults to `https://api.runloop.ai`. See [README](README.md) **Setup → Custom API endpoint (`RUNLOOP_BASE_URL`)**.
+- API key is read from the CLI configuration (`~/.runloop/config.json`)
 
 ## Troubleshooting
 

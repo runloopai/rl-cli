@@ -46,13 +46,30 @@ pnpm add -g @runloop/rl-cli
 
 ## Setup
 
-Configure your API key:
+### API key
 
 ```bash
 export RUNLOOP_API_KEY=your_api_key_here
 ```
 
 Get your API key from [https://runloop.ai/settings](https://runloop.ai/settings)
+
+### Custom API endpoint (`RUNLOOP_BASE_URL`, optional)
+
+By default the CLI and MCP server connect to `https://api.runloop.ai`. To use a different deployment, set `RUNLOOP_BASE_URL` to the full API URL:
+
+```bash
+export RUNLOOP_BASE_URL=https://api.runloop.pro
+```
+
+The URL must be of the form `https://api.<domain>`. The CLI derives other service hostnames from the domain portion:
+
+| Service  | Host |
+|----------|------|
+| API      | `https://api.<domain>` (the value of `RUNLOOP_BASE_URL`) |
+| Platform | `https://platform.<domain>` |
+| SSH      | `ssh.<domain>:443` |
+| Tunnels  | `tunnel.<domain>` |
 
 ## Usage
 

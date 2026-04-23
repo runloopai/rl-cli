@@ -6,6 +6,7 @@ import { homedir } from "os";
 import { getClient } from "./client.js";
 import { cliStatus } from "./cliStatus.js";
 import { processUtils } from "./processUtils.js";
+import { sshUrl as sshTlsConnectEndpoint } from "./config.js";
 
 const execAsync = promisify(exec);
 
@@ -148,18 +149,10 @@ export async function waitForReady(
 }
 
 /**
- * Get SSH URL based on environment
- */
-export function getSSHUrl(): string {
-  const env = processUtils.env.RUNLOOP_ENV?.toLowerCase();
-  return env === "dev" ? "ssh.runloop.pro:443" : "ssh.runloop.ai:443";
-}
-
-/**
  * Get proxy command for SSH over HTTPS
  */
 export function getProxyCommand(): string {
-  const sshUrl = getSSHUrl();
+  const sshUrl = sshTlsConnectEndpoint();
   // macOS openssl doesn't support -verify_quiet, use compatible flags
   // servername should be %h (target hostname) - SSH will replace %h with the actual hostname from the SSH command
   return `openssl s_client -quiet -servername %h -connect ${sshUrl} 2>/dev/null`;

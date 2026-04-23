@@ -65,9 +65,9 @@ When you run `rli mcp install`, it creates this configuration in your Claude Des
 }
 ```
 
-### With Environment Variables
+### Custom API endpoint
 
-To use the development environment:
+To point MCP at a different deployment, set `RUNLOOP_BASE_URL` (must be `https://api.<domain>`):
 
 ```json
 {
@@ -76,12 +76,14 @@ To use the development environment:
       "command": "rli",
       "args": ["mcp", "start"],
       "env": {
-        "RUNLOOP_ENV": "dev"
+        "RUNLOOP_BASE_URL": "https://api.runloop.pro"
       }
     }
   }
 }
 ```
+
+See [README.md](README.md) (Setup → Custom API endpoint) for the hostname table.
 
 ## Available Tools
 

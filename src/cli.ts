@@ -3,7 +3,7 @@
 import { exitAlternateScreenBuffer } from "./utils/screen.js";
 import { processUtils } from "./utils/processUtils.js";
 import { createProgram } from "./utils/commands.js";
-import { getApiKeyErrorMessage } from "./utils/config.js";
+import { getApiKeyErrorMessage, checkBaseDomain } from "./utils/config.js";
 
 // Global Ctrl+C handler to ensure it always exits
 processUtils.on("SIGINT", () => {
@@ -20,6 +20,8 @@ const program = createProgram();
   // Initialize theme system early (before any UI rendering)
   const { initializeTheme } = await import("./utils/theme.js");
   await initializeTheme();
+
+  checkBaseDomain();
 
   // Check if API key is configured (except for mcp commands)
   const args = process.argv.slice(2);

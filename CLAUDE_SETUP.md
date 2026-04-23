@@ -133,9 +133,9 @@ Press Ctrl+C to stop it.
 
 ## Advanced Configuration
 
-### Using Development Environment
+### Custom API endpoint
 
-If you want to connect to Runloop's development environment:
+To connect to a non-default Runloop deployment, set `RUNLOOP_BASE_URL` to the full API URL (must be `https://api.<domain>`):
 
 ```json
 {
@@ -144,12 +144,14 @@ If you want to connect to Runloop's development environment:
       "command": "rli",
       "args": ["mcp", "start"],
       "env": {
-        "RUNLOOP_ENV": "dev"
+        "RUNLOOP_BASE_URL": "https://api.runloop.pro"
       }
     }
   }
 }
 ```
+
+See the repository [README](README.md) **Setup → Custom API endpoint (`RUNLOOP_BASE_URL`)** for the hostname table.
 
 ### Using a Specific Path
 

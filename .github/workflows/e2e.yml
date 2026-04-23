@@ -37,5 +37,5 @@ jobs:
       - name: Run e2e smoke tests
         env:
           RUNLOOP_API_KEY: ${{ inputs.environment == 'prod' && secrets.RUNLOOP_SMOKETEST_PROD_API_KEY || secrets.RUNLOOP_SMOKETEST_DEV_API_KEY }}
-          RUNLOOP_ENV: ${{ inputs.environment }}
+          RUNLOOP_BASE_URL: ${{ inputs.environment == 'prod' && 'https://api.runloop.ai' || 'https://api.runloop.pro' }}
         run: pnpm run test:e2e

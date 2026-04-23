@@ -3,7 +3,7 @@
  * Returns plain data objects with no SDK reference retention
  */
 import { getClient } from "../utils/client.js";
-import { getTunnelBaseHost } from "../utils/url.js";
+import { getTunnelUrl } from "../utils/url.js";
 import type { Devbox } from "../store/devboxStore.js";
 import type { DevboxesCursorIDPage } from "@runloop/api-client/pagination";
 import type {
@@ -263,7 +263,7 @@ export async function createTunnel(
 ): Promise<{ url: string }> {
   const client = getClient();
   const tunnel = await client.devboxes.enableTunnel(id);
-  const url = `https://${port}-${tunnel.tunnel_key}.${getTunnelBaseHost()}`;
+  const url = getTunnelUrl(port, tunnel.tunnel_key);
 
   return {
     url: url.substring(0, 500),
