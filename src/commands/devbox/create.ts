@@ -9,6 +9,13 @@ import {
   getAgent,
   type Agent,
 } from "../../services/agentService.js";
+import { getObject } from "../../services/objectService.js";
+import {
+  DEFAULT_MOUNT_PATH,
+  sanitizeMountSegment,
+  adjustFileExtension,
+  getDefaultAgentMountPath,
+} from "../../utils/mount.js";
 
 interface CreateOptions {
   name?: string;
@@ -32,7 +39,7 @@ interface CreateOptions {
   gateways?: string[];
   mcp?: string[];
   agent?: string[];
-  agentPath?: string;
+  object?: string[];
   output?: string;
 }
 
@@ -293,28 +300,100 @@ export async function createDevbox(options: CreateOptions = {}) {
       createRequest.mcp = parseMcpSpecs(options.mcp);
     }
 
-    // Handle agent mount
+    // Parse agent mounts (format: name_or_id or name_or_id:/mount/path)
+    const resolvedAgents: { agent: Agent; path?: string }[] = [];
     if (options.agent && options.agent.length > 0) {
-      if (options.agent.length > 1) {
-        throw new Error(
-          "Mounting multiple agents via rli is not supported yet",
-        );
+      const parsedAgentSpecs: { idOrName: string; path?: string }[] = [];
+      for (const spec of options.agent) {
+        const colonIdx = spec.indexOf(":");
+        // Only treat colon as separator if what follows looks like an absolute path
+        if (colonIdx > 0 && spec[colonIdx + 1] === "/") {
+          parsedAgentSpecs.push({
+            idOrName: spec.substring(0, colonIdx),
+            path: spec.substring(colonIdx + 1),
+          });
+        } else {
+          parsedAgentSpecs.push({ idOrName: spec });
+        }
       }
-      const agent = await resolveAgent(options.agent[0]);
-      const mount: Record<string, unknown> = {
-        type: "agent_mount",
-        agent_id: agent.id,
-        agent_name: null,
-      };
-      // agent_path only makes sense for git and object agents.  Since
-      // we don't know at this stage what type of agent it is,
-      // however, we'll let the server error inform the user if they
-      // add this option in a case where it doesn't make sense.
-      if (options.agentPath) {
-        mount.agent_path = options.agentPath;
+      const resolved = await Promise.all(
+        parsedAgentSpecs.map(async ({ idOrName, path }) => ({
+          agent: await resolveAgent(idOrName),
+          path,
+        })),
+      );
+      resolvedAgents.push(...resolved);
+    }
+
+    // Parse object mounts (format: object_id or object_id:/mount/path)
+    const objectMounts: { object_id: string; object_path: string }[] = [];
+    if (options.object && options.object.length > 0) {
+      const parsedObjectSpecs: {
+        objectId: string;
+        explicitPath?: string;
+      }[] = [];
+      for (const spec of options.object) {
+        const colonIdx = spec.indexOf(":");
+        if (colonIdx > 0 && spec[colonIdx + 1] === "/") {
+          parsedObjectSpecs.push({
+            objectId: spec.substring(0, colonIdx),
+            explicitPath: spec.substring(colonIdx + 1),
+          });
+        } else {
+          parsedObjectSpecs.push({ objectId: spec });
+        }
       }
+      const resolved = await Promise.all(
+        parsedObjectSpecs.map(async ({ objectId, explicitPath }) => {
+          if (explicitPath) {
+            return { object_id: objectId, object_path: explicitPath };
+          }
+          // No path specified — fetch object to generate default
+          const obj = await getObject(objectId);
+          const name = obj.name;
+          const contentType = obj.content_type;
+          if (name) {
+            const adjusted = adjustFileExtension(name, contentType);
+            const s = sanitizeMountSegment(adjusted);
+            const objectPath = s
+              ? `${DEFAULT_MOUNT_PATH}/${s}`
+              : `${DEFAULT_MOUNT_PATH}/object_${objectId.slice(-8)}`;
+            return { object_id: objectId, object_path: objectPath };
+          }
+          return {
+            object_id: objectId,
+            object_path: `${DEFAULT_MOUNT_PATH}/object_${objectId.slice(-8)}`,
+          };
+        }),
+      );
+      objectMounts.push(...resolved);
+    }
+
+    // Add mounts (agents + objects)
+    if (resolvedAgents.length > 0 || objectMounts.length > 0) {
       if (!createRequest.mounts) createRequest.mounts = [];
-      (createRequest.mounts as unknown[]).push(mount);
+      for (const { agent, path } of resolvedAgents) {
+        const mount: Record<string, unknown> = {
+          type: "agent_mount",
+          agent_id: agent.id,
+          agent_name: null,
+        };
+        const sourceType = agent.source?.type;
+        const needsPath = sourceType === "git" || sourceType === "object";
+        const effectivePath =
+          path || (needsPath ? getDefaultAgentMountPath(agent) : undefined);
+        if (effectivePath) {
+          mount.agent_path = effectivePath;
+        }
+        (createRequest.mounts as unknown[]).push(mount);
+      }
+      for (const om of objectMounts) {
+        (createRequest.mounts as unknown[]).push({
+          type: "object_mount",
+          object_id: om.object_id,
+          object_path: om.object_path,
+        });
+      }
     }
 
     if (Object.keys(launchParameters).length > 0) {

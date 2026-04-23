@@ -740,7 +740,7 @@ const ListGatewayConfigsUI = ({
       {showPopup && selectedConfigItem && (
         <Box marginTop={2} justifyContent="center">
           <ActionsPopup
-            resource={selectedConfigItem}
+            devbox={selectedConfigItem}
             operations={operations.map((op) => ({
               key: op.key,
               label: op.label,

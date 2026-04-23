@@ -25,9 +25,13 @@ export interface AgentColumn {
  */
 function agentVersionText(agent: Agent): string {
   const src = (agent as any).source;
+  if (src?.type === "object") return "-";
+
   const pkg: string | undefined =
     src?.npm?.package_name || src?.pip?.package_name;
-  const version = agent.version || "";
+  const version = agent.version || src?.git?.ref || "";
+
+  if (!version && !pkg) return "-";
 
   // Strip leading @ and any scope prefix for comparison (e.g. "@scope/pkg" -> "pkg")
   const barePkg = pkg?.replace(/^@[^/]+\//, "") ?? "";
@@ -39,7 +43,7 @@ function agentVersionText(agent: Agent): string {
   if (showPkg) {
     return pkg!;
   }
-  return version;
+  return version || "-";
 }
 
 // Fixed column widths (content + padding). These values never change.
@@ -253,7 +257,7 @@ export async function listPublicAgents(
 
 export interface CreateAgentOptions {
   name: string;
-  version: string;
+  version?: string;
   source?: {
     type: string;
     npm?: {
@@ -276,7 +280,11 @@ export interface CreateAgentOptions {
  */
 export async function createAgent(options: CreateAgentOptions): Promise<Agent> {
   const client = getClient();
-  return client.agents.create(options);
+  const { version, ...rest } = options;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const params: any = { ...rest };
+  if (version) params.version = version;
+  return client.agents.create(params);
 }
 
 /**

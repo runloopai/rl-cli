@@ -15,6 +15,7 @@ import { Breadcrumb } from "./Breadcrumb.js";
 import { NavigationTips } from "./NavigationTips.js";
 import { MetadataDisplay } from "./MetadataDisplay.js";
 import { ResourcePicker, createTextColumn, Column } from "./ResourcePicker.js";
+import { ObjectPicker, type ObjectListItem } from "./ObjectPicker.js";
 import { formatTimeAgo } from "./ResourceListView.js";
 import { getStatusDisplay } from "./StatusBadge.js";
 import {
@@ -30,11 +31,6 @@ import { listSnapshots } from "../services/snapshotService.js";
 import { listNetworkPolicies } from "../services/networkPolicyService.js";
 import { listGatewayConfigs } from "../services/gatewayConfigService.js";
 import { listMcpConfigs } from "../services/mcpConfigService.js";
-import {
-  listAgents,
-  listPublicAgents,
-  type Agent,
-} from "../services/agentService.js";
 import type { Blueprint } from "../store/blueprintStore.js";
 import type { Snapshot } from "../store/snapshotStore.js";
 import type { NetworkPolicy } from "../store/networkPolicyStore.js";
@@ -43,6 +39,16 @@ import type { McpConfig } from "../store/mcpConfigStore.js";
 import { SecretCreatePage } from "./SecretCreatePage.js";
 import { GatewayConfigCreatePage } from "./GatewayConfigCreatePage.js";
 import { McpConfigCreatePage } from "./McpConfigCreatePage.js";
+import {
+  getAgent,
+  listAgents,
+  listPublicAgents,
+  type Agent,
+} from "../services/agentService.js";
+import {
+  getDefaultAgentMountPath,
+  getDefaultObjectMountPath,
+} from "../utils/mount.js";
 
 // Secret list interface for the picker
 interface SecretListItem {
@@ -56,6 +62,7 @@ interface DevboxCreatePageProps {
   onCreate?: (devbox: DevboxView) => void;
   initialBlueprintId?: string;
   initialSnapshotId?: string;
+  initialAgentId?: string;
 }
 
 type FormField =
@@ -73,7 +80,8 @@ type FormField =
   | "tunnel_auth_mode"
   | "gateways"
   | "mcpConfigs"
-  | "agent";
+  | "agent"
+  | "objectMounts";
 
 // Gateway configuration for devbox
 interface GatewaySpec {
@@ -121,7 +129,19 @@ interface FormData {
   tunnel_auth_mode: "none" | "open" | "authenticated";
   gateways: GatewaySpec[];
   mcpConfigs: McpSpec[];
-  agent_id: string;
+  agentMounts: Array<{
+    agent_id: string;
+    agent_name: string;
+    agent_path: string;
+    source_type?: string;
+    version?: string;
+    package_name?: string;
+  }>;
+  objectMounts: Array<{
+    object_id: string;
+    object_name: string;
+    object_path: string;
+  }>;
 }
 
 const architectures = ["arm64", "x86_64"] as const;
@@ -136,11 +156,98 @@ const resourceSizes = [
 ] as const;
 const tunnelAuthModes = ["none", "open", "authenticated"] as const;
 
+// Agent picker wrapper that adds Tab key to switch between private/public
+function AgentPickerWithTabs({
+  agentTab,
+  setAgentTab,
+  buildAgentColumns,
+  onSelect,
+  onCancel,
+  excludeAgentIds,
+}: {
+  agentTab: "private" | "public";
+  setAgentTab: (tab: "private" | "public") => void;
+  buildAgentColumns: (tw: number) => Column<Agent>[];
+  onSelect: (agents: Agent[]) => void;
+  onCancel: () => void;
+  excludeAgentIds?: Set<string>;
+}) {
+  useInput((input, key) => {
+    if (key.tab) {
+      setAgentTab(agentTab === "private" ? "public" : "private");
+    }
+  });
+
+  return (
+    <Box flexDirection="column">
+      <Box paddingX={2} marginBottom={0}>
+        <Text
+          color={agentTab === "private" ? colors.primary : colors.textDim}
+          bold={agentTab === "private"}
+        >
+          Private
+        </Text>
+        <Text color={colors.textDim}> | </Text>
+        <Text
+          color={agentTab === "public" ? colors.primary : colors.textDim}
+          bold={agentTab === "public"}
+        >
+          Public
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          (Tab to switch)
+        </Text>
+      </Box>
+      <ResourcePicker<Agent>
+        key={`agent-picker-${agentTab}`}
+        config={{
+          title: `Select Agent (${agentTab})`,
+          fetchPage: async (params) => {
+            const fetchFn =
+              agentTab === "public" ? listPublicAgents : listAgents;
+            const result = await fetchFn({
+              limit: params.limit,
+              startingAfter: params.startingAt,
+              search: params.search,
+              privateOnly: agentTab === "private" ? true : undefined,
+            });
+            const filtered = excludeAgentIds?.size
+              ? result.agents.filter((a) => !excludeAgentIds.has(a.id))
+              : result.agents;
+            return {
+              items: filtered,
+              hasMore: result.hasMore,
+              totalCount: result.totalCount,
+            };
+          },
+          getItemId: (a) => a.id,
+          getItemLabel: (a) => a.name,
+          columns: buildAgentColumns,
+          mode: "single",
+          additionalOverhead: 1,
+          emptyMessage: `No ${agentTab} agents found`,
+          searchPlaceholder: "Search agents...",
+          breadcrumbItems: [
+            { label: "Devboxes" },
+            { label: "Create" },
+            { label: "Select Agent", active: true },
+          ],
+        }}
+        onSelect={onSelect}
+        onCancel={onCancel}
+        initialSelected={[]}
+      />
+    </Box>
+  );
+}
+
 export const DevboxCreatePage = ({
   onBack,
   onCreate,
   initialBlueprintId,
   initialSnapshotId,
+  initialAgentId,
 }: DevboxCreatePageProps) => {
   const [currentField, setCurrentField] = React.useState<FormField>("create");
   const [formData, setFormData] = React.useState<FormData>({
@@ -158,7 +265,8 @@ export const DevboxCreatePage = ({
     tunnel_auth_mode: "none",
     gateways: [],
     mcpConfigs: [],
-    agent_id: "",
+    agentMounts: [],
+    objectMounts: [],
   });
   const [metadataKey, setMetadataKey] = React.useState("");
   const [metadataValue, setMetadataValue] = React.useState("");
@@ -242,10 +350,66 @@ export const DevboxCreatePage = ({
 
   // Agent picker states
   const [showAgentPicker, setShowAgentPicker] = React.useState(false);
-  const [selectedAgentName, setSelectedAgentName] = React.useState<string>("");
-  const [agentPickerTab, setAgentPickerTab] = React.useState<
-    "private" | "public"
-  >("private");
+  const [agentTab, setAgentTab] = React.useState<"private" | "public">(
+    "private",
+  );
+  const [inAgentMountSection, setInAgentMountSection] = React.useState(false);
+  const [selectedAgentMountIndex, setSelectedAgentMountIndex] =
+    React.useState(0);
+  const [editingAgentMountPath, setEditingAgentMountPath] =
+    React.useState(false);
+
+  // Object mount picker states
+  const [showObjectPicker, setShowObjectPicker] = React.useState(false);
+  const [inObjectMountSection, setInObjectMountSection] = React.useState(false);
+  const [selectedObjectMountIndex, setSelectedObjectMountIndex] =
+    React.useState(0);
+  const [editingObjectMountPath, setEditingObjectMountPath] =
+    React.useState(false);
+
+  // Load initial agent if provided (e.g., from "Create Devbox" on agent detail)
+  React.useEffect(() => {
+    if (!initialAgentId) return;
+    let cancelled = false;
+    getAgent(initialAgentId)
+      .then((agent) => {
+        if (cancelled) return;
+        setFormData((prev) => {
+          // Skip if this agent is already mounted
+          if (prev.agentMounts.some((m) => m.agent_id === agent.id)) {
+            return prev;
+          }
+          const source = agent.source;
+          const sourceType = source?.type;
+          const needsPath = sourceType === "git" || sourceType === "object";
+          return {
+            ...prev,
+            agentMounts: [
+              ...prev.agentMounts,
+              {
+                agent_id: agent.id,
+                agent_name: agent.name,
+                agent_path: needsPath ? getDefaultAgentMountPath(agent) : "",
+                source_type: sourceType,
+                version: agent.version,
+                package_name:
+                  sourceType === "npm"
+                    ? source?.npm?.package_name
+                    : sourceType === "pip"
+                      ? source?.pip?.package_name
+                      : undefined,
+              },
+            ],
+          };
+        });
+      })
+      .catch(() => {
+        /* silently ignore — agent may not be accessible */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialAgentId]);
 
   const baseFields: Array<{
     key: FormField;
@@ -300,7 +464,9 @@ export const DevboxCreatePage = ({
       | "picker"
       | "source"
       | "gateways"
-      | "mcpConfigs";
+      | "mcpConfigs"
+      | "agent"
+      | "objectMounts";
     placeholder?: string;
   }> = [
     {
@@ -341,9 +507,15 @@ export const DevboxCreatePage = ({
     },
     {
       key: "agent",
-      label: "Agent (optional)",
-      type: "picker",
-      placeholder: "Select an agent to mount...",
+      label: "Agents (optional)",
+      type: "agent",
+      placeholder: "Mount agents...",
+    },
+    {
+      key: "objectMounts",
+      label: "Object Mounts (optional)",
+      type: "objectMounts",
+      placeholder: "Mount storage objects...",
     },
     { key: "metadata", label: "Metadata (optional)", type: "metadata" },
   ];
@@ -428,6 +600,28 @@ export const DevboxCreatePage = ({
         return;
       }
 
+      // Enter key on agent field to open agent picker or enter section
+      if (currentField === "agent" && key.return) {
+        if (formData.agentMounts.length > 0) {
+          setInAgentMountSection(true);
+          setSelectedAgentMountIndex(0);
+        } else {
+          setShowAgentPicker(true);
+        }
+        return;
+      }
+
+      // Enter key on objectMounts field to open object picker or enter section
+      if (currentField === "objectMounts" && key.return) {
+        if (formData.objectMounts.length > 0) {
+          setInObjectMountSection(true);
+          setSelectedObjectMountIndex(0);
+        } else {
+          setShowObjectPicker(true);
+        }
+        return;
+      }
+
       // Enter key on metadata field to enter metadata section
       if (currentField === "metadata" && key.return) {
         setInMetadataSection(true);
@@ -479,10 +673,6 @@ export const DevboxCreatePage = ({
         setShowNetworkPolicyPicker(true);
         return;
       }
-      if (currentField === "agent" && key.return) {
-        setShowAgentPicker(true);
-        return;
-      }
 
       // Enter on the create button to submit
       if (currentField === "create" && key.return) {
@@ -526,9 +716,63 @@ export const DevboxCreatePage = ({
         !showMcpSecretPicker &&
         !showInlineMcpSecretCreate &&
         !showInlineMcpConfigCreate &&
-        !showAgentPicker,
+        !showAgentPicker &&
+        !showObjectPicker &&
+        !inAgentMountSection &&
+        !inObjectMountSection,
     },
   );
+
+  // Handle agent selection - adds agent to agentMounts array
+  const handleAgentSelect = React.useCallback((agents: Agent[]) => {
+    if (agents.length > 0) {
+      const agent = agents[0];
+      const sourceType = agent.source?.type;
+      const needsPath = sourceType === "git" || sourceType === "object";
+      const defaultPath = needsPath ? getDefaultAgentMountPath(agent) : "";
+
+      setFormData((prev) => ({
+        ...prev,
+        agentMounts: [
+          ...prev.agentMounts,
+          {
+            agent_id: agent.id,
+            agent_name: agent.name,
+            agent_path: defaultPath,
+            source_type: sourceType,
+            version: agent.version,
+            package_name:
+              sourceType === "npm"
+                ? agent.source?.npm?.package_name
+                : sourceType === "pip"
+                  ? agent.source?.pip?.package_name
+                  : undefined,
+          },
+        ],
+      }));
+    }
+    setShowAgentPicker(false);
+  }, []);
+
+  // Handle object selection for mounting
+  const handleObjectSelect = React.useCallback((objects: ObjectListItem[]) => {
+    if (objects.length > 0) {
+      const obj = objects[0];
+      const defaultPath = getDefaultObjectMountPath(obj);
+      setFormData((prev) => ({
+        ...prev,
+        objectMounts: [
+          ...prev.objectMounts,
+          {
+            object_id: obj.id,
+            object_name: obj.name || obj.id,
+            object_path: defaultPath,
+          },
+        ],
+      }));
+    }
+    setShowObjectPicker(false);
+  }, []);
 
   // Handle blueprint selection
   const handleBlueprintSelect = React.useCallback((blueprints: Blueprint[]) => {
@@ -571,28 +815,6 @@ export const DevboxCreatePage = ({
       setShowNetworkPolicyPicker(false);
     },
     [],
-  );
-
-  // Handle agent selection
-  const handleAgentSelect = React.useCallback((agents: Agent[]) => {
-    if (agents.length > 0) {
-      const agent = agents[0];
-      setFormData((prev) => ({ ...prev, agent_id: agent.id }));
-      setSelectedAgentName(agent.name || agent.id);
-    }
-    setShowAgentPicker(false);
-  }, []);
-
-  // Handle tab switching in agent picker
-  useInput(
-    (input, key) => {
-      if (key.tab) {
-        setAgentPickerTab((prev) =>
-          prev === "private" ? "public" : "private",
-        );
-      }
-    },
-    { isActive: showAgentPicker },
   );
 
   // Handle gateway config selection
@@ -1012,8 +1234,163 @@ export const DevboxCreatePage = ({
         !showMcpPicker &&
         !showMcpSecretPicker &&
         !showInlineMcpSecretCreate &&
-        !showInlineMcpConfigCreate &&
-        !showAgentPicker,
+        !showInlineMcpConfigCreate,
+    },
+  );
+
+  // Agent mount section input handler
+  useInput(
+    (input, key) => {
+      if (editingAgentMountPath) {
+        // In path editing mode, only handle escape to exit
+        if (key.escape || key.return) {
+          setEditingAgentMountPath(false);
+          return;
+        }
+        return; // Let TextInput handle everything else
+      }
+
+      const maxIndex = formData.agentMounts.length + 1; // items + "Add" + "Done"
+
+      if (key.escape) {
+        setInAgentMountSection(false);
+        return;
+      }
+
+      if (key.upArrow && selectedAgentMountIndex > 0) {
+        setSelectedAgentMountIndex(selectedAgentMountIndex - 1);
+        return;
+      }
+
+      if (key.downArrow && selectedAgentMountIndex < maxIndex) {
+        setSelectedAgentMountIndex(selectedAgentMountIndex + 1);
+        return;
+      }
+
+      if (key.return) {
+        // "Add" button
+        if (selectedAgentMountIndex === formData.agentMounts.length) {
+          setInAgentMountSection(false);
+          setShowAgentPicker(true);
+          return;
+        }
+        // "Done" button
+        if (selectedAgentMountIndex === formData.agentMounts.length + 1) {
+          setInAgentMountSection(false);
+          return;
+        }
+      }
+
+      // Edit mount path (only for git/object agents that have paths)
+      if (
+        input === "e" &&
+        selectedAgentMountIndex < formData.agentMounts.length
+      ) {
+        const am = formData.agentMounts[selectedAgentMountIndex];
+        if (am.source_type === "git" || am.source_type === "object") {
+          setEditingAgentMountPath(true);
+          return;
+        }
+      }
+
+      // Delete mount
+      if (
+        input === "d" &&
+        selectedAgentMountIndex < formData.agentMounts.length
+      ) {
+        setFormData((prev) => ({
+          ...prev,
+          agentMounts: prev.agentMounts.filter(
+            (_, idx) => idx !== selectedAgentMountIndex,
+          ),
+        }));
+        if (
+          selectedAgentMountIndex >= formData.agentMounts.length - 1 &&
+          selectedAgentMountIndex > 0
+        ) {
+          setSelectedAgentMountIndex(selectedAgentMountIndex - 1);
+        }
+        return;
+      }
+    },
+    {
+      isActive: inAgentMountSection && !showAgentPicker,
+    },
+  );
+
+  // Object mount section input handler
+  useInput(
+    (input, key) => {
+      if (editingObjectMountPath) {
+        if (key.escape || key.return) {
+          setEditingObjectMountPath(false);
+          return;
+        }
+        return; // Let TextInput handle everything else
+      }
+
+      const maxIndex = formData.objectMounts.length + 1; // +1 for "Add", +1 for "Done"
+
+      if (key.escape) {
+        setInObjectMountSection(false);
+        return;
+      }
+
+      if (key.upArrow && selectedObjectMountIndex > 0) {
+        setSelectedObjectMountIndex(selectedObjectMountIndex - 1);
+        return;
+      }
+
+      if (key.downArrow && selectedObjectMountIndex < maxIndex) {
+        setSelectedObjectMountIndex(selectedObjectMountIndex + 1);
+        return;
+      }
+
+      if (key.return) {
+        // "Add" button
+        if (selectedObjectMountIndex === formData.objectMounts.length) {
+          setInObjectMountSection(false);
+          setShowObjectPicker(true);
+          return;
+        }
+        // "Done" button
+        if (selectedObjectMountIndex === formData.objectMounts.length + 1) {
+          setInObjectMountSection(false);
+          return;
+        }
+      }
+
+      // Edit mount path
+      if (
+        input === "e" &&
+        selectedObjectMountIndex < formData.objectMounts.length
+      ) {
+        setEditingObjectMountPath(true);
+        return;
+      }
+
+      // Delete mount
+      if (
+        input === "d" &&
+        selectedObjectMountIndex < formData.objectMounts.length
+      ) {
+        setFormData((prev) => ({
+          ...prev,
+          objectMounts: prev.objectMounts.filter(
+            (_, idx) => idx !== selectedObjectMountIndex,
+          ),
+        }));
+        if (
+          selectedObjectMountIndex >= formData.objectMounts.length - 1 &&
+          selectedObjectMountIndex > 0
+        ) {
+          setSelectedObjectMountIndex(selectedObjectMountIndex - 1);
+        }
+        return;
+      }
+    },
+    {
+      isActive: inObjectMountSection && !showObjectPicker,
     },
   );
 
@@ -1156,15 +1533,34 @@ export const DevboxCreatePage = ({
         };
       }
 
-      // Add agent mount
-      if (formData.agent_id) {
-        if (!createParams.mounts) createParams.mounts = [];
-        // TODO: remove `as any` once SDK types include agent_mount
-        createParams.mounts.push({
+      // Add mounts (agents + objects)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mounts: any[] = [];
+
+      for (const am of formData.agentMounts) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const agentMount: any = {
           type: "agent_mount",
-          agent_id: formData.agent_id,
-          agent_name: undefined,
-        } as any);
+          agent_id: am.agent_id,
+          agent_name: null,
+        };
+        if (am.agent_path) {
+          agentMount.agent_path = am.agent_path;
+        }
+        mounts.push(agentMount);
+      }
+
+      for (const om of formData.objectMounts) {
+        mounts.push({
+          type: "object_mount",
+          object_id: om.object_id,
+          object_path: om.object_path,
+        });
+      }
+
+      if (mounts.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (createParams as any).mounts = mounts;
       }
 
       const devbox = await client.devboxes.create(createParams);
@@ -1481,229 +1877,6 @@ export const DevboxCreatePage = ({
           formData.network_policy_id ? [formData.network_policy_id] : []
         }
       />
-    );
-  }
-
-  // Agent picker
-  if (showAgentPicker) {
-    return (
-      <Box flexDirection="column">
-        <Box paddingX={2} marginBottom={1}>
-          <Text
-            color={
-              agentPickerTab === "private" ? colors.primary : colors.textDim
-            }
-            bold={agentPickerTab === "private"}
-          >
-            {agentPickerTab === "private" ? "▸ " : "  "}Private
-          </Text>
-          <Text color={colors.textDim}> | </Text>
-          <Text
-            color={
-              agentPickerTab === "public" ? colors.primary : colors.textDim
-            }
-            bold={agentPickerTab === "public"}
-          >
-            {agentPickerTab === "public" ? "▸ " : "  "}Public
-          </Text>
-          <Text color={colors.textDim} dimColor>
-            {" "}
-            [Tab] Switch
-          </Text>
-        </Box>
-        <ResourcePicker<Agent>
-          extraDeps={[agentPickerTab]}
-          extraOverhead={2}
-          config={{
-            title:
-              agentPickerTab === "private"
-                ? "Select Agent (Private)"
-                : "Select Agent (Public)",
-            fetchPage: async (params) => {
-              if (agentPickerTab === "private") {
-                // When searching by name (not an exact agent ID), also show public results
-                const isIdSearch =
-                  params.search && /^agt_/i.test(params.search.trim());
-                if (params.search && !isIdSearch) {
-                  // Merged pagination: decode dual cursors from opaque nextCursor
-                  let privateCursor: string | undefined;
-                  let publicCursor: string | undefined;
-                  if (params.startingAt) {
-                    try {
-                      const parsed = JSON.parse(params.startingAt);
-                      privateCursor = parsed.p || undefined;
-                      publicCursor = parsed.q || undefined;
-                    } catch {
-                      privateCursor = params.startingAt;
-                    }
-                  }
-
-                  // Fetch private first
-                  const privateResult = await listAgents({
-                    limit: params.limit,
-                    startingAfter: privateCursor,
-                    search: params.search,
-                  });
-
-                  let publicAgentsConsumed: Agent[] = [];
-                  let publicHasMore = false;
-                  let publicTotalCount = 0;
-                  let lastFetchedPublicId = publicCursor;
-
-                  // Only include public agents when private is exhausted,
-                  // preventing cross-page duplicates
-                  if (!privateResult.hasMore) {
-                    const remainingSlots =
-                      params.limit - privateResult.agents.length;
-                    if (remainingSlots > 0) {
-                      const privateIds = new Set(
-                        privateResult.agents.map((a) => a.id),
-                      );
-                      const publicResult = await listPublicAgents({
-                        limit: remainingSlots,
-                        startingAfter: publicCursor,
-                        search: params.search,
-                      });
-
-                      const uniquePublic = publicResult.agents.filter(
-                        (a) => !privateIds.has(a.id),
-                      );
-                      publicAgentsConsumed = uniquePublic.slice(
-                        0,
-                        remainingSlots,
-                      );
-                      publicHasMore = publicResult.hasMore;
-                      publicTotalCount = publicResult.totalCount;
-
-                      lastFetchedPublicId =
-                        publicResult.agents.length > 0
-                          ? publicResult.agents[publicResult.agents.length - 1]
-                              .id
-                          : publicCursor;
-                    }
-                  }
-
-                  const allItems = [
-                    ...privateResult.agents,
-                    ...publicAgentsConsumed,
-                  ];
-                  const lastPrivate =
-                    privateResult.agents.length > 0
-                      ? privateResult.agents[privateResult.agents.length - 1].id
-                      : privateCursor;
-
-                  return {
-                    items: allItems,
-                    hasMore: privateResult.hasMore || publicHasMore,
-                    totalCount: privateResult.totalCount + publicTotalCount,
-                    nextCursor: JSON.stringify({
-                      p: lastPrivate,
-                      q: lastFetchedPublicId,
-                    }),
-                  };
-                }
-
-                // Not searching, or searching by exact agent ID: private-only fetch
-
-                const result = await listAgents({
-                  limit: params.limit,
-                  startingAfter: params.startingAt,
-                  search: params.search || undefined,
-                });
-                return {
-                  items: result.agents,
-                  hasMore: result.hasMore,
-                  totalCount: result.totalCount,
-                };
-              } else {
-                // Public tab: only fetch public agents
-
-                const publicResult = await listPublicAgents({
-                  search: params.search,
-                  limit: params.limit,
-                  startingAfter: params.startingAt,
-                });
-                return {
-                  items: publicResult.agents,
-                  hasMore: publicResult.hasMore,
-                  totalCount: publicResult.totalCount,
-                };
-              }
-            },
-            getItemId: (agent) => agent.id,
-            getItemLabel: (agent) => agent.name || agent.id,
-            columns: (tw: number): Column<Agent>[] => {
-              const fixedWidth = 6;
-              const idWidth = 25;
-              const versionWidth = 20;
-              const sourceWidth = 8;
-              const nameWidth = Math.min(
-                40,
-                Math.max(
-                  15,
-                  Math.floor(
-                    (tw - fixedWidth - idWidth - versionWidth - sourceWidth) *
-                      0.5,
-                  ),
-                ),
-              );
-              const timeWidth = Math.max(
-                18,
-                tw -
-                  fixedWidth -
-                  idWidth -
-                  nameWidth -
-                  versionWidth -
-                  sourceWidth,
-              );
-              return [
-                createTextColumn<Agent>("id", "ID", (a) => a.id, {
-                  width: idWidth + 1,
-                  color: colors.idColor,
-                }),
-                createTextColumn<Agent>("name", "Name", (a) => a.name, {
-                  width: nameWidth,
-                }),
-                createTextColumn<Agent>(
-                  "source",
-                  "Source",
-                  (a) => a.source?.type || "",
-                  { width: sourceWidth, color: colors.textDim },
-                ),
-                createTextColumn<Agent>(
-                  "version",
-                  "Version",
-                  (a) => {
-                    if (a.source?.type === "object") return "";
-                    const v = a.version || "";
-                    if (v.length > 16) return `${v.slice(0, 8)}…${v.slice(-4)}`;
-                    return v;
-                  },
-                  { width: versionWidth, color: colors.textDim },
-                ),
-                createTextColumn<Agent>(
-                  "created",
-                  "Created",
-                  (a) =>
-                    a.create_time_ms ? formatTimeAgo(a.create_time_ms) : "",
-                  { width: timeWidth, color: colors.textDim },
-                ),
-              ];
-            },
-            mode: "single",
-            emptyMessage: "No agents found",
-            searchPlaceholder: "Search agents...",
-            breadcrumbItems: [
-              { label: "Devboxes" },
-              { label: "Create" },
-              { label: "Select Agent", active: true },
-            ],
-          }}
-          onSelect={handleAgentSelect}
-          onCancel={() => setShowAgentPicker(false)}
-          initialSelected={[]}
-        />
-      </Box>
     );
   }
 
@@ -2169,6 +2342,92 @@ export const DevboxCreatePage = ({
     );
   }
 
+  // Agent picker
+  if (showAgentPicker) {
+    const formatAgentVersion = (a: Agent): string => {
+      // Hide version for object-based agents
+      if (a.source?.type === "object") return "";
+      const v = a.version || "";
+      // Truncate long versions (git SHAs) like runloop-fe does
+      if (v.length > 16) return `${v.slice(0, 8)}…${v.slice(-4)}`;
+      return v;
+    };
+
+    const buildAgentColumns = (tw: number): Column<Agent>[] => {
+      const fixedWidth = 6;
+      const idWidth = 25;
+      const versionWidth = 20;
+      const sourceWidth = 8;
+      const nameWidth = Math.min(
+        40,
+        Math.max(
+          15,
+          Math.floor(
+            (tw - fixedWidth - idWidth - versionWidth - sourceWidth) * 0.5,
+          ),
+        ),
+      );
+      const timeWidth = Math.max(
+        18,
+        tw - fixedWidth - idWidth - nameWidth - versionWidth - sourceWidth,
+      );
+      return [
+        createTextColumn<Agent>("id", "ID", (a) => a.id, {
+          width: idWidth + 1,
+          color: colors.idColor,
+        }),
+        createTextColumn<Agent>("name", "Name", (a) => a.name, {
+          width: nameWidth,
+        }),
+        createTextColumn<Agent>(
+          "source",
+          "Source",
+          (a) => a.source?.type || "",
+          { width: sourceWidth, color: colors.textDim },
+        ),
+        createTextColumn<Agent>("version", "Version", formatAgentVersion, {
+          width: versionWidth,
+          color: colors.textDim,
+        }),
+        createTextColumn<Agent>(
+          "created",
+          "Created",
+          (a) => (a.create_time_ms ? formatTimeAgo(a.create_time_ms) : ""),
+          { width: timeWidth, color: colors.textDim },
+        ),
+      ];
+    };
+
+    return (
+      <AgentPickerWithTabs
+        agentTab={agentTab}
+        setAgentTab={setAgentTab}
+        buildAgentColumns={buildAgentColumns}
+        onSelect={handleAgentSelect}
+        onCancel={() => setShowAgentPicker(false)}
+        excludeAgentIds={new Set(formData.agentMounts.map((m) => m.agent_id))}
+      />
+    );
+  }
+
+  // Object picker for mounting
+  if (showObjectPicker) {
+    return (
+      <ObjectPicker
+        mode="single"
+        title="Select Object to Mount"
+        breadcrumbItems={[
+          { label: "Devboxes" },
+          { label: "Create" },
+          { label: "Select Object", active: true },
+        ]}
+        onSelect={handleObjectSelect}
+        onCancel={() => setShowObjectPicker(false)}
+        initialSelected={[]}
+      />
+    );
+  }
+
   // Form screen
   return (
     <>
@@ -2317,9 +2576,7 @@ export const DevboxCreatePage = ({
             const displayName =
               field.key === "network_policy_id"
                 ? selectedNetworkPolicyName || value
-                : field.key === "agent"
-                  ? selectedAgentName || value
-                  : value;
+                : value;
 
             return (
               <Box key={field.key} marginBottom={0}>
@@ -3160,6 +3417,291 @@ export const DevboxCreatePage = ({
             );
           }
 
+          if (field.type === "agent") {
+            const agentCount = formData.agentMounts.length;
+            return (
+              <Box key={field.key} flexDirection="column" marginBottom={0}>
+                <Box>
+                  <Text color={isActive ? colors.primary : colors.textDim}>
+                    {isActive ? figures.pointer : " "} {field.label}:{" "}
+                  </Text>
+                  <Text color={colors.text}>{agentCount} configured</Text>
+                  {isActive && (
+                    <Text color={colors.textDim} dimColor>
+                      {agentCount > 0
+                        ? " [Enter to manage]"
+                        : " [Enter to add]"}
+                    </Text>
+                  )}
+                </Box>
+                {!inAgentMountSection && formData.agentMounts.length > 0 && (
+                  <Box marginLeft={2} flexDirection="column">
+                    {formData.agentMounts.map((am) => {
+                      const showVersion =
+                        am.version && am.source_type !== "object";
+                      const fmtVersion = showVersion
+                        ? am.version!.length > 16
+                          ? `${am.version!.slice(0, 8)}…${am.version!.slice(-4)}`
+                          : am.version
+                        : "";
+                      return (
+                        <Box key={am.agent_id} flexDirection="column">
+                          <Text color={colors.textDim} dimColor>
+                            {figures.pointer} {am.agent_name || am.agent_id}
+                            {am.source_type ? ` [${am.source_type}]` : ""}
+                            {fmtVersion ? ` v${fmtVersion}` : ""}
+                            {am.agent_path ? ` → ${am.agent_path}` : ""}
+                          </Text>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                )}
+                {inAgentMountSection && (
+                  <Box
+                    flexDirection="column"
+                    marginTop={1}
+                    borderStyle="round"
+                    borderColor={colors.primary}
+                    paddingX={1}
+                  >
+                    <Text color={colors.primary} bold>
+                      {figures.hamburger} Agent Mounts
+                    </Text>
+                    {formData.agentMounts.map((am, idx) => {
+                      const isSelected = selectedAgentMountIndex === idx;
+                      const showVersion =
+                        am.version && am.source_type !== "object";
+                      const fmtVersion = showVersion
+                        ? am.version!.length > 16
+                          ? `${am.version!.slice(0, 8)}…${am.version!.slice(-4)}`
+                          : am.version
+                        : "";
+                      return (
+                        <Box
+                          key={am.agent_id}
+                          flexDirection="column"
+                          marginTop={idx === 0 ? 1 : 0}
+                        >
+                          <Box>
+                            <Text
+                              color={
+                                isSelected ? colors.primary : colors.textDim
+                              }
+                            >
+                              {isSelected ? figures.pointer : " "}{" "}
+                            </Text>
+                            <Text color={colors.text}>
+                              {am.agent_name || am.agent_id}
+                            </Text>
+                            {editingAgentMountPath && isSelected && (
+                              <Text color={colors.warning}> [editing]</Text>
+                            )}
+                            <Text color={colors.textDim}>
+                              {am.source_type ? ` [${am.source_type}]` : ""}
+                              {fmtVersion ? ` v${fmtVersion}` : ""}
+                            </Text>
+                            {(am.agent_path ||
+                              (editingAgentMountPath && isSelected)) && (
+                              <>
+                                <Text color={colors.textDim}> → </Text>
+                                {editingAgentMountPath && isSelected ? (
+                                  <TextInput
+                                    value={am.agent_path || ""}
+                                    onChange={(value) => {
+                                      setFormData((prev) => ({
+                                        ...prev,
+                                        agentMounts: prev.agentMounts.map(
+                                          (m, i) =>
+                                            i === idx
+                                              ? { ...m, agent_path: value }
+                                              : m,
+                                        ),
+                                      }));
+                                    }}
+                                    placeholder="/home/user/agent"
+                                  />
+                                ) : (
+                                  <Text color={colors.info}>
+                                    {am.agent_path}
+                                  </Text>
+                                )}
+                              </>
+                            )}
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                    <Box marginTop={1}>
+                      <Text
+                        color={
+                          selectedAgentMountIndex === agentCount
+                            ? colors.success
+                            : colors.textDim
+                        }
+                      >
+                        {selectedAgentMountIndex === agentCount
+                          ? figures.pointer
+                          : " "}{" "}
+                        + Add agent mount
+                      </Text>
+                    </Box>
+                    <Box marginTop={1}>
+                      <Text
+                        color={
+                          selectedAgentMountIndex === agentCount + 1
+                            ? colors.primary
+                            : colors.textDim
+                        }
+                      >
+                        {selectedAgentMountIndex === agentCount + 1
+                          ? figures.pointer
+                          : " "}{" "}
+                        Done
+                      </Text>
+                    </Box>
+                    <Box marginTop={1}>
+                      <Text color={colors.textDim} dimColor>
+                        {editingAgentMountPath
+                          ? "Type to edit path • [Enter/esc] Done"
+                          : `${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] Select • [e] Edit path • [d] Remove • [esc] Back`}
+                      </Text>
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            );
+          }
+
+          if (field.type === "objectMounts") {
+            return (
+              <Box key={field.key} flexDirection="column" marginBottom={0}>
+                <Box>
+                  <Text color={isActive ? colors.primary : colors.textDim}>
+                    {isActive ? figures.pointer : " "} {field.label}:{" "}
+                  </Text>
+                  <Text color={colors.text}>
+                    {formData.objectMounts.length} configured
+                  </Text>
+                  {isActive && (
+                    <Text color={colors.textDim} dimColor>
+                      {formData.objectMounts.length > 0
+                        ? " [Enter to manage]"
+                        : " [Enter to add]"}
+                    </Text>
+                  )}
+                </Box>
+                {!inObjectMountSection && formData.objectMounts.length > 0 && (
+                  <Box marginLeft={2} flexDirection="column">
+                    {formData.objectMounts.map((om, idx) => (
+                      <Box key={idx}>
+                        <Text color={colors.textDim} dimColor>
+                          {figures.pointer} {om.object_name} → {om.object_path}
+                        </Text>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+                {inObjectMountSection && (
+                  <Box
+                    flexDirection="column"
+                    marginTop={1}
+                    borderStyle="round"
+                    borderColor={colors.primary}
+                    paddingX={1}
+                  >
+                    <Text color={colors.primary} bold>
+                      {figures.hamburger} Object Mounts
+                    </Text>
+                    {formData.objectMounts.map((om, idx) => {
+                      const isSelected = idx === selectedObjectMountIndex;
+                      return (
+                        <Box
+                          key={idx}
+                          flexDirection="column"
+                          marginTop={idx === 0 ? 1 : 0}
+                        >
+                          <Box>
+                            <Text
+                              color={
+                                isSelected ? colors.primary : colors.textDim
+                              }
+                            >
+                              {isSelected ? figures.pointer : " "}{" "}
+                            </Text>
+                            <Text color={colors.text}>{om.object_name}</Text>
+                            {editingObjectMountPath && isSelected && (
+                              <Text color={colors.warning}> [editing]</Text>
+                            )}
+                            <Text color={colors.textDim}> → </Text>
+                            {editingObjectMountPath && isSelected ? (
+                              <TextInput
+                                value={om.object_path}
+                                onChange={(value) => {
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    objectMounts: prev.objectMounts.map(
+                                      (m, i) =>
+                                        i === idx
+                                          ? { ...m, object_path: value }
+                                          : m,
+                                    ),
+                                  }));
+                                }}
+                                placeholder="/home/user/object"
+                              />
+                            ) : (
+                              <Text color={colors.info}>{om.object_path}</Text>
+                            )}
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                    <Box marginTop={1}>
+                      <Text
+                        color={
+                          selectedObjectMountIndex ===
+                          formData.objectMounts.length
+                            ? colors.success
+                            : colors.textDim
+                        }
+                      >
+                        {selectedObjectMountIndex ===
+                        formData.objectMounts.length
+                          ? figures.pointer
+                          : " "}{" "}
+                        + Add object mount
+                      </Text>
+                    </Box>
+                    <Box marginTop={1}>
+                      <Text
+                        color={
+                          selectedObjectMountIndex ===
+                          formData.objectMounts.length + 1
+                            ? colors.primary
+                            : colors.textDim
+                        }
+                      >
+                        {selectedObjectMountIndex ===
+                        formData.objectMounts.length + 1
+                          ? figures.pointer
+                          : " "}{" "}
+                        Done
+                      </Text>
+                    </Box>
+                    <Box marginTop={1}>
+                      <Text color={colors.textDim} dimColor>
+                        {editingObjectMountPath
+                          ? "Type to edit path • [Enter/esc] Done"
+                          : `${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] Select • [e] Edit path • [d] Remove • [esc] Back`}
+                      </Text>
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            );
+          }
+
           return null;
         })}
       </Box>
@@ -3183,15 +3725,19 @@ export const DevboxCreatePage = ({
           </Box>
         )}
 
-      {!inMetadataSection && !inGatewaySection && !inMcpSection && (
-        <NavigationTips
-          showArrows
-          tips={[
-            { key: "Enter", label: "Create" },
-            { key: "q", label: "Cancel" },
-          ]}
-        />
-      )}
+      {!inMetadataSection &&
+        !inGatewaySection &&
+        !inMcpSection &&
+        !inAgentMountSection &&
+        !inObjectMountSection && (
+          <NavigationTips
+            showArrows
+            tips={[
+              { key: "Enter", label: "Create" },
+              { key: "q", label: "Cancel" },
+            ]}
+          />
+        )}
     </>
   );
 };
