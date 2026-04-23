@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.16.0](https://github.com/runloopai/rl-cli/compare/v1.15.0...v1.16.0) (2026-04-23)
+
+
+### Features
+
+* add agent/axon TUI screens and align list commands with pagination ([#205](https://github.com/runloopai/rl-cli/issues/205)) ([1481d7a](https://github.com/runloopai/rl-cli/commit/1481d7ab0e242ce773678989672465dfc4a1917d))
+* add secret config to bmj, toggle available to show public benchmarks for new jobs ([#156](https://github.com/runloopai/rl-cli/issues/156)) ([86cda21](https://github.com/runloopai/rl-cli/commit/86cda217a6534a1313696654414ad1da00c034cf))
+* better handling of RUNLOOP_BASE_URL ([#216](https://github.com/runloopai/rl-cli/issues/216)) ([f4b59fd](https://github.com/runloopai/rl-cli/commit/f4b59fd66884df62ac35a9cd3e04afb89db088ed))
+* extract shared object detail fields and fix ResourcePicker height ([#204](https://github.com/runloopai/rl-cli/issues/204)) ([b685b65](https://github.com/runloopai/rl-cli/commit/b685b6559247f38b5e245b660862f6b0db914cb5))
+* improve agent support in interactive rli ([#209](https://github.com/runloopai/rl-cli/issues/209)) ([4aa5ca6](https://github.com/runloopai/rl-cli/commit/4aa5ca6df143214cafcd2ffbda633d21640a5817))
+* update agents support in rli command line ([#200](https://github.com/runloopai/rl-cli/issues/200)) ([512d41f](https://github.com/runloopai/rl-cli/commit/512d41f2211ee608772c34426428fb1dff8a5a87))
+
+
+### Bug Fixes
+
+* "Showing 1-0 of 0" in TUI, cache unfiltered total count through search reset ([#196](https://github.com/runloopai/rl-cli/issues/196)) ([8170888](https://github.com/runloopai/rl-cli/commit/8170888a2372943fc2a75bda3a850b39b046dd63))
+* don't reset settings TUI menu cursor on back ([#198](https://github.com/runloopai/rl-cli/issues/198)) ([7a0796d](https://github.com/runloopai/rl-cli/commit/7a0796d42359060f1e380fdaa0cf2afea8a8661c))
+* harden dependency security posture ([#211](https://github.com/runloopai/rl-cli/issues/211)) ([198ad1e](https://github.com/runloopai/rl-cli/commit/198ad1e014702bcbf3b3fe6a2ecf9554fda53d2e))
+* improve column width handling for rli agent list ([#199](https://github.com/runloopai/rl-cli/issues/199)) ([d4aa73f](https://github.com/runloopai/rl-cli/commit/d4aa73faf9f9120a9ef29637d431487e062fe25e))
+
 ## [1.15.0](https://github.com/runloopai/rl-cli/compare/v1.14.0...v1.15.0) (2026-04-03)
 
 
