@@ -2,13 +2,17 @@
  * Upload object command
  */
 
-import { readFile, stat } from "fs/promises";
-import { extname } from "path";
+import { readFile, stat, unlink } from "fs/promises";
+import { tmpdir } from "os";
+import { basename, extname, relative, resolve } from "path";
+import { randomUUID } from "crypto";
+import { join } from "path";
+import * as tar from "tar";
 import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
 
 interface UploadObjectOptions {
-  path: string;
+  paths: string[];
   name: string;
   contentType?: string;
   public?: boolean;
@@ -32,24 +36,102 @@ const CONTENT_TYPE_MAP: Record<string, ContentType> = {
   ".tar.gz": "tgz",
 };
 
+export async function createTarBuffer(
+  paths: string[],
+  gzip: boolean,
+): Promise<Buffer> {
+  const cwd = process.cwd();
+  const relativePaths = paths.map((p) => relative(cwd, resolve(p)));
+
+  const tmpFile = join(
+    tmpdir(),
+    `rl-upload-${randomUUID()}.${gzip ? "tgz" : "tar"}`,
+  );
+
+  await tar.create(
+    {
+      file: tmpFile,
+      gzip,
+      cwd,
+    },
+    relativePaths,
+  );
+
+  const buffer = await readFile(tmpFile);
+  await unlink(tmpFile);
+  return buffer;
+}
+
 export async function uploadObject(options: UploadObjectOptions) {
   try {
     const client = getClient();
+    const { paths, name, contentType, output: outputFormat } = options;
 
-    // Check if file exists and get stats
-    const stats = await stat(options.path);
-    const fileBuffer = await readFile(options.path);
+    if (paths.length === 0) {
+      outputError("At least one path is required");
+      return;
+    }
 
-    // Auto-detect content type if not provided
-    let detectedContentType: ContentType = options.contentType as ContentType;
-    if (!detectedContentType) {
-      const ext = extname(options.path).toLowerCase();
-      detectedContentType = CONTENT_TYPE_MAP[ext] || "unspecified";
+    // Validate all paths exist
+    const statsMap = new Map<string, Awaited<ReturnType<typeof stat>>>();
+    for (const p of paths) {
+      try {
+        statsMap.set(p, await stat(p));
+      } catch {
+        outputError(`Path does not exist: ${p}`);
+        return;
+      }
+    }
+
+    const isTarType = contentType === "tar" || contentType === "tgz";
+    const singlePath = paths.length === 1;
+    const singleIsDir = singlePath && statsMap.get(paths[0])!.isDirectory();
+
+    // Multi-path requires tar/tgz content type
+    if (paths.length > 1 && !isTarType) {
+      outputError(
+        "Multiple paths require --content-type tar or --content-type tgz",
+      );
+      return;
+    }
+
+    // Directory without tar/tgz type
+    if (singleIsDir && !isTarType) {
+      outputError(
+        "Cannot upload a directory directly. Use --content-type tar or --content-type tgz to create an archive.",
+      );
+      return;
+    }
+
+    let fileBuffer: Buffer;
+    let detectedContentType: ContentType;
+    let fileSize: number;
+
+    const shouldCreateArchive =
+      isTarType && (paths.length > 1 || singleIsDir);
+
+    if (shouldCreateArchive) {
+      const gzip = contentType === "tgz";
+      fileBuffer = await createTarBuffer(paths, gzip);
+      detectedContentType = contentType as ContentType;
+      fileSize = fileBuffer.length;
+    } else {
+      // Single file upload (existing behavior)
+      const singlePath = paths[0];
+      const stats = statsMap.get(singlePath)!;
+      fileBuffer = await readFile(singlePath);
+      fileSize = Number(stats.size);
+
+      detectedContentType = contentType as ContentType;
+      if (!detectedContentType) {
+        const ext = extname(singlePath).toLowerCase();
+        detectedContentType = CONTENT_TYPE_MAP[ext] || "unspecified";
+      }
     }
 
     // Step 1: Create the object
     const createResponse = await client.objects.create({
-      name: options.name,
+      name,
       content_type: detectedContentType,
     });
 
@@ -71,16 +153,16 @@ export async function uploadObject(options: UploadObjectOptions) {
 
     const result = {
       id: createResponse.id,
-      name: options.name,
+      name,
       contentType: detectedContentType,
-      size: stats.size,
+      size: fileSize,
     };
 
     // Default: just output the ID for easy scripting
-    if (!options.output || options.output === "text") {
+    if (!outputFormat || outputFormat === "text") {
       console.log(result.id);
     } else {
-      output(result, { format: options.output, defaultFormat: "json" });
+      output(result, { format: outputFormat, defaultFormat: "json" });
     }
   } catch (error) {
     outputError("Failed to upload object", error);
