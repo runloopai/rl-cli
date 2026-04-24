@@ -81,7 +81,7 @@ async function collectEntries(
           uid: 1000,
           gid: 1000,
           // nanotar expects mtime in milliseconds and converts to seconds internally
-          mtime: stats.mtimeMs,
+          mtime: Number(stats.mtimeMs),
         },
       });
       const children = await readdir(absPath);
@@ -90,7 +90,7 @@ async function collectEntries(
         entries.push(...(await collectEntries(childPaths, archiveRoot)));
       }
     } else {
-      const isExecutable = (stats.mode & 0o111) !== 0;
+      const isExecutable = (Number(stats.mode) & 0o111) !== 0;
       let data;
       try {
         data = await readFile(absPath);
@@ -105,7 +105,7 @@ async function collectEntries(
           uid: 1000,
           gid: 1000,
           // nanotar expects mtime in milliseconds and converts to seconds internally
-          mtime: stats.mtimeMs,
+          mtime: Number(stats.mtimeMs),
         },
       });
     }
