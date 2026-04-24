@@ -630,8 +630,10 @@ export function createProgram(): Command {
     });
 
   object
-    .command("download <id> <path>")
-    .description("Download object to local file")
+    .command("download <id> [path]")
+    .description(
+      "Download object to local file (path defaults to ./<name> with inferred extension; use - for stdout)",
+    )
     .option("--extract", "Extract downloaded archive after download")
     .option(
       "--duration-seconds <seconds>",
