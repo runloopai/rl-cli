@@ -46,7 +46,7 @@ function hasSuffix(name: string): boolean {
  *
  * Rules (suffix comparisons are case-insensitive):
  * - text   + no suffix → .txt
- * - binary + no suffix → .bin
+ * - binary → no change (binary is too broad to infer an extension)
  * - gzip   + suffix is .tar → replace with .tgz
  * - gzip   + suffix not in {.gz,.gzip,.taz,.tgz,.tar} → append .gz
  * - tar    + suffix != .tar → append .tar
@@ -66,7 +66,7 @@ export function inferDownloadExtension(
       return hasSuffix(name) ? name : `${name}.txt`;
 
     case "binary":
-      return hasSuffix(name) ? name : `${name}.bin`;
+      return name;
 
     case "gzip":
       if (suffix === ".tar") {

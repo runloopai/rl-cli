@@ -14,8 +14,8 @@ describe("inferDownloadExtension", () => {
       expect(inferDownloadExtension("myfile", "text")).toBe("myfile.txt");
     });
 
-    it("appends .bin for binary content type", () => {
-      expect(inferDownloadExtension("myfile", "binary")).toBe("myfile.bin");
+    it("does not change name for binary content type", () => {
+      expect(inferDownloadExtension("myfile", "binary")).toBe("myfile");
     });
 
     it("appends .gz for gzip content type", () => {
@@ -195,7 +195,7 @@ describe("getDefaultDownloadPath", () => {
 
   it("falls back to id when name is whitespace", () => {
     expect(getDefaultDownloadPath("  ", "obj_123", "binary")).toBe(
-      "./obj_123.bin",
+      "./obj_123",
     );
   });
 
