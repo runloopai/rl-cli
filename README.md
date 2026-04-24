@@ -147,7 +147,7 @@ rli blueprint from-dockerfile            # Create a blueprint from a Dockerfile 
 ```bash
 rli object list                          # List objects
 rli object get <id>                      # Get object details
-rli object download <id> <path>          # Download object to local file
+rli object download <id> [path]          # Download object to local file (path d...
 rli object upload <paths...>             # Upload file(s) or directory as an obj...
 rli object delete <id>                   # Delete an object (irreversible)
 ```
