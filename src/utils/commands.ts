@@ -652,9 +652,9 @@ export function createProgram(): Command {
   object
     .command("upload <paths...>")
     .description(
-      "Upload file(s) or directory as an object. Multiple paths with --content-type tar|tgz creates an archive.",
+      "Upload file(s) or directory as an object. Multiple paths with --content-type tar|tgz creates an archive. Use - to read from stdin.",
     )
-    .option("--name <name>", "Object name (required)")
+    .option("--name <name>", "Object name (required; mandatory for stdin)")
     .option(
       "--content-type <type>",
       "Content type: unspecified|text|binary|gzip|tar|tgz",
