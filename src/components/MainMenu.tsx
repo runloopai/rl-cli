@@ -14,7 +14,6 @@ import { useBetaFeatures } from "../store/betaFeatureStore.js";
 import type { BetaFeature } from "../store/betaFeatureStore.js";
 import { useMenuStore } from "../store/menuStore.js";
 import { HomeBaseUrlText } from "./HomeBaseUrlText.js";
-import { runloopBannerText } from "../utils/config.js";
 
 interface MenuItem {
   key: string;
@@ -163,9 +162,6 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
   const layout = useVerticalLayout({ screenType: "menu" });
   const isNarrow = terminalWidth < 70;
 
-  // Derive banner text from RUNLOOP_BASE_URL when set
-  const bannerText = React.useMemo(() => runloopBannerText(), []);
-
   // Check for updates
   const { updateAvailable } = useUpdateCheck();
 
@@ -248,7 +244,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       <Box flexDirection="column">
         <Box paddingX={2}>
           <Text color={colors.primary} bold>
-            {bannerText}
+            RUNLOOP
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -298,7 +294,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
         />
         <Box paddingX={2}>
           <Text color={colors.primary} bold>
-            {bannerText}
+            RUNLOOP.ai
           </Text>
           <Text color={colors.textDim} dimColor>
             {" "}
@@ -349,7 +345,7 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
         />
         <Box paddingX={2} marginBottom={1}>
           <Text color={colors.primary} bold>
-            {bannerText}
+            RUNLOOP.ai
           </Text>
           <Text color={colors.textDim} dimColor>
             {isNarrow

@@ -109,21 +109,6 @@ export function runloopBaseDomain(): string {
   return _cachedBaseDomain;
 }
 
-/**
- * Returns the base domain formatted for banner display: the leftmost "runloop"
- * label (case-insensitive) is uppercased to "RUNLOOP". If no label matches,
- * the domain is returned as-is.
- */
-export function runloopBannerText(): string {
-  const domain = runloopBaseDomain();
-  const labels = domain.split(".");
-  const idx = labels.findIndex((l) => l.toLowerCase() === "runloop");
-  if (idx >= 0) {
-    labels[idx] = "RUNLOOP";
-  }
-  return labels.join(".");
-}
-
 /** @internal — for tests only */
 export function _resetBaseDomainCache(): void {
   _cachedBaseDomain = null;
