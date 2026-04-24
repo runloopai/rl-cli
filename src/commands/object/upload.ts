@@ -2,11 +2,10 @@
  * Upload object command
  */
 
-import { readFile, stat, unlink } from "fs/promises";
-import { tmpdir } from "os";
-import { extname, join, relative, resolve } from "path";
-import { randomUUID } from "crypto";
-import * as tar from "tar";
+import { readFile, readdir, stat } from "fs/promises";
+import { extname, relative, resolve } from "path";
+import { createTar, createTarGzip } from "nanotar";
+import type { TarFileInput } from "nanotar";
 import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
 
@@ -36,38 +35,74 @@ const CONTENT_TYPE_MAP: Record<string, ContentType> = {
 };
 
 /**
+ * Recursively collect all files and directories under the given paths into
+ * nanotar entries. Normalizes permissions: uid/gid 1000, directories and
+ * executable files get mode 755, everything else gets 644. Preserves mtime.
+ */
+async function collectEntries(
+  paths: string[],
+  cwd: string,
+): Promise<TarFileInput[]> {
+  const entries: TarFileInput[] = [];
+
+  for (const p of paths) {
+    const absPath = resolve(p);
+    const relPath = relative(cwd, absPath);
+    const stats = await stat(absPath);
+
+    if (stats.isDirectory()) {
+      entries.push({
+        name: relPath.endsWith("/") ? relPath : relPath + "/",
+        attrs: {
+          mode: "755",
+          uid: 1000,
+          gid: 1000,
+          mtime: stats.mtimeMs,
+        },
+      });
+      const children = await readdir(absPath);
+      const childPaths = children.map((c) => resolve(absPath, c));
+      if (childPaths.length > 0) {
+        entries.push(...(await collectEntries(childPaths, cwd)));
+      }
+    } else {
+      const isExecutable = (stats.mode & 0o111) !== 0;
+      entries.push({
+        name: relPath,
+        data: await readFile(absPath),
+        attrs: {
+          mode: isExecutable ? "755" : "644",
+          uid: 1000,
+          gid: 1000,
+          mtime: stats.mtimeMs,
+        },
+      });
+    }
+  }
+
+  return entries;
+}
+
+/**
  * Create a tar (or tgz) archive as a Buffer from the given filesystem paths.
  *
- * Uses a temp file because the `tar` package's `tar.create()` only supports
- * writing to a file path or to a stream — it has no "return a buffer"
- * option. We write to a temp file, read it back into memory, then delete
- * the temp file. This is the simplest reliable approach for producing a
- * single Buffer suitable for an HTTP PUT body.
+ * Walks directories recursively and normalizes all entries to uid/gid 1000,
+ * mode 644 (non-executable files) or 755 (executable files and directories).
  */
 export async function createTarBuffer(
   paths: string[],
   gzip: boolean,
 ): Promise<Buffer> {
   const cwd = process.cwd();
-  const relativePaths = paths.map((p) => relative(cwd, resolve(p)));
+  const entries = await collectEntries(paths, cwd);
 
-  const tmpFile = join(
-    tmpdir(),
-    `rl-upload-${randomUUID()}.${gzip ? "tgz" : "tar"}`,
-  );
+  if (gzip) {
+    const data = await createTarGzip(entries);
+    return Buffer.from(data);
+  }
 
-  await tar.create(
-    {
-      file: tmpFile,
-      gzip,
-      cwd,
-    },
-    relativePaths,
-  );
-
-  const buffer = await readFile(tmpFile);
-  await unlink(tmpFile);
-  return buffer;
+  const data = createTar(entries);
+  return Buffer.from(data);
 }
 
 export async function uploadObject(options: UploadObjectOptions) {

@@ -3,10 +3,10 @@
  */
 
 import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals";
-import { mkdtemp, writeFile, mkdir, rm } from "fs/promises";
+import { mkdtemp, writeFile, mkdir, rm, chmod, utimes } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
-import * as tar from "tar";
+import { parseTar } from "nanotar";
 
 // Mock client and output
 const mockCreate = jest.fn();
@@ -56,23 +56,11 @@ describe("createTarBuffer", () => {
     expect(buffer).toBeInstanceOf(Buffer);
     expect(buffer.length).toBeGreaterThan(0);
 
-    // Verify the tar contains the expected files
-    const entries: string[] = [];
-    const extractDir = await mkdtemp(join(tmpdir(), "rl-extract-test-"));
-    await tar.extract({ file: undefined, cwd: extractDir, sync: false }, undefined);
-
-    // Write buffer to temp file and list contents
-    const tmpFile = join(testDir, "test.tar");
-    await writeFile(tmpFile, buffer);
-    await tar.list({
-      file: tmpFile,
-      onReadEntry: (entry) => {
-        entries.push(entry.path);
-      },
-    });
-
-    expect(entries.length).toBe(2);
-    await rm(extractDir, { recursive: true, force: true });
+    const entries = parseTar(buffer);
+    const names = entries.map((e) => e.name);
+    expect(names).toHaveLength(2);
+    expect(names.some((n) => n.endsWith("a.txt"))).toBe(true);
+    expect(names.some((n) => n.endsWith("b.txt"))).toBe(true);
   });
 
   it("creates a valid tgz buffer (gzipped)", async () => {
@@ -100,6 +88,74 @@ describe("createTarBuffer", () => {
 
     expect(buffer).toBeInstanceOf(Buffer);
     expect(buffer.length).toBeGreaterThan(0);
+
+    const entries = parseTar(buffer);
+    const dirEntry = entries.find((e) => e.name.endsWith("mydir/"));
+    const fileEntry = entries.find((e) => e.name.endsWith("nested.txt"));
+    expect(dirEntry).toBeDefined();
+    expect(fileEntry).toBeDefined();
+  });
+
+  it("normalizes uid/gid to 1000 for all entries", async () => {
+    await writeFile(join(testDir, "file.txt"), "content");
+
+    const { createTarBuffer } = await import("@/commands/object/upload.js");
+    const buffer = await createTarBuffer([join(testDir, "file.txt")], false);
+
+    // Verify uid/gid by reading the raw tar header bytes directly.
+    // nanotar's parseTar has an octal parsing quirk, so read the raw field.
+    const uid = buffer.toString("ascii", 108, 115).replace(/\0/g, "").trim();
+    const gid = buffer.toString("ascii", 116, 123).replace(/\0/g, "").trim();
+    expect(parseInt(uid, 8)).toBe(1000);
+    expect(parseInt(gid, 8)).toBe(1000);
+  });
+
+  it("sets mode 644 for non-executable files and 755 for executable files", async () => {
+    const normalFile = join(testDir, "normal.txt");
+    const execFile = join(testDir, "script.sh");
+    await writeFile(normalFile, "data");
+    await writeFile(execFile, "#!/bin/sh\necho hi");
+    await chmod(execFile, 0o755);
+
+    const { createTarBuffer } = await import("@/commands/object/upload.js");
+    const buffer = await createTarBuffer([normalFile, execFile], false);
+
+    const entries = parseTar(buffer);
+    const normal = entries.find((e) => e.name.endsWith("normal.txt"));
+    const exec = entries.find((e) => e.name.endsWith("script.sh"));
+    expect(normal?.attrs?.mode).toContain("644");
+    expect(exec?.attrs?.mode).toContain("755");
+  });
+
+  it("sets mode 755 for directories", async () => {
+    const subDir = join(testDir, "subdir");
+    await mkdir(subDir);
+    await writeFile(join(subDir, "file.txt"), "content");
+
+    const { createTarBuffer } = await import("@/commands/object/upload.js");
+    const buffer = await createTarBuffer([subDir], false);
+
+    const entries = parseTar(buffer);
+    const dir = entries.find((e) => e.name.endsWith("subdir/"));
+    expect(dir?.attrs?.mode).toContain("755");
+  });
+
+  it("preserves mtime from the filesystem", async () => {
+    const filePath = join(testDir, "dated.txt");
+    await writeFile(filePath, "content");
+    // Set a known mtime: 2024-01-15T00:00:00Z
+    const knownTime = new Date("2024-01-15T00:00:00Z");
+    await utimes(filePath, knownTime, knownTime);
+
+    const { createTarBuffer } = await import("@/commands/object/upload.js");
+    const buffer = await createTarBuffer([filePath], false);
+
+    const entries = parseTar(buffer);
+    const entry = entries.find((e) => e.name.endsWith("dated.txt"));
+    expect(entry?.attrs?.mtime).toBeDefined();
+    // parseTar returns mtime in seconds (raw tar format)
+    const expectedSec = Math.floor(knownTime.getTime() / 1000);
+    expect(entry?.attrs?.mtime).toBe(expectedSec);
   });
 });
 
