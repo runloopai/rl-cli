@@ -99,6 +99,7 @@ export const Breadcrumb = ({
       marginBottom={1}
       paddingX={0}
       paddingY={0}
+      flexShrink={0}
     >
       <Box flexShrink={0}>
         <Box
