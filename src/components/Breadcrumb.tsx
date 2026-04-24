@@ -1,7 +1,8 @@
 import React from "react";
 import { Box, Text, useStdout } from "ink";
+import Link from "ink-link";
 import { colors } from "../utils/theme.js";
-import { runloopBaseDomain } from "../utils/config.js";
+import { runloopBaseDomain, platformBaseUrl } from "../utils/config.js";
 import { UpdateNotification } from "./UpdateNotification.js";
 
 export interface BreadcrumbItem {
@@ -113,8 +114,11 @@ export const Breadcrumb = ({
           </Text>
           {isNonDefaultDomain && mode !== "minimal" && (
             <Text color={colors.warning} bold>
-              {" "}
-              ({baseDomain})
+              {" ("}
+              <Link url={platformBaseUrl()} fallback={false}>
+                {baseDomain}
+              </Link>
+              {")"}
             </Text>
           )}
           {displayItems.length > 0 && <Text color={colors.textDim}> › </Text>}

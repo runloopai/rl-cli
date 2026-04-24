@@ -91,8 +91,6 @@ const LIGHT_FRAMES = precomputeFrames(
 
 // Minimum height to show the full BigText banner - require generous room
 const MIN_HEIGHT_FOR_BIG_BANNER = 43;
-// Cap: don't attempt BigText for domains wider than this (they wrap to multiple rows)
-const MAX_BIG_BANNER_WIDTH = 92;
 
 // Animation interval in ms
 const SHIMMER_INTERVAL = 400;
@@ -137,9 +135,10 @@ export const Banner = React.memo(() => {
     };
   }, [stdout, getDimensions]);
 
-  // Determine if we should show compact mode (text too long, not enough width, or height)
+  // Determine if we should show compact mode (not enough width or height)
+  // cfonts wraps BigText at the terminal width, so we just need to ensure
+  // the terminal is wide enough for the estimated rendered width.
   const isCompact =
-    estimatedBigTextWidth > MAX_BIG_BANNER_WIDTH ||
     dimensions.width < estimatedBigTextWidth ||
     dimensions.height < MIN_HEIGHT_FOR_BIG_BANNER;
 
