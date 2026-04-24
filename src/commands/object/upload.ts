@@ -84,7 +84,7 @@ async function collectEntries(
           mtime: Number(stats.mtimeMs),
         },
       });
-      const children = await readdir(absPath);
+      const children = (await readdir(absPath)).sort();
       const childPaths = children.map((c) => resolve(absPath, c));
       if (childPaths.length > 0) {
         entries.push(...(await collectEntries(childPaths, archiveRoot)));
@@ -226,7 +226,7 @@ export async function uploadObject(options: UploadObjectOptions) {
       // Single file upload (existing behavior)
       const filePath = paths[0];
       fileBuffer = await readFile(filePath);
-      fileSize = Number(firstStats!.size);
+      fileSize = fileBuffer.length;
 
       detectedContentType = contentType as ContentType;
       if (!detectedContentType) {
