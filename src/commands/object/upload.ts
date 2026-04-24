@@ -2,7 +2,7 @@
  * Upload object command
  */
 
-import { readFile, readdir, stat } from "fs/promises";
+import { lstat, readFile, readdir, stat } from "fs/promises";
 import { extname, relative, resolve } from "path";
 import { createTar, createTarGzip } from "nanotar";
 import type { TarFileInput } from "nanotar";
@@ -48,7 +48,18 @@ async function collectEntries(
   for (const p of paths) {
     const absPath = resolve(p);
     const relPath = relative(cwd, absPath);
-    const stats = await stat(absPath);
+
+    let stats;
+    try {
+      stats = await lstat(absPath);
+    } catch {
+      throw new Error(`Cannot read path: ${relPath}`);
+    }
+
+    if (stats.isSymbolicLink()) {
+      console.error(`Skipping symlink: ${relPath}`);
+      continue;
+    }
 
     if (stats.isDirectory()) {
       entries.push({
@@ -67,9 +78,15 @@ async function collectEntries(
       }
     } else {
       const isExecutable = (stats.mode & 0o111) !== 0;
+      let data;
+      try {
+        data = await readFile(absPath);
+      } catch {
+        throw new Error(`Cannot read file: ${relPath}`);
+      }
       entries.push({
         name: relPath,
-        data: await readFile(absPath),
+        data,
         attrs: {
           mode: isExecutable ? "755" : "644",
           uid: 1000,
