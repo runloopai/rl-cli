@@ -24,6 +24,7 @@ import { useListSearch } from "../../hooks/useListSearch.js";
 import { useNavigation } from "../../store/navigationStore.js";
 import { formatFileSize } from "../../services/objectService.js";
 import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
+import { getDefaultDownloadPath } from "../../utils/downloadPath.js";
 
 interface ListOptions {
   name?: string;
@@ -471,8 +472,13 @@ const ListObjectsUI = ({
         } else if (operationKey === "download") {
           // Show download prompt
           setSelectedObject(selectedObjectItem);
-          const defaultName = selectedObjectItem.name || selectedObjectItem.id;
-          setDownloadPath(`./${defaultName}`);
+          setDownloadPath(
+            getDefaultDownloadPath(
+              selectedObjectItem.name,
+              selectedObjectItem.id,
+              selectedObjectItem.content_type,
+            ),
+          );
           setShowDownloadPrompt(true);
         } else if (operationKey === "delete") {
           // Show delete confirmation
@@ -497,8 +503,13 @@ const ListObjectsUI = ({
         // Download hotkey - show prompt
         setShowPopup(false);
         setSelectedObject(selectedObjectItem);
-        const defaultName = selectedObjectItem.name || selectedObjectItem.id;
-        setDownloadPath(`./${defaultName}`);
+        setDownloadPath(
+          getDefaultDownloadPath(
+            selectedObjectItem.name,
+            selectedObjectItem.id,
+            selectedObjectItem.content_type,
+          ),
+        );
         setShowDownloadPrompt(true);
       } else if (input === "d") {
         // Delete hotkey - show confirmation
