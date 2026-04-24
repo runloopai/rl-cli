@@ -3,7 +3,7 @@
  */
 
 import { lstat, readFile, readdir } from "fs/promises";
-import { basename, dirname, extname, relative, resolve } from "path";
+import { basename, dirname, extname, relative, resolve, sep } from "path";
 import { createTar, createTarGzip } from "nanotar";
 import type { TarFileInput } from "nanotar";
 import { getClient } from "../../utils/client.js";
@@ -45,6 +45,7 @@ const CONTENT_TYPE_MAP: Record<string, ContentType> = {
 async function collectEntries(
   paths: string[],
   archiveRoot: string,
+  precomputedStats?: Map<string, Awaited<ReturnType<typeof lstat>>>,
 ): Promise<TarFileInput[]> {
   const entries: TarFileInput[] = [];
 
@@ -57,16 +58,19 @@ async function collectEntries(
       relPath = basename(absPath);
     }
 
-    let stats;
-    try {
-      stats = await lstat(absPath);
-    } catch (err) {
-      throw new Error(`Cannot read path: ${relPath}`, { cause: err });
+    let stats = precomputedStats?.get(absPath);
+    if (!stats) {
+      try {
+        stats = await lstat(absPath);
+      } catch (err) {
+        throw new Error(`Cannot read path: ${relPath}`, { cause: err });
+      }
     }
 
     if (stats.isSymbolicLink()) {
-      console.warn(`Warning: Skipping symlink: ${relPath}`);
-      continue;
+      throw new Error(
+        `Path is a symlink: ${relPath}. Resolve the symlink or pass the target path directly.`,
+      );
     }
 
     if (stats.isDirectory()) {
@@ -117,7 +121,7 @@ async function collectEntries(
 function commonAncestor(absPaths: string[]): string {
   if (absPaths.length === 0) return process.cwd();
   if (absPaths.length === 1) return dirname(absPaths[0]);
-  const parts = absPaths.map((p) => p.split("/"));
+  const parts = absPaths.map((p) => p.split(sep));
   const common: string[] = [];
   for (let i = 0; i < parts[0].length; i++) {
     const segment = parts[0][i];
@@ -127,7 +131,7 @@ function commonAncestor(absPaths: string[]): string {
       break;
     }
   }
-  return common.join("/") || "/";
+  return common.join(sep) || sep;
 }
 
 /**
@@ -140,10 +144,11 @@ function commonAncestor(absPaths: string[]): string {
 export async function createTarBuffer(
   paths: string[],
   gzip: boolean,
+  precomputedStats?: Map<string, Awaited<ReturnType<typeof lstat>>>,
 ): Promise<Buffer> {
   const absPaths = paths.map((p) => resolve(p));
   const archiveRoot = commonAncestor(absPaths);
-  const entries = await collectEntries(paths, archiveRoot);
+  const entries = await collectEntries(paths, archiveRoot, precomputedStats);
 
   if (gzip) {
     const data = await createTarGzip(entries);
@@ -165,6 +170,7 @@ export async function uploadObject(options: UploadObjectOptions) {
     }
 
     // Validate all paths exist (use lstat to match collectEntries and detect symlinks)
+    // Key by resolved absolute path so collectEntries can reuse stats
     const statsMap = new Map<string, Awaited<ReturnType<typeof lstat>>>();
     for (const p of paths) {
       try {
@@ -175,7 +181,7 @@ export async function uploadObject(options: UploadObjectOptions) {
           );
           return;
         }
-        statsMap.set(p, s);
+        statsMap.set(resolve(p), s);
       } catch {
         outputError(`Path does not exist: ${p}`);
         return;
@@ -184,7 +190,9 @@ export async function uploadObject(options: UploadObjectOptions) {
 
     const isTarType = contentType === "tar" || contentType === "tgz";
     const isSinglePath = paths.length === 1;
-    const firstStats = isSinglePath ? statsMap.get(paths[0])! : undefined;
+    const firstStats = isSinglePath
+      ? statsMap.get(resolve(paths[0]))!
+      : undefined;
     const singleIsDir = isSinglePath && firstStats!.isDirectory();
 
     // Multi-path requires tar/tgz content type
@@ -211,7 +219,7 @@ export async function uploadObject(options: UploadObjectOptions) {
 
     if (shouldCreateArchive) {
       const gzip = contentType === "tgz";
-      fileBuffer = await createTarBuffer(paths, gzip);
+      fileBuffer = await createTarBuffer(paths, gzip, statsMap);
       detectedContentType = contentType as ContentType;
       fileSize = fileBuffer.length;
     } else {

@@ -3,7 +3,7 @@
  */
 
 import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals";
-import { mkdtemp, writeFile, mkdir, rm, chmod, utimes } from "fs/promises";
+import { mkdtemp, writeFile, mkdir, rm, chmod, utimes, symlink } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import { parseTar } from "nanotar";
@@ -138,6 +138,18 @@ describe("createTarBuffer", () => {
     const entries = parseTar(buffer);
     const dir = entries.find((e) => e.name.endsWith("subdir/"));
     expect(dir?.attrs?.mode).toContain("755");
+  });
+
+  it("errors on symlinks inside a directory tree", async () => {
+    const subDir = join(testDir, "with-symlink");
+    await mkdir(subDir);
+    await writeFile(join(subDir, "real.txt"), "real content");
+    await symlink(join(subDir, "real.txt"), join(subDir, "link.txt"));
+
+    const { createTarBuffer } = await import("@/commands/object/upload.js");
+    await expect(createTarBuffer([subDir], false)).rejects.toThrow(
+      /symlink/i,
+    );
   });
 
   it("preserves mtime from the filesystem", async () => {

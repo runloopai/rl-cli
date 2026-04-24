@@ -87,7 +87,7 @@ importers:
         specifier: 6.0.0
         version: 6.0.0(ink@6.6.0(@types/react@19.2.10)(react@19.2.0))(react@19.2.0)
       nanotar:
-        specifier: 0.3.0
+        specifier: ^0.3.0
         version: 0.3.0
       react:
         specifier: 19.2.0
