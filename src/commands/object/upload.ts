@@ -2,8 +2,8 @@
  * Upload object command
  */
 
-import { lstat, readFile, readdir, stat } from "fs/promises";
-import { extname, relative, resolve } from "path";
+import { lstat, readFile, readdir } from "fs/promises";
+import { basename, dirname, extname, relative, resolve } from "path";
 import { createTar, createTarGzip } from "nanotar";
 import type { TarFileInput } from "nanotar";
 import { getClient } from "../../utils/client.js";
@@ -38,26 +38,34 @@ const CONTENT_TYPE_MAP: Record<string, ContentType> = {
  * Recursively collect all files and directories under the given paths into
  * nanotar entries. Normalizes permissions: uid/gid 1000, directories and
  * executable files get mode 755, everything else gets 644. Preserves mtime.
+ *
+ * Entry names are always relative to `archiveRoot` and never contain leading
+ * `../` segments, preventing path traversal in the generated archive.
  */
 async function collectEntries(
   paths: string[],
-  cwd: string,
+  archiveRoot: string,
 ): Promise<TarFileInput[]> {
   const entries: TarFileInput[] = [];
 
   for (const p of paths) {
     const absPath = resolve(p);
-    const relPath = relative(cwd, absPath);
+    let relPath = relative(archiveRoot, absPath);
+
+    // Guard against path traversal: entry names must not escape the archive root
+    if (relPath.startsWith("..")) {
+      relPath = basename(absPath);
+    }
 
     let stats;
     try {
       stats = await lstat(absPath);
-    } catch {
-      throw new Error(`Cannot read path: ${relPath}`);
+    } catch (err) {
+      throw new Error(`Cannot read path: ${relPath}`, { cause: err });
     }
 
     if (stats.isSymbolicLink()) {
-      console.error(`Skipping symlink: ${relPath}`);
+      console.warn(`Warning: Skipping symlink: ${relPath}`);
       continue;
     }
 
@@ -68,21 +76,22 @@ async function collectEntries(
           mode: "755",
           uid: 1000,
           gid: 1000,
+          // nanotar expects mtime in milliseconds and converts to seconds internally
           mtime: stats.mtimeMs,
         },
       });
       const children = await readdir(absPath);
       const childPaths = children.map((c) => resolve(absPath, c));
       if (childPaths.length > 0) {
-        entries.push(...(await collectEntries(childPaths, cwd)));
+        entries.push(...(await collectEntries(childPaths, archiveRoot)));
       }
     } else {
       const isExecutable = (stats.mode & 0o111) !== 0;
       let data;
       try {
         data = await readFile(absPath);
-      } catch {
-        throw new Error(`Cannot read file: ${relPath}`);
+      } catch (err) {
+        throw new Error(`Cannot read file: ${relPath}`, { cause: err });
       }
       entries.push({
         name: relPath,
@@ -91,6 +100,7 @@ async function collectEntries(
           mode: isExecutable ? "755" : "644",
           uid: 1000,
           gid: 1000,
+          // nanotar expects mtime in milliseconds and converts to seconds internally
           mtime: stats.mtimeMs,
         },
       });
@@ -101,17 +111,39 @@ async function collectEntries(
 }
 
 /**
+ * Compute the deepest common directory for a list of absolute paths.
+ * Used as the archive root so entry names are always relative and safe.
+ */
+function commonAncestor(absPaths: string[]): string {
+  if (absPaths.length === 0) return process.cwd();
+  if (absPaths.length === 1) return dirname(absPaths[0]);
+  const parts = absPaths.map((p) => p.split("/"));
+  const common: string[] = [];
+  for (let i = 0; i < parts[0].length; i++) {
+    const segment = parts[0][i];
+    if (parts.every((p) => p[i] === segment)) {
+      common.push(segment);
+    } else {
+      break;
+    }
+  }
+  return common.join("/") || "/";
+}
+
+/**
  * Create a tar (or tgz) archive as a Buffer from the given filesystem paths.
  *
  * Walks directories recursively and normalizes all entries to uid/gid 1000,
  * mode 644 (non-executable files) or 755 (executable files and directories).
+ * Entry names are relative to the common ancestor of the provided paths.
  */
 export async function createTarBuffer(
   paths: string[],
   gzip: boolean,
 ): Promise<Buffer> {
-  const cwd = process.cwd();
-  const entries = await collectEntries(paths, cwd);
+  const absPaths = paths.map((p) => resolve(p));
+  const archiveRoot = commonAncestor(absPaths);
+  const entries = await collectEntries(paths, archiveRoot);
 
   if (gzip) {
     const data = await createTarGzip(entries);
@@ -132,11 +164,18 @@ export async function uploadObject(options: UploadObjectOptions) {
       return;
     }
 
-    // Validate all paths exist
-    const statsMap = new Map<string, Awaited<ReturnType<typeof stat>>>();
+    // Validate all paths exist (use lstat to match collectEntries and detect symlinks)
+    const statsMap = new Map<string, Awaited<ReturnType<typeof lstat>>>();
     for (const p of paths) {
       try {
-        statsMap.set(p, await stat(p));
+        const s = await lstat(p);
+        if (s.isSymbolicLink()) {
+          outputError(
+            `Path is a symlink: ${p}. Resolve the symlink or pass the target path directly.`,
+          );
+          return;
+        }
+        statsMap.set(p, s);
       } catch {
         outputError(`Path does not exist: ${p}`);
         return;
@@ -144,8 +183,9 @@ export async function uploadObject(options: UploadObjectOptions) {
     }
 
     const isTarType = contentType === "tar" || contentType === "tgz";
-    const singlePath = paths.length === 1;
-    const singleIsDir = singlePath && statsMap.get(paths[0])!.isDirectory();
+    const isSinglePath = paths.length === 1;
+    const firstStats = isSinglePath ? statsMap.get(paths[0])! : undefined;
+    const singleIsDir = isSinglePath && firstStats!.isDirectory();
 
     // Multi-path requires tar/tgz content type
     if (paths.length > 1 && !isTarType) {
@@ -176,14 +216,13 @@ export async function uploadObject(options: UploadObjectOptions) {
       fileSize = fileBuffer.length;
     } else {
       // Single file upload (existing behavior)
-      const singlePath = paths[0];
-      const stats = statsMap.get(singlePath)!;
-      fileBuffer = await readFile(singlePath);
-      fileSize = Number(stats.size);
+      const filePath = paths[0];
+      fileBuffer = await readFile(filePath);
+      fileSize = Number(firstStats!.size);
 
       detectedContentType = contentType as ContentType;
       if (!detectedContentType) {
-        const ext = extname(singlePath).toLowerCase();
+        const ext = extname(filePath).toLowerCase();
         detectedContentType = CONTENT_TYPE_MAP[ext] || "unspecified";
       }
     }
