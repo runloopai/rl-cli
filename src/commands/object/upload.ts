@@ -3,7 +3,7 @@
  */
 
 import { lstat, readFile, readdir } from "fs/promises";
-import { basename, dirname, extname, relative, resolve, sep } from "path";
+import { dirname, extname, relative, resolve, sep } from "path";
 import { createTar, createTarGzip } from "nanotar";
 import type { TarFileInput } from "nanotar";
 import { getClient } from "../../utils/client.js";
@@ -55,7 +55,9 @@ async function collectEntries(
 
     // Guard against path traversal: entry names must not escape the archive root
     if (relPath.startsWith("..")) {
-      relPath = basename(absPath);
+      throw new Error(
+        `Path "${absPath}" is outside the archive root "${archiveRoot}". All paths must share a common ancestor directory.`,
+      );
     }
 
     let stats = precomputedStats?.get(absPath);
