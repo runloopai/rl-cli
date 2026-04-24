@@ -3,6 +3,7 @@ import { Box, Text, useStdout } from "ink";
 import BigText from "ink-big-text";
 import Gradient from "ink-gradient";
 import { isLightMode } from "../utils/theme.js";
+import { runloopBannerText } from "../utils/config.js";
 
 // Dramatic shades of green shimmer - wide range
 const DARK_SHIMMER_COLORS = [
@@ -88,10 +89,10 @@ const LIGHT_FRAMES = precomputeFrames(
   LIGHT_SHIMMER_COLORS.filter((_, i) => i % 2 === 0),
 );
 
-// Minimum width to show the full BigText banner (simple3d font needs ~80 chars for "RUNLOOP.ai")
-const MIN_WIDTH_FOR_BIG_BANNER = 90;
-// Minimum height to show the full BigText banner - require generous room (40 lines)
-const MIN_HEIGHT_FOR_BIG_BANNER = 40;
+// Minimum height to show the full BigText banner - require generous room
+const MIN_HEIGHT_FOR_BIG_BANNER = 43;
+// Cap: don't attempt BigText for domains wider than this (they wrap to multiple rows)
+const MAX_BIG_BANNER_WIDTH = 92;
 
 // Animation interval in ms
 const SHIMMER_INTERVAL = 400;
@@ -101,6 +102,11 @@ export const Banner = React.memo(() => {
   const frames = isLightMode() ? LIGHT_FRAMES : DARK_FRAMES;
   const { stdout } = useStdout();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Derive banner text from RUNLOOP_BASE_URL when set
+  const bannerText = React.useMemo(() => runloopBannerText(), []);
+  // simple3d font averages ~8 columns per character + padding
+  const estimatedBigTextWidth = bannerText.length * 8 + 12;
 
   // Get raw terminal dimensions, responding to resize events
   // Default to conservative values if we can't detect (triggers compact mode)
@@ -131,9 +137,10 @@ export const Banner = React.memo(() => {
     };
   }, [stdout, getDimensions]);
 
-  // Determine if we should show compact mode (not enough width OR height)
+  // Determine if we should show compact mode (text too long, not enough width, or height)
   const isCompact =
-    dimensions.width < MIN_WIDTH_FOR_BIG_BANNER ||
+    estimatedBigTextWidth > MAX_BIG_BANNER_WIDTH ||
+    dimensions.width < estimatedBigTextWidth ||
     dimensions.height < MIN_HEIGHT_FOR_BIG_BANNER;
 
   useEffect(() => {
@@ -159,7 +166,7 @@ export const Banner = React.memo(() => {
     return (
       <Box flexDirection="column" alignItems="flex-start" paddingX={1}>
         <Gradient colors={currentColors}>
-          <Text bold>◆ RUNLOOP.ai</Text>
+          <Text bold>◆ {bannerText}</Text>
         </Gradient>
       </Box>
     );
@@ -169,7 +176,7 @@ export const Banner = React.memo(() => {
   return (
     <Box flexDirection="column" alignItems="flex-start" paddingX={1}>
       <Gradient colors={currentColors}>
-        <BigText text="RUNLOOP.ai" font="simple3d" />
+        <BigText text={bannerText} font="simple3d" />
       </Gradient>
     </Box>
   );
