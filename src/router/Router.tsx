@@ -54,6 +54,7 @@ const KNOWN_SCREENS: Set<ScreenName> = new Set([
   "object-list",
   "object-detail",
   "ssh-session",
+  "pty-session",
   "benchmark-menu",
   "benchmark-list",
   "benchmark-detail",
@@ -136,6 +137,7 @@ import { AxonDetailScreen } from "../screens/AxonDetailScreen.js";
 import { ObjectListScreen } from "../screens/ObjectListScreen.js";
 import { ObjectDetailScreen } from "../screens/ObjectDetailScreen.js";
 import { SSHSessionScreen } from "../screens/SSHSessionScreen.js";
+import { PtySessionScreen } from "../screens/PtySessionScreen.js";
 import { BenchmarkMenuScreen } from "../screens/BenchmarkMenuScreen.js";
 import { BenchmarkListScreen } from "../screens/BenchmarkListScreen.js";
 import { BenchmarkDetailScreen } from "../screens/BenchmarkDetailScreen.js";
@@ -354,6 +356,9 @@ export function Router() {
       )}
       {currentScreen === "ssh-session" && (
         <SSHSessionScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "pty-session" && (
+        <PtySessionScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "benchmark-menu" && (
         <BenchmarkMenuScreen key={currentScreen} {...params} />

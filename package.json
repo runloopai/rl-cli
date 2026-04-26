@@ -89,6 +89,7 @@
     "ink-spinner": "5.0.0",
     "ink-text-input": "6.0.0",
     "react": "19.2.0",
+    "ws": "^8.18.0",
     "yaml": "2.8.3",
     "zustand": "5.0.10"
   },
@@ -140,6 +141,7 @@
     "prettier": "3.8.1",
     "ts-jest": "29.4.6",
     "ts-node": "10.9.2",
+    "@types/ws": "^8.5.0",
     "typescript": "5.9.3"
   }
 }

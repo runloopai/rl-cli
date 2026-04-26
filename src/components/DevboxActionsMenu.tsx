@@ -33,6 +33,7 @@ type Operation =
   | "upload"
   | "snapshot"
   | "ssh"
+  | "pty"
   | "logs"
   | "tunnel"
   | "suspend"
@@ -168,6 +169,13 @@ export const DevboxActionsMenu = ({
       shortcut: "s",
     },
     {
+      key: "pty",
+      label: "PTY Shell",
+      color: colors.primary,
+      icon: figures.arrowRight,
+      shortcut: "y",
+    },
+    {
       key: "tunnel",
       label: "Open Tunnel",
       color: colors.secondary,
@@ -244,7 +252,7 @@ export const DevboxActionsMenu = ({
 
   // Auto-execute operations that don't need input (except delete which needs confirmation)
   React.useEffect(() => {
-    const autoExecuteOps = ["ssh", "logs", "suspend", "resume"];
+    const autoExecuteOps = ["ssh", "pty", "logs", "suspend", "resume"];
     if (
       executingOperation &&
       autoExecuteOps.includes(executingOperation) &&
@@ -680,6 +688,19 @@ export const DevboxActionsMenu = ({
             returnParams: params,
           });
           break;
+
+        case "pty": {
+          const { getPtyBaseUrl } = await import("../lib/pty-client.js");
+          navigate("pty-session", {
+            ptyBaseUrl: getPtyBaseUrl(),
+            ptySessionName: devbox.id,
+            devboxId: devbox.id,
+            devboxName: devbox.name || devbox.id,
+            returnScreen: currentScreen,
+            returnParams: params,
+          });
+          break;
+        }
 
         case "logs":
           // Set flag to show streaming logs viewer

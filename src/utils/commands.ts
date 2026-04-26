@@ -222,6 +222,28 @@ export function createProgram(): Command {
     });
 
   devbox
+    .command("pty <id>")
+    .alias("shell")
+    .description("Connect to a devbox PTY session via WebSocket")
+    .option("--session <name>", "Session name (defaults to devbox ID)")
+    .option("--command <cmd>", "Execute command non-interactively")
+    .option("--no-wait", "Do not wait for devbox to be ready")
+    .option(
+      "--timeout <seconds>",
+      "Timeout in seconds to wait for readiness",
+      "180",
+    )
+    .option(
+      "--poll-interval <seconds>",
+      "Polling interval in seconds while waiting",
+      "3",
+    )
+    .action(async (id, options) => {
+      const { ptyDevbox } = await import("../commands/devbox/pty.js");
+      await ptyDevbox(id, options);
+    });
+
+  devbox
     .command("scp <src> <dst>")
     .description(
       "Copy files to/from a devbox using scp (e.g. rli devbox scp dbx_id:/remote ./local)",
