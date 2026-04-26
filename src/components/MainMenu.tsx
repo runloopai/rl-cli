@@ -80,7 +80,7 @@ interface MainMenuProps {
 type LayoutMode = "full" | "medium" | "compact" | "minimal";
 
 function getLayoutMode(height: number): LayoutMode {
-  if (height >= 40) return "full"; // Big banner + bordered items + descriptions
+  if (height >= 43) return "full"; // Big banner + bordered items + descriptions
   if (height >= 22) return "medium"; // Small banner + simple items + descriptions
   if (height >= 15) return "compact"; // No banner + simple items + short descriptions
   return "minimal"; // No banner + labels only
