@@ -1,10 +1,6 @@
 import React from "react";
 import WebSocket from "ws";
-import {
-  ptyConnect,
-  ptyControl,
-  buildWsUrl,
-} from "../lib/pty-client.js";
+import { ptyConnect, ptyControl, buildWsUrl } from "../lib/pty-client.js";
 import {
   showCursor,
   clearScreen,
