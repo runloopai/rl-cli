@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.17.0](https://github.com/runloopai/rl-cli/compare/v1.16.0...v1.17.0) (2026-04-29)
+
+
+### Features
+
+* add --public flag to agent create, fix object upload --public ([#219](https://github.com/runloopai/rl-cli/issues/219)) ([6e7a8b3](https://github.com/runloopai/rl-cli/commit/6e7a8b32ecc30590ddfef39987df46d310766cde))
+* agent object picker, multi-mount support, and TUI improvements ([#217](https://github.com/runloopai/rl-cli/issues/217)) ([dbe2a5c](https://github.com/runloopai/rl-cli/commit/dbe2a5c753553db454492fc4f2a964c24b7b6818))
+* support multi-path tar/tgz archive creation in obj upload ([#220](https://github.com/runloopai/rl-cli/issues/220)) ([3528701](https://github.com/runloopai/rl-cli/commit/3528701120b7da27c64c5982bf6b3706d0a19518))
+
+
+### Bug Fixes
+
+* menu header clipping and breadcrumb hyperlink ([#221](https://github.com/runloopai/rl-cli/issues/221)) ([3ef6271](https://github.com/runloopai/rl-cli/commit/3ef62719d6d3e5928b6a679b17ef0f2bee26f30a))
+
 ## [1.16.0](https://github.com/runloopai/rl-cli/compare/v1.15.0...v1.16.0) (2026-04-23)
 
 
