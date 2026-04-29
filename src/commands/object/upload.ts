@@ -241,7 +241,8 @@ export async function uploadObject(options: UploadObjectOptions) {
     const createResponse = await client.objects.create({
       name,
       content_type: detectedContentType,
-    });
+      ...(options.public ? { is_public: true } : {}),
+    } as any);
 
     // Step 2: Upload the file
     const uploadResponse = await fetch(createResponse.upload_url!, {
