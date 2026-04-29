@@ -15,6 +15,7 @@ interface CreateOptions {
   ref?: string;
   objectId?: string;
   setupCommands?: string[];
+  public?: boolean;
   output?: string;
 }
 
@@ -104,6 +105,7 @@ export async function createAgentCommand(
     const agent = await createAgent({
       name: options.name,
       ...(options.agentVersion ? { version: options.agentVersion } : {}),
+      ...(options.public ? { is_public: true } : {}),
       source: { type: sourceType, [sourceType]: sourceOptions },
     });
 

@@ -1,10 +1,19 @@
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import { VERSION } from "../version.js";
 import { createDevbox } from "../commands/devbox/create.js";
 import { listDevboxes } from "../commands/devbox/list.js";
 import { deleteDevbox } from "../commands/devbox/delete.js";
 import { execCommand } from "../commands/devbox/exec.js";
 import { uploadFile } from "../commands/devbox/upload.js";
+import { runloopBaseDomain } from "./config.js";
+
+function publicOption(description: string): Option {
+  const opt = new Option("--public", description);
+  if (runloopBaseDomain() === "runloop.ai") {
+    opt.hideHelp();
+  }
+  return opt;
+}
 
 /**
  * Creates and configures the Commander program with all commands.
@@ -657,7 +666,7 @@ export function createProgram(): Command {
       "--content-type <type>",
       "Content type: unspecified|text|binary|gzip|tar|tgz",
     )
-    .option("--public", "Make object publicly accessible")
+    .addOption(publicOption("Make object publicly accessible"))
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
@@ -1210,6 +1219,7 @@ export function createProgram(): Command {
       "--setup-commands <commands...>",
       "Setup commands to run after installation",
     )
+    .addOption(publicOption("Make agent publicly accessible"))
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
