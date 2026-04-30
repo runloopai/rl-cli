@@ -27,6 +27,25 @@ jest.unstable_mockModule("@/utils/output.js", () => ({
   outputError: mockOutputError,
 }));
 
+// Mock processUtils for stdin control
+const mockProcessUtils = {
+  stdin: {
+    isTTY: true,
+    async *[Symbol.asyncIterator](): AsyncGenerator<Buffer> {},
+  },
+};
+jest.unstable_mockModule("@/utils/processUtils.js", () => ({
+  processUtils: mockProcessUtils,
+}));
+
+function setMockStdin(chunks: Buffer[]) {
+  mockProcessUtils.stdin[Symbol.asyncIterator] = async function* () {
+    for (const chunk of chunks) {
+      yield chunk;
+    }
+  };
+}
+
 // Mock fetch for upload
 const mockFetch = jest.fn<typeof globalThis.fetch>();
 globalThis.fetch = mockFetch;
@@ -183,6 +202,8 @@ describe("uploadObject", () => {
     });
     mockFetch.mockResolvedValue({ ok: true } as Response);
     mockComplete.mockResolvedValue({});
+    mockProcessUtils.stdin.isTTY = true;
+    setMockStdin([]);
   });
 
   afterEach(async () => {
@@ -411,6 +432,222 @@ describe("uploadObject", () => {
         "--name is required when no paths are provided",
       );
       expect(mockCreate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("stdin upload (explicit - path)", () => {
+    it("reads from stdin and uploads the data", async () => {
+      setMockStdin([Buffer.from("stdin content")]);
+      const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+
+      const { uploadObject } = await import("@/commands/object/upload.js");
+      await uploadObject({
+        paths: ["-"],
+        name: "stdin-object",
+        contentType: "text",
+      });
+
+      logSpy.mockRestore();
+
+      expect(mockCreate).toHaveBeenCalledWith({
+        name: "stdin-object",
+        content_type: "text",
+      });
+      const fetchCall = mockFetch.mock.calls[0];
+      const body = fetchCall[1]?.body as Buffer;
+      expect(body.toString()).toBe("stdin content");
+      expect(mockComplete).toHaveBeenCalledWith("obj_test123");
+    });
+
+    it("uploads 0-byte buffer from empty stdin", async () => {
+      setMockStdin([]);
+      const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+
+      const { uploadObject } = await import("@/commands/object/upload.js");
+      await uploadObject({
+        paths: ["-"],
+        name: "empty-stdin",
+        contentType: "binary",
+      });
+
+      logSpy.mockRestore();
+
+      const fetchCall = mockFetch.mock.calls[0];
+      const body = fetchCall[1]?.body as Buffer;
+      expect(body.length).toBe(0);
+      expect(mockComplete).toHaveBeenCalledWith("obj_test123");
+    });
+
+    it("errors when --name is missing", async () => {
+      mockOutputError.mockImplementationOnce(() => {
+        throw new Error("exit");
+      });
+
+      const { uploadObject } = await import("@/commands/object/upload.js");
+      try {
+        await uploadObject({
+          paths: ["-"],
+          name: "",
+          contentType: "text",
+        });
+      } catch {
+        // expected
+      }
+
+      expect(mockOutputError).toHaveBeenCalledWith(
+        "--name is required when uploading from stdin",
+      );
+      expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it("errors when --content-type is missing", async () => {
+      mockOutputError.mockImplementationOnce(() => {
+        throw new Error("exit");
+      });
+
+      const { uploadObject } = await import("@/commands/object/upload.js");
+      try {
+        await uploadObject({
+          paths: ["-"],
+          name: "no-ct-stdin",
+        });
+      } catch {
+        // expected
+      }
+
+      expect(mockOutputError).toHaveBeenCalledWith(
+        "--content-type is required when uploading from stdin",
+      );
+    });
+
+    it("errors when stdin is mixed with other paths", async () => {
+      const filePath = join(testDir, "file.txt");
+      await writeFile(filePath, "data");
+
+      const { uploadObject } = await import("@/commands/object/upload.js");
+      await uploadObject({
+        paths: ["-", filePath],
+        name: "mixed",
+        contentType: "text",
+      });
+
+      expect(mockOutputError).toHaveBeenCalledWith(
+        "Cannot mix stdin (-) with other paths. Use - alone or provide only file/directory paths.",
+      );
+      expect(mockCreate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("0-paths with piped stdin", () => {
+    it("reads piped stdin and uploads instead of printing URL", async () => {
+      mockProcessUtils.stdin.isTTY = false;
+      setMockStdin([Buffer.from("piped data")]);
+      const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+
+      const { uploadObject } = await import("@/commands/object/upload.js");
+      await uploadObject({
+        paths: [],
+        name: "piped-object",
+        contentType: "text",
+      });
+
+      expect(mockCreate).toHaveBeenCalledWith({
+        name: "piped-object",
+        content_type: "text",
+      });
+      const fetchCall = mockFetch.mock.calls[0];
+      const body = fetchCall[1]?.body as Buffer;
+      expect(body.toString()).toBe("piped data");
+      expect(mockComplete).toHaveBeenCalledWith("obj_test123");
+      expect(logSpy).toHaveBeenCalledWith("obj_test123");
+      logSpy.mockRestore();
+    });
+
+    it("uploads 0-byte buffer from empty piped stdin", async () => {
+      mockProcessUtils.stdin.isTTY = false;
+      setMockStdin([]);
+      const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+
+      const { uploadObject } = await import("@/commands/object/upload.js");
+      await uploadObject({
+        paths: [],
+        name: "empty-piped",
+        contentType: "binary",
+      });
+
+      const fetchCall = mockFetch.mock.calls[0];
+      const body = fetchCall[1]?.body as Buffer;
+      expect(body.length).toBe(0);
+      expect(mockComplete).toHaveBeenCalledWith("obj_test123");
+      logSpy.mockRestore();
+    });
+
+    it("errors when --name is missing with piped stdin", async () => {
+      mockProcessUtils.stdin.isTTY = false;
+      mockOutputError.mockImplementationOnce(() => {
+        throw new Error("exit");
+      });
+
+      const { uploadObject } = await import("@/commands/object/upload.js");
+      try {
+        await uploadObject({
+          paths: [],
+          name: "",
+          contentType: "text",
+        });
+      } catch {
+        // expected
+      }
+
+      expect(mockOutputError).toHaveBeenCalledWith(
+        "--name is required when uploading from stdin",
+      );
+      expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it("errors when --content-type is missing with piped stdin", async () => {
+      mockProcessUtils.stdin.isTTY = false;
+      mockOutputError.mockImplementationOnce(() => {
+        throw new Error("exit");
+      });
+
+      const { uploadObject } = await import("@/commands/object/upload.js");
+      try {
+        await uploadObject({
+          paths: [],
+          name: "no-ct-piped",
+        });
+      } catch {
+        // expected
+      }
+
+      expect(mockOutputError).toHaveBeenCalledWith(
+        "--content-type is required when uploading from stdin",
+      );
+    });
+
+    it("outputs structured JSON result for piped stdin upload", async () => {
+      mockProcessUtils.stdin.isTTY = false;
+      setMockStdin([Buffer.from("json-piped")]);
+
+      const { uploadObject } = await import("@/commands/object/upload.js");
+      await uploadObject({
+        paths: [],
+        name: "json-piped-object",
+        contentType: "text",
+        output: "json",
+      });
+
+      expect(mockOutput).toHaveBeenCalledWith(
+        {
+          id: "obj_test123",
+          name: "json-piped-object",
+          contentType: "text",
+          size: 10,
+        },
+        { format: "json", defaultFormat: "json" },
+      );
+      expect(mockComplete).toHaveBeenCalledWith("obj_test123");
     });
   });
 });

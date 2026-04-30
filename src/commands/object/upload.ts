@@ -8,6 +8,7 @@ import { createTar, createTarGzip } from "nanotar";
 import type { TarFileInput } from "nanotar";
 import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
+import { processUtils } from "../../utils/processUtils.js";
 
 interface UploadObjectOptions {
   paths: string[];
@@ -163,7 +164,7 @@ export async function createTarBuffer(
 
 async function readStdinBuffer(): Promise<Buffer> {
   const chunks: Buffer[] = [];
-  for await (const chunk of process.stdin) {
+  for await (const chunk of processUtils.stdin) {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
   }
   return Buffer.concat(chunks);
@@ -175,34 +176,40 @@ export async function uploadObject(options: UploadObjectOptions) {
     const { paths, name, contentType, output: outputFormat } = options;
 
     if (paths.length === 0) {
-      if (!name) {
-        outputError("--name is required when no paths are provided");
-      }
-      const resolvedContentType: ContentType =
-        (contentType as ContentType) || "unspecified";
-
-      const createResponse = await client.objects.create({
-        name,
-        content_type: resolvedContentType,
-      });
-
-      if (!createResponse.upload_url) {
-        outputError("API did not return an upload URL");
-      }
-
-      const result = {
-        id: createResponse.id,
-        name,
-        contentType: resolvedContentType,
-        uploadUrl: createResponse.upload_url,
-      };
-
-      if (!outputFormat || outputFormat === "text") {
-        console.log(createResponse.upload_url);
+      if (!processUtils.stdin.isTTY) {
+        // Piped stdin detected — normalize to explicit stdin path below
+        paths.push("-");
       } else {
-        output(result, { format: outputFormat, defaultFormat: "json" });
+        // Interactive terminal: print pre-signed upload URL
+        if (!name) {
+          outputError("--name is required when no paths are provided");
+        }
+        const resolvedContentType: ContentType =
+          (contentType as ContentType) || "unspecified";
+
+        const createResponse = await client.objects.create({
+          name,
+          content_type: resolvedContentType,
+        });
+
+        if (!createResponse.upload_url) {
+          outputError("API did not return an upload URL");
+        }
+
+        const result = {
+          id: createResponse.id,
+          name,
+          contentType: resolvedContentType,
+          uploadUrl: createResponse.upload_url,
+        };
+
+        if (!outputFormat || outputFormat === "text") {
+          console.log(createResponse.upload_url);
+        } else {
+          output(result, { format: outputFormat, defaultFormat: "json" });
+        }
+        return;
       }
-      return;
     }
 
     const hasStdin = paths.includes("-");

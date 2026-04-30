@@ -72,8 +72,7 @@ export async function downloadObject(options: DownloadObjectOptions) {
           "Warning: writing binary data to terminal; pipe to a file or command instead\n",
         );
       }
-      // Raw process.stdout for binary data (processUtils.stdout.write only accepts string)
-      process.stdout.write(buffer);
+      processUtils.stdout.write(buffer);
     } else {
       await writeFile(resolvedPath, buffer);
     }

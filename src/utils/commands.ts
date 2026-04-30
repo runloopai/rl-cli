@@ -632,7 +632,7 @@ export function createProgram(): Command {
   object
     .command("download <id> [path]")
     .description(
-      "Download object to local file (path defaults to ./<name> with inferred extension; use - for stdout)",
+      "Download an object. Omit path to save as ./<name> with inferred extension. Use - to write to stdout.",
     )
     .option("--extract", "Extract downloaded archive after download")
     .option(
@@ -652,7 +652,7 @@ export function createProgram(): Command {
   object
     .command("upload [paths...]")
     .description(
-      "Upload file(s) or directory as an object. With no paths, creates the object and prints the upload URL. Use - to read from stdin.",
+      "Upload an object. Reads from piped stdin when no paths are given; prints a pre-signed upload URL if stdin is a terminal. Use - to explicitly read stdin. Multiple paths with --content-type tar|tgz creates an archive.",
     )
     .option("--name <name>", "Object name (required)")
     .option(
