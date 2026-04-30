@@ -650,11 +650,11 @@ export function createProgram(): Command {
     });
 
   object
-    .command("upload <paths...>")
+    .command("upload [paths...]")
     .description(
-      "Upload file(s) or directory as an object. Multiple paths with --content-type tar|tgz creates an archive. Use - to read from stdin.",
+      "Upload file(s) or directory as an object. With no paths, creates the object and prints the upload URL. Use - to read from stdin.",
     )
-    .option("--name <name>", "Object name (required; mandatory for stdin)")
+    .option("--name <name>", "Object name (required)")
     .option(
       "--content-type <type>",
       "Content type: unspecified|text|binary|gzip|tar|tgz",
@@ -666,12 +666,15 @@ export function createProgram(): Command {
     )
     .action(async (paths, options) => {
       const { uploadObject } = await import("../commands/object/upload.js");
-      if (!options.output) {
+      const resolvedPaths = paths || [];
+      if (!options.output && resolvedPaths.length > 0) {
         const { runInteractiveCommand } =
           await import("../utils/interactiveCommand.js");
-        await runInteractiveCommand(() => uploadObject({ paths, ...options }));
+        await runInteractiveCommand(() =>
+          uploadObject({ paths: resolvedPaths, ...options }),
+        );
       } else {
-        await uploadObject({ paths, ...options });
+        await uploadObject({ paths: resolvedPaths, ...options });
       }
     });
 

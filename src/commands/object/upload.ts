@@ -175,7 +175,33 @@ export async function uploadObject(options: UploadObjectOptions) {
     const { paths, name, contentType, output: outputFormat } = options;
 
     if (paths.length === 0) {
-      outputError("At least one path is required");
+      if (!name) {
+        outputError("--name is required when no paths are provided");
+      }
+      const resolvedContentType: ContentType =
+        (contentType as ContentType) || "unspecified";
+
+      const createResponse = await client.objects.create({
+        name,
+        content_type: resolvedContentType,
+      });
+
+      if (!createResponse.upload_url) {
+        outputError("API did not return an upload URL");
+      }
+
+      const result = {
+        id: createResponse.id,
+        name,
+        contentType: resolvedContentType,
+        uploadUrl: createResponse.upload_url,
+      };
+
+      if (!outputFormat || outputFormat === "text") {
+        console.log(createResponse.upload_url);
+      } else {
+        output(result, { format: outputFormat, defaultFormat: "json" });
+      }
       return;
     }
 

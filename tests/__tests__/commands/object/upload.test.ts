@@ -327,4 +327,90 @@ describe("uploadObject", () => {
     const body = fetchCall[1]?.body as Buffer;
     expect(body.toString()).toBe("fake tar content");
   });
+
+  describe("0-paths mode (URL-only)", () => {
+    it("creates object and prints upload URL when no paths provided", async () => {
+      const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+
+      const { uploadObject } = await import("@/commands/object/upload.js");
+      await uploadObject({
+        paths: [],
+        name: "url-only-object",
+        contentType: "text",
+      });
+
+      expect(mockCreate).toHaveBeenCalledWith({
+        name: "url-only-object",
+        content_type: "text",
+      });
+      expect(logSpy).toHaveBeenCalledWith("https://example.com/upload");
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(mockComplete).not.toHaveBeenCalled();
+      logSpy.mockRestore();
+    });
+
+    it("defaults content type to unspecified when omitted", async () => {
+      const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+
+      const { uploadObject } = await import("@/commands/object/upload.js");
+      await uploadObject({
+        paths: [],
+        name: "no-ct-object",
+      });
+
+      expect(mockCreate).toHaveBeenCalledWith({
+        name: "no-ct-object",
+        content_type: "unspecified",
+      });
+      expect(logSpy).toHaveBeenCalledWith("https://example.com/upload");
+      logSpy.mockRestore();
+    });
+
+    it("outputs structured result in JSON mode", async () => {
+      const { uploadObject } = await import("@/commands/object/upload.js");
+      await uploadObject({
+        paths: [],
+        name: "json-url-object",
+        contentType: "binary",
+        output: "json",
+      });
+
+      expect(mockOutput).toHaveBeenCalledWith(
+        {
+          id: "obj_test123",
+          name: "json-url-object",
+          contentType: "binary",
+          uploadUrl: "https://example.com/upload",
+        },
+        { format: "json", defaultFormat: "json" },
+      );
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(mockComplete).not.toHaveBeenCalled();
+    });
+
+    it("errors when --name is missing", async () => {
+      mockOutputError.mockImplementationOnce(() => {
+        throw new Error("exit");
+      });
+      mockOutputError.mockImplementationOnce(() => {
+        throw new Error("exit");
+      });
+
+      const { uploadObject } = await import("@/commands/object/upload.js");
+      try {
+        await uploadObject({
+          paths: [],
+          name: "",
+        });
+      } catch {
+        // expected: mockOutputError throws to simulate process.exit
+      }
+
+      expect(mockOutputError).toHaveBeenNthCalledWith(
+        1,
+        "--name is required when no paths are provided",
+      );
+      expect(mockCreate).not.toHaveBeenCalled();
+    });
+  });
 });
