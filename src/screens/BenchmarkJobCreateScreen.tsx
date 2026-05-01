@@ -13,6 +13,7 @@ import { SuccessMessage } from "../components/SuccessMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
 import { NavigationTips } from "../components/NavigationTips.js";
 import { ResourcePicker } from "../components/ResourcePicker.js";
+import { MetadataDisplay } from "../components/MetadataDisplay.js";
 import { colors } from "../utils/theme.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
 import { listBenchmarks, getBenchmark } from "../services/benchmarkService.js";
@@ -48,6 +49,7 @@ type FormField =
   | "name"
   | "agent_timeout"
   | "concurrent_trials"
+  | "metadata"
   | "create";
 
 interface FormData {
@@ -65,6 +67,7 @@ interface FormData {
   name: string;
   agentTimeout: string;
   concurrentTrials: string;
+  metadata: Record<string, string>;
 }
 
 type ScreenState =
@@ -414,11 +417,19 @@ export function BenchmarkJobCreateScreen({
       name: cloneJobName ? `${cloneJobName} (clone)` : "",
       agentTimeout: cloneAgentTimeout || "",
       concurrentTrials: cloneConcurrentTrials || "1",
+      metadata: {},
     };
   });
 
   const [createdJob, setCreatedJob] = React.useState<BenchmarkJob | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
+  const [metadataKey, setMetadataKey] = React.useState("");
+  const [metadataValue, setMetadataValue] = React.useState("");
+  const [inMetadataSection, setInMetadataSection] = React.useState(false);
+  const [metadataInputMode, setMetadataInputMode] = React.useState<
+    "key" | "value" | null
+  >(null);
+  const [selectedMetadataIndex, setSelectedMetadataIndex] = React.useState(0);
   /** When adding a secret: selected secret awaiting env var name */
   const [pendingSecretForEnv, setPendingSecretForEnv] = React.useState<{
     id: string;
@@ -476,7 +487,7 @@ export function BenchmarkJobCreateScreen({
   const fields: Array<{
     key: FormField;
     label: string;
-    type: "text" | "picker" | "action" | "toggle";
+    type: "text" | "picker" | "action" | "toggle" | "metadata";
     placeholder?: string;
     required?: boolean;
     description?: string;
@@ -547,6 +558,12 @@ export function BenchmarkJobCreateScreen({
       type: "text",
       placeholder: "1",
       description: "Number of concurrent trials (default: 1)",
+    },
+    {
+      key: "metadata",
+      label: "Metadata (optional)",
+      type: "metadata",
+      description: "Optional key-value metadata for the job",
     },
     {
       key: "create",
@@ -879,6 +896,10 @@ export function BenchmarkJobCreateScreen({
             : undefined,
         agentConfigs,
         orchestratorConfig,
+        metadata:
+          Object.keys(formData.metadata).length > 0
+            ? formData.metadata
+            : undefined,
       });
 
       setCreatedJob(job);
@@ -936,6 +957,12 @@ export function BenchmarkJobCreateScreen({
         setScreenState("secrets_config");
         setSecretsConfigSelectedIndex(0);
       } else if (
+        currentFieldDef?.type === "metadata" &&
+        currentField === "metadata"
+      ) {
+        setInMetadataSection(true);
+        setSelectedMetadataIndex(0);
+      } else if (
         currentFieldDef?.type === "action" &&
         currentField === "create"
       ) {
@@ -946,6 +973,93 @@ export function BenchmarkJobCreateScreen({
       }
     }
   });
+
+  useInput(
+    (input, key) => {
+      const metadataKeys = Object.keys(formData.metadata);
+      const maxIndex = metadataKeys.length + 1;
+
+      if (metadataInputMode) {
+        if (metadataInputMode === "key" && key.return && metadataKey.trim()) {
+          setMetadataInputMode("value");
+          return;
+        } else if (metadataInputMode === "value" && key.return) {
+          if (metadataKey.trim() && metadataValue.trim()) {
+            setFormData({
+              ...formData,
+              metadata: {
+                ...formData.metadata,
+                [metadataKey.trim()]: metadataValue.trim(),
+              },
+            });
+          }
+          setMetadataKey("");
+          setMetadataValue("");
+          setMetadataInputMode(null);
+          setSelectedMetadataIndex(0);
+          return;
+        } else if (key.escape) {
+          setMetadataKey("");
+          setMetadataValue("");
+          setMetadataInputMode(null);
+          return;
+        } else if (key.tab) {
+          setMetadataInputMode(metadataInputMode === "key" ? "value" : "key");
+          return;
+        }
+        return;
+      }
+
+      if (key.upArrow && selectedMetadataIndex > 0) {
+        setSelectedMetadataIndex(selectedMetadataIndex - 1);
+      } else if (key.downArrow && selectedMetadataIndex < maxIndex) {
+        setSelectedMetadataIndex(selectedMetadataIndex + 1);
+      } else if (key.return) {
+        if (selectedMetadataIndex === 0) {
+          setMetadataKey("");
+          setMetadataValue("");
+          setMetadataInputMode("key");
+        } else if (selectedMetadataIndex === maxIndex) {
+          setInMetadataSection(false);
+          setSelectedMetadataIndex(0);
+          setMetadataKey("");
+          setMetadataValue("");
+          setMetadataInputMode(null);
+        } else if (
+          selectedMetadataIndex >= 1 &&
+          selectedMetadataIndex <= metadataKeys.length
+        ) {
+          const keyToEdit = metadataKeys[selectedMetadataIndex - 1];
+          setMetadataKey(keyToEdit || "");
+          setMetadataValue(formData.metadata[keyToEdit] || "");
+          const newMetadata = { ...formData.metadata };
+          delete newMetadata[keyToEdit];
+          setFormData({ ...formData, metadata: newMetadata });
+          setMetadataInputMode("key");
+        }
+      } else if (
+        (input === "d" || key.delete) &&
+        selectedMetadataIndex >= 1 &&
+        selectedMetadataIndex <= metadataKeys.length
+      ) {
+        const keyToDelete = metadataKeys[selectedMetadataIndex - 1];
+        const newMetadata = { ...formData.metadata };
+        delete newMetadata[keyToDelete];
+        setFormData({ ...formData, metadata: newMetadata });
+        const newLength = Object.keys(newMetadata).length;
+        if (selectedMetadataIndex > newLength) {
+          setSelectedMetadataIndex(Math.max(0, newLength));
+        }
+      } else if (key.escape || input === "q") {
+        setInMetadataSection(false);
+        setSelectedMetadataIndex(0);
+        setMetadataKey("");
+        setMetadataValue("");
+        setMetadataInputMode(null);
+      }
+    },
+    { isActive: inMetadataSection && screenState === "form" },
+  );
 
   // ----- Secrets sub-flow -----
   const mappingEntries = Object.entries(formData.secretsMapping);
@@ -1130,6 +1244,13 @@ export function BenchmarkJobCreateScreen({
         return formData.agentTimeout;
       case "concurrent_trials":
         return formData.concurrentTrials;
+      case "metadata": {
+        const keys = Object.keys(formData.metadata);
+        if (keys.length === 0) return "";
+        if (keys.length === 1)
+          return `${keys[0]} = ${formData.metadata[keys[0]]}`;
+        return `${keys.length} item(s)`;
+      }
       default:
         return "";
     }
@@ -1242,6 +1363,214 @@ export function BenchmarkJobCreateScreen({
                     </Box>
                   )}
                 </Box>
+              ) : field.type === "metadata" ? (
+                !inMetadataSection ? (
+                  <Box flexDirection="column">
+                    <Box>
+                      <Text color={colors.textDim} dimColor>
+                        {field.label}:{" "}
+                      </Text>
+                      <Text color={colors.text}>
+                        {Object.keys(formData.metadata).length > 0
+                          ? `${Object.keys(formData.metadata).length} item(s)`
+                          : "None"}
+                      </Text>
+                      {isSelected && (
+                        <Text color={colors.textDim} dimColor>
+                          {" "}
+                          [Enter to manage]
+                        </Text>
+                      )}
+                    </Box>
+                    {Object.keys(formData.metadata).length > 0 && (
+                      <Box marginLeft={2}>
+                        <MetadataDisplay
+                          metadata={formData.metadata}
+                          title=""
+                          showBorder={false}
+                          compact
+                        />
+                      </Box>
+                    )}
+                  </Box>
+                ) : (
+                  (() => {
+                    const metadataKeys = Object.keys(formData.metadata);
+                    const maxIndex = metadataKeys.length + 1;
+
+                    return (
+                      <Box
+                        flexDirection="column"
+                        borderStyle="round"
+                        borderColor={colors.primary}
+                        paddingX={1}
+                        paddingY={1}
+                        marginBottom={1}
+                      >
+                        <Text color={colors.primary} bold>
+                          {figures.hamburger} Manage Metadata
+                        </Text>
+
+                        {metadataInputMode && (
+                          <Box
+                            flexDirection="column"
+                            marginTop={1}
+                            borderStyle="single"
+                            borderColor={
+                              selectedMetadataIndex === 0
+                                ? colors.success
+                                : colors.warning
+                            }
+                            paddingX={1}
+                          >
+                            <Text
+                              color={
+                                selectedMetadataIndex === 0
+                                  ? colors.success
+                                  : colors.warning
+                              }
+                              bold
+                            >
+                              {selectedMetadataIndex === 0
+                                ? "Adding New"
+                                : "Editing"}
+                            </Text>
+                            <Box>
+                              {metadataInputMode === "key" ? (
+                                <>
+                                  <Text color={colors.primary}>Key: </Text>
+                                  <TextInput
+                                    value={metadataKey || ""}
+                                    onChange={setMetadataKey}
+                                    placeholder="env"
+                                  />
+                                </>
+                              ) : (
+                                <Text dimColor>Key: {metadataKey || ""}</Text>
+                              )}
+                            </Box>
+                            <Box>
+                              {metadataInputMode === "value" ? (
+                                <>
+                                  <Text color={colors.primary}>Value: </Text>
+                                  <TextInput
+                                    value={metadataValue || ""}
+                                    onChange={setMetadataValue}
+                                    placeholder="production"
+                                  />
+                                </>
+                              ) : (
+                                <Text dimColor>
+                                  Value: {metadataValue || ""}
+                                </Text>
+                              )}
+                            </Box>
+                          </Box>
+                        )}
+
+                        {!metadataInputMode && (
+                          <>
+                            <Box marginTop={1}>
+                              <Text
+                                color={
+                                  selectedMetadataIndex === 0
+                                    ? colors.primary
+                                    : colors.textDim
+                                }
+                              >
+                                {selectedMetadataIndex === 0
+                                  ? figures.pointer
+                                  : " "}{" "}
+                              </Text>
+                              <Text
+                                color={
+                                  selectedMetadataIndex === 0
+                                    ? colors.success
+                                    : colors.textDim
+                                }
+                                bold={selectedMetadataIndex === 0}
+                              >
+                                + Add new metadata
+                              </Text>
+                            </Box>
+
+                            {metadataKeys.length > 0 && (
+                              <Box flexDirection="column" marginTop={1}>
+                                {metadataKeys.map((key, index) => {
+                                  const itemIndex = index + 1;
+                                  const isMetadataSelected =
+                                    selectedMetadataIndex === itemIndex;
+                                  return (
+                                    <Box key={key}>
+                                      <Text
+                                        color={
+                                          isMetadataSelected
+                                            ? colors.primary
+                                            : colors.textDim
+                                        }
+                                      >
+                                        {isMetadataSelected
+                                          ? figures.pointer
+                                          : " "}{" "}
+                                      </Text>
+                                      <Text
+                                        color={
+                                          isMetadataSelected
+                                            ? colors.primary
+                                            : colors.textDim
+                                        }
+                                        bold={isMetadataSelected}
+                                      >
+                                        {key}: {formData.metadata[key]}
+                                      </Text>
+                                    </Box>
+                                  );
+                                })}
+                              </Box>
+                            )}
+
+                            <Box marginTop={1}>
+                              <Text
+                                color={
+                                  selectedMetadataIndex === maxIndex
+                                    ? colors.primary
+                                    : colors.textDim
+                                }
+                              >
+                                {selectedMetadataIndex === maxIndex
+                                  ? figures.pointer
+                                  : " "}{" "}
+                              </Text>
+                              <Text
+                                color={
+                                  selectedMetadataIndex === maxIndex
+                                    ? colors.success
+                                    : colors.textDim
+                                }
+                                bold={selectedMetadataIndex === maxIndex}
+                              >
+                                {figures.tick} Done
+                              </Text>
+                            </Box>
+                          </>
+                        )}
+
+                        <Box
+                          marginTop={1}
+                          borderStyle="single"
+                          borderColor={colors.border}
+                          paddingX={1}
+                        >
+                          <Text color={colors.textDim} dimColor>
+                            {metadataInputMode
+                              ? `[Tab] Switch field • [Enter] ${metadataInputMode === "key" ? "Next" : "Save"} • [esc] Cancel`
+                              : `${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedMetadataIndex === 0 ? "Add" : selectedMetadataIndex === maxIndex ? "Done" : "Edit"} • [d] Delete • [esc] Back`}
+                          </Text>
+                        </Box>
+                      </Box>
+                    );
+                  })()
+                )
               ) : (
                 <Box>
                   <Text color={colors.textDim} dimColor>

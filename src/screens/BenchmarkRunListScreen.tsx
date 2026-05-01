@@ -60,10 +60,15 @@ export function BenchmarkRunListScreen() {
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const result = await listBenchmarkRuns({
         limit: params.limit,
         startingAfter: params.startingAt,
+        includeTotalCount: params.includeTotalCount,
       });
 
       return {

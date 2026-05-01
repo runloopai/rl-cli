@@ -102,4 +102,31 @@ describe("buildObjectDetailFields", () => {
     const expiresField = fields.find((f) => f.label === "Expires");
     expect(expiresField?.color).toBe("warning");
   });
+
+  it("shows hours and minutes format when expiry is over 60 minutes", () => {
+    const future = Date.now() + 90 * 60000; // 90 minutes from now
+    const fields = buildObjectDetailFields({
+      ...baseObject,
+      delete_after_time_ms: future,
+    });
+    const expiresField = fields.find((f) => f.label === "Expires");
+    expect(expiresField?.value).toMatch(/1h \d+m remaining/);
+    expect(expiresField?.color).toBeUndefined();
+  });
+
+  it("omits size field when size_bytes is undefined", () => {
+    const obj = { ...baseObject, size_bytes: undefined };
+    const fields = buildObjectDetailFields(obj);
+    expect(fields.find((f) => f.label === "Size")).toBeUndefined();
+  });
+
+  it("shows Public as No when is_public is false", () => {
+    const fields = buildObjectDetailFields({ ...baseObject, is_public: false });
+    expect(fields.find((f) => f.label === "Public")?.value).toBe("No");
+  });
+
+  it("omits Public field when is_public is undefined", () => {
+    const fields = buildObjectDetailFields(baseObject);
+    expect(fields.find((f) => f.label === "Public")).toBeUndefined();
+  });
 });

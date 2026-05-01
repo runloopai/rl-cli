@@ -57,7 +57,7 @@ export interface SectionAllocation {
 /**
  * Allocate available lines to sections. Section order = priority (first sections get space first).
  */
-function allocateSectionLines(
+export function allocateSectionLines(
   detailSections: DetailSection[],
   linesAvailable: number,
 ): SectionAllocation {
@@ -212,7 +212,7 @@ export function ResourceDetailPage<T>({
   const actionsOpenListIndex = minimalChromeLayout ? 0 : maxVisibleOperations;
 
   // Viewport for full-detail and section-detail overlay views (scroll height)
-  const detailViewport = useViewportHeight({ overhead: 18, minHeight: 10 });
+  const detailViewport = useViewportHeight({ overhead: 19, minHeight: 10 });
 
   // Section allocation: how many fields to show per section, and which sections get "View section" refs
   const allocation = React.useMemo(
@@ -253,7 +253,7 @@ export function ResourceDetailPage<T>({
 
   // Section detail viewport height (same as detailed info)
   const sectionDetailViewport = useViewportHeight({
-    overhead: 18,
+    overhead: 19,
     minHeight: 10,
   });
 

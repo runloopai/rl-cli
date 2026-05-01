@@ -4,7 +4,13 @@
 import { getClient } from "../utils/client.js";
 import type { AxonView } from "@runloop/api-client/resources/axons/axons";
 import type { AxonsCursorIDPage } from "@runloop/api-client/pagination";
+import type {
+  SqlQueryResultView,
+  SqlColumnMetaView,
+  SqlResultMetaView,
+} from "@runloop/api-client/resources/axons/sql";
 
+export type { SqlQueryResultView, SqlColumnMetaView, SqlResultMetaView };
 export type Axon = AxonView;
 
 export interface ListActiveAxonsOptions {
@@ -75,4 +81,52 @@ export async function listActiveAxons(
 export async function getAxon(id: string): Promise<Axon> {
   const client = getClient();
   return client.axons.retrieve(id);
+}
+
+export interface AxonEvent {
+  sequence: number;
+  timestamp_ms: number;
+  origin: string;
+  source: string;
+  event_type: string;
+  payload: string;
+}
+
+export interface AxonEventsResult {
+  events: AxonEvent[];
+  hasMore: boolean;
+  meta: SqlResultMetaView;
+}
+
+export async function listAxonEvents(
+  axonId: string,
+  options: { limit?: number; offset?: number } = {},
+): Promise<AxonEventsResult> {
+  const client = getClient();
+  const limit = options.limit ?? 50;
+  const offset = options.offset ?? 0;
+  const result = await client.axons.sql.query(axonId, {
+    sql: `SELECT sequence, timestamp_ms, origin, source, event_type, payload FROM rl_axon_events ORDER BY sequence DESC LIMIT ? OFFSET ?`,
+    params: [limit + 1, offset],
+  });
+  const allRows = (result.rows as unknown[][]).map((row) => ({
+    sequence: row[0] as number,
+    timestamp_ms: row[1] as number,
+    origin: row[2] as string,
+    source: row[3] as string,
+    event_type: row[4] as string,
+    payload: row[5] as string,
+  }));
+  const hasMore = allRows.length > limit;
+  const events = hasMore ? allRows.slice(0, limit) : allRows;
+  return { events, hasMore, meta: result.meta };
+}
+
+export async function executeAxonSql(
+  axonId: string,
+  sql: string,
+  params?: unknown[],
+): Promise<SqlQueryResultView> {
+  const client = getClient();
+  return client.axons.sql.query(axonId, { sql, params });
 }

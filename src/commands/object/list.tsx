@@ -558,6 +558,8 @@ const ListObjectsUI = ({
     } else if (input === "a" && selectedObjectItem) {
       setShowPopup(true);
       setSelectedOperation(0);
+    } else if (input === "c") {
+      navigate("object-create");
     } else if (input === "/") {
       search.enterSearchMode();
     } else if (key.escape) {
@@ -841,6 +843,7 @@ const ListObjectsUI = ({
           },
           { key: "Enter", label: "Details" },
           { key: "a", label: "Actions" },
+          { key: "c", label: "Create" },
           { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },
         ]}
