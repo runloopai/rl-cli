@@ -258,7 +258,6 @@ export async function listPublicAgents(
 export interface CreateAgentOptions {
   name: string;
   version?: string;
-  is_public?: boolean;
   source?: {
     type: string;
     npm?: {
@@ -281,11 +280,10 @@ export interface CreateAgentOptions {
  */
 export async function createAgent(options: CreateAgentOptions): Promise<Agent> {
   const client = getClient();
-  const { version, is_public, ...rest } = options;
+  const { version, ...rest } = options;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const params: any = { ...rest };
   if (version) params.version = version;
-  if (is_public !== undefined) params.is_public = is_public;
   return client.agents.create(params);
 }
 
