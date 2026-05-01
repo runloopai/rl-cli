@@ -119,6 +119,58 @@ export async function deleteObject(id: string): Promise<void> {
   await client.objects.delete(id);
 }
 
+export interface CreateObjectOptions {
+  name: string;
+  content_type: "unspecified" | "text" | "binary" | "gzip" | "tar" | "tgz";
+  metadata?: Record<string, string>;
+  ttl_ms?: number;
+}
+
+export interface CreateObjectResult {
+  id: string;
+  name: string;
+  upload_url: string;
+}
+
+export async function createObject(
+  options: CreateObjectOptions,
+): Promise<CreateObjectResult> {
+  const client = getClient();
+  const response = await client.objects.create({
+    name: options.name,
+    content_type: options.content_type,
+    metadata: options.metadata ?? undefined,
+    ttl_ms: options.ttl_ms ?? undefined,
+  });
+  if (!response.upload_url) {
+    throw new Error("API did not return an upload URL");
+  }
+  return {
+    id: response.id,
+    name: response.name,
+    upload_url: response.upload_url,
+  };
+}
+
+export async function completeObject(id: string): Promise<void> {
+  const client = getClient();
+  await client.objects.complete(id);
+}
+
+export async function uploadToPresignedUrl(
+  uploadUrl: string,
+  buffer: Buffer,
+): Promise<void> {
+  const response = await fetch(uploadUrl, {
+    method: "PUT",
+    body: buffer,
+    headers: { "Content-Length": buffer.length.toString() },
+  });
+  if (!response.ok) {
+    throw new Error(`Upload failed: HTTP ${response.status}`);
+  }
+}
+
 export interface ObjectDetailField {
   label: string;
   value: string;

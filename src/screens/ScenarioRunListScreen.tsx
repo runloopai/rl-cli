@@ -67,11 +67,16 @@ export function ScenarioRunListScreen({
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const result = await listScenarioRuns({
         limit: params.limit,
         startingAfter: params.startingAt,
         benchmarkRunId,
+        includeTotalCount: params.includeTotalCount,
       });
 
       return {

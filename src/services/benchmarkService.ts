@@ -14,22 +14,24 @@ export interface ListBenchmarksOptions {
   limit: number;
   startingAfter?: string;
   search?: string;
+  includeTotalCount?: boolean;
 }
 
 export interface ListBenchmarksResult {
   benchmarks: Benchmark[];
-  totalCount: number;
+  totalCount?: number;
   hasMore: boolean;
 }
 
 export interface ListBenchmarkRunsOptions {
   limit: number;
   startingAfter?: string;
+  includeTotalCount?: boolean;
 }
 
 export interface ListBenchmarkRunsResult {
   benchmarkRuns: BenchmarkRun[];
-  totalCount: number;
+  totalCount?: number;
   hasMore: boolean;
 }
 
@@ -37,11 +39,12 @@ export interface ListScenarioRunsOptions {
   limit: number;
   startingAfter?: string;
   benchmarkRunId?: string;
+  includeTotalCount?: boolean;
 }
 
 export interface ListScenarioRunsResult {
   scenarioRuns: ScenarioRun[];
-  totalCount: number;
+  totalCount?: number;
   hasMore: boolean;
 }
 
@@ -53,8 +56,11 @@ export async function listBenchmarkRuns(
 ): Promise<ListBenchmarkRunsResult> {
   const client = getClient();
 
-  const queryParams: BenchmarkRunListParams = {
+  const queryParams: BenchmarkRunListParams & {
+    include_total_count?: boolean;
+  } = {
     limit: options.limit,
+    include_total_count: options.includeTotalCount === true,
   };
 
   if (options.startingAfter) {
@@ -66,7 +72,7 @@ export async function listBenchmarkRuns(
 
   return {
     benchmarkRuns,
-    totalCount: benchmarkRuns.length,
+    totalCount: (page as unknown as { total_count?: number }).total_count,
     hasMore: page.has_more || false,
   };
 }
@@ -89,8 +95,13 @@ export async function listScenarioRuns(
 
   // If we have a benchmark run ID, use the dedicated endpoint
   if (options.benchmarkRunId) {
-    const queryParams: { limit?: number; starting_after?: string } = {
+    const queryParams: {
+      limit?: number;
+      starting_after?: string;
+      include_total_count?: boolean;
+    } = {
       limit: options.limit,
+      include_total_count: options.includeTotalCount === true,
     };
 
     if (options.startingAfter) {
@@ -105,14 +116,15 @@ export async function listScenarioRuns(
 
     return {
       scenarioRuns,
-      totalCount: scenarioRuns.length,
+      totalCount: (page as unknown as { total_count?: number }).total_count,
       hasMore: page.has_more || false,
     };
   }
 
   // Otherwise, list all scenario runs
-  const queryParams: RunListParams = {
+  const queryParams: RunListParams & { include_total_count?: boolean } = {
     limit: options.limit,
+    include_total_count: options.includeTotalCount === true,
   };
 
   if (options.startingAfter) {
@@ -124,7 +136,7 @@ export async function listScenarioRuns(
 
   return {
     scenarioRuns,
-    totalCount: scenarioRuns.length,
+    totalCount: (page as unknown as { total_count?: number }).total_count,
     hasMore: page.has_more || false,
   };
 }
@@ -149,8 +161,10 @@ export async function listBenchmarks(
     limit?: number;
     starting_after?: string;
     search?: string;
+    include_total_count?: boolean;
   } = {
     limit: options.limit,
+    include_total_count: options.includeTotalCount === true,
   };
 
   if (options.startingAfter) {
@@ -166,7 +180,7 @@ export async function listBenchmarks(
 
   return {
     benchmarks,
-    totalCount: benchmarks.length,
+    totalCount: (page as unknown as { total_count?: number }).total_count,
     hasMore: page.has_more || false,
   };
 }
@@ -191,8 +205,10 @@ export async function listPublicBenchmarks(
     limit?: number;
     starting_after?: string;
     search?: string;
+    include_total_count?: boolean;
   } = {
     limit: options.limit,
+    include_total_count: options.includeTotalCount === true,
   };
 
   if (options.startingAfter) {
@@ -208,7 +224,7 @@ export async function listPublicBenchmarks(
 
   return {
     benchmarks,
-    totalCount: benchmarks.length,
+    totalCount: (page as unknown as { total_count?: number }).total_count,
     hasMore: page.has_more || false,
   };
 }

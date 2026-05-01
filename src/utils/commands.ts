@@ -1,19 +1,10 @@
-import { Command, Option } from "commander";
+import { Command } from "commander";
 import { VERSION } from "../version.js";
 import { createDevbox } from "../commands/devbox/create.js";
 import { listDevboxes } from "../commands/devbox/list.js";
 import { deleteDevbox } from "../commands/devbox/delete.js";
 import { execCommand } from "../commands/devbox/exec.js";
 import { uploadFile } from "../commands/devbox/upload.js";
-import { runloopBaseDomain } from "./config.js";
-
-function publicOption(description: string): Option {
-  const opt = new Option("--public", description);
-  if (runloopBaseDomain() === "runloop.ai") {
-    opt.hideHelp();
-  }
-  return opt;
-}
 
 /**
  * Creates and configures the Commander program with all commands.
@@ -480,7 +471,11 @@ export function createProgram(): Command {
   blueprint
     .command("create")
     .description("Create a new blueprint")
-    .requiredOption("--name <name>", "Blueprint name (required)")
+    .option("--name <name>", "Blueprint name (required unless --base is used)")
+    .option(
+      "--base <name-or-id>",
+      "Base blueprint to duplicate (IDs start with bpt_)",
+    )
     .option("--dockerfile <content>", "Dockerfile contents")
     .option("--dockerfile-path <path>", "Dockerfile path")
     .option("--system-setup-commands <commands...>", "System setup commands")
@@ -668,7 +663,8 @@ export function createProgram(): Command {
       "--content-type <type>",
       "Content type: unspecified|text|binary|gzip|tar|tgz",
     )
-    .addOption(publicOption("Make object publicly accessible"))
+    .option("--public", "Make object publicly accessible")
+    .option("--metadata <tags...>", "Metadata tags (format: key=value)")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
@@ -1069,6 +1065,20 @@ export function createProgram(): Command {
       await listAxonsCommand(options);
     });
 
+  axon
+    .command("events <id>")
+    .description("List events for an axon")
+    .option("--limit <n>", "Number of events to fetch", "50")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (id, options) => {
+      const { listAxonEventsCommand } =
+        await import("../commands/axon/events.js");
+      await listAxonEventsCommand(id, options);
+    });
+
   // Scenario commands
   const scenario = program
     .command("scenario")
@@ -1085,6 +1095,21 @@ export function createProgram(): Command {
     .action(async (id, options) => {
       const { scenarioInfo } = await import("../commands/scenario/info.js");
       await scenarioInfo(id, options);
+    });
+
+  scenario
+    .command("list")
+    .description("List scenario runs")
+    .option("--limit <n>", "Max scenario runs to return (0 = unlimited)", "0")
+    .option("--benchmark-run-id <id>", "Filter by benchmark run ID")
+    .option(
+      "-o, --output [format]",
+      "Output format: text|json|yaml (default: text)",
+    )
+    .action(async (options) => {
+      const { listScenarioRunsCommand } =
+        await import("../commands/scenario/list.js");
+      await listScenarioRunsCommand(options);
     });
 
   // Benchmark job commands
@@ -1118,6 +1143,7 @@ export function createProgram(): Command {
     .option("--n-attempts <n>", "Number of attempts per scenario")
     .option("--n-concurrent-trials <n>", "Number of concurrent trials")
     .option("--timeout-multiplier <n>", "Timeout multiplier")
+    .option("--metadata <tags...>", "Metadata tags (format: key=value)")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
@@ -1218,13 +1244,12 @@ export function createProgram(): Command {
     .option("--package <name>", "Package name (for npm/pip sources)")
     .option("--registry-url <url>", "Registry URL (for npm/pip sources)")
     .option("--repository <url>", "Git repository URL (for git source)")
-    .option("--ref <ref>", "Git ref - branch/tag/commit (for git source)")
+    .option("--ref <ref>", "Git ref - branch or tag (for git source)")
     .option("--object-id <id>", "Object ID (for object source)")
     .option(
       "--setup-commands <commands...>",
       "Setup commands to run after installation",
     )
-    .addOption(publicOption("Make agent publicly accessible"))
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",

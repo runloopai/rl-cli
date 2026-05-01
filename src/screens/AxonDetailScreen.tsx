@@ -22,7 +22,7 @@ interface AxonDetailScreenProps {
 }
 
 export function AxonDetailScreen({ axonId }: AxonDetailScreenProps) {
-  const { goBack } = useNavigation();
+  const { goBack, navigate } = useNavigation();
 
   const { data: axon, error } = useResourceDetail<Axon>({
     id: axonId,
@@ -145,8 +145,32 @@ export function AxonDetailScreen({ axonId }: AxonDetailScreenProps) {
       getId={(a) => a.id}
       getStatus={() => "active"}
       detailSections={detailSections}
-      operations={[]}
-      onOperation={async () => {}}
+      operations={[
+        {
+          key: "events",
+          label: "View Events",
+          color: colors.info,
+          icon: figures.info,
+          shortcut: "e",
+        },
+        {
+          key: "sql",
+          label: "SQL Workbench",
+          color: colors.warning,
+          icon: figures.pointer,
+          shortcut: "s",
+        },
+      ]}
+      onOperation={async (operation: string) => {
+        switch (operation) {
+          case "events":
+            navigate("axon-events", { axonId: axon.id });
+            break;
+          case "sql":
+            navigate("axon-sql", { axonId: axon.id });
+            break;
+        }
+      }}
       onBack={goBack}
       buildDetailLines={buildDetailLines}
     />

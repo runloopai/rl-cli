@@ -13,6 +13,7 @@ import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
 import { StorageObject } from "@runloop/api-client/sdk";
 import type { BlueprintCreateParams } from "@runloop/api-client/resources/blueprints";
+import { parseMetadata } from "../../utils/metadata.js";
 
 interface FromDockerfileOptions {
   name: string;
@@ -28,21 +29,6 @@ interface FromDockerfileOptions {
   ttl?: string;
   noWait?: boolean;
   output?: string;
-}
-
-// Parse metadata from key=value format
-function parseMetadata(metadata: string[]): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const item of metadata) {
-    const eqIndex = item.indexOf("=");
-    if (eqIndex === -1) {
-      throw new Error(`Invalid metadata format: ${item}. Expected key=value`);
-    }
-    const key = item.substring(0, eqIndex);
-    const value = item.substring(eqIndex + 1);
-    result[key] = value;
-  }
-  return result;
 }
 
 // Helper to check if we should show progress
