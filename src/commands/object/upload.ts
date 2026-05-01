@@ -300,7 +300,8 @@ export async function uploadObject(options: UploadObjectOptions) {
       const singleIsDir =
         isSinglePath &&
         (firstStats!.isDirectory() ||
-          (firstStats!.isSymbolicLink() && (await stat(paths[0])).isDirectory()));
+          (firstStats!.isSymbolicLink() &&
+            (await stat(paths[0])).isDirectory()));
 
       // Multi-path requires tar/tgz content type
       if (paths.length > 1 && !isTarType) {

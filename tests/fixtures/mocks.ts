@@ -119,6 +119,47 @@ export const mockLogEntry = (overrides = {}) => ({
   ...overrides
 });
 
+export const mockAxon = (overrides = {}) => ({
+  id: 'axn_test_id',
+  name: 'test-axon',
+  status: 'active',
+  created_at: '2024-01-01T00:00:00Z',
+  ...overrides,
+});
+
+export const mockAxonEvent = (overrides = {}) => ({
+  sequence: 1,
+  timestamp_ms: 1700000000000,
+  origin: 'test-origin',
+  source: 'test-source',
+  event_type: 'test-event',
+  payload: '{"key":"value"}',
+  ...overrides,
+});
+
+export const mockScenarioRun = (overrides = {}) => ({
+  id: 'sr_test_id',
+  name: 'test-scenario-run',
+  state: 'completed',
+  start_time_ms: 1700000000000,
+  scoring_contract_result: { score: 0.85 },
+  ...overrides,
+});
+
+export const mockBenchmarkJob = (overrides = {}) => ({
+  id: 'bj_test_id',
+  name: 'test-benchmark-job',
+  status: 'completed',
+  job_spec: {
+    benchmark_id: 'bm_test',
+    agent_configs: [],
+    orchestrator_config: null,
+  },
+  job_source: null,
+  created_at: '2024-01-01T00:00:00Z',
+  ...overrides,
+});
+
 export const mockExecution = (overrides = {}) => ({
   id: 'exec-test-id',
   status: 'completed',
