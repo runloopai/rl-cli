@@ -8,6 +8,10 @@ import {
   ptyConnect,
   ptyControl,
   buildWsUrl,
+  createPtyTunnel,
+  getPtyTunnelBaseUrl,
+  isLocalPtyOverride,
+  buildWsHeaders,
 } from "../../lib/pty-client.js";
 
 interface PtyOptions {
@@ -33,13 +37,24 @@ export async function ptyDevbox(devboxId: string, options: PtyOptions = {}) {
       }
     }
 
-    const baseUrl = getPtyBaseUrl();
+    let baseUrl: string;
+    let authToken: string | undefined;
+
+    if (isLocalPtyOverride()) {
+      baseUrl = getPtyBaseUrl();
+    } else {
+      cliStatus(`Creating PTY tunnel for ${devboxId}...`);
+      const tunnel = await createPtyTunnel(devboxId);
+      baseUrl = getPtyTunnelBaseUrl(tunnel.tunnel_key);
+      authToken = tunnel.auth_token;
+    }
+
     const sessionName = options.session || devboxId;
 
     if (options.command) {
-      await execCommand(baseUrl, sessionName, options.command);
+      await execCommand(baseUrl, sessionName, options.command, authToken);
     } else {
-      await interactiveSession(baseUrl, sessionName);
+      await interactiveSession(baseUrl, sessionName, authToken);
     }
   } catch (error) {
     outputError("Failed to start PTY session", error);
@@ -50,16 +65,18 @@ async function execCommand(
   baseUrl: string,
   sessionName: string,
   command: string,
+  authToken?: string,
 ): Promise<void> {
   const connectResponse = await ptyConnect(baseUrl, sessionName, {
     cols: 80,
     rows: 24,
+    authToken,
   });
 
   const wsUrl = buildWsUrl(baseUrl, connectResponse.connect_url);
 
   return new Promise<void>((resolve, reject) => {
-    const ws = new WebSocket(wsUrl);
+    const ws = new WebSocket(wsUrl, { headers: buildWsHeaders(authToken) });
 
     ws.on("open", () => {
       ws.send(command + "\n");
@@ -90,6 +107,7 @@ async function execCommand(
 async function interactiveSession(
   baseUrl: string,
   sessionName: string,
+  authToken?: string,
 ): Promise<void> {
   const cols = process.stdout.columns || 80;
   const rows = process.stdout.rows || 24;
@@ -97,12 +115,13 @@ async function interactiveSession(
   const connectResponse = await ptyConnect(baseUrl, sessionName, {
     cols,
     rows,
+    authToken,
   });
 
   const wsUrl = buildWsUrl(baseUrl, connectResponse.connect_url);
 
   return new Promise<void>((resolve, reject) => {
-    const ws = new WebSocket(wsUrl);
+    const ws = new WebSocket(wsUrl, { headers: buildWsHeaders(authToken) });
 
     const cleanup = () => {
       process.stdin.removeListener("data", onStdinData);
@@ -122,11 +141,16 @@ async function interactiveSession(
     const onResize = () => {
       const newCols = process.stdout.columns || 80;
       const newRows = process.stdout.rows || 24;
-      ptyControl(baseUrl, sessionName, {
-        action: "resize",
-        cols: newCols,
-        rows: newRows,
-      }).catch(() => {});
+      ptyControl(
+        baseUrl,
+        sessionName,
+        {
+          action: "resize",
+          cols: newCols,
+          rows: newRows,
+        },
+        authToken,
+      ).catch(() => {});
     };
 
     ws.on("open", () => {

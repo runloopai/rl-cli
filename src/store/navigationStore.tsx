@@ -82,6 +82,7 @@ export interface RouteParams {
   // PTY session params
   ptyBaseUrl?: string;
   ptySessionName?: string;
+  ptyAuthToken?: string;
   // Exec session params
   executionId?: string;
   execCommand?: string;

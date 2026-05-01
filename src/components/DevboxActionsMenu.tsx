@@ -27,6 +27,12 @@ import {
 } from "../services/devboxService.js";
 import { StreamingLogsViewer } from "./StreamingLogsViewer.js";
 import { DevboxView } from "@runloop/api-client/resources/devboxes.mjs";
+import {
+  getPtyBaseUrl,
+  isLocalPtyOverride,
+  createPtyTunnel,
+  getPtyTunnelBaseUrl,
+} from "../lib/pty-client.js";
 
 type Operation =
   | "exec"
@@ -690,10 +696,21 @@ export const DevboxActionsMenu = ({
           break;
 
         case "pty": {
-          const { getPtyBaseUrl } = await import("../lib/pty-client.js");
+          let ptyBaseUrl: string;
+          let ptyAuthToken: string | undefined;
+
+          if (isLocalPtyOverride()) {
+            ptyBaseUrl = getPtyBaseUrl();
+          } else {
+            const tunnel = await createPtyTunnel(devbox.id);
+            ptyBaseUrl = getPtyTunnelBaseUrl(tunnel.tunnel_key);
+            ptyAuthToken = tunnel.auth_token;
+          }
+
           navigate("pty-session", {
-            ptyBaseUrl: getPtyBaseUrl(),
+            ptyBaseUrl,
             ptySessionName: devbox.id,
+            ptyAuthToken,
             devboxId: devbox.id,
             devboxName: devbox.name || devbox.id,
             returnScreen: currentScreen,

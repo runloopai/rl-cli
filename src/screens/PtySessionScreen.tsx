@@ -15,6 +15,7 @@ export function PtySessionScreen() {
 
   const baseUrl = params.ptyBaseUrl;
   const sessionName = params.ptySessionName || params.devboxId;
+  const authToken = params.ptyAuthToken;
   const devboxName = params.devboxName || params.devboxId || "devbox";
   const returnScreen = (params.returnScreen as ScreenName) || "devbox-list";
   const returnParams = (params.returnParams as RouteParams) || {};
@@ -46,6 +47,7 @@ export function PtySessionScreen() {
       <InteractivePty
         baseUrl={baseUrl}
         sessionName={sessionName}
+        authToken={authToken}
         onExit={(_code) => {
           setTimeout(() => {
             replace(returnScreen, returnParams || {});

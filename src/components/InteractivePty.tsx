@@ -1,6 +1,11 @@
 import React from "react";
 import WebSocket from "ws";
-import { ptyConnect, ptyControl, buildWsUrl } from "../lib/pty-client.js";
+import {
+  ptyConnect,
+  ptyControl,
+  buildWsUrl,
+  buildWsHeaders,
+} from "../lib/pty-client.js";
 import {
   showCursor,
   clearScreen,
@@ -11,6 +16,7 @@ import { processUtils } from "../utils/processUtils.js";
 interface InteractivePtyProps {
   baseUrl: string;
   sessionName: string;
+  authToken?: string;
   onExit?: (code: number | null) => void;
   onError?: (error: Error) => void;
 }
@@ -38,6 +44,7 @@ function restoreTerminal(): void {
 export const InteractivePty: React.FC<InteractivePtyProps> = ({
   baseUrl,
   sessionName,
+  authToken,
   onExit,
   onError,
 }) => {
@@ -61,10 +68,13 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
         const connectResponse = await ptyConnect(baseUrl, sessionName, {
           cols,
           rows,
+          authToken,
         });
 
         const wsUrl = buildWsUrl(baseUrl, connectResponse.connect_url);
-        const ws = new WebSocket(wsUrl);
+        const ws = new WebSocket(wsUrl, {
+          headers: buildWsHeaders(authToken),
+        });
         wsRef.current = ws;
 
         ws.binaryType = "arraybuffer";
@@ -98,11 +108,16 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
         sigwinchListener = () => {
           const newCols = process.stdout.columns || 80;
           const newRows = process.stdout.rows || 24;
-          ptyControl(baseUrl, sessionName, {
-            action: "resize",
-            cols: newCols,
-            rows: newRows,
-          }).catch(() => {});
+          ptyControl(
+            baseUrl,
+            sessionName,
+            {
+              action: "resize",
+              cols: newCols,
+              rows: newRows,
+            },
+            authToken,
+          ).catch(() => {});
         };
         process.on("SIGWINCH", sigwinchListener);
 
@@ -146,7 +161,7 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
       restoreTerminal();
       hasStartedRef.current = false;
     };
-  }, [baseUrl, sessionName, onExit, onError]);
+  }, [baseUrl, sessionName, authToken, onExit, onError]);
 
   return null;
 };
