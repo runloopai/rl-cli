@@ -3,6 +3,7 @@
  */
 import React from "react";
 import type { ScreenName, RouteParams } from "../store/navigationStore.js";
+import type { NavigationTip } from "./NavigationTips.js";
 
 // ---------------------------------------------------------------------------
 // Detail field types
@@ -119,4 +120,10 @@ export interface ResourceDetailPageProps<T> {
   buildDetailLines?: (resource: T) => React.ReactElement[];
   /** Optional: Additional content to render after details section */
   additionalContent?: React.ReactNode;
+  /** Optional: Extra keybinds added to the main view. Receives a copy helper for clipboard feedback. */
+  extraKeybinds?: (helpers: {
+    copy: (text: string, label?: string) => void;
+  }) => Record<string, () => void>;
+  /** Optional: Extra navigation tips shown in the footer alongside the standard ones */
+  extraNavTips?: NavigationTip[];
 }

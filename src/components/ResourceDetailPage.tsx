@@ -152,6 +152,8 @@ export function ResourceDetailPage<T>({
   onBack,
   buildDetailLines,
   additionalContent,
+  extraKeybinds,
+  extraNavTips,
 }: ResourceDetailPageProps<T>) {
   const isMounted = React.useRef(true);
   const { navigate } = useNavigation();
@@ -167,9 +169,9 @@ export function ResourceDetailPage<T>({
   const [copyStatus, setCopyStatus] = React.useState<string | null>(null);
 
   // Copy to clipboard with status feedback
-  const handleCopy = React.useCallback(async (text: string) => {
+  const handleCopy = React.useCallback(async (text: string, label?: string) => {
     const status = await copyToClipboard(text);
-    setCopyStatus(status);
+    setCopyStatus(label ? `${label} copied!` : status);
     setTimeout(() => setCopyStatus(null), 2000);
   }, []);
 
@@ -393,7 +395,8 @@ export function ResourceDetailPage<T>({
         bindings: {
           q: onBack,
           escape: onBack,
-          c: () => handleCopy(getId(resource)),
+          c: () => handleCopy(getId(resource), "ID"),
+          y: () => handleCopy(getDisplayName(resource), "Name"),
           ...(buildDetailLines
             ? {
                 i: () => {
@@ -411,6 +414,7 @@ export function ResourceDetailPage<T>({
           },
           enter: handleEnter,
           ...(getUrl ? { o: handleOpenInBrowser } : {}),
+          ...(extraKeybinds ? extraKeybinds({ copy: handleCopy }) : {}),
         },
         onUnmatched: (input) => {
           // Operation shortcuts work from anywhere (all ops, including those in "View rest")
@@ -452,6 +456,8 @@ export function ResourceDetailPage<T>({
       operationsStartIndex,
       onOperation,
       getId,
+      getDisplayName,
+      extraKeybinds,
     ],
   );
 
@@ -808,6 +814,8 @@ export function ResourceDetailPage<T>({
                 : "Execute",
           },
           { key: "c", label: "Copy ID" },
+          { key: "y", label: "Copy Name" },
+          ...(extraNavTips || []),
           { key: "i", label: "Full Details", condition: !!buildDetailLines },
           { key: "o", label: "Browser", condition: !!getUrl },
           { key: "q/Ctrl+C", label: "Back/Quit" },

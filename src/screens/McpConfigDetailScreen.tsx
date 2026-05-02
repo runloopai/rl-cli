@@ -368,6 +368,12 @@ export function McpConfigDetailScreen({
       onOperation={handleOperation}
       onBack={goBack}
       buildDetailLines={buildDetailLines}
+      extraKeybinds={({ copy }) => ({
+        h: () => {
+          copy(config.endpoint, "Endpoint");
+        },
+      })}
+      extraNavTips={[{ key: "h", label: "Copy Endpoint" }]}
     />
   );
 }
