@@ -20,7 +20,10 @@ import {
 import {
   getBenchmarkRun,
   listScenarioRuns,
+  cancelBenchmarkRun,
+  completeBenchmarkRun,
 } from "../services/benchmarkService.js";
+import { ConfirmationPrompt } from "../components/ConfirmationPrompt.js";
 import { useResourceDetail } from "../hooks/useResourceDetail.js";
 import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
@@ -59,6 +62,13 @@ export function BenchmarkRunDetailScreen({
 
   const [scenarioRuns, setScenarioRuns] = React.useState<ScenarioRun[]>([]);
   const [scenarioRunsLoading, setScenarioRunsLoading] = React.useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = React.useState(false);
+  const [showCompleteConfirm, setShowCompleteConfirm] = React.useState(false);
+  const [operating, setOperating] = React.useState(false);
+  const [operationError, setOperationError] = React.useState<Error | null>(
+    null,
+  );
+  const displayError = error ?? operationError;
 
   // Fetch scenario runs for this benchmark run
   React.useEffect(() => {
@@ -103,6 +113,94 @@ export function BenchmarkRunDetailScreen({
     return () => clearInterval(interval);
   }, [benchmarkRunId, run]);
 
+  // Execute cancel after confirmation
+  const executeCancel = async () => {
+    if (!run) return;
+    setShowCancelConfirm(false);
+    setOperating(true);
+    try {
+      await cancelBenchmarkRun(run.id);
+    } catch (err) {
+      setOperationError(err as Error);
+    }
+    setOperating(false);
+  };
+
+  // Execute complete after confirmation
+  const executeComplete = async () => {
+    if (!run) return;
+    setShowCompleteConfirm(false);
+    setOperating(true);
+    try {
+      await completeBenchmarkRun(run.id);
+    } catch (err) {
+      setOperationError(err as Error);
+    }
+    setOperating(false);
+  };
+
+  // Show cancel confirmation
+  if (showCancelConfirm && run) {
+    return (
+      <ConfirmationPrompt
+        title="Cancel Benchmark Run"
+        message={`Are you sure you want to cancel "${run.name || run.id}"?`}
+        details="This will cancel all running scenarios. This action cannot be undone."
+        confirmLabel="Yes, cancel run"
+        confirmColor={colors.error}
+        breadcrumbItems={[
+          { label: "Home" },
+          { label: "Benchmarks" },
+          { label: "Benchmark Runs" },
+          { label: run.name || run.id },
+          { label: "Cancel", active: true },
+        ]}
+        onConfirm={executeCancel}
+        onCancel={() => setShowCancelConfirm(false)}
+      />
+    );
+  }
+
+  // Show complete confirmation
+  if (showCompleteConfirm && run) {
+    return (
+      <ConfirmationPrompt
+        title="Complete Benchmark Run"
+        message={`Are you sure you want to complete "${run.name || run.id}"?`}
+        details="This will stop any in-progress work and finalize the run."
+        confirmLabel="Yes, complete run"
+        confirmColor={colors.warning}
+        breadcrumbItems={[
+          { label: "Home" },
+          { label: "Benchmarks" },
+          { label: "Benchmark Runs" },
+          { label: run.name || run.id },
+          { label: "Complete", active: true },
+        ]}
+        onConfirm={executeComplete}
+        onCancel={() => setShowCompleteConfirm(false)}
+      />
+    );
+  }
+
+  // Show operating state
+  if (operating) {
+    return (
+      <>
+        <Breadcrumb
+          items={[
+            { label: "Home" },
+            { label: "Benchmarks" },
+            { label: "Benchmark Runs" },
+            { label: run?.name || run?.id || "Run" },
+            { label: "Processing...", active: true },
+          ]}
+        />
+        <SpinnerComponent message="Processing..." />
+      </>
+    );
+  }
+
   // Show loading state
   if (!run && benchmarkRunId && !error) {
     return (
@@ -121,7 +219,7 @@ export function BenchmarkRunDetailScreen({
   }
 
   // Show error state
-  if (error && !run) {
+  if (displayError && !run) {
     return (
       <>
         <Breadcrumb
@@ -134,7 +232,7 @@ export function BenchmarkRunDetailScreen({
         />
         <ErrorMessage
           message="Failed to load benchmark run details"
-          error={error}
+          error={displayError}
         />
       </>
     );
@@ -448,6 +546,21 @@ export function BenchmarkRunDetailScreen({
     });
   }
 
+  if (operationError) {
+    detailSections.push({
+      title: "Operation Error",
+      icon: figures.cross,
+      color: colors.error,
+      fields: [
+        {
+          label: "Error",
+          value: operationError.message,
+          color: colors.error,
+        },
+      ],
+    });
+  }
+
   // Operations available for benchmark runs
   const operations: ResourceOperation[] = [
     {
@@ -459,11 +572,36 @@ export function BenchmarkRunDetailScreen({
     },
   ];
 
+  if (run.state === "running") {
+    operations.push(
+      {
+        key: "cancel",
+        label: "Cancel Run",
+        color: colors.error,
+        icon: figures.cross,
+        shortcut: "x",
+      },
+      {
+        key: "complete",
+        label: "Complete Run",
+        color: colors.success,
+        icon: figures.tick,
+        shortcut: "f",
+      },
+    );
+  }
+
   // Handle operation selection
   const handleOperation = async (operation: string, resource: BenchmarkRun) => {
     switch (operation) {
       case "view-scenarios":
         navigate("scenario-run-list", { benchmarkRunId: resource.id });
+        break;
+      case "cancel":
+        setShowCancelConfirm(true);
+        break;
+      case "complete":
+        setShowCompleteConfirm(true);
         break;
     }
   };
