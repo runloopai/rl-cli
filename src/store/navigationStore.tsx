@@ -23,6 +23,7 @@ export type ScreenName =
   | "snapshot-detail"
   | "blueprint-list"
   | "blueprint-detail"
+  | "blueprint-create"
   | "blueprint-logs"
   | "network-policy-list"
   | "network-policy-detail"
@@ -52,6 +53,7 @@ export type ScreenName =
   | "benchmark-detail"
   | "benchmark-run-list"
   | "benchmark-run-detail"
+  | "scenario-create"
   | "scenario-run-list"
   | "scenario-run-detail"
   | "benchmark-job-list"
@@ -85,6 +87,7 @@ export interface RouteParams {
   executionId?: string;
   execCommand?: string;
   // Benchmark params
+  baseBlueprintId?: string;
   benchmarkId?: string;
   benchmarkRunId?: string;
   scenarioRunId?: string;
