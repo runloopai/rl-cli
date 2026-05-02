@@ -675,6 +675,7 @@ const ListBlueprintsUI = ({
               executeOperation(selectedBlueprintItem, "view_logs");
             }
           },
+          c: () => navigate("blueprint-create"),
           o: handleOpenInBrowser,
           "/": () => search.enterSearchMode(),
           escape: handleListEscape,
@@ -1002,6 +1003,7 @@ const ListBlueprintsUI = ({
             condition: hasMore || hasPrev,
           },
           { key: "Enter", label: "Details" },
+          { key: "c", label: "Create" },
           { key: "a", label: "Actions" },
           { key: "o", label: "Browser" },
           { key: "/", label: "Search" },
