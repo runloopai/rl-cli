@@ -4,6 +4,7 @@
 import { getClient } from "../utils/client.js";
 import type { Blueprint } from "../store/blueprintStore.js";
 import type {
+  BlueprintCreateParams,
   BlueprintListParams,
   BlueprintView,
 } from "@runloop/api-client/resources/blueprints";
@@ -168,4 +169,66 @@ export async function getBlueprintLogs(id: string): Promise<any[]> {
   }
 
   return [];
+}
+
+export interface CreateBlueprintOptions {
+  name: string;
+  dockerfile?: string;
+  baseBlueprintId?: string;
+  systemSetupCommands?: string[];
+  architecture?: string;
+  resourceSizeRequest?: string;
+  availablePorts?: number[];
+  keepAliveTimeSeconds?: number;
+  metadata?: Record<string, string>;
+}
+
+export async function createBlueprint(
+  options: CreateBlueprintOptions,
+): Promise<Blueprint> {
+  const client = getClient();
+
+  const params: BlueprintCreateParams = {
+    name: options.name,
+  };
+
+  if (options.dockerfile) {
+    params.dockerfile = options.dockerfile;
+  }
+  if (options.baseBlueprintId) {
+    params.base_blueprint_id = options.baseBlueprintId;
+  }
+  if (options.systemSetupCommands && options.systemSetupCommands.length > 0) {
+    params.system_setup_commands = options.systemSetupCommands;
+  }
+
+  const launchParameters: Record<string, unknown> = {};
+  if (options.architecture) {
+    launchParameters.architecture = options.architecture;
+  }
+  if (options.resourceSizeRequest) {
+    launchParameters.resource_size_request = options.resourceSizeRequest;
+  }
+  if (options.availablePorts && options.availablePorts.length > 0) {
+    launchParameters.available_ports = options.availablePorts;
+  }
+  if (options.keepAliveTimeSeconds) {
+    launchParameters.keep_alive_time_seconds = options.keepAliveTimeSeconds;
+  }
+  if (Object.keys(launchParameters).length > 0) {
+    params.launch_parameters =
+      launchParameters as BlueprintCreateParams["launch_parameters"];
+  }
+
+  if (options.metadata && Object.keys(options.metadata).length > 0) {
+    params.metadata = options.metadata;
+  }
+
+  const blueprint = await client.blueprints.create(params);
+  const lp = blueprint.parameters?.launch_parameters;
+  return {
+    ...blueprint,
+    architecture: lp?.architecture ?? undefined,
+    resources: lp?.resource_size_request ?? undefined,
+  };
 }
