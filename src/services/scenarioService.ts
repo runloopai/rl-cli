@@ -3,6 +3,7 @@
  */
 import { getClient } from "../utils/client.js";
 import type {
+  ScenarioCreateParams,
   ScenarioListParams,
   ScenarioView,
 } from "@runloop/api-client/resources/scenarios/scenarios";
@@ -58,4 +59,13 @@ export async function listScenarios(
 export async function getScenario(id: string): Promise<Scenario> {
   const client = getClient();
   return client.scenarios.retrieve(id);
+}
+
+export { type ScenarioCreateParams };
+
+export async function createScenario(
+  params: ScenarioCreateParams,
+): Promise<Scenario> {
+  const client = getClient();
+  return client.scenarios.create(params);
 }
