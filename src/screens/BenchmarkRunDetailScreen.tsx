@@ -219,7 +219,7 @@ export function BenchmarkRunDetailScreen({
   }
 
   // Show error state
-  if (error && !run) {
+  if (displayError && !run) {
     return (
       <>
         <Breadcrumb
@@ -232,7 +232,7 @@ export function BenchmarkRunDetailScreen({
         />
         <ErrorMessage
           message="Failed to load benchmark run details"
-          error={error}
+          error={displayError}
         />
       </>
     );
@@ -543,6 +543,21 @@ export function BenchmarkRunDetailScreen({
       icon: figures.identical,
       color: colors.secondary,
       fields: metadataFields,
+    });
+  }
+
+  if (operationError) {
+    detailSections.push({
+      title: "Operation Error",
+      icon: figures.cross,
+      color: colors.error,
+      fields: [
+        {
+          label: "Error",
+          value: operationError.message,
+          color: colors.error,
+        },
+      ],
     });
   }
 

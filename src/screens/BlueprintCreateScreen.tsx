@@ -14,9 +14,7 @@ export function BlueprintCreateScreen({
   return (
     <BlueprintCreatePage
       onBack={goBack}
-      onCreate={(blueprintId) =>
-        navigate("blueprint-detail", { blueprintId })
-      }
+      onCreate={(blueprintId) => navigate("blueprint-detail", { blueprintId })}
       baseBlueprintId={baseBlueprintId}
     />
   );
