@@ -32,6 +32,7 @@ const KNOWN_SCREENS: Set<ScreenName> = new Set([
   "snapshot-detail",
   "blueprint-list",
   "blueprint-detail",
+  "blueprint-create",
   "blueprint-logs",
   "network-policy-list",
   "network-policy-detail",
@@ -60,6 +61,7 @@ const KNOWN_SCREENS: Set<ScreenName> = new Set([
   "benchmark-detail",
   "benchmark-run-list",
   "benchmark-run-detail",
+  "scenario-create",
   "scenario-run-list",
   "scenario-run-detail",
   "benchmark-job-list",
@@ -116,6 +118,7 @@ import { SnapshotListScreen } from "../screens/SnapshotListScreen.js";
 import { SnapshotDetailScreen } from "../screens/SnapshotDetailScreen.js";
 import { BlueprintListScreen } from "../screens/BlueprintListScreen.js";
 import { BlueprintDetailScreen } from "../screens/BlueprintDetailScreen.js";
+import { BlueprintCreateScreen } from "../screens/BlueprintCreateScreen.js";
 import { BlueprintLogsScreen } from "../screens/BlueprintLogsScreen.js";
 import { NetworkPolicyListScreen } from "../screens/NetworkPolicyListScreen.js";
 import { NetworkPolicyDetailScreen } from "../screens/NetworkPolicyDetailScreen.js";
@@ -143,6 +146,7 @@ import { BenchmarkListScreen } from "../screens/BenchmarkListScreen.js";
 import { BenchmarkDetailScreen } from "../screens/BenchmarkDetailScreen.js";
 import { BenchmarkRunListScreen } from "../screens/BenchmarkRunListScreen.js";
 import { BenchmarkRunDetailScreen } from "../screens/BenchmarkRunDetailScreen.js";
+import { ScenarioCreateScreen } from "../screens/ScenarioCreateScreen.js";
 import { ScenarioRunListScreen } from "../screens/ScenarioRunListScreen.js";
 import { ScenarioRunDetailScreen } from "../screens/ScenarioRunDetailScreen.js";
 import { BenchmarkJobListScreen } from "../screens/BenchmarkJobListScreen.js";
@@ -181,6 +185,7 @@ export function Router() {
 
         case "blueprint-list":
         case "blueprint-detail":
+        case "blueprint-create":
         case "blueprint-logs":
           if (!currentScreen.startsWith("blueprint")) {
             useBlueprintStore.getState().clearAll();
@@ -231,6 +236,7 @@ export function Router() {
         case "benchmark-detail":
         case "benchmark-run-list":
         case "benchmark-run-detail":
+        case "scenario-create":
         case "scenario-run-list":
         case "scenario-run-detail":
           if (
@@ -297,6 +303,12 @@ export function Router() {
       )}
       {currentScreen === "blueprint-detail" && (
         <BlueprintDetailScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "blueprint-create" && (
+        <BlueprintCreateScreen
+          key={`blueprint-create-${params.baseBlueprintId ?? "new"}`}
+          {...params}
+        />
       )}
       {currentScreen === "blueprint-logs" && (
         <BlueprintLogsScreen key={currentScreen} {...params} />
@@ -375,6 +387,9 @@ export function Router() {
       )}
       {currentScreen === "benchmark-run-detail" && (
         <BenchmarkRunDetailScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "scenario-create" && (
+        <ScenarioCreateScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "scenario-run-list" && (
         <ScenarioRunListScreen key={currentScreen} {...params} />
