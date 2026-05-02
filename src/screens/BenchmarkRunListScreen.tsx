@@ -27,7 +27,13 @@ import { useListSearch } from "../hooks/useListSearch.js";
 import { listBenchmarkRuns } from "../services/benchmarkService.js";
 import type { BenchmarkRun } from "../store/benchmarkStore.js";
 
-export function BenchmarkRunListScreen() {
+interface BenchmarkRunListScreenProps {
+  benchmarkId?: string;
+}
+
+export function BenchmarkRunListScreen({
+  benchmarkId,
+}: BenchmarkRunListScreenProps) {
   const { exit: inkExit } = useApp();
   const { navigate, goBack } = useNavigation();
   const [selectedIndex, setSelectedIndex] = React.useState(0);
@@ -69,6 +75,7 @@ export function BenchmarkRunListScreen() {
         limit: params.limit,
         startingAfter: params.startingAt,
         includeTotalCount: params.includeTotalCount,
+        benchmarkId,
       });
 
       return {
@@ -77,7 +84,7 @@ export function BenchmarkRunListScreen() {
         totalCount: result.totalCount,
       };
     },
-    [],
+    [benchmarkId],
   );
 
   // Use the shared pagination hook
@@ -99,7 +106,7 @@ export function BenchmarkRunListScreen() {
     getItemId: (run: BenchmarkRun) => run.id,
     pollInterval: 5000,
     pollingEnabled: !showPopup && !search.searchMode,
-    deps: [PAGE_SIZE],
+    deps: [PAGE_SIZE, benchmarkId],
   });
 
   // Operations for benchmark runs
@@ -285,17 +292,19 @@ export function BenchmarkRunListScreen() {
     }
   });
 
+  const breadcrumbItems = [
+    { label: "Home" },
+    { label: "Benchmarks" },
+    ...(benchmarkId
+      ? [{ label: benchmarkId }, { label: "Runs", active: true }]
+      : [{ label: "Benchmark Runs", active: true }]),
+  ];
+
   // Loading state
   if (loading && benchmarkRuns.length === 0) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "Home" },
-            { label: "Benchmarks" },
-            { label: "Benchmark Runs", active: true },
-          ]}
-        />
+        <Breadcrumb items={breadcrumbItems} />
         <SpinnerComponent message="Loading benchmark runs..." />
       </>
     );
@@ -305,13 +314,7 @@ export function BenchmarkRunListScreen() {
   if (error) {
     return (
       <>
-        <Breadcrumb
-          items={[
-            { label: "Home" },
-            { label: "Benchmarks" },
-            { label: "Benchmark Runs", active: true },
-          ]}
-        />
+        <Breadcrumb items={breadcrumbItems} />
         <ErrorMessage message="Failed to list benchmark runs" error={error} />
       </>
     );
@@ -320,13 +323,7 @@ export function BenchmarkRunListScreen() {
   // Main list view
   return (
     <>
-      <Breadcrumb
-        items={[
-          { label: "Home" },
-          { label: "Benchmarks" },
-          { label: "Benchmark Runs", active: true },
-        ]}
-      />
+      <Breadcrumb items={breadcrumbItems} />
 
       {/* Search bar */}
       <SearchBar
