@@ -35,7 +35,7 @@ export async function createScenarioCommand(options: CreateScenarioOptions) {
     if (options.scoringFile) {
       const contents = await readFile(options.scoringFile, "utf-8");
       scoringContract = JSON.parse(contents);
-    } else if (options.scoringCommand) {
+    } else {
       scoringContract = {
         scoring_function_parameters: [
           {
@@ -43,13 +43,11 @@ export async function createScenarioCommand(options: CreateScenarioOptions) {
             weight: 1.0,
             scorer: {
               type: "command_scorer" as const,
-              command: options.scoringCommand,
+              command: options.scoringCommand!,
             },
           },
         ],
       };
-    } else {
-      return outputError("Scoring contract is required");
     }
 
     const params: ScenarioCreateParams = {
@@ -96,7 +94,11 @@ export async function createScenarioCommand(options: CreateScenarioOptions) {
     }
 
     if (options.scorerTimeout) {
-      params.scorer_timeout_sec = parseInt(options.scorerTimeout, 10);
+      const timeout = parseInt(options.scorerTimeout, 10);
+      if (isNaN(timeout)) {
+        return outputError("--scorer-timeout must be a number");
+      }
+      params.scorer_timeout_sec = timeout;
     }
 
     if (options.validationType) {

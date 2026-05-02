@@ -123,9 +123,8 @@ export function ScenarioCreateScreen() {
     null,
   );
   const [editingScorerIndex, setEditingScorerIndex] = React.useState(-1);
-  const [scorerForm, setScorerForm] = React.useState<ScorerFormData>(
-    emptyScorerForm(),
-  );
+  const [scorerForm, setScorerForm] =
+    React.useState<ScorerFormData>(emptyScorerForm());
   const [scorerFieldIndex, setScorerFieldIndex] = React.useState(0);
 
   const [formData, setFormData] = React.useState<FormData>({
@@ -209,7 +208,11 @@ export function ScenarioCreateScreen() {
       type: "list",
     });
     f.push({ key: "validationType", label: "Validation Type", type: "select" });
-    f.push({ key: "scorerTimeout", label: "Scorer Timeout (sec)", type: "text" });
+    f.push({
+      key: "scorerTimeout",
+      label: "Scorer Timeout (sec)",
+      type: "text",
+    });
     return f;
   }, [formData.environmentSource]);
 
@@ -293,15 +296,22 @@ export function ScenarioCreateScreen() {
           ...(s.lang ? { lang: s.lang } : {}),
         };
         break;
-      case "custom_scorer":
+      case "custom_scorer": {
+        let parsedParams: Record<string, unknown> | undefined;
+        if (s.scorerParams) {
+          try {
+            parsedParams = JSON.parse(s.scorerParams);
+          } catch {
+            throw new Error(`Invalid JSON in scorer params for "${s.name}"`);
+          }
+        }
         scorer = {
           type: "custom_scorer" as const,
           custom_scorer_type: s.customScorerType,
-          ...(s.scorerParams
-            ? { scorer_params: JSON.parse(s.scorerParams) }
-            : {}),
+          ...(parsedParams ? { scorer_params: parsedParams } : {}),
         };
         break;
+      }
     }
 
     return { name: s.name, weight, scorer };
@@ -316,9 +326,7 @@ export function ScenarioCreateScreen() {
     }
     if (!formData.problemStatement.trim()) {
       setValidationError("Problem statement is required");
-      const idx = visibleFields.findIndex(
-        (f) => f.key === "problemStatement",
-      );
+      const idx = visibleFields.findIndex((f) => f.key === "problemStatement");
       if (idx >= 0) setActiveFieldIndex(idx);
       return;
     }
@@ -357,7 +365,10 @@ export function ScenarioCreateScreen() {
         params.reference_output = formData.referenceOutput.trim();
       }
 
-      if (formData.environmentSource !== "none" && formData.environmentId.trim()) {
+      if (
+        formData.environmentSource !== "none" &&
+        formData.environmentId.trim()
+      ) {
         params.environment_parameters = {
           ...(formData.environmentSource === "blueprint"
             ? { blueprint_id: formData.environmentId.trim() }
@@ -383,7 +394,13 @@ export function ScenarioCreateScreen() {
       }
 
       if (formData.scorerTimeout.trim()) {
-        params.scorer_timeout_sec = parseInt(formData.scorerTimeout, 10);
+        const timeout = parseInt(formData.scorerTimeout, 10);
+        if (isNaN(timeout)) {
+          setValidationError("Scorer timeout must be a number");
+          setScreenState("form");
+          return;
+        }
+        params.scorer_timeout_sec = timeout;
       }
 
       if (formData.validationType !== "UNSPECIFIED") {
@@ -404,9 +421,7 @@ export function ScenarioCreateScreen() {
   ): Array<{ key: string; label: string; placeholder: string }> => {
     switch (type) {
       case "command_scorer":
-        return [
-          { key: "command", label: "Command", placeholder: "pytest -v" },
-        ];
+        return [{ key: "command", label: "Command", placeholder: "pytest -v" }];
       case "bash_script_scorer":
         return [
           {
@@ -492,35 +507,26 @@ export function ScenarioCreateScreen() {
         return;
       }
 
-      if (input === "s" && key.ctrl) {
-        // Save scorer
-        if (scorerForm.name.trim()) {
-          const newScorers = [...formData.scorers];
-          if (editingScorerIndex >= 0 && editingScorerIndex < newScorers.length) {
-            newScorers[editingScorerIndex] = { ...scorerForm };
-          } else {
-            newScorers.push({ ...scorerForm });
-          }
-          setFormData((prev) => ({ ...prev, scorers: newScorers }));
-          setScreenState("form");
-          setEditingScorerIndex(-1);
+      const saveScorer = () => {
+        if (!scorerForm.name.trim()) return;
+        const newScorers = [...formData.scorers];
+        if (editingScorerIndex >= 0 && editingScorerIndex < newScorers.length) {
+          newScorers[editingScorerIndex] = { ...scorerForm };
+        } else {
+          newScorers.push({ ...scorerForm });
         }
+        setFormData((prev) => ({ ...prev, scorers: newScorers }));
+        setScreenState("form");
+        setEditingScorerIndex(-1);
+      };
+
+      if (input === "s" && key.ctrl) {
+        saveScorer();
         return;
       }
 
       if (key.return && scorerFieldIndex === scorerEditorFields.length) {
-        // Save button
-        if (scorerForm.name.trim()) {
-          const newScorers = [...formData.scorers];
-          if (editingScorerIndex >= 0 && editingScorerIndex < newScorers.length) {
-            newScorers[editingScorerIndex] = { ...scorerForm };
-          } else {
-            newScorers.push({ ...scorerForm });
-          }
-          setFormData((prev) => ({ ...prev, scorers: newScorers }));
-          setScreenState("form");
-          setEditingScorerIndex(-1);
-        }
+        saveScorer();
         return;
       }
 
@@ -541,6 +547,16 @@ export function ScenarioCreateScreen() {
   // Main form input
   useInput(
     (input, key) => {
+      if (screenState === "error") {
+        if (input === "r" || key.return) {
+          setError(null);
+          setScreenState("form");
+        } else if (input === "q" || key.escape) {
+          goBack();
+        }
+        return;
+      }
+
       if (screenState !== "form") return;
 
       if (handleEnvSourceSelect(input, key)) return;
@@ -556,13 +572,36 @@ export function ScenarioCreateScreen() {
         return;
       }
 
-      if (activeField === "scorers" && key.return) {
-        // Open scorer editor for a new scorer
-        setScorerForm(emptyScorerForm());
-        setEditingScorerIndex(formData.scorers.length);
-        setScorerFieldIndex(0);
-        setScreenState("editing-scorer");
-        return;
+      if (activeField === "scorers") {
+        if (key.return) {
+          setScorerForm(emptyScorerForm());
+          setEditingScorerIndex(formData.scorers.length);
+          setScorerFieldIndex(0);
+          setScreenState("editing-scorer");
+          return;
+        }
+        const editMatch = input.match(/^e(\d+)$/);
+        if (editMatch) {
+          const idx = parseInt(editMatch[1], 10);
+          if (idx >= 0 && idx < formData.scorers.length) {
+            setScorerForm({ ...formData.scorers[idx] });
+            setEditingScorerIndex(idx);
+            setScorerFieldIndex(0);
+            setScreenState("editing-scorer");
+          }
+          return;
+        }
+        const deleteMatch = input.match(/^d(\d+)$/);
+        if (deleteMatch) {
+          const idx = parseInt(deleteMatch[1], 10);
+          if (idx >= 0 && idx < formData.scorers.length) {
+            setFormData((prev) => ({
+              ...prev,
+              scorers: prev.scorers.filter((_, i) => i !== idx),
+            }));
+          }
+          return;
+        }
       }
 
       if (activeField === "metadata" && key.return) {
@@ -599,8 +638,7 @@ export function ScenarioCreateScreen() {
       }
     },
     {
-      isActive:
-        !inMetadataSection && !envVarsExpanded && !secretsExpanded,
+      isActive: !inMetadataSection && !envVarsExpanded && !secretsExpanded,
     },
   );
 
@@ -849,12 +887,22 @@ export function ScenarioCreateScreen() {
           {figures.hamburger} Manage Metadata
         </Text>
         {metadataInputMode && (
-          <Box flexDirection="column" marginTop={1} borderStyle="single" borderColor={colors.success} paddingX={1}>
+          <Box
+            flexDirection="column"
+            marginTop={1}
+            borderStyle="single"
+            borderColor={colors.success}
+            paddingX={1}
+          >
             <Box>
               {metadataInputMode === "key" ? (
                 <>
                   <Text color={colors.primary}>Key: </Text>
-                  <TextInput value={metadataKey || ""} onChange={setMetadataKey} placeholder="env" />
+                  <TextInput
+                    value={metadataKey || ""}
+                    onChange={setMetadataKey}
+                    placeholder="env"
+                  />
                 </>
               ) : (
                 <Text dimColor>Key: {metadataKey}</Text>
@@ -864,7 +912,11 @@ export function ScenarioCreateScreen() {
               {metadataInputMode === "value" ? (
                 <>
                   <Text color={colors.primary}>Value: </Text>
-                  <TextInput value={metadataValue || ""} onChange={setMetadataValue} placeholder="production" />
+                  <TextInput
+                    value={metadataValue || ""}
+                    onChange={setMetadataValue}
+                    placeholder="production"
+                  />
                 </>
               ) : (
                 <Text dimColor>Value: {metadataValue}</Text>
@@ -875,10 +927,19 @@ export function ScenarioCreateScreen() {
         {!metadataInputMode && (
           <>
             <Box marginTop={1}>
-              <Text color={selectedMetadataIndex === 0 ? colors.primary : colors.textDim}>
+              <Text
+                color={
+                  selectedMetadataIndex === 0 ? colors.primary : colors.textDim
+                }
+              >
                 {selectedMetadataIndex === 0 ? figures.pointer : " "}{" "}
               </Text>
-              <Text color={selectedMetadataIndex === 0 ? colors.success : colors.textDim} bold={selectedMetadataIndex === 0}>
+              <Text
+                color={
+                  selectedMetadataIndex === 0 ? colors.success : colors.textDim
+                }
+                bold={selectedMetadataIndex === 0}
+              >
                 + Add new metadata
               </Text>
             </Box>
@@ -890,23 +951,46 @@ export function ScenarioCreateScreen() {
                   <Text color={isSelected ? colors.primary : colors.textDim}>
                     {isSelected ? figures.pointer : " "}{" "}
                   </Text>
-                  <Text color={isSelected ? colors.primary : colors.textDim} bold={isSelected}>
+                  <Text
+                    color={isSelected ? colors.primary : colors.textDim}
+                    bold={isSelected}
+                  >
                     {key}: {formData.metadata[key]}
                   </Text>
                 </Box>
               );
             })}
             <Box marginTop={1}>
-              <Text color={selectedMetadataIndex === maxIndex ? colors.primary : colors.textDim}>
-                {selectedMetadataIndex === maxIndex ? figures.pointer : " "}{" "}
+              <Text
+                color={
+                  selectedMetadataIndex === maxIndex
+                    ? colors.primary
+                    : colors.textDim
+                }
+              >
+                {selectedMetadataIndex === maxIndex
+                  ? figures.pointer
+                  : " "}{" "}
               </Text>
-              <Text color={selectedMetadataIndex === maxIndex ? colors.success : colors.textDim} bold={selectedMetadataIndex === maxIndex}>
+              <Text
+                color={
+                  selectedMetadataIndex === maxIndex
+                    ? colors.success
+                    : colors.textDim
+                }
+                bold={selectedMetadataIndex === maxIndex}
+              >
                 {figures.tick} Done
               </Text>
             </Box>
           </>
         )}
-        <Box marginTop={1} borderStyle="single" borderColor={colors.border} paddingX={1}>
+        <Box
+          marginTop={1}
+          borderStyle="single"
+          borderColor={colors.border}
+          paddingX={1}
+        >
           <Text color={colors.textDim} dimColor>
             {metadataInputMode
               ? `[Tab] Switch • [Enter] ${metadataInputMode === "key" ? "Next" : "Save"} • [esc] Cancel`
@@ -925,9 +1009,7 @@ export function ScenarioCreateScreen() {
           <Text color={isActive ? colors.primary : colors.textDim}>
             {isActive ? figures.pointer : " "} Scoring Functions:{" "}
           </Text>
-          <Text color={colors.text}>
-            {formData.scorers.length} scorer(s)
-          </Text>
+          <Text color={colors.text}>{formData.scorers.length} scorer(s)</Text>
           {isActive && (
             <Text color={colors.textDim} dimColor>
               {" "}

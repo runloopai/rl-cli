@@ -16,10 +16,7 @@ import {
 } from "./form/index.js";
 import { colors } from "../utils/theme.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
-import {
-  createBlueprint,
-  getBlueprint,
-} from "../services/blueprintService.js";
+import { createBlueprint, getBlueprint } from "../services/blueprintService.js";
 
 interface BlueprintCreatePageProps {
   onBack: () => void;
@@ -218,6 +215,16 @@ export const BlueprintCreatePage = ({
   // Main form input
   useInput(
     (input, key) => {
+      if (screenState === "error") {
+        if (input === "r" || key.return) {
+          setError(null);
+          setScreenState("form");
+        } else if (input === "q" || key.escape) {
+          onBack();
+        }
+        return;
+      }
+
       if (screenState !== "form") return;
 
       if (handleSourceTypeSelect(input, key)) return;
@@ -543,7 +550,9 @@ export const BlueprintCreatePage = ({
                     : colors.textDim
                 }
               >
-                {selectedMetadataIndex === maxIndex ? figures.pointer : " "}{" "}
+                {selectedMetadataIndex === maxIndex
+                  ? figures.pointer
+                  : " "}{" "}
               </Text>
               <Text
                 color={
