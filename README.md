@@ -209,7 +209,15 @@ rli axon events <id>                     # List events for an axon
 
 ```bash
 rli scenario info <id>                   # Display scenario definition details
+rli scenario create                      # Create a new custom scenario
 rli scenario list                        # List scenario runs
+```
+
+### Benchmark-run Commands (alias: `bmr`)
+
+```bash
+rli benchmark-run cancel <id>            # Cancel a running benchmark run
+rli benchmark-run complete <id>          # Complete a benchmark run (finalize an...
 ```
 
 ### Benchmark-job Commands (alias: `bmj`)

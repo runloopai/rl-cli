@@ -407,7 +407,7 @@ export function ScenarioCreateScreen() {
         params.validation_type = formData.validationType;
       }
 
-      const scenario = await createScenario(params);
+      await createScenario(params);
       goBack();
     } catch (err) {
       setError(err as Error);
