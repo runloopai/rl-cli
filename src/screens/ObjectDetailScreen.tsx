@@ -32,6 +32,7 @@ import { Breadcrumb } from "../components/Breadcrumb.js";
 import { Header } from "../components/Header.js";
 import { ConfirmationPrompt } from "../components/ConfirmationPrompt.js";
 import { colors } from "../utils/theme.js";
+import { getDefaultDownloadPath } from "../utils/downloadPath.js";
 
 interface ObjectDetailScreenProps {
   objectId?: string;
@@ -249,8 +250,13 @@ export function ObjectDetailScreen({ objectId }: ObjectDetailScreenProps) {
     switch (operation) {
       case "download":
         // Show download prompt
-        const defaultName = resource.name || resource.id;
-        setDownloadPath(`./${defaultName}`);
+        setDownloadPath(
+          getDefaultDownloadPath(
+            resource.name,
+            resource.id,
+            resource.content_type,
+          ),
+        );
         setShowDownloadPrompt(true);
         break;
       case "delete":
