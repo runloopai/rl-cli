@@ -22,6 +22,8 @@ import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
 import { useListSearch } from "../../hooks/useListSearch.js";
 import { useNavigation } from "../../store/navigationStore.js";
+import { openInBrowser } from "../../utils/browser.js";
+import { getAxonUrl } from "../../utils/url.js";
 
 // ─── CLI ─────────────────────────────────────────────────────────────────────
 
@@ -284,6 +286,8 @@ export const ListAxonsUI = ({
     } else if (input === "a" && selectedAxonItem) {
       setShowPopup(true);
       setSelectedOperation(0);
+    } else if (input === "o" && selectedAxonItem) {
+      openInBrowser(getAxonUrl(selectedAxonItem.id));
     } else if (input === "/") {
       search.enterSearchMode();
     } else if (key.escape) {
@@ -430,6 +434,7 @@ export const ListAxonsUI = ({
           },
           { key: "Enter", label: "Details" },
           { key: "a", label: "Actions" },
+          { key: "o", label: "Browser" },
           { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },
         ]}

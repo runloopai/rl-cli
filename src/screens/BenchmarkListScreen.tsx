@@ -29,6 +29,8 @@ import {
   listPublicBenchmarks,
 } from "../services/benchmarkService.js";
 import type { Benchmark } from "../store/benchmarkStore.js";
+import { openInBrowser } from "../utils/browser.js";
+import { getBenchmarkUrl } from "../utils/url.js";
 
 export function BenchmarkListScreen() {
   const { exit: inkExit } = useApp();
@@ -281,6 +283,8 @@ export function BenchmarkListScreen() {
     } else if (input === "a" && selectedBenchmark) {
       setShowPopup(true);
       setSelectedOperation(0);
+    } else if (input === "o" && selectedBenchmark) {
+      openInBrowser(getBenchmarkUrl(selectedBenchmark.id, showPublic));
     } else if (input === "s" && selectedBenchmark) {
       // Quick shortcut to create a job
       navigate("benchmark-job-create", {
@@ -463,6 +467,7 @@ export function BenchmarkListScreen() {
           { key: "Enter", label: "Details" },
           { key: "s", label: "Create Job" },
           { key: "a", label: "Actions" },
+          { key: "o", label: "Browser" },
           { key: "Tab", label: "Switch tab" },
           { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },

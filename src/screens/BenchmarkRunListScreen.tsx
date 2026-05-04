@@ -26,6 +26,8 @@ import { useCursorPagination } from "../hooks/useCursorPagination.js";
 import { useListSearch } from "../hooks/useListSearch.js";
 import { listBenchmarkRuns } from "../services/benchmarkService.js";
 import type { BenchmarkRun } from "../store/benchmarkStore.js";
+import { openInBrowser } from "../utils/browser.js";
+import { getBenchmarkRunUrl } from "../utils/url.js";
 
 export function BenchmarkRunListScreen() {
   const { exit: inkExit } = useApp();
@@ -272,6 +274,10 @@ export function BenchmarkRunListScreen() {
     } else if (input === "a" && selectedRun) {
       setShowPopup(true);
       setSelectedOperation(0);
+    } else if (input === "o" && selectedRun) {
+      openInBrowser(
+        getBenchmarkRunUrl(selectedRun.id, selectedRun.benchmark_id),
+      );
     } else if (input === "j") {
       // Quick shortcut to create a new job
       navigate("benchmark-job-create");
@@ -433,6 +439,7 @@ export function BenchmarkRunListScreen() {
           { key: "Enter", label: "Details" },
           { key: "j", label: "New Job" },
           { key: "a", label: "Actions" },
+          { key: "o", label: "Browser" },
           { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },
         ]}
