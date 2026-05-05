@@ -16,12 +16,14 @@ export async function settleAfterPtyTunnel(): Promise<void> {
 }
 
 function ptyBootstrapTokenInQuery(): boolean {
-  const v = process.env.RUNLOOP_PTY_BOOTSTRAP_TOKEN_IN_QUERY?.toLowerCase().trim();
+  const v =
+    process.env.RUNLOOP_PTY_BOOTSTRAP_TOKEN_IN_QUERY?.toLowerCase().trim();
   return v === "1" || v === "true" || v === "yes";
 }
 
 function ptyBootstrapConnectionClose(): boolean {
-  const v = process.env.RUNLOOP_PTY_BOOTSTRAP_CONNECTION_CLOSE?.toLowerCase().trim();
+  const v =
+    process.env.RUNLOOP_PTY_BOOTSTRAP_CONNECTION_CLOSE?.toLowerCase().trim();
   return v === "1" || v === "true" || v === "yes";
 }
 
@@ -184,7 +186,9 @@ export async function ptyConnect(
         `[RUNLOOP_DEBUG] PTY bootstrap GET ${urlForDebugLog(url)} (attempt ${attempt})`,
       );
       if (opts?.authToken) {
-        console.error(`[RUNLOOP_DEBUG] PTY bootstrap Authorization: Bearer <set>`);
+        console.error(
+          `[RUNLOOP_DEBUG] PTY bootstrap Authorization: Bearer <set>`,
+        );
         console.error(
           `[RUNLOOP_DEBUG] PTY bootstrap token-in-query=${ptyBootstrapTokenInQuery()} connection-close=${ptyBootstrapConnectionClose()}`,
         );

@@ -115,8 +115,15 @@ async function execCommand(
   ws.send(command + "\n");
 
   return new Promise<void>((resolve, reject) => {
-    const releaseOnce = createPtySessionReleaser(baseUrl, sessionName, authToken);
-    const disposeInterruptSignals = registerPtyInterruptHandlers(ws, releaseOnce);
+    const releaseOnce = createPtySessionReleaser(
+      baseUrl,
+      sessionName,
+      authToken,
+    );
+    const disposeInterruptSignals = registerPtyInterruptHandlers(
+      ws,
+      releaseOnce,
+    );
 
     ws.on("message", (data: WebSocket.Data) => {
       writePtyStreamToStdout(data);
@@ -152,8 +159,15 @@ async function interactiveSession(
   const ws = await openPtyWebSocket(wsUrl, buildWsHeaders(authToken));
 
   return new Promise<void>((resolve, reject) => {
-    const releaseOnce = createPtySessionReleaser(baseUrl, sessionName, authToken);
-    const disposeInterruptSignals = registerPtyInterruptHandlers(ws, releaseOnce);
+    const releaseOnce = createPtySessionReleaser(
+      baseUrl,
+      sessionName,
+      authToken,
+    );
+    const disposeInterruptSignals = registerPtyInterruptHandlers(
+      ws,
+      releaseOnce,
+    );
 
     const cleanup = () => {
       disposeInterruptSignals();
