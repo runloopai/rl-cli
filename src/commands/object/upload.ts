@@ -8,6 +8,7 @@ import { createTar, createTarGzip } from "nanotar";
 import type { TarFileInput } from "nanotar";
 import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
+import { processUtils } from "../../utils/processUtils.js";
 
 interface UploadObjectOptions {
   paths: string[];
@@ -161,79 +162,145 @@ export async function createTarBuffer(
   return Buffer.from(data);
 }
 
+async function readStdinBuffer(): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of processUtils.stdin) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
 export async function uploadObject(options: UploadObjectOptions) {
   try {
     const client = getClient();
     const { paths, name, contentType, output: outputFormat } = options;
 
     if (paths.length === 0) {
-      outputError("At least one path is required");
-      return;
-    }
-
-    // Validate all paths exist (use lstat to match collectEntries and detect symlinks)
-    // Key by resolved absolute path so collectEntries can reuse stats
-    const statsMap = new Map<string, Awaited<ReturnType<typeof lstat>>>();
-    for (const p of paths) {
-      try {
-        const s = await lstat(p);
-        if (s.isSymbolicLink()) {
-          outputError(
-            `Path is a symlink: ${p}. Resolve the symlink or pass the target path directly.`,
-          );
-          return;
+      if (!processUtils.stdin.isTTY) {
+        // Piped stdin detected — normalize to explicit stdin path below
+        paths.push("-");
+      } else {
+        // Interactive terminal: print pre-signed upload URL
+        if (!name) {
+          outputError("--name is required when no paths are provided");
         }
-        statsMap.set(resolve(p), s);
-      } catch {
-        outputError(`Path does not exist: ${p}`);
+        const resolvedContentType: ContentType =
+          (contentType as ContentType) || "unspecified";
+
+        const createResponse = await client.objects.create({
+          name,
+          content_type: resolvedContentType,
+        });
+
+        if (!createResponse.upload_url) {
+          outputError("API did not return an upload URL");
+        }
+
+        const result = {
+          id: createResponse.id,
+          name,
+          contentType: resolvedContentType,
+          uploadUrl: createResponse.upload_url,
+        };
+
+        if (!outputFormat || outputFormat === "text") {
+          console.log(createResponse.upload_url);
+        } else {
+          output(result, { format: outputFormat, defaultFormat: "json" });
+        }
         return;
       }
     }
 
-    const isTarType = contentType === "tar" || contentType === "tgz";
-    const isSinglePath = paths.length === 1;
-    const firstStats = isSinglePath
-      ? statsMap.get(resolve(paths[0]))!
-      : undefined;
-    const singleIsDir = isSinglePath && firstStats!.isDirectory();
+    const hasStdin = paths.includes("-");
+    const isStdin = paths.length === 1 && hasStdin;
 
-    // Multi-path requires tar/tgz content type
-    if (paths.length > 1 && !isTarType) {
+    // stdin cannot be mixed with other paths (e.g. `upload - file1.txt`)
+    if (hasStdin && !isStdin) {
       outputError(
-        "Multiple paths require --content-type tar or --content-type tgz",
+        "Cannot mix stdin (-) with other paths. Use - alone or provide only file/directory paths.",
       );
-      return;
     }
 
-    // Directory without tar/tgz type
-    if (singleIsDir && !isTarType) {
-      outputError(
-        "Cannot upload a directory directly. Use --content-type tar or --content-type tgz to create an archive.",
-      );
-      return;
+    if (isStdin) {
+      if (!name) {
+        outputError("--name is required when uploading from stdin");
+      }
+      if (!contentType) {
+        outputError("--content-type is required when uploading from stdin");
+      }
     }
 
     let fileBuffer: Buffer;
     let detectedContentType: ContentType;
     let fileSize: number;
 
-    const shouldCreateArchive = isTarType && (paths.length > 1 || singleIsDir);
-
-    if (shouldCreateArchive) {
-      const gzip = contentType === "tgz";
-      fileBuffer = await createTarBuffer(paths, gzip, statsMap);
-      detectedContentType = contentType as ContentType;
+    if (isStdin) {
+      fileBuffer = await readStdinBuffer();
       fileSize = fileBuffer.length;
+      detectedContentType = contentType as ContentType;
     } else {
-      // Single file upload (existing behavior)
-      const filePath = paths[0];
-      fileBuffer = await readFile(filePath);
-      fileSize = fileBuffer.length;
+      // Validate all paths exist (use lstat to match collectEntries and detect symlinks)
+      // Key by resolved absolute path so collectEntries can reuse stats
+      const statsMap = new Map<string, Awaited<ReturnType<typeof lstat>>>();
+      for (const p of paths) {
+        try {
+          const s = await lstat(p);
+          if (s.isSymbolicLink()) {
+            outputError(
+              `Path is a symlink: ${p}. Resolve the symlink or pass the target path directly.`,
+            );
+            return;
+          }
+          statsMap.set(resolve(p), s);
+        } catch {
+          outputError(`Path does not exist: ${p}`);
+          return;
+        }
+      }
 
-      detectedContentType = contentType as ContentType;
-      if (!detectedContentType) {
-        const ext = extname(filePath).toLowerCase();
-        detectedContentType = CONTENT_TYPE_MAP[ext] || "unspecified";
+      const isTarType = contentType === "tar" || contentType === "tgz";
+      const isSinglePath = paths.length === 1;
+      const firstStats = isSinglePath
+        ? statsMap.get(resolve(paths[0]))!
+        : undefined;
+      const singleIsDir = isSinglePath && firstStats!.isDirectory();
+
+      // Multi-path requires tar/tgz content type
+      if (paths.length > 1 && !isTarType) {
+        outputError(
+          "Multiple paths require --content-type tar or --content-type tgz",
+        );
+        return;
+      }
+
+      // Directory without tar/tgz type
+      if (singleIsDir && !isTarType) {
+        outputError(
+          "Cannot upload a directory directly. Use --content-type tar or --content-type tgz to create an archive.",
+        );
+        return;
+      }
+
+      const shouldCreateArchive =
+        isTarType && (paths.length > 1 || singleIsDir);
+
+      if (shouldCreateArchive) {
+        const gzip = contentType === "tgz";
+        fileBuffer = await createTarBuffer(paths, gzip, statsMap);
+        detectedContentType = contentType as ContentType;
+        fileSize = fileBuffer.length;
+      } else {
+        // Single file upload (existing behavior)
+        const filePath = paths[0];
+        fileBuffer = await readFile(filePath);
+        fileSize = fileBuffer.length;
+
+        detectedContentType = contentType as ContentType;
+        if (!detectedContentType) {
+          const ext = extname(filePath).toLowerCase();
+          detectedContentType = CONTENT_TYPE_MAP[ext] || "unspecified";
+        }
       }
     }
 
@@ -241,7 +308,8 @@ export async function uploadObject(options: UploadObjectOptions) {
     const createResponse = await client.objects.create({
       name,
       content_type: detectedContentType,
-    });
+      ...(options.public ? { is_public: true } : {}),
+    } as any);
 
     // Step 2: Upload the file
     const uploadResponse = await fetch(createResponse.upload_url!, {

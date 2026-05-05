@@ -29,7 +29,7 @@ export interface ProcessUtils {
    * Standard output operations
    */
   stdout: {
-    write: (data: string) => boolean;
+    write: (data: string | Buffer) => boolean;
     isTTY: boolean;
   };
 
@@ -37,7 +37,7 @@ export interface ProcessUtils {
    * Standard error operations
    */
   stderr: {
-    write: (data: string) => boolean;
+    write: (data: string | Buffer) => boolean;
     isTTY: boolean;
   };
 
@@ -52,6 +52,7 @@ export interface ProcessUtils {
       event: string,
       listener: (...args: unknown[]) => void,
     ) => void;
+    [Symbol.asyncIterator]: () => AsyncIterator<Buffer>;
   };
 
   /**
@@ -91,14 +92,14 @@ export const processUtils: ProcessUtils = {
   exit: originalExit,
 
   stdout: {
-    write: (data: string) => originalStdoutWrite(data),
+    write: (data: string | Buffer) => originalStdoutWrite(data),
     get isTTY() {
       return process.stdout.isTTY ?? false;
     },
   },
 
   stderr: {
-    write: (data: string) => originalStderrWrite(data),
+    write: (data: string | Buffer) => originalStderrWrite(data),
     get isTTY() {
       return process.stderr.isTTY ?? false;
     },
@@ -111,6 +112,8 @@ export const processUtils: ProcessUtils = {
     setRawMode: process.stdin.setRawMode?.bind(process.stdin),
     on: process.stdin.on.bind(process.stdin),
     removeListener: process.stdin.removeListener.bind(process.stdin),
+    [Symbol.asyncIterator]: () =>
+      process.stdin[Symbol.asyncIterator]() as AsyncIterator<Buffer>,
   },
 
   cwd: originalCwd,
@@ -130,8 +133,10 @@ export const processUtils: ProcessUtils = {
  */
 export function resetProcessUtils(): void {
   processUtils.exit = originalExit;
-  processUtils.stdout.write = (data: string) => originalStdoutWrite(data);
-  processUtils.stderr.write = (data: string) => originalStderrWrite(data);
+  processUtils.stdout.write = (data: string | Buffer) =>
+    originalStdoutWrite(data);
+  processUtils.stderr.write = (data: string | Buffer) =>
+    originalStderrWrite(data);
   processUtils.cwd = originalCwd;
   processUtils.on = originalOn;
   processUtils.off = originalOff;
@@ -161,6 +166,7 @@ export function createMockProcessUtils(): ProcessUtils {
       setRawMode: () => {},
       on: () => {},
       removeListener: () => {},
+      async *[Symbol.asyncIterator]() {},
     },
     cwd: () => "/mock/cwd",
     on: () => {},

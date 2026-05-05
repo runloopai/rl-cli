@@ -1,10 +1,19 @@
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import { VERSION } from "../version.js";
 import { createDevbox } from "../commands/devbox/create.js";
 import { listDevboxes } from "../commands/devbox/list.js";
 import { deleteDevbox } from "../commands/devbox/delete.js";
 import { execCommand } from "../commands/devbox/exec.js";
 import { uploadFile } from "../commands/devbox/upload.js";
+import { runloopBaseDomain } from "./config.js";
+
+function publicOption(description: string): Option {
+  const opt = new Option("--public", description);
+  if (runloopBaseDomain() === "runloop.ai") {
+    opt.hideHelp();
+  }
+  return opt;
+}
 
 /**
  * Creates and configures the Commander program with all commands.
@@ -652,8 +661,10 @@ export function createProgram(): Command {
     });
 
   object
-    .command("download <id> <path>")
-    .description("Download object to local file")
+    .command("download <id> [path]")
+    .description(
+      "Download an object. Omit path to save as ./<name> with inferred extension. Use - to write to stdout.",
+    )
     .option("--extract", "Extract downloaded archive after download")
     .option(
       "--duration-seconds <seconds>",
@@ -670,28 +681,31 @@ export function createProgram(): Command {
     });
 
   object
-    .command("upload <paths...>")
+    .command("upload [paths...]")
     .description(
-      "Upload file(s) or directory as an object. Multiple paths with --content-type tar|tgz creates an archive.",
+      "Upload an object. Reads from piped stdin when no paths are given; prints a pre-signed upload URL if stdin is a terminal. Use - to explicitly read stdin. Multiple paths with --content-type tar|tgz creates an archive.",
     )
     .option("--name <name>", "Object name (required)")
     .option(
       "--content-type <type>",
       "Content type: unspecified|text|binary|gzip|tar|tgz",
     )
-    .option("--public", "Make object publicly accessible")
+    .addOption(publicOption("Make object publicly accessible"))
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
     )
     .action(async (paths, options) => {
       const { uploadObject } = await import("../commands/object/upload.js");
-      if (!options.output) {
+      const resolvedPaths = paths || [];
+      if (!options.output && resolvedPaths.length > 0) {
         const { runInteractiveCommand } =
           await import("../utils/interactiveCommand.js");
-        await runInteractiveCommand(() => uploadObject({ paths, ...options }));
+        await runInteractiveCommand(() =>
+          uploadObject({ paths: resolvedPaths, ...options }),
+        );
       } else {
-        await uploadObject({ paths, ...options });
+        await uploadObject({ paths: resolvedPaths, ...options });
       }
     });
 
@@ -1232,6 +1246,7 @@ export function createProgram(): Command {
       "--setup-commands <commands...>",
       "Setup commands to run after installation",
     )
+    .addOption(publicOption("Make agent publicly accessible"))
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
