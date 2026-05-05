@@ -911,68 +911,75 @@ export function BenchmarkJobCreateScreen({
   }, [formData, isFormValid, cloneAgentConfigs, cloneOrchestratorConfig]);
 
   // Handle input
-  useInput((input, key) => {
-    if (screenState !== "form") return;
+  useInput(
+    (input, key) => {
+      if (screenState !== "form") return;
 
-    // Handle source type toggle with left/right arrows
-    if (currentField === "source_type" && (key.leftArrow || key.rightArrow)) {
-      setFormData((prev) => ({
-        ...prev,
-        sourceType: prev.sourceType === "benchmark" ? "scenarios" : "benchmark",
-        // Clear the other source when switching
-        benchmarkId: prev.sourceType === "scenarios" ? "" : prev.benchmarkId,
-        benchmarkName:
-          prev.sourceType === "scenarios" ? "" : prev.benchmarkName,
-        scenarioIds: prev.sourceType === "benchmark" ? [] : prev.scenarioIds,
-        scenarioNames:
-          prev.sourceType === "benchmark" ? [] : prev.scenarioNames,
-      }));
-      return;
-    }
-
-    // Navigate between fields
-    if (key.upArrow && currentFieldIndex > 0) {
-      setCurrentField(fieldKeys[currentFieldIndex - 1]);
-    } else if (key.downArrow && currentFieldIndex < fieldKeys.length - 1) {
-      setCurrentField(fieldKeys[currentFieldIndex + 1]);
-    } else if (key.escape) {
-      goBack();
-    } else if (key.return) {
-      if (currentFieldDef?.type === "picker" && currentField === "benchmark") {
-        setScreenState("picking_benchmark");
-      } else if (
-        currentFieldDef?.type === "picker" &&
-        currentField === "scenarios"
-      ) {
-        setScreenState("picking_scenarios");
-      } else if (
-        currentFieldDef?.type === "picker" &&
-        currentField === "agents"
-      ) {
-        setScreenState("picking_agents");
-      } else if (
-        currentFieldDef?.type === "picker" &&
-        currentField === "secrets"
-      ) {
-        setScreenState("secrets_config");
-        setSecretsConfigSelectedIndex(0);
-      } else if (
-        currentFieldDef?.type === "metadata" &&
-        currentField === "metadata"
-      ) {
-        setInMetadataSection(true);
-        setSelectedMetadataIndex(0);
-      } else if (
-        currentFieldDef?.type === "action" &&
-        currentField === "create"
-      ) {
-        handleCreate();
-      } else if (currentFieldIndex < fieldKeys.length - 1) {
-        // Move to next field on Enter for text inputs
-        setCurrentField(fieldKeys[currentFieldIndex + 1]);
+      // Handle source type toggle with left/right arrows
+      if (currentField === "source_type" && (key.leftArrow || key.rightArrow)) {
+        setFormData((prev) => ({
+          ...prev,
+          sourceType:
+            prev.sourceType === "benchmark" ? "scenarios" : "benchmark",
+          // Clear the other source when switching
+          benchmarkId: prev.sourceType === "scenarios" ? "" : prev.benchmarkId,
+          benchmarkName:
+            prev.sourceType === "scenarios" ? "" : prev.benchmarkName,
+          scenarioIds: prev.sourceType === "benchmark" ? [] : prev.scenarioIds,
+          scenarioNames:
+            prev.sourceType === "benchmark" ? [] : prev.scenarioNames,
+        }));
+        return;
       }
-    }
-  });
+
+      // Navigate between fields
+      if (key.upArrow && currentFieldIndex > 0) {
+        setCurrentField(fieldKeys[currentFieldIndex - 1]);
+      } else if (key.downArrow && currentFieldIndex < fieldKeys.length - 1) {
+        setCurrentField(fieldKeys[currentFieldIndex + 1]);
+      } else if (key.escape) {
+        goBack();
+      } else if (key.return) {
+        if (
+          currentFieldDef?.type === "picker" &&
+          currentField === "benchmark"
+        ) {
+          setScreenState("picking_benchmark");
+        } else if (
+          currentFieldDef?.type === "picker" &&
+          currentField === "scenarios"
+        ) {
+          setScreenState("picking_scenarios");
+        } else if (
+          currentFieldDef?.type === "picker" &&
+          currentField === "agents"
+        ) {
+          setScreenState("picking_agents");
+        } else if (
+          currentFieldDef?.type === "picker" &&
+          currentField === "secrets"
+        ) {
+          setScreenState("secrets_config");
+          setSecretsConfigSelectedIndex(0);
+        } else if (
+          currentFieldDef?.type === "metadata" &&
+          currentField === "metadata"
+        ) {
+          setInMetadataSection(true);
+          setSelectedMetadataIndex(0);
+        } else if (
+          currentFieldDef?.type === "action" &&
+          currentField === "create"
+        ) {
+          handleCreate();
+        } else if (currentFieldIndex < fieldKeys.length - 1) {
+          // Move to next field on Enter for text inputs
+          setCurrentField(fieldKeys[currentFieldIndex + 1]);
+        }
+      }
+    },
+    { isActive: !inMetadataSection },
+  );
 
   useInput(
     (input, key) => {

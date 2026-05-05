@@ -394,7 +394,10 @@ export const ObjectCreatePage = ({
 
         let buffer: Buffer;
 
-        if (paths.length > 1 || isTar) {
+        const singleIsDir =
+          paths.length === 1 && (await lstat(resolvedPaths[0])).isDirectory();
+
+        if (paths.length > 1 || (isTar && singleIsDir)) {
           const isGzip = formData.content_type === "tgz";
           buffer = await createTarBuffer(resolvedPaths, isGzip);
         } else {
