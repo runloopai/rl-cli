@@ -6,7 +6,7 @@ import { waitForReady } from "../../utils/ssh.js";
 import {
   getPtyBaseUrl,
   ptyControl,
-  ptyNotifyClosed,
+  createPtySessionReleaser,
   resolvePtyWebSocketUrl,
   createPtyTunnel,
   getPtyTunnelBaseUrl,
@@ -15,6 +15,42 @@ import {
   settleAfterPtyTunnel,
 } from "../../lib/pty-client.js";
 import { openPtyWebSocket } from "../../lib/pty-ws.js";
+
+/** SIGINT/SIGTERM → optional notify then close socket; returns disposer for ws close/error cleanup. */
+function registerPtyInterruptHandlers(
+  ws: WebSocket,
+  beforeClose: () => void,
+): () => void {
+  function dispose() {
+    process.removeListener("SIGINT", onSigint);
+    process.removeListener("SIGTERM", onSigterm);
+  }
+  function onSigint() {
+    beforeClose();
+    dispose();
+    ws.close();
+  }
+  function onSigterm() {
+    beforeClose();
+    dispose();
+    ws.close();
+  }
+  process.on("SIGINT", onSigint);
+  process.on("SIGTERM", onSigterm);
+  return dispose;
+}
+
+function writePtyStreamToStdout(data: WebSocket.Data): void {
+  if (Buffer.isBuffer(data)) {
+    process.stdout.write(data);
+  } else if (data instanceof ArrayBuffer) {
+    process.stdout.write(Buffer.from(data));
+  } else if (Array.isArray(data)) {
+    process.stdout.write(Buffer.concat(data));
+  } else {
+    process.stdout.write(String(data));
+  }
+}
 
 interface PtyOptions {
   session?: string;
@@ -79,51 +115,22 @@ async function execCommand(
   ws.send(command + "\n");
 
   return new Promise<void>((resolve, reject) => {
-    let released = false;
-    const notifyClosedOnce = () => {
-      if (released) return;
-      released = true;
-      ptyNotifyClosed(baseUrl, sessionName, authToken);
-    };
-
-    const onSigint = () => {
-      notifyClosedOnce();
-      process.removeListener("SIGINT", onSigint);
-      process.removeListener("SIGTERM", onSigterm);
-      ws.close();
-    };
-    const onSigterm = () => {
-      notifyClosedOnce();
-      process.removeListener("SIGINT", onSigint);
-      process.removeListener("SIGTERM", onSigterm);
-      ws.close();
-    };
-    process.on("SIGINT", onSigint);
-    process.on("SIGTERM", onSigterm);
+    const releaseOnce = createPtySessionReleaser(baseUrl, sessionName, authToken);
+    const disposeInterruptSignals = registerPtyInterruptHandlers(ws, releaseOnce);
 
     ws.on("message", (data: WebSocket.Data) => {
-      if (Buffer.isBuffer(data)) {
-        process.stdout.write(data);
-      } else if (data instanceof ArrayBuffer) {
-        process.stdout.write(Buffer.from(data));
-      } else if (Array.isArray(data)) {
-        process.stdout.write(Buffer.concat(data));
-      } else {
-        process.stdout.write(String(data));
-      }
+      writePtyStreamToStdout(data);
     });
 
     ws.on("close", () => {
-      notifyClosedOnce();
-      process.removeListener("SIGINT", onSigint);
-      process.removeListener("SIGTERM", onSigterm);
+      releaseOnce();
+      disposeInterruptSignals();
       resolve();
     });
 
     ws.on("error", (err: Error) => {
-      notifyClosedOnce();
-      process.removeListener("SIGINT", onSigint);
-      process.removeListener("SIGTERM", onSigterm);
+      releaseOnce();
+      disposeInterruptSignals();
       reject(err);
     });
   });
@@ -145,31 +152,11 @@ async function interactiveSession(
   const ws = await openPtyWebSocket(wsUrl, buildWsHeaders(authToken));
 
   return new Promise<void>((resolve, reject) => {
-    let released = false;
-    const notifyClosedOnce = () => {
-      if (released) return;
-      released = true;
-      ptyNotifyClosed(baseUrl, sessionName, authToken);
-    };
-
-    const onSigint = () => {
-      notifyClosedOnce();
-      process.removeListener("SIGINT", onSigint);
-      process.removeListener("SIGTERM", onSigterm);
-      ws.close();
-    };
-    const onSigterm = () => {
-      notifyClosedOnce();
-      process.removeListener("SIGINT", onSigint);
-      process.removeListener("SIGTERM", onSigterm);
-      ws.close();
-    };
-    process.on("SIGINT", onSigint);
-    process.on("SIGTERM", onSigterm);
+    const releaseOnce = createPtySessionReleaser(baseUrl, sessionName, authToken);
+    const disposeInterruptSignals = registerPtyInterruptHandlers(ws, releaseOnce);
 
     const cleanup = () => {
-      process.removeListener("SIGINT", onSigint);
-      process.removeListener("SIGTERM", onSigterm);
+      disposeInterruptSignals();
       process.stdin.removeListener("data", onStdinData);
       process.removeListener("SIGWINCH", onResize);
       if (processUtils.stdin.isTTY && processUtils.stdin.setRawMode) {
@@ -207,25 +194,17 @@ async function interactiveSession(
     process.on("SIGWINCH", onResize);
 
     ws.on("message", (data: WebSocket.Data) => {
-      if (Buffer.isBuffer(data)) {
-        process.stdout.write(data);
-      } else if (data instanceof ArrayBuffer) {
-        process.stdout.write(Buffer.from(data));
-      } else if (Array.isArray(data)) {
-        process.stdout.write(Buffer.concat(data));
-      } else {
-        process.stdout.write(String(data));
-      }
+      writePtyStreamToStdout(data);
     });
 
     ws.on("close", () => {
-      notifyClosedOnce();
+      releaseOnce();
       cleanup();
       resolve();
     });
 
     ws.on("error", (err: Error) => {
-      notifyClosedOnce();
+      releaseOnce();
       cleanup();
       reject(err);
     });

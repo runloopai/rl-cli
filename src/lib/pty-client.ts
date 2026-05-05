@@ -257,6 +257,20 @@ export function ptyNotifyClosed(
   );
 }
 
+/** Calls {@link ptyNotifyClosed} at most once (ws close, signals, Ink unmount, etc.). */
+export function createPtySessionReleaser(
+  baseUrl: string,
+  sessionName: string,
+  authToken?: string,
+): () => void {
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    ptyNotifyClosed(baseUrl, sessionName, authToken);
+  };
+}
+
 /** WebSocket attach URL; adds `?token=` when `authToken` is set (tunnel WS upgrade). */
 export function buildWsUrl(
   baseUrl: string,

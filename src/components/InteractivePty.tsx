@@ -2,7 +2,7 @@ import React from "react";
 import WebSocket from "ws";
 import {
   ptyControl,
-  ptyNotifyClosed,
+  createPtySessionReleaser,
   resolvePtyWebSocketUrl,
   buildWsHeaders,
 } from "../lib/pty-client.js";
@@ -75,12 +75,11 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
         const ws = await openPtyWebSocket(wsUrl, buildWsHeaders(authToken));
         wsRef.current = ws;
 
-        let sessionNotified = false;
-        releaseServerSession = () => {
-          if (sessionNotified) return;
-          sessionNotified = true;
-          ptyNotifyClosed(baseUrl, sessionName, authToken);
-        };
+        releaseServerSession = createPtySessionReleaser(
+          baseUrl,
+          sessionName,
+          authToken,
+        );
 
         ws.binaryType = "arraybuffer";
 
