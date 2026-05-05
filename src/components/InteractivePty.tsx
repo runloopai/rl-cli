@@ -1,11 +1,12 @@
 import React from "react";
 import WebSocket from "ws";
 import {
-  ptyConnect,
   ptyControl,
-  buildWsUrl,
+  ptyNotifyClosed,
+  resolvePtyWebSocketUrl,
   buildWsHeaders,
 } from "../lib/pty-client.js";
+import { openPtyWebSocket } from "../lib/pty-ws.js";
 import {
   showCursor,
   clearScreen,
@@ -59,39 +60,41 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
 
     let stdinListener: ((data: Buffer) => void) | null = null;
     let sigwinchListener: (() => void) | null = null;
+    let releaseServerSession: (() => void) | null = null;
 
     setImmediate(async () => {
       try {
         const cols = process.stdout.columns || 80;
         const rows = process.stdout.rows || 24;
 
-        const connectResponse = await ptyConnect(baseUrl, sessionName, {
+        const wsUrl = await resolvePtyWebSocketUrl(baseUrl, sessionName, {
           cols,
           rows,
           authToken,
         });
-
-        const wsUrl = buildWsUrl(baseUrl, connectResponse.connect_url);
-        const ws = new WebSocket(wsUrl, {
-          headers: buildWsHeaders(authToken),
-        });
+        const ws = await openPtyWebSocket(wsUrl, buildWsHeaders(authToken));
         wsRef.current = ws;
+
+        let sessionNotified = false;
+        releaseServerSession = () => {
+          if (sessionNotified) return;
+          sessionNotified = true;
+          ptyNotifyClosed(baseUrl, sessionName, authToken);
+        };
 
         ws.binaryType = "arraybuffer";
 
-        ws.on("open", () => {
-          if (processUtils.stdin.isTTY && processUtils.stdin.setRawMode) {
-            processUtils.stdin.setRawMode(true);
-          }
-          process.stdin.resume();
+        if (processUtils.stdin.isTTY && processUtils.stdin.setRawMode) {
+          processUtils.stdin.setRawMode(true);
+        }
+        process.stdin.resume();
 
-          stdinListener = (data: Buffer) => {
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(data);
-            }
-          };
-          process.stdin.on("data", stdinListener);
-        });
+        stdinListener = (data: Buffer) => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(data);
+          }
+        };
+        process.stdin.on("data", stdinListener);
 
         ws.on("message", (data: WebSocket.Data) => {
           if (data instanceof ArrayBuffer) {
@@ -122,6 +125,7 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
         process.on("SIGWINCH", sigwinchListener);
 
         ws.on("close", (code: number) => {
+          releaseServerSession?.();
           cleanup();
           restoreTerminal();
           hasStartedRef.current = false;
@@ -129,6 +133,7 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
         });
 
         ws.on("error", (err: Error) => {
+          releaseServerSession?.();
           cleanup();
           restoreTerminal();
           hasStartedRef.current = false;
@@ -154,6 +159,7 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
 
     return () => {
       cleanup();
+      releaseServerSession?.();
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.close();
       }

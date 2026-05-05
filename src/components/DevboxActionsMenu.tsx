@@ -32,6 +32,7 @@ import {
   isLocalPtyOverride,
   createPtyTunnel,
   getPtyTunnelBaseUrl,
+  settleAfterPtyTunnel,
 } from "../lib/pty-client.js";
 
 type Operation =
@@ -703,6 +704,7 @@ export const DevboxActionsMenu = ({
             ptyBaseUrl = getPtyBaseUrl();
           } else {
             const tunnel = await createPtyTunnel(devbox.id);
+            await settleAfterPtyTunnel();
             ptyBaseUrl = getPtyTunnelBaseUrl(tunnel.tunnel_key);
             ptyAuthToken = tunnel.auth_token;
           }

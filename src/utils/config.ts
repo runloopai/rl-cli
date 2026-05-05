@@ -1,7 +1,13 @@
 import Conf from "conf";
 import { homedir } from "os";
 import { join } from "path";
-import { existsSync, statSync, mkdirSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  statSync,
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+} from "fs";
 
 interface Config {
   apiKey?: string;
@@ -21,6 +27,78 @@ export function getConfig(): Config {
   return {
     apiKey,
   };
+}
+
+/**
+ * If `RUNLOOP_API_KEY` is unset, parse it from `~/.zprofile` (common zsh login
+ * exports) and set `process.env.RUNLOOP_API_KEY`. Safe to call multiple times.
+ */
+export function loadRunloopApiKeyFromZprofileIfNeeded(): void {
+  if (process.env.RUNLOOP_API_KEY?.trim()) return;
+
+  const zprofilePath = join(homedir(), ".zprofile");
+  if (!existsSync(zprofilePath)) return;
+
+  try {
+    const content = readFileSync(zprofilePath, "utf8");
+    const key = extractRunloopApiKeyFromShellFile(content);
+    if (key) {
+      process.env.RUNLOOP_API_KEY = key;
+    }
+  } catch {
+    // ignore read / permission errors
+  }
+}
+
+/** @internal — exported for tests */
+export function extractRunloopApiKeyFromShellFile(
+  content: string,
+): string | undefined {
+  for (const line of content.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    const m = trimmed.match(/^(?:export\s+)?RUNLOOP_API_KEY=(.*)$/);
+    if (!m) continue;
+
+    const parsed = parseShellAssignmentValue(m[1].trim());
+    if (parsed) return parsed;
+  }
+  return undefined;
+}
+
+function parseShellAssignmentValue(raw: string): string | undefined {
+  if (!raw) return undefined;
+
+  if (raw.startsWith('"')) {
+    let i = 1;
+    let out = "";
+    while (i < raw.length) {
+      const c = raw[i];
+      if (c === "\\" && i + 1 < raw.length) {
+        out += raw[i + 1];
+        i += 2;
+        continue;
+      }
+      if (c === '"') {
+        return out || undefined;
+      }
+      out += c;
+      i++;
+    }
+    return out || undefined;
+  }
+
+  if (raw.startsWith("'")) {
+    const end = raw.indexOf("'", 1);
+    if (end === -1) return raw.slice(1) || undefined;
+    return raw.slice(1, end) || undefined;
+  }
+
+  const hash = raw.indexOf("#");
+  const segment = hash === -1 ? raw : raw.slice(0, hash);
+  const val = segment.trim();
+  return val || undefined;
 }
 
 export function setApiKey(apiKey: string): void {
@@ -206,6 +284,12 @@ export function isBetaEnabled(): boolean {
   return betaValue === "1" || betaValue === "true";
 }
 
+/** Verbose PTY / API diagnostics on stderr (e.g. retry reasons, request URLs). */
+export function isRunloopDebug(): boolean {
+  const v = process.env.RUNLOOP_DEBUG?.toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
 /**
  * Returns the detailed error message for when the API key is not configured.
  * This message provides instructions on how to set up the API key.
@@ -224,6 +308,8 @@ To make it permanent, add this line to your shell config:
    • For zsh:  echo 'export RUNLOOP_API_KEY=your_api_key_here' >> ~/.zshrc
    • For bash: echo 'export RUNLOOP_API_KEY=your_api_key_here' >> ~/.bashrc
 
-Then restart your terminal or run: source ~/.zshrc (or ~/.bashrc)
+If the key is only in ~/.zprofile, this CLI reads it automatically when the
+environment variable is not set. Otherwise restart your terminal or run:
+source ~/.zprofile (or ~/.zshrc / ~/.bashrc)
 `;
 }
