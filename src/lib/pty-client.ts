@@ -1,9 +1,11 @@
-import { runloopBaseDomain, baseUrl, getConfig } from "../utils/config.js";
+import { baseUrl, getConfig } from "../utils/config.js";
+import { getTunnelUrl } from "../utils/url.js";
 
-// TODO: Update when PTY server URLs are finalized for production
-export const PTY_BASE_URL_PROD = "https://pty.runloop.ai";
-export const PTY_BASE_URL_DEV = "https://pty.runloop.pro";
-export const PTY_BASE_URL_LOCAL = "http://localhost:8080";
+/** Tunnel port for the PTY / rage REST plane (see Runloop PTY usage guide). */
+export const PTY_TUNNEL_REST_PORT = 13;
+
+/** Default local PTY dev server when `RUNLOOP_PTY_URL` is unset (bazel `//src/test/pty:test_bin`). */
+export const PTY_BASE_URL_LOCAL = "http://localhost:5000";
 
 export interface PtyConnectResponse {
   session_name: string;
@@ -55,8 +57,7 @@ export async function createPtyTunnel(
 }
 
 export function getPtyTunnelBaseUrl(tunnelKey: string): string {
-  const domain = runloopBaseDomain();
-  return `https://${tunnelKey}.tunnel.${domain}`;
+  return getTunnelUrl(PTY_TUNNEL_REST_PORT, tunnelKey);
 }
 
 export function isLocalPtyOverride(): boolean {
@@ -74,9 +75,8 @@ export function getPtyBaseUrl(): string {
   const override = process.env.RUNLOOP_PTY_URL?.trim();
   if (override) return override;
 
-  // TODO: Derive from base domain once PTY server hostnames are finalized
-  const domain = runloopBaseDomain();
-  return `https://pty.${domain}`;
+  // Production uses `create_pty_tunnel` + `getPtyTunnelBaseUrl`; this matches the local test server default.
+  return PTY_BASE_URL_LOCAL;
 }
 
 export async function ptyConnect(
