@@ -14,10 +14,6 @@ jest.unstable_mockModule("@/utils/output.js", () => ({
   parseLimit: mockParseLimit,
 }));
 
-jest.unstable_mockModule("@/utils/time.js", () => ({
-  formatTimeAgo: jest.fn((ms: number) => "1h ago"),
-}));
-
 const { listScenarioRunsCommand } = await import(
   "@/commands/scenario/list.js"
 );
@@ -25,22 +21,24 @@ const { listScenarioRunsCommand } = await import(
 describe("listScenarioRunsCommand", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (console.log as jest.Mock).mockClear();
     mockParseLimit.mockReturnValue(Infinity);
   });
 
-  it("prints 'No scenario runs found' for empty results", async () => {
+  it("outputs runs via output() with defaultFormat json", async () => {
+    const runs = [
+      { id: "sr_1", name: "run-1", state: "completed", start_time_ms: 1000 },
+    ];
     mockListScenarioRuns.mockResolvedValue({
-      scenarioRuns: [],
+      scenarioRuns: runs,
       hasMore: false,
     });
 
     await listScenarioRunsCommand({});
 
-    const allOutput = (console.log as jest.Mock).mock.calls
-      .map((c: any[]) => String(c[0]))
-      .join("\n");
-    expect(allOutput).toContain("No scenario runs found");
+    expect(mockOutput).toHaveBeenCalledWith(runs, {
+      format: undefined,
+      defaultFormat: "json",
+    });
   });
 
   it("fetches multiple pages when hasMore is true", async () => {
@@ -61,7 +59,6 @@ describe("listScenarioRunsCommand", () => {
     await listScenarioRunsCommand({});
 
     expect(mockListScenarioRuns).toHaveBeenCalledTimes(2);
-    // Second call uses cursor from first page's last item
     expect(mockListScenarioRuns).toHaveBeenLastCalledWith(
       expect.objectContaining({ startingAfter: "sr_1" }),
     );
@@ -82,23 +79,23 @@ describe("listScenarioRunsCommand", () => {
   });
 
   it("sorts results by start_time_ms ascending", async () => {
+    const runs = [
+      { id: "sr_2", name: "run-2", state: "completed", start_time_ms: 2000 },
+      { id: "sr_1", name: "run-1", state: "completed", start_time_ms: 1000 },
+    ];
     mockListScenarioRuns.mockResolvedValue({
-      scenarioRuns: [
-        { id: "sr_2", name: "run-2", state: "completed", start_time_ms: 2000 },
-        { id: "sr_1", name: "run-1", state: "completed", start_time_ms: 1000 },
-      ],
+      scenarioRuns: runs,
       hasMore: false,
     });
 
     await listScenarioRunsCommand({});
 
-    // First data row should be sr_1 (earlier start_time_ms)
-    const calls = (console.log as jest.Mock).mock.calls;
-    const dataRow1 = String(calls[2][0]);
-    expect(dataRow1).toContain("sr_1");
+    const outputData = mockOutput.mock.calls[0][0] as typeof runs;
+    expect(outputData[0].id).toBe("sr_1");
+    expect(outputData[1].id).toBe("sr_2");
   });
 
-  it("uses output() for JSON format", async () => {
+  it("passes format option through to output()", async () => {
     const runs = [
       { id: "sr_1", name: "run-1", state: "completed", start_time_ms: 1000 },
     ];
@@ -138,80 +135,6 @@ describe("listScenarioRunsCommand", () => {
       "Failed to list scenario runs",
       error,
     );
-  });
-
-  it("shows table with runs", async () => {
-    mockListScenarioRuns.mockResolvedValue({
-      scenarioRuns: [
-        {
-          id: "sr_1",
-          name: "run-1",
-          state: "completed",
-          start_time_ms: 1700000000000,
-          scoring_contract_result: { score: 0.85 },
-        },
-      ],
-      hasMore: false,
-    });
-
-    await listScenarioRunsCommand({});
-
-    const calls = (console.log as jest.Mock).mock.calls;
-    // Header, separator, 1 data row, blank line, count
-    expect(calls.length).toBeGreaterThanOrEqual(4);
-    const allOutput = calls.map((c: any[]) => String(c[0])).join("\n");
-    expect(allOutput).toContain("sr_1");
-    expect(allOutput).toContain("1 run");
-  });
-
-  it("shows singular 'run' for single result", async () => {
-    mockListScenarioRuns.mockResolvedValue({
-      scenarioRuns: [
-        { id: "sr_1", name: "run-1", state: "completed", start_time_ms: 1000 },
-      ],
-      hasMore: false,
-    });
-
-    await listScenarioRunsCommand({});
-
-    const allOutput = (console.log as jest.Mock).mock.calls
-      .map((c: any[]) => String(c[0]))
-      .join("\n");
-    expect(allOutput).toContain("1 run");
-    expect(allOutput).not.toContain("1 runs");
-  });
-
-  it("shows plural 'runs' for multiple results", async () => {
-    mockListScenarioRuns.mockResolvedValue({
-      scenarioRuns: [
-        { id: "sr_1", name: "run-1", state: "completed", start_time_ms: 1000 },
-        { id: "sr_2", name: "run-2", state: "completed", start_time_ms: 2000 },
-      ],
-      hasMore: false,
-    });
-
-    await listScenarioRunsCommand({});
-
-    const allOutput = (console.log as jest.Mock).mock.calls
-      .map((c: any[]) => String(c[0]))
-      .join("\n");
-    expect(allOutput).toContain("2 runs");
-  });
-
-  it("handles null start_time_ms with N/A", async () => {
-    mockListScenarioRuns.mockResolvedValue({
-      scenarioRuns: [
-        { id: "sr_1", name: "run-1", state: "completed", start_time_ms: undefined },
-      ],
-      hasMore: false,
-    });
-
-    await listScenarioRunsCommand({});
-
-    const allOutput = (console.log as jest.Mock).mock.calls
-      .map((c: any[]) => String(c[0]))
-      .join("\n");
-    expect(allOutput).toContain("N/A");
   });
 
   it("adjusts page size based on limit", async () => {

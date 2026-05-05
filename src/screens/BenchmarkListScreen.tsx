@@ -232,7 +232,7 @@ export function BenchmarkListScreen() {
         navigate("benchmark-detail", {
           benchmarkId: selectedBenchmark.id,
         });
-      } else if (input === "c" && selectedBenchmark) {
+      } else if (input === "s" && selectedBenchmark) {
         setShowPopup(false);
         navigate("benchmark-job-create", {
           initialBenchmarkIds: selectedBenchmark.id,
@@ -281,7 +281,7 @@ export function BenchmarkListScreen() {
     } else if (input === "a" && selectedBenchmark) {
       setShowPopup(true);
       setSelectedOperation(0);
-    } else if (input === "c" && selectedBenchmark) {
+    } else if (input === "s" && selectedBenchmark) {
       // Quick shortcut to create a job
       navigate("benchmark-job-create", {
         initialBenchmarkIds: selectedBenchmark.id,
@@ -461,7 +461,7 @@ export function BenchmarkListScreen() {
             condition: hasMore || hasPrev,
           },
           { key: "Enter", label: "Details" },
-          { key: "c", label: "Create Job" },
+          { key: "s", label: "Create Job" },
           { key: "a", label: "Actions" },
           { key: "Tab", label: "Switch tab" },
           { key: "/", label: "Search" },
