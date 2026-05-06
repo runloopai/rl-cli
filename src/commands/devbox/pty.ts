@@ -13,6 +13,7 @@ import {
   isLocalPtyOverride,
   buildWsHeaders,
   settleAfterPtyTunnel,
+  refreshPtySessionAfterAttach,
 } from "../../lib/pty-client.js";
 import { openPtyWebSocket } from "../../lib/pty-ws.js";
 
@@ -88,7 +89,7 @@ export async function ptyDevbox(devboxId: string, options: PtyOptions = {}) {
       authToken = tunnel.auth_token;
     }
 
-    const sessionName = options.session || devboxId;
+    const sessionName = options.session?.trim() || devboxId;
 
     if (options.command) {
       await execCommand(baseUrl, sessionName, options.command, authToken);
@@ -112,6 +113,14 @@ async function execCommand(
     authToken,
   });
   const ws = await openPtyWebSocket(wsUrl, buildWsHeaders(authToken));
+  await refreshPtySessionAfterAttach(
+    ws,
+    baseUrl,
+    sessionName,
+    80,
+    24,
+    authToken,
+  );
   ws.send(command + "\n");
 
   return new Promise<void>((resolve, reject) => {
@@ -157,6 +166,14 @@ async function interactiveSession(
     authToken,
   });
   const ws = await openPtyWebSocket(wsUrl, buildWsHeaders(authToken));
+  await refreshPtySessionAfterAttach(
+    ws,
+    baseUrl,
+    sessionName,
+    cols,
+    rows,
+    authToken,
+  );
 
   return new Promise<void>((resolve, reject) => {
     const releaseOnce = createPtySessionReleaser(

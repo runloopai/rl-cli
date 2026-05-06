@@ -5,6 +5,7 @@ import {
   createPtySessionReleaser,
   resolvePtyWebSocketUrl,
   buildWsHeaders,
+  refreshPtySessionAfterAttach,
 } from "../lib/pty-client.js";
 import { openPtyWebSocket } from "../lib/pty-ws.js";
 import {
@@ -74,6 +75,15 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
         });
         const ws = await openPtyWebSocket(wsUrl, buildWsHeaders(authToken));
         wsRef.current = ws;
+
+        await refreshPtySessionAfterAttach(
+          ws,
+          baseUrl,
+          sessionName,
+          cols,
+          rows,
+          authToken,
+        );
 
         releaseServerSession = createPtySessionReleaser(
           baseUrl,

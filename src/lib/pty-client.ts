@@ -242,6 +242,32 @@ export function createPtySessionReleaser(
   };
 }
 
+/** Same numeric value as `WebSocket.OPEN` from the `ws` package. */
+const WS_READY_STATE_OPEN = 1;
+
+/**
+ * After the attach WebSocket is open: re-send terminal size (refreshes session geometry)
+ * and send CR so the shell redraws the prompt (avoids a blank display until the user hits Enter).
+ */
+export async function refreshPtySessionAfterAttach(
+  ws: { readyState: number; send(data: string | Buffer): void },
+  baseUrl: string,
+  sessionName: string,
+  cols: number,
+  rows: number,
+  authToken?: string,
+): Promise<void> {
+  await ptyControl(
+    baseUrl,
+    sessionName,
+    { action: "resize", cols, rows },
+    authToken,
+  ).catch(() => {});
+  if (ws.readyState === WS_READY_STATE_OPEN) {
+    ws.send("\r");
+  }
+}
+
 /** WebSocket attach URL; adds `?token=` when `authToken` is set (tunnel WS upgrade). */
 export function buildWsUrl(
   baseUrl: string,
