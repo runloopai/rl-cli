@@ -52,6 +52,12 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
 }) => {
   const wsRef = React.useRef<WebSocket | null>(null);
   const hasStartedRef = React.useRef(false);
+  const onExitRef = React.useRef(onExit);
+  const onErrorRef = React.useRef(onError);
+  React.useEffect(() => {
+    onExitRef.current = onExit;
+    onErrorRef.current = onError;
+  });
 
   React.useEffect(() => {
     if (hasStartedRef.current) return;
@@ -138,7 +144,7 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
           cleanup();
           restoreTerminal();
           hasStartedRef.current = false;
-          onExit?.(code === 4000 ? 0 : code);
+          onExitRef.current?.(code === 4000 ? 0 : code);
         });
 
         ws.on("error", (err: Error) => {
@@ -146,12 +152,14 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
           cleanup();
           restoreTerminal();
           hasStartedRef.current = false;
-          onError?.(err);
+          onErrorRef.current?.(err);
         });
       } catch (err) {
         restoreTerminal();
         hasStartedRef.current = false;
-        onError?.(err instanceof Error ? err : new Error(String(err)));
+        onErrorRef.current?.(
+          err instanceof Error ? err : new Error(String(err)),
+        );
       }
     });
 
@@ -176,7 +184,7 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
       restoreTerminal();
       hasStartedRef.current = false;
     };
-  }, [baseUrl, sessionName, authToken, onExit, onError]);
+  }, [baseUrl, sessionName, authToken]);
 
   return null;
 };

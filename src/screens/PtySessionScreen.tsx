@@ -20,6 +20,15 @@ export function PtySessionScreen() {
   const returnScreen = (params.returnScreen as ScreenName) || "devbox-list";
   const returnParams = (params.returnParams as RouteParams) || {};
 
+  const configOk = !!(baseUrl && sessionName);
+  React.useEffect(() => {
+    if (configOk) return;
+    const id = setTimeout(() => {
+      replace(returnScreen, returnParams || {});
+    }, 100);
+    return () => clearTimeout(id);
+  }, [configOk, replace, returnScreen, returnParams]);
+
   if (!baseUrl || !sessionName) {
     return (
       <>
