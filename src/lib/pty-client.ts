@@ -1,4 +1,4 @@
-import { baseUrl, getConfig, isRunloopDebug } from "../utils/config.js";
+import { baseUrl, getConfig } from "../utils/config.js";
 import { getTunnelUrl } from "../utils/url.js";
 
 const PTY_CONNECT_MAX_ATTEMPTS = Math.max(
@@ -25,18 +25,6 @@ function ptyBootstrapConnectionClose(): boolean {
   const v =
     process.env.RUNLOOP_PTY_BOOTSTRAP_CONNECTION_CLOSE?.toLowerCase().trim();
   return v === "1" || v === "true" || v === "yes";
-}
-
-function urlForDebugLog(url: string): string {
-  try {
-    const u = new URL(url);
-    if (u.searchParams.has("token")) {
-      u.searchParams.set("token", "REDACTED");
-    }
-    return u.toString();
-  } catch {
-    return url;
-  }
 }
 
 async function readErrorSnippet(res: Response): Promise<string> {
@@ -106,9 +94,6 @@ export async function createPtyTunnel(
   if (!apiKey) throw new Error("API key not configured");
 
   const url = `${baseUrl()}/v1/devboxes/${encodeURIComponent(devboxId)}/create_pty_tunnel`;
-  if (isRunloopDebug()) {
-    console.error(`[RUNLOOP_DEBUG] POST ${url}`);
-  }
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -181,19 +166,6 @@ export async function ptyConnect(
   }
 
   for (let attempt = 1; attempt <= PTY_CONNECT_MAX_ATTEMPTS; attempt++) {
-    if (isRunloopDebug()) {
-      console.error(
-        `[RUNLOOP_DEBUG] PTY bootstrap GET ${urlForDebugLog(url)} (attempt ${attempt})`,
-      );
-      if (opts?.authToken) {
-        console.error(
-          `[RUNLOOP_DEBUG] PTY bootstrap Authorization: Bearer <set>`,
-        );
-        console.error(
-          `[RUNLOOP_DEBUG] PTY bootstrap token-in-query=${ptyBootstrapTokenInQuery()} connection-close=${ptyBootstrapConnectionClose()}`,
-        );
-      }
-    }
     const res = await fetch(url, { headers });
     if (res.ok) {
       return res.json() as Promise<PtyConnectResponse>;
@@ -210,11 +182,6 @@ export async function ptyConnect(
 
     if (retryable && attempt < PTY_CONNECT_MAX_ATTEMPTS) {
       const delayMs = Math.min(10_000, 400 * 2 ** (attempt - 1));
-      if (isRunloopDebug()) {
-        console.error(
-          `[RUNLOOP_DEBUG] ${msg}; retrying in ${delayMs}ms (${attempt}/${PTY_CONNECT_MAX_ATTEMPTS})`,
-        );
-      }
       await new Promise((r) => setTimeout(r, delayMs));
       continue;
     }
@@ -315,11 +282,6 @@ export function buildPtyAttachWsUrl(
 ): string {
   const path = buildPtyAttachPath(sessionName, opts?.cols, opts?.rows);
   const wsUrl = buildWsUrl(baseUrl, path, opts?.authToken);
-  if (isRunloopDebug()) {
-    console.error(
-      `[RUNLOOP_DEBUG] PTY attach-only (no bootstrap) WebSocket ${urlForDebugLog(wsUrl)}`,
-    );
-  }
   return wsUrl;
 }
 
@@ -350,11 +312,5 @@ export async function resolvePtyWebSocketUrl(
     connectResponse.connect_url,
     opts.authToken,
   );
-  if (isRunloopDebug()) {
-    console.error(
-      `[RUNLOOP_DEBUG] PTY bootstrap connect_url=${connectResponse.connect_url}`,
-    );
-    console.error(`[RUNLOOP_DEBUG] PTY WebSocket ${urlForDebugLog(wsUrl)}`);
-  }
   return wsUrl;
 }

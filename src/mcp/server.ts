@@ -10,10 +10,7 @@ import Runloop from "@runloop/api-client";
 import { VERSION } from "@runloop/api-client/version.js";
 import Conf from "conf";
 import { processUtils } from "../utils/processUtils.js";
-import {
-  checkBaseDomain,
-  loadRunloopApiKeyFromZprofileIfNeeded,
-} from "../utils/config.js";
+import { checkBaseDomain } from "../utils/config.js";
 
 // Client configuration
 interface Config {
@@ -478,7 +475,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 // Start the server
 async function main() {
   try {
-    loadRunloopApiKeyFromZprofileIfNeeded();
     checkBaseDomain();
     console.error("[MCP] Starting Runloop MCP server...");
     const transport = new StdioServerTransport();

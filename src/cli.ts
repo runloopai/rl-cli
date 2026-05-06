@@ -3,11 +3,7 @@
 import { exitAlternateScreenBuffer } from "./utils/screen.js";
 import { processUtils } from "./utils/processUtils.js";
 import { createProgram } from "./utils/commands.js";
-import {
-  getApiKeyErrorMessage,
-  checkBaseDomain,
-  loadRunloopApiKeyFromZprofileIfNeeded,
-} from "./utils/config.js";
+import { getApiKeyErrorMessage, checkBaseDomain } from "./utils/config.js";
 
 // Global Ctrl+C handler to ensure it always exits
 processUtils.on("SIGINT", () => {
@@ -26,8 +22,6 @@ const program = createProgram();
   await initializeTheme();
 
   checkBaseDomain();
-
-  loadRunloopApiKeyFromZprofileIfNeeded();
 
   // Check if API key is configured (except for mcp commands)
   const args = process.argv.slice(2);

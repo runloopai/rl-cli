@@ -1,6 +1,5 @@
 import type { ClientRequest, IncomingMessage } from "http";
 import WebSocket from "ws";
-import { isRunloopDebug } from "../utils/config.js";
 
 const PTY_WS_MAX_ATTEMPTS = Math.max(
   1,
@@ -62,11 +61,6 @@ export async function openPtyWebSocket(
 
   for (let attempt = 1; attempt <= PTY_WS_MAX_ATTEMPTS; attempt++) {
     try {
-      if (isRunloopDebug() && attempt > 1) {
-        console.error(
-          `[RUNLOOP_DEBUG] WebSocket connect attempt ${attempt}/${PTY_WS_MAX_ATTEMPTS}`,
-        );
-      }
       return await connectWebSocketOnce(wsUrl, headers);
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
@@ -81,11 +75,6 @@ export async function openPtyWebSocket(
       }
 
       const delayMs = Math.min(10_000, 400 * 2 ** (attempt - 1));
-      if (isRunloopDebug()) {
-        console.error(
-          `[RUNLOOP_DEBUG] ${msg}; retry in ${delayMs}ms (${attempt}/${PTY_WS_MAX_ATTEMPTS})`,
-        );
-      }
       await delay(delayMs);
     }
   }
