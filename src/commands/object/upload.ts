@@ -173,7 +173,12 @@ async function readStdinBuffer(): Promise<Buffer> {
 export async function uploadObject(options: UploadObjectOptions) {
   try {
     const client = getClient();
-    const { paths: rawPaths, name, contentType, output: outputFormat } = options;
+    const {
+      paths: rawPaths,
+      name,
+      contentType,
+      output: outputFormat,
+    } = options;
     const paths = [...rawPaths];
 
     if (paths.length === 0) {

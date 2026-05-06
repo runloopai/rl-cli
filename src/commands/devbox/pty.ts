@@ -116,12 +116,26 @@ async function execCommand(
     authToken,
   });
   const ws = await openPtyWebSocket(wsUrl, authToken);
-  await refreshPtySessionAfterAttach(ws, baseUrl, sessionName, 80, 24, authToken);
+  await refreshPtySessionAfterAttach(
+    ws,
+    baseUrl,
+    sessionName,
+    80,
+    24,
+    authToken,
+  );
   ws.send(command + "\n");
 
   return new Promise<void>((resolve, reject) => {
-    const releaseOnce = createPtySessionReleaser(baseUrl, sessionName, authToken);
-    const disposeInterruptSignals = registerPtyInterruptHandlers(ws, releaseOnce);
+    const releaseOnce = createPtySessionReleaser(
+      baseUrl,
+      sessionName,
+      authToken,
+    );
+    const disposeInterruptSignals = registerPtyInterruptHandlers(
+      ws,
+      releaseOnce,
+    );
 
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     if (PTY_EXEC_TIMEOUT_MS > 0) {
@@ -167,10 +181,22 @@ async function interactiveSession(
     authToken,
   });
   const ws = await openPtyWebSocket(wsUrl, authToken);
-  await refreshPtySessionAfterAttach(ws, baseUrl, sessionName, cols, rows, authToken);
+  await refreshPtySessionAfterAttach(
+    ws,
+    baseUrl,
+    sessionName,
+    cols,
+    rows,
+    authToken,
+  );
 
   const releaseOnce = createPtySessionReleaser(baseUrl, sessionName, authToken);
-  const { dispose, done } = startPtyIoSession(ws, baseUrl, sessionName, authToken);
+  const { dispose, done } = startPtyIoSession(
+    ws,
+    baseUrl,
+    sessionName,
+    authToken,
+  );
   const disposeSignals = registerPtyInterruptHandlers(ws, releaseOnce);
 
   try {

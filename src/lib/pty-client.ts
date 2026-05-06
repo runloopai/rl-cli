@@ -372,9 +372,12 @@ export function startPtyIoSession(
   const onResize = () => {
     const cols = process.stdout.columns || 80;
     const rows = process.stdout.rows || 24;
-    ptyControl(baseUrl, sessionName, { action: "resize", cols, rows }, authToken).catch(
-      () => {},
-    );
+    ptyControl(
+      baseUrl,
+      sessionName,
+      { action: "resize", cols, rows },
+      authToken,
+    ).catch(() => {});
   };
 
   const onMessage = (data: WebSocket.RawData) => {
