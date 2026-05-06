@@ -1,19 +1,17 @@
 import WebSocket from "ws";
 import { cliStatus } from "../../utils/cliStatus.js";
 import { outputError } from "../../utils/output.js";
-import { processUtils } from "../../utils/processUtils.js";
 import { waitForReady } from "../../utils/ssh.js";
 import {
   getPtyBaseUrl,
-  ptyControl,
   createPtySessionReleaser,
   resolvePtyWebSocketUrl,
   createPtyTunnel,
   getPtyTunnelBaseUrl,
   isLocalPtyOverride,
-  buildWsHeaders,
   settleAfterPtyTunnel,
   refreshPtySessionAfterAttach,
+  startPtyIoSession,
 } from "../../lib/pty-client.js";
 import { openPtyWebSocket } from "../../lib/pty-ws.js";
 
@@ -41,7 +39,7 @@ function registerPtyInterruptHandlers(
   return dispose;
 }
 
-function writePtyStreamToStdout(data: WebSocket.Data): void {
+function writePtyStreamToStdout(data: WebSocket.RawData): void {
   if (Buffer.isBuffer(data)) {
     process.stdout.write(data);
   } else if (data instanceof ArrayBuffer) {
@@ -101,6 +99,11 @@ export async function ptyDevbox(devboxId: string, options: PtyOptions = {}) {
   }
 }
 
+const PTY_EXEC_TIMEOUT_MS = (() => {
+  const v = parseInt(process.env.RUNLOOP_PTY_EXEC_TIMEOUT_MS || "0", 10);
+  return isNaN(v) || v < 0 ? 0 : v;
+})();
+
 async function execCommand(
   baseUrl: string,
   sessionName: string,
@@ -112,41 +115,39 @@ async function execCommand(
     rows: 24,
     authToken,
   });
-  const ws = await openPtyWebSocket(wsUrl, buildWsHeaders(authToken));
-  await refreshPtySessionAfterAttach(
-    ws,
-    baseUrl,
-    sessionName,
-    80,
-    24,
-    authToken,
-  );
+  const ws = await openPtyWebSocket(wsUrl, authToken);
+  await refreshPtySessionAfterAttach(ws, baseUrl, sessionName, 80, 24, authToken);
   ws.send(command + "\n");
 
   return new Promise<void>((resolve, reject) => {
-    const releaseOnce = createPtySessionReleaser(
-      baseUrl,
-      sessionName,
-      authToken,
-    );
-    const disposeInterruptSignals = registerPtyInterruptHandlers(
-      ws,
-      releaseOnce,
-    );
+    const releaseOnce = createPtySessionReleaser(baseUrl, sessionName, authToken);
+    const disposeInterruptSignals = registerPtyInterruptHandlers(ws, releaseOnce);
 
-    ws.on("message", (data: WebSocket.Data) => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    if (PTY_EXEC_TIMEOUT_MS > 0) {
+      timeoutId = setTimeout(() => {
+        releaseOnce();
+        ws.close();
+      }, PTY_EXEC_TIMEOUT_MS);
+    }
+
+    const finish = () => {
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+      releaseOnce();
+      disposeInterruptSignals();
+    };
+
+    ws.on("message", (data: WebSocket.RawData) => {
       writePtyStreamToStdout(data);
     });
 
     ws.on("close", () => {
-      releaseOnce();
-      disposeInterruptSignals();
+      finish();
       resolve();
     });
 
     ws.on("error", (err: Error) => {
-      releaseOnce();
-      disposeInterruptSignals();
+      finish();
       reject(err);
     });
   });
@@ -165,79 +166,21 @@ async function interactiveSession(
     rows,
     authToken,
   });
-  const ws = await openPtyWebSocket(wsUrl, buildWsHeaders(authToken));
-  await refreshPtySessionAfterAttach(
-    ws,
-    baseUrl,
-    sessionName,
-    cols,
-    rows,
-    authToken,
-  );
+  const ws = await openPtyWebSocket(wsUrl, authToken);
+  await refreshPtySessionAfterAttach(ws, baseUrl, sessionName, cols, rows, authToken);
 
-  return new Promise<void>((resolve, reject) => {
-    const releaseOnce = createPtySessionReleaser(
-      baseUrl,
-      sessionName,
-      authToken,
-    );
-    const disposeInterruptSignals = registerPtyInterruptHandlers(
-      ws,
-      releaseOnce,
-    );
+  const releaseOnce = createPtySessionReleaser(baseUrl, sessionName, authToken);
+  const { dispose, done } = startPtyIoSession(ws, baseUrl, sessionName, authToken);
+  const disposeSignals = registerPtyInterruptHandlers(ws, releaseOnce);
 
-    const cleanup = () => {
-      disposeInterruptSignals();
-      process.stdin.removeListener("data", onStdinData);
-      process.removeListener("SIGWINCH", onResize);
-      if (processUtils.stdin.isTTY && processUtils.stdin.setRawMode) {
-        processUtils.stdin.setRawMode(false);
-      }
-      process.stdin.pause();
-    };
-
-    const onStdinData = (data: Buffer) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data);
-      }
-    };
-
-    const onResize = () => {
-      const newCols = process.stdout.columns || 80;
-      const newRows = process.stdout.rows || 24;
-      ptyControl(
-        baseUrl,
-        sessionName,
-        {
-          action: "resize",
-          cols: newCols,
-          rows: newRows,
-        },
-        authToken,
-      ).catch(() => {});
-    };
-
-    if (processUtils.stdin.isTTY && processUtils.stdin.setRawMode) {
-      processUtils.stdin.setRawMode(true);
-    }
-    process.stdin.resume();
-    process.stdin.on("data", onStdinData);
-    process.on("SIGWINCH", onResize);
-
-    ws.on("message", (data: WebSocket.Data) => {
-      writePtyStreamToStdout(data);
-    });
-
-    ws.on("close", () => {
-      releaseOnce();
-      cleanup();
-      resolve();
-    });
-
-    ws.on("error", (err: Error) => {
-      releaseOnce();
-      cleanup();
-      reject(err);
-    });
-  });
+  try {
+    await done;
+    releaseOnce();
+  } catch (err) {
+    releaseOnce();
+    throw err;
+  } finally {
+    dispose();
+    disposeSignals();
+  }
 }

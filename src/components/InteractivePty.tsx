@@ -1,18 +1,13 @@
 import React from "react";
 import WebSocket from "ws";
 import {
-  ptyControl,
   createPtySessionReleaser,
   resolvePtyWebSocketUrl,
-  buildWsHeaders,
   refreshPtySessionAfterAttach,
+  startPtyIoSession,
 } from "../lib/pty-client.js";
 import { openPtyWebSocket } from "../lib/pty-ws.js";
-import {
-  showCursor,
-  clearScreen,
-  enterAlternateScreenBuffer,
-} from "../utils/screen.js";
+import { clearScreen } from "../utils/screen.js";
 import { processUtils } from "../utils/processUtils.js";
 
 interface InteractivePtyProps {
@@ -23,6 +18,10 @@ interface InteractivePtyProps {
   onError?: (error: Error) => void;
 }
 
+/**
+ * Hand control of the terminal back to the PTY by pausing Ink's raw-mode input.
+ * Called before opening the WebSocket so Ink doesn't race on stdin.
+ */
 function releaseTerminal(): void {
   process.stdin.pause();
   if (processUtils.stdin.isTTY && processUtils.stdin.setRawMode) {
@@ -31,12 +30,15 @@ function releaseTerminal(): void {
   if (processUtils.stdout.isTTY) {
     processUtils.stdout.write("\x1b[0m");
   }
-  showCursor();
 }
 
+/**
+ * Return the terminal to Ink after a PTY session ends.
+ * Clears any residual PTY output and re-enables raw mode so Ink can
+ * receive keyboard events again.
+ */
 function restoreTerminal(): void {
   clearScreen();
-  enterAlternateScreenBuffer();
   if (processUtils.stdin.isTTY && processUtils.stdin.setRawMode) {
     processUtils.stdin.setRawMode(true);
   }
@@ -65,9 +67,8 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
 
     releaseTerminal();
 
-    let stdinListener: ((data: Buffer) => void) | null = null;
-    let sigwinchListener: (() => void) | null = null;
-    let releaseServerSession: (() => void) | null = null;
+    let cancelled = false;
+    let ioDispose: (() => void) | null = null;
 
     setImmediate(async () => {
       try {
@@ -79,7 +80,16 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
           rows,
           authToken,
         });
-        const ws = await openPtyWebSocket(wsUrl, buildWsHeaders(authToken));
+
+        if (cancelled) return;
+
+        const ws = await openPtyWebSocket(wsUrl, authToken);
+
+        if (cancelled) {
+          ws.close();
+          return;
+        }
+
         wsRef.current = ws;
 
         await refreshPtySessionAfterAttach(
@@ -91,92 +101,58 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
           authToken,
         );
 
-        releaseServerSession = createPtySessionReleaser(
+        const releaseServerSession = createPtySessionReleaser(
+          baseUrl,
+          sessionName,
+          authToken,
+        );
+        const { dispose, done } = startPtyIoSession(
+          ws,
           baseUrl,
           sessionName,
           authToken,
         );
 
-        ws.binaryType = "arraybuffer";
+        const ioCleanup = () => {
+          dispose();
+          releaseServerSession();
+        };
+        ioDispose = ioCleanup;
 
-        if (processUtils.stdin.isTTY && processUtils.stdin.setRawMode) {
-          processUtils.stdin.setRawMode(true);
+        if (cancelled) {
+          ioCleanup();
+          return;
         }
-        process.stdin.resume();
 
-        stdinListener = (data: Buffer) => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(data);
-          }
-        };
-        process.stdin.on("data", stdinListener);
-
-        ws.on("message", (data: WebSocket.Data) => {
-          if (data instanceof ArrayBuffer) {
-            process.stdout.write(Buffer.from(data));
-          } else if (Buffer.isBuffer(data)) {
-            process.stdout.write(data);
-          } else if (Array.isArray(data)) {
-            process.stdout.write(Buffer.concat(data));
-          } else {
-            process.stdout.write(String(data));
-          }
-        });
-
-        sigwinchListener = () => {
-          const newCols = process.stdout.columns || 80;
-          const newRows = process.stdout.rows || 24;
-          ptyControl(
-            baseUrl,
-            sessionName,
-            {
-              action: "resize",
-              cols: newCols,
-              rows: newRows,
-            },
-            authToken,
-          ).catch(() => {});
-        };
-        process.on("SIGWINCH", sigwinchListener);
-
-        ws.on("close", (code: number) => {
-          releaseServerSession?.();
-          cleanup();
-          restoreTerminal();
-          hasStartedRef.current = false;
-          onExitRef.current?.(code === 4000 ? 0 : code);
-        });
-
-        ws.on("error", (err: Error) => {
-          releaseServerSession?.();
-          cleanup();
-          restoreTerminal();
-          hasStartedRef.current = false;
-          onErrorRef.current?.(err);
-        });
+        done
+          .then((code) => {
+            wsRef.current = null;
+            ioCleanup();
+            restoreTerminal();
+            hasStartedRef.current = false;
+            onExitRef.current?.(code === 4000 ? 0 : code);
+          })
+          .catch((err: Error) => {
+            wsRef.current = null;
+            ioCleanup();
+            restoreTerminal();
+            hasStartedRef.current = false;
+            onErrorRef.current?.(err);
+          });
       } catch (err) {
-        restoreTerminal();
-        hasStartedRef.current = false;
-        onErrorRef.current?.(
-          err instanceof Error ? err : new Error(String(err)),
-        );
+        if (!cancelled) {
+          restoreTerminal();
+          hasStartedRef.current = false;
+          onErrorRef.current?.(
+            err instanceof Error ? err : new Error(String(err)),
+          );
+        }
       }
     });
 
-    function cleanup() {
-      if (stdinListener) {
-        process.stdin.removeListener("data", stdinListener);
-        stdinListener = null;
-      }
-      if (sigwinchListener) {
-        process.removeListener("SIGWINCH", sigwinchListener);
-        sigwinchListener = null;
-      }
-    }
-
     return () => {
-      cleanup();
-      releaseServerSession?.();
+      cancelled = true;
+      ioDispose?.();
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.close();
       }

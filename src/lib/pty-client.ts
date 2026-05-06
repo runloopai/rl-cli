@@ -1,5 +1,7 @@
+import WebSocket from "ws";
 import { baseUrl, getConfig } from "../utils/config.js";
 import { getTunnelUrl } from "../utils/url.js";
+import { processUtils } from "../utils/processUtils.js";
 
 const PTY_CONNECT_MAX_ATTEMPTS = Math.max(
   1,
@@ -120,13 +122,6 @@ export function getPtyTunnelBaseUrl(tunnelKey: string): string {
 
 export function isLocalPtyOverride(): boolean {
   return !!process.env.RUNLOOP_PTY_URL?.trim();
-}
-
-export function buildWsHeaders(
-  authToken?: string,
-): Record<string, string> | undefined {
-  if (!authToken) return undefined;
-  return { Authorization: `Bearer ${authToken}` };
 }
 
 export function getPtyBaseUrl(): string {
@@ -268,20 +263,11 @@ export async function refreshPtySessionAfterAttach(
   }
 }
 
-/** WebSocket attach URL; adds `?token=` when `authToken` is set (tunnel WS upgrade). */
-export function buildWsUrl(
-  baseUrl: string,
-  connectUrl: string,
-  authToken?: string,
-): string {
+/** WebSocket attach URL built from `baseUrl` + `connectUrl` path. No auth token in the URL. */
+export function buildWsUrl(baseUrl: string, connectUrl: string): string {
   const parsed = new URL(baseUrl);
   const protocol = parsed.protocol === "https:" ? "wss:" : "ws:";
-  let path = connectUrl;
-  if (authToken) {
-    const sep = connectUrl.includes("?") ? "&" : "?";
-    path = `${connectUrl}${sep}token=${encodeURIComponent(authToken)}`;
-  }
-  return `${protocol}//${parsed.host}${path}`;
+  return `${protocol}//${parsed.host}${connectUrl}`;
 }
 
 /**
@@ -304,11 +290,10 @@ export function buildPtyAttachPath(
 export function buildPtyAttachWsUrl(
   baseUrl: string,
   sessionName: string,
-  opts?: { cols?: number; rows?: number; authToken?: string },
+  opts?: { cols?: number; rows?: number },
 ): string {
   const path = buildPtyAttachPath(sessionName, opts?.cols, opts?.rows);
-  const wsUrl = buildWsUrl(baseUrl, path, opts?.authToken);
-  return wsUrl;
+  return buildWsUrl(baseUrl, path);
 }
 
 export function isPtyAttachOnlyMode(): boolean {
@@ -319,6 +304,8 @@ export function isPtyAttachOnlyMode(): boolean {
 /**
  * Resolves the WebSocket URL: by default `ptyConnect` bootstrap then `connect_url`;
  * if `RUNLOOP_PTY_ATTACH_ONLY=1`, opens `/pty/.../attach` directly (often 502 if server requires bootstrap).
+ * Auth token is passed via HTTP Authorization header (bootstrap) and as WebSocket subprotocol
+ * (Sec-WebSocket-Protocol), never in the URL.
  */
 export async function resolvePtyWebSocketUrl(
   baseUrl: string,
@@ -333,10 +320,95 @@ export async function resolvePtyWebSocketUrl(
     rows: opts.rows,
     authToken: opts.authToken,
   });
-  const wsUrl = buildWsUrl(
-    baseUrl,
-    connectResponse.connect_url,
-    opts.authToken,
-  );
-  return wsUrl;
+  return buildWsUrl(baseUrl, connectResponse.connect_url);
+}
+
+export interface PtyIoHandle {
+  /**
+   * Stop the session: removes all stdin/SIGWINCH/WS listeners, disables raw mode,
+   * pauses stdin. Does not close the WebSocket or release the server session.
+   */
+  dispose: () => void;
+  /**
+   * Resolves with the WS close code when the server closes the session.
+   * Rejects if a WS error fires before close. Never settles after dispose().
+   */
+  done: Promise<number>;
+}
+
+/**
+ * Wire an open WebSocket into an interactive PTY I/O session:
+ * - Sets stdin to raw mode and pumps keystrokes to the WS
+ * - Forwards WS messages (binary or text) to stdout
+ * - Sends resize commands on SIGWINCH
+ *
+ * Returns a handle with `dispose()` to tear down listeners and `done` that
+ * resolves with the WS close code when the session ends naturally.
+ */
+export function startPtyIoSession(
+  ws: WebSocket,
+  baseUrl: string,
+  sessionName: string,
+  authToken?: string,
+): PtyIoHandle {
+  let doneResolve!: (code: number) => void;
+  let doneReject!: (err: Error) => void;
+  const done = new Promise<number>((resolve, reject) => {
+    doneResolve = resolve;
+    doneReject = reject;
+  });
+
+  if (processUtils.stdin.isTTY && processUtils.stdin.setRawMode) {
+    processUtils.stdin.setRawMode(true);
+  }
+  process.stdin.resume();
+
+  const onStdinData = (data: Buffer) => {
+    if (ws.readyState === WS_READY_STATE_OPEN) {
+      ws.send(data);
+    }
+  };
+
+  const onResize = () => {
+    const cols = process.stdout.columns || 80;
+    const rows = process.stdout.rows || 24;
+    ptyControl(baseUrl, sessionName, { action: "resize", cols, rows }, authToken).catch(
+      () => {},
+    );
+  };
+
+  const onMessage = (data: WebSocket.RawData) => {
+    if (data instanceof ArrayBuffer) {
+      process.stdout.write(Buffer.from(data));
+    } else if (Buffer.isBuffer(data)) {
+      process.stdout.write(data);
+    } else if (Array.isArray(data)) {
+      process.stdout.write(Buffer.concat(data));
+    } else {
+      process.stdout.write(String(data));
+    }
+  };
+
+  const onClose = (code: number) => doneResolve(code);
+  const onError = (err: Error) => doneReject(err);
+
+  process.stdin.on("data", onStdinData);
+  process.on("SIGWINCH", onResize);
+  ws.on("message", onMessage);
+  ws.on("close", onClose);
+  ws.on("error", onError);
+
+  const dispose = () => {
+    process.stdin.removeListener("data", onStdinData);
+    process.removeListener("SIGWINCH", onResize);
+    ws.removeListener("message", onMessage);
+    ws.removeListener("close", onClose);
+    ws.removeListener("error", onError);
+    if (processUtils.stdin.isTTY && processUtils.stdin.setRawMode) {
+      processUtils.stdin.setRawMode(false);
+    }
+    process.stdin.pause();
+  };
+
+  return { dispose, done };
 }

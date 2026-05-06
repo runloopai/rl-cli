@@ -12,10 +12,10 @@ function delay(ms: number): Promise<void> {
 
 function connectWebSocketOnce(
   wsUrl: string,
-  headers: Record<string, string> | undefined,
+  protocols: string[] | undefined,
 ): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(wsUrl, { headers });
+    const ws = new WebSocket(wsUrl, protocols ?? []);
     let settled = false;
 
     const connectTimer = setTimeout(() => {
@@ -52,16 +52,21 @@ function connectWebSocketOnce(
   });
 }
 
-/** Connect to PTY attach URL; retries HTTP 502/503 from tunnel edge during warm-up. */
+/**
+ * Connect to PTY attach URL; retries HTTP 502/503 from tunnel edge during warm-up.
+ * authToken is passed as a WebSocket subprotocol (Sec-WebSocket-Protocol) so it
+ * is not visible in server access logs as a URL query parameter.
+ */
 export async function openPtyWebSocket(
   wsUrl: string,
-  headers: Record<string, string> | undefined,
+  authToken: string | undefined,
 ): Promise<WebSocket> {
+  const protocols = authToken ? [authToken] : undefined;
   let lastErr: Error | undefined;
 
   for (let attempt = 1; attempt <= PTY_WS_MAX_ATTEMPTS; attempt++) {
     try {
-      return await connectWebSocketOnce(wsUrl, headers);
+      return await connectWebSocketOnce(wsUrl, protocols);
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
       const msg = lastErr.message;

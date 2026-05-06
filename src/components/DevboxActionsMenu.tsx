@@ -34,6 +34,7 @@ import {
   getPtyTunnelBaseUrl,
   settleAfterPtyTunnel,
 } from "../lib/pty-client.js";
+import { waitForReady } from "../utils/ssh.js";
 
 type Operation =
   | "exec"
@@ -697,6 +698,8 @@ export const DevboxActionsMenu = ({
           break;
 
         case "pty": {
+          await waitForReady(devbox.id, 180, 3);
+
           let ptyBaseUrl: string;
           let ptyAuthToken: string | undefined;
 
