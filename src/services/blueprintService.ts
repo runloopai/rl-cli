@@ -93,6 +93,74 @@ export async function listBlueprints(
 }
 
 /**
+ * List public blueprints with pagination
+ */
+export async function listPublicBlueprints(
+  options: ListBlueprintsOptions,
+): Promise<ListBlueprintsResult> {
+  const client = getClient();
+
+  const queryParams: {
+    limit?: number;
+    starting_after?: string;
+    name?: string;
+    include_total_count?: boolean;
+  } = {
+    limit: options.limit,
+    include_total_count: options.includeTotalCount === true,
+  };
+
+  if (options.startingAfter) {
+    queryParams.starting_after = options.startingAfter;
+  }
+
+  if (options.search) {
+    queryParams.name = options.search;
+  }
+
+  const page = (await client.blueprints.listPublic(
+    queryParams,
+  )) as unknown as BlueprintsCursorIDPage<BlueprintView> & {
+    total_count?: number;
+  };
+
+  const blueprints: Blueprint[] = [];
+
+  if (page.blueprints && Array.isArray(page.blueprints)) {
+    page.blueprints.forEach((b: BlueprintView) => {
+      const MAX_ID_LENGTH = 100;
+      const MAX_NAME_LENGTH = 200;
+      const MAX_ARCH_LENGTH = 50;
+      const MAX_RESOURCES_LENGTH = 100;
+
+      const architecture = b.parameters?.launch_parameters?.architecture;
+      const resources = b.parameters?.launch_parameters?.resource_size_request;
+
+      blueprints.push({
+        id: String(b.id || "").substring(0, MAX_ID_LENGTH),
+        name: String(b.name || "").substring(0, MAX_NAME_LENGTH),
+        status: b.status,
+        state: b.state,
+        create_time_ms: b.create_time_ms,
+        parameters: b.parameters,
+        architecture: architecture
+          ? String(architecture).substring(0, MAX_ARCH_LENGTH)
+          : undefined,
+        resources: resources
+          ? String(resources).substring(0, MAX_RESOURCES_LENGTH)
+          : undefined,
+      });
+    });
+  }
+
+  return {
+    blueprints,
+    totalCount: page.total_count ?? blueprints.length,
+    hasMore: page.has_more || false,
+  };
+}
+
+/**
  * Get a single blueprint by ID
  */
 export async function getBlueprint(id: string): Promise<Blueprint> {
