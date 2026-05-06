@@ -51,8 +51,6 @@ const KNOWN_SCREENS: Set<ScreenName> = new Set([
   "agent-create",
   "axon-list",
   "axon-detail",
-  "axon-events",
-  "axon-sql",
   "object-list",
   "object-detail",
   "object-create",
@@ -136,8 +134,6 @@ import { AgentDetailScreen } from "../screens/AgentDetailScreen.js";
 import { AgentCreateScreen } from "../screens/AgentCreateScreen.js";
 import { AxonListScreen } from "../screens/AxonListScreen.js";
 import { AxonDetailScreen } from "../screens/AxonDetailScreen.js";
-import { AxonEventsScreen } from "../screens/AxonEventsScreen.js";
-import { AxonSqlScreen } from "../screens/AxonSqlScreen.js";
 import { ObjectListScreen } from "../screens/ObjectListScreen.js";
 import { ObjectDetailScreen } from "../screens/ObjectDetailScreen.js";
 import { ObjectCreateScreen } from "../screens/ObjectCreateScreen.js";
@@ -256,8 +252,6 @@ export function Router() {
         case "agent-list":
         case "agent-detail":
         case "agent-create":
-        case "axon-events":
-        case "axon-sql":
           break;
       }
     }
@@ -354,12 +348,6 @@ export function Router() {
       )}
       {currentScreen === "axon-detail" && (
         <AxonDetailScreen key={currentScreen} {...params} />
-      )}
-      {currentScreen === "axon-events" && (
-        <AxonEventsScreen key={currentScreen} {...params} />
-      )}
-      {currentScreen === "axon-sql" && (
-        <AxonSqlScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "object-list" && (
         <ObjectListScreen key={currentScreen} {...params} />

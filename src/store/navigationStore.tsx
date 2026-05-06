@@ -42,8 +42,6 @@ export type ScreenName =
   | "agent-create"
   | "axon-list"
   | "axon-detail"
-  | "axon-events"
-  | "axon-sql"
   | "object-list"
   | "object-detail"
   | "object-create"

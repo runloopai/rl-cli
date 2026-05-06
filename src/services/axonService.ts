@@ -13,6 +13,20 @@ import type {
 export type { SqlQueryResultView, SqlColumnMetaView, SqlResultMetaView };
 export type Axon = AxonView;
 
+const ORIGIN_MAP: Record<number, string> = {
+  1: "EXTERNAL_EVENT",
+  2: "AGENT_EVENT",
+  3: "USER_EVENT",
+  4: "SYSTEM_EVENT",
+};
+
+function mapOrigin(value: number | string): string {
+  if (typeof value === "number") {
+    return ORIGIN_MAP[value] ?? `UNKNOWN(${value})`;
+  }
+  return value;
+}
+
 export interface ListActiveAxonsOptions {
   limit?: number;
   startingAfter?: string;
@@ -112,7 +126,7 @@ export async function listAxonEvents(
   const allRows = (result.rows as unknown[][]).map((row) => ({
     sequence: row[0] as number,
     timestamp_ms: row[1] as number,
-    origin: row[2] as string,
+    origin: mapOrigin(row[2] as number | string),
     source: row[3] as string,
     event_type: row[4] as string,
     payload: row[5] as string,
