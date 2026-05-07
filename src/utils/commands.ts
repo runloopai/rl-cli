@@ -6,6 +6,9 @@ import { deleteDevbox } from "../commands/devbox/delete.js";
 import { execCommand } from "../commands/devbox/exec.js";
 import { uploadFile } from "../commands/devbox/upload.js";
 
+/** Helper for repeatable options (e.g., --metadata a=b --metadata c=d) */
+const collect = (val: string, prev: string[]) => [...prev, val];
+
 /**
  * Creates and configures the Commander program with all commands.
  * This is shared between the CLI and documentation generation.
@@ -487,7 +490,12 @@ export function createProgram(): Command {
     .option("--available-ports <ports...>", "Available ports")
     .option("--root", "Run as root")
     .option("--user <user:uid>", "Run as this user (format: username:uid)")
-    .option("--metadata <tags...>", "Metadata tags (format: key=value)")
+    .option(
+      "--metadata <tag>",
+      "Metadata tag (format: key=value), repeatable",
+      collect,
+      [],
+    )
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: json)",
@@ -578,7 +586,12 @@ export function createProgram(): Command {
     .option("--available-ports <ports...>", "Available ports")
     .option("--root", "Run as root")
     .option("--user <user:uid>", "Run as this user (format: username:uid)")
-    .option("--metadata <tags...>", "Metadata tags (format: key=value)")
+    .option(
+      "--metadata <tag>",
+      "Metadata tag (format: key=value), repeatable",
+      collect,
+      [],
+    )
     .option(
       "--ttl <seconds>",
       "TTL in seconds for the build context object (default: 3600)",
@@ -664,7 +677,12 @@ export function createProgram(): Command {
       "Content type: unspecified|text|binary|gzip|tar|tgz",
     )
     .option("--public", "Make object publicly accessible")
-    .option("--metadata <tags...>", "Metadata tags (format: key=value)")
+    .option(
+      "--metadata <tag>",
+      "Metadata tag (format: key=value), repeatable",
+      collect,
+      [],
+    )
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
@@ -1143,7 +1161,12 @@ export function createProgram(): Command {
     .option("--n-attempts <n>", "Number of attempts per scenario")
     .option("--n-concurrent-trials <n>", "Number of concurrent trials")
     .option("--timeout-multiplier <n>", "Timeout multiplier")
-    .option("--metadata <tags...>", "Metadata tags (format: key=value)")
+    .option(
+      "--metadata <tag>",
+      "Metadata tag (format: key=value), repeatable",
+      collect,
+      [],
+    )
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: text)",
