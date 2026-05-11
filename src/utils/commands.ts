@@ -615,7 +615,7 @@ export function createProgram(): Command {
   object
     .command("list")
     .description("List objects")
-    .option("--limit <n>", "Max results", "20")
+    .option("-l, --limit <n>", "Max results", "20")
     .option("--starting-after <id>", "Starting point for pagination")
     .option("--name <name>", "Filter by name (partial match supported)")
     .option("--content-type <type>", "Filter by content type")
@@ -722,7 +722,7 @@ export function createProgram(): Command {
   networkPolicy
     .command("list")
     .description("List network policies")
-    .option("--limit <n>", "Max results", "20")
+    .option("-l, --limit <n>", "Max results", "20")
     .option("--starting-after <id>", "Starting point for pagination")
     .option("--name <name>", "Filter by name")
     .option(
@@ -808,7 +808,7 @@ export function createProgram(): Command {
   secret
     .command("list")
     .description("List all secrets")
-    .option("--limit <n>", "Max results", "20")
+    .option("-l, --limit <n>", "Max results", "20")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: json)",
@@ -865,7 +865,7 @@ export function createProgram(): Command {
     .command("list")
     .description("List gateway configurations")
     .option("--name <name>", "Filter by name")
-    .option("--limit <n>", "Max results", "20")
+    .option("-l, --limit <n>", "Max results", "20")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: json)",
@@ -955,7 +955,7 @@ export function createProgram(): Command {
     .command("list")
     .description("List MCP configurations")
     .option("--name <name>", "Filter by name")
-    .option("--limit <n>", "Max results", "20")
+    .option("-l, --limit <n>", "Max results", "20")
     .option(
       "-o, --output [format]",
       "Output format: text|json|yaml (default: json)",
@@ -1069,7 +1069,7 @@ export function createProgram(): Command {
   axon
     .command("list")
     .description("List active axons")
-    .option("--limit <n>", "Max axons to return (0 = unlimited)", "0")
+    .option("-l, --limit <n>", "Max results", "20")
     .option(
       "--starting-after <id>",
       "Starting point for cursor pagination (axon ID)",
@@ -1157,7 +1157,7 @@ export function createProgram(): Command {
   scenario
     .command("list")
     .description("List scenario runs")
-    .option("--limit <n>", "Max scenario runs to return (0 = unlimited)", "0")
+    .option("-l, --limit <n>", "Max results", "20")
     .option("--benchmark-run-id <id>", "Filter by benchmark run ID")
     .option(
       "-o, --output [format]",
@@ -1288,6 +1288,7 @@ export function createProgram(): Command {
   benchmarkJob
     .command("list")
     .description("List benchmark jobs")
+    .option("-l, --limit <n>", "Max results", "20")
     .option("--days <n>", "Show jobs from the last N days (default: 1)")
     .option("--all", "Show all jobs (no time filter)")
     .option(
@@ -1318,7 +1319,7 @@ export function createProgram(): Command {
     .option("--search <query>", "Search by agent ID or name")
     .option("--public", "Show only public agents")
     .option("--private", "Show only private agents")
-    .option("--limit <n>", "Max results to return (0 = unlimited)", "0")
+    .option("-l, --limit <n>", "Max results", "20")
     .option("--starting-after <id>", "Cursor for pagination (agent ID)")
     .option(
       "-o, --output [format]",

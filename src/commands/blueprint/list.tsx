@@ -870,6 +870,13 @@ const ListBlueprintsUI = ({
       {/* Tab bar */}
       <Box paddingX={2} marginBottom={0}>
         <Text
+          color={!showPublic ? colors.primary : colors.textDim}
+          bold={!showPublic}
+        >
+          {!showPublic ? figures.pointer : " "} Custom
+        </Text>
+        <Text color={colors.textDim}> │ </Text>
+        <Text
           color={showPublic ? colors.primary : colors.textDim}
           bold={showPublic}
         >
