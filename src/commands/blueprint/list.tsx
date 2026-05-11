@@ -31,6 +31,7 @@ import {
 } from "../../hooks/useInputHandler.js";
 import { useNavigation } from "../../store/navigationStore.js";
 import { ConfirmationPrompt } from "../../components/ConfirmationPrompt.js";
+import { listBlueprints as listBlueprintsService } from "../../services/blueprintService.js";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -42,10 +43,17 @@ type OperationType =
   | null;
 
 // Local interface for blueprint data used in this component
+type BlueprintStatus =
+  | "queued"
+  | "provisioning"
+  | "building"
+  | "failed"
+  | "build_complete";
+
 interface BlueprintListItem {
   id: string;
   name?: string;
-  status?: string;
+  status?: BlueprintStatus;
   create_time_ms?: number;
   [key: string]: unknown;
 }
@@ -78,6 +86,7 @@ const ListBlueprintsUI = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [showPopup, setShowPopup] = React.useState(false);
+  const [showPublic, setShowPublic] = React.useState(false);
   const { navigate } = useNavigation();
 
   // Search state
@@ -86,8 +95,8 @@ const ListBlueprintsUI = ({
     onSearchClear: () => setSelectedIndex(0),
   });
 
-  // Calculate overhead for viewport height
-  const overhead = 13 + search.getSearchOverhead();
+  // Calculate overhead for viewport height (14 = breadcrumb + tab bar + search + table header + stats + nav tips + borders)
+  const overhead = 14 + search.getSearchOverhead();
   const { viewportHeight, terminalWidth } = useViewportHeight({
     overhead,
     minHeight: 5,
@@ -118,50 +127,26 @@ const ListBlueprintsUI = ({
       startingAt?: string;
       includeTotalCount?: boolean;
     }) => {
-      const client = getClient();
-      const pageBlueprints: BlueprintListItem[] = [];
-
-      // Build query params
-      const queryParams: Record<string, unknown> = {
+      const result = await listBlueprintsService({
         limit: params.limit,
-        // Only request total_count on first page (expensive for backend)
-        include_total_count: params.includeTotalCount === true,
+        startingAfter: params.startingAt,
+        search: search.submittedSearchQuery || undefined,
+        publicOnly: showPublic,
+        includeTotalCount: params.includeTotalCount,
+      });
+
+      return {
+        items: result.blueprints.map((b) => ({
+          id: b.id,
+          name: b.name,
+          status: b.status,
+          create_time_ms: b.create_time_ms,
+        })),
+        hasMore: result.hasMore,
+        totalCount: result.totalCount,
       };
-      if (params.startingAt) {
-        queryParams.starting_after = params.startingAt;
-      }
-      if (search.submittedSearchQuery) {
-        queryParams.search = search.submittedSearchQuery;
-      }
-
-      // Fetch ONE page only
-      const page = (await client.blueprints.list(
-        queryParams,
-      )) as unknown as BlueprintsCursorIDPage<BlueprintListItem> & {
-        total_count?: number;
-      };
-
-      // Extract data and create defensive copies
-      if (page.blueprints && Array.isArray(page.blueprints)) {
-        page.blueprints.forEach((b: BlueprintListItem) => {
-          pageBlueprints.push({
-            id: b.id,
-            name: b.name,
-            status: b.status,
-            create_time_ms: b.create_time_ms,
-          });
-        });
-      }
-
-      const result = {
-        items: pageBlueprints,
-        hasMore: page.has_more || false,
-        totalCount: page.total_count,
-      };
-
-      return result;
     },
-    [search.submittedSearchQuery],
+    [showPublic, search.submittedSearchQuery],
   );
 
   // Use the shared pagination hook
@@ -187,7 +172,7 @@ const ListBlueprintsUI = ({
       !executingOperation &&
       !showDeleteConfirm &&
       !search.searchMode,
-    deps: [search.submittedSearchQuery],
+    deps: [search.submittedSearchQuery, showPublic],
   });
 
   // Memoize columns array
@@ -325,11 +310,7 @@ const ListBlueprintsUI = ({
       icon: figures.info,
     });
 
-    if (
-      blueprint &&
-      (blueprint.status === "build_complete" ||
-        blueprint.status === "building_complete")
-    ) {
+    if (blueprint && blueprint.status === "build_complete") {
       operations.push({
         key: "create_devbox",
         label: "Create Devbox from Blueprint",
@@ -602,8 +583,7 @@ const ListBlueprintsUI = ({
           c: () => {
             if (
               selectedBlueprintItem &&
-              (selectedBlueprintItem.status === "build_complete" ||
-                selectedBlueprintItem.status === "building_complete")
+              selectedBlueprintItem.status === "build_complete"
             ) {
               setShowPopup(false);
               setSelectedBlueprint(selectedBlueprintItem);
@@ -657,6 +637,10 @@ const ListBlueprintsUI = ({
           right: goToNextPage,
           p: goToPrevPage,
           left: goToPrevPage,
+          tab: () => {
+            setShowPublic((prev) => !prev);
+            setSelectedIndex(0);
+          },
           enter: () => {
             if (selectedBlueprintItem) {
               navigate("blueprint-detail", {
@@ -882,6 +866,27 @@ const ListBlueprintsUI = ({
     <>
       <Breadcrumb items={[{ label: "Blueprints", active: true }]} />
 
+      {/* Tab bar */}
+      <Box paddingX={2} marginBottom={0}>
+        <Text
+          color={!showPublic ? colors.primary : colors.textDim}
+          bold={!showPublic}
+        >
+          {!showPublic ? figures.pointer : " "} Custom
+        </Text>
+        <Text color={colors.textDim}> │ </Text>
+        <Text
+          color={showPublic ? colors.primary : colors.textDim}
+          bold={showPublic}
+        >
+          {showPublic ? figures.pointer : " "} Public
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          (Tab to switch)
+        </Text>
+      </Box>
+
       {/* Search bar */}
       <SearchBar
         searchMode={search.searchMode}
@@ -899,11 +904,12 @@ const ListBlueprintsUI = ({
           data={blueprints}
           keyExtractor={(blueprint: BlueprintListItem) => blueprint.id}
           selectedIndex={selectedIndex}
-          title={`blueprints[${totalCount}]`}
+          title={`blueprints[${totalCount}] ${showPublic ? "(public)" : "(custom)"}`}
           columns={blueprintColumns}
           emptyState={
             <Text color={colors.textDim}>
-              {figures.info} No blueprints found. Try: rli blueprint create
+              {figures.info} No {showPublic ? "public " : ""}blueprints found
+              {!showPublic ? ". Try: rli blueprint create" : ""}
             </Text>
           }
         />
@@ -1003,6 +1009,7 @@ const ListBlueprintsUI = ({
           },
           { key: "Enter", label: "Details" },
           { key: "a", label: "Actions" },
+          { key: "Tab", label: "Switch tab" },
           { key: "o", label: "Browser" },
           { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },

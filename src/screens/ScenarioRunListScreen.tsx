@@ -26,6 +26,8 @@ import { useCursorPagination } from "../hooks/useCursorPagination.js";
 import { useListSearch } from "../hooks/useListSearch.js";
 import { listScenarioRuns } from "../services/benchmarkService.js";
 import type { ScenarioRun } from "../store/benchmarkStore.js";
+import { openInBrowser } from "../utils/browser.js";
+import { getScenarioRunUrl } from "../utils/url.js";
 
 interface ScenarioRunListScreenProps {
   benchmarkRunId?: string;
@@ -67,11 +69,16 @@ export function ScenarioRunListScreen({
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const result = await listScenarioRuns({
         limit: params.limit,
         startingAfter: params.startingAt,
         benchmarkRunId,
+        includeTotalCount: params.includeTotalCount,
       });
 
       return {
@@ -264,6 +271,8 @@ export function ScenarioRunListScreen({
     } else if (input === "a" && selectedRun) {
       setShowPopup(true);
       setSelectedOperation(0);
+    } else if (input === "o" && selectedRun) {
+      openInBrowser(getScenarioRunUrl(selectedRun.scenario_id, selectedRun.id));
     } else if (input === "/") {
       search.enterSearchMode();
     } else if (key.escape) {
@@ -419,6 +428,7 @@ export function ScenarioRunListScreen({
           },
           { key: "Enter", label: "Details" },
           { key: "a", label: "Actions" },
+          { key: "o", label: "Browser" },
           { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },
         ]}

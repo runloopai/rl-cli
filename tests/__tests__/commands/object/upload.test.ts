@@ -6,7 +6,59 @@ import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals
 import { mkdtemp, writeFile, mkdir, rm, chmod, utimes, symlink } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
-import { parseTar } from "nanotar";
+import { Readable } from "stream";
+import { createGunzip } from "zlib";
+import { pipeline } from "stream/promises";
+import tar from "tar-stream";
+import type { Headers } from "tar-stream";
+
+interface ExtractedEntry {
+  header: Headers;
+  data: Buffer;
+}
+
+async function extractTar(buffer: Buffer): Promise<ExtractedEntry[]> {
+  const extract = tar.extract();
+  const entries: ExtractedEntry[] = [];
+  const done = new Promise<void>((resolve, reject) => {
+    extract.on("entry", (header, stream, next) => {
+      const chunks: Buffer[] = [];
+      stream.on("data", (chunk: Buffer) => chunks.push(chunk));
+      stream.on("end", () => {
+        entries.push({ header, data: Buffer.concat(chunks) });
+        next();
+      });
+      stream.resume();
+    });
+    extract.on("finish", resolve);
+    extract.on("error", reject);
+  });
+  Readable.from(buffer).pipe(extract);
+  await done;
+  return entries;
+}
+
+async function extractTgz(buffer: Buffer): Promise<ExtractedEntry[]> {
+  const gunzip = createGunzip();
+  const extract = tar.extract();
+  const entries: ExtractedEntry[] = [];
+  const done = new Promise<void>((resolve, reject) => {
+    extract.on("entry", (header, stream, next) => {
+      const chunks: Buffer[] = [];
+      stream.on("data", (chunk: Buffer) => chunks.push(chunk));
+      stream.on("end", () => {
+        entries.push({ header, data: Buffer.concat(chunks) });
+        next();
+      });
+      stream.resume();
+    });
+    extract.on("finish", resolve);
+    extract.on("error", reject);
+  });
+  await pipeline(Readable.from(buffer), gunzip, extract);
+  await done;
+  return entries;
+}
 
 // Mock client and output
 const mockCreate = jest.fn();
@@ -75,8 +127,8 @@ describe("createTarBuffer", () => {
     expect(buffer).toBeInstanceOf(Buffer);
     expect(buffer.length).toBeGreaterThan(0);
 
-    const entries = parseTar(buffer);
-    const names = entries.map((e) => e.name);
+    const entries = await extractTar(buffer);
+    const names = entries.map((e) => e.header.name);
     expect(names).toHaveLength(2);
     expect(names.some((n) => n.endsWith("a.txt"))).toBe(true);
     expect(names.some((n) => n.endsWith("b.txt"))).toBe(true);
@@ -92,9 +144,12 @@ describe("createTarBuffer", () => {
     );
 
     expect(buffer).toBeInstanceOf(Buffer);
-    // Gzip magic bytes: 0x1f 0x8b
     expect(buffer[0]).toBe(0x1f);
     expect(buffer[1]).toBe(0x8b);
+
+    const entries = await extractTgz(buffer);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].data.toString()).toBe("compressed content");
   });
 
   it("creates a tar from a directory", async () => {
@@ -108,10 +163,11 @@ describe("createTarBuffer", () => {
     expect(buffer).toBeInstanceOf(Buffer);
     expect(buffer.length).toBeGreaterThan(0);
 
-    const entries = parseTar(buffer);
-    const dirEntry = entries.find((e) => e.name.endsWith("mydir/"));
-    const fileEntry = entries.find((e) => e.name.endsWith("nested.txt"));
+    const entries = await extractTar(buffer);
+    const dirEntry = entries.find((e) => e.header.name.endsWith("mydir/"));
+    const fileEntry = entries.find((e) => e.header.name.endsWith("nested.txt"));
     expect(dirEntry).toBeDefined();
+    expect(dirEntry!.header.type).toBe("directory");
     expect(fileEntry).toBeDefined();
   });
 
@@ -121,12 +177,9 @@ describe("createTarBuffer", () => {
     const { createTarBuffer } = await import("@/commands/object/upload.js");
     const buffer = await createTarBuffer([join(testDir, "file.txt")], false);
 
-    // Verify uid/gid by reading the raw tar header bytes directly.
-    // nanotar's parseTar has an octal parsing quirk, so read the raw field.
-    const uid = buffer.toString("ascii", 108, 115).replace(/\0/g, "").trim();
-    const gid = buffer.toString("ascii", 116, 123).replace(/\0/g, "").trim();
-    expect(parseInt(uid, 8)).toBe(1000);
-    expect(parseInt(gid, 8)).toBe(1000);
+    const entries = await extractTar(buffer);
+    expect(entries[0].header.uid).toBe(1000);
+    expect(entries[0].header.gid).toBe(1000);
   });
 
   it("sets mode 644 for non-executable files and 755 for executable files", async () => {
@@ -139,11 +192,11 @@ describe("createTarBuffer", () => {
     const { createTarBuffer } = await import("@/commands/object/upload.js");
     const buffer = await createTarBuffer([normalFile, execFile], false);
 
-    const entries = parseTar(buffer);
-    const normal = entries.find((e) => e.name.endsWith("normal.txt"));
-    const exec = entries.find((e) => e.name.endsWith("script.sh"));
-    expect(normal?.attrs?.mode).toContain("644");
-    expect(exec?.attrs?.mode).toContain("755");
+    const entries = await extractTar(buffer);
+    const normal = entries.find((e) => e.header.name.endsWith("normal.txt"));
+    const exec = entries.find((e) => e.header.name.endsWith("script.sh"));
+    expect(normal!.header.mode).toBe(0o644);
+    expect(exec!.header.mode).toBe(0o755);
   });
 
   it("sets mode 755 for directories", async () => {
@@ -154,39 +207,72 @@ describe("createTarBuffer", () => {
     const { createTarBuffer } = await import("@/commands/object/upload.js");
     const buffer = await createTarBuffer([subDir], false);
 
-    const entries = parseTar(buffer);
-    const dir = entries.find((e) => e.name.endsWith("subdir/"));
-    expect(dir?.attrs?.mode).toContain("755");
+    const entries = await extractTar(buffer);
+    const dir = entries.find((e) => e.header.name.endsWith("subdir/"));
+    expect(dir!.header.mode).toBe(0o755);
   });
 
-  it("errors on symlinks inside a directory tree", async () => {
+  it("stores symlinks as symlink entries with correct linkname", async () => {
+    const realFile = join(testDir, "real.txt");
+    const linkFile = join(testDir, "link.txt");
+    await writeFile(realFile, "real content");
+    await symlink(realFile, linkFile);
+
+    const { createTarBuffer } = await import("@/commands/object/upload.js");
+    const buffer = await createTarBuffer([realFile, linkFile], false);
+
+    const entries = await extractTar(buffer);
+    expect(entries).toHaveLength(2);
+    const realEntry = entries.find((e) => e.header.name.endsWith("real.txt"));
+    const linkEntry = entries.find((e) => e.header.name.endsWith("link.txt"));
+    expect(realEntry).toBeDefined();
+    expect(realEntry!.header.type).toBe("file");
+    expect(realEntry!.data.toString()).toBe("real content");
+    expect(linkEntry).toBeDefined();
+    expect(linkEntry!.header.type).toBe("symlink");
+    expect(linkEntry!.header.linkname).toBe(realFile);
+  });
+
+  it("stores symlinks inside a directory tree", async () => {
     const subDir = join(testDir, "with-symlink");
     await mkdir(subDir);
     await writeFile(join(subDir, "real.txt"), "real content");
     await symlink(join(subDir, "real.txt"), join(subDir, "link.txt"));
 
     const { createTarBuffer } = await import("@/commands/object/upload.js");
-    await expect(createTarBuffer([subDir], false)).rejects.toThrow(
-      /symlink/i,
-    );
+    const buffer = await createTarBuffer([subDir], false);
+
+    const entries = await extractTar(buffer);
+    const names = entries.map((e) => e.header.name);
+    expect(names.some((n) => n.endsWith("real.txt"))).toBe(true);
+    expect(names.some((n) => n.endsWith("link.txt"))).toBe(true);
+    const linkEntry = entries.find((e) => e.header.name.endsWith("link.txt"));
+    expect(linkEntry!.header.type).toBe("symlink");
+  });
+
+  it("rejects duplicate paths", async () => {
+    const filePath = join(testDir, "dup.txt");
+    await writeFile(filePath, "content");
+
+    const { createTarBuffer } = await import("@/commands/object/upload.js");
+    await expect(
+      createTarBuffer([filePath, filePath], false),
+    ).rejects.toThrow(/Duplicate paths/);
   });
 
   it("preserves mtime from the filesystem", async () => {
     const filePath = join(testDir, "dated.txt");
     await writeFile(filePath, "content");
-    // Set a known mtime: 2024-01-15T00:00:00Z
     const knownTime = new Date("2024-01-15T00:00:00Z");
     await utimes(filePath, knownTime, knownTime);
 
     const { createTarBuffer } = await import("@/commands/object/upload.js");
     const buffer = await createTarBuffer([filePath], false);
 
-    const entries = parseTar(buffer);
-    const entry = entries.find((e) => e.name.endsWith("dated.txt"));
-    expect(entry?.attrs?.mtime).toBeDefined();
-    // parseTar returns mtime in seconds (raw tar format)
-    const expectedSec = Math.floor(knownTime.getTime() / 1000);
-    expect(entry?.attrs?.mtime).toBe(expectedSec);
+    const entries = await extractTar(buffer);
+    const entry = entries.find((e) => e.header.name.endsWith("dated.txt"));
+    expect(entry!.header.mtime).toBeDefined();
+    expect(entry!.header.mtime!.getTime()).toBe(knownTime.getTime());
   });
 });
 
@@ -343,7 +429,6 @@ describe("uploadObject", () => {
       name: "existing-archive",
       content_type: "tar",
     });
-    // Should upload the raw file content, not create a tar of the tar
     const fetchCall = mockFetch.mock.calls[0];
     const body = fetchCall[1]?.body as Buffer;
     expect(body.toString()).toBe("fake tar content");

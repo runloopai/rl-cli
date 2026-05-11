@@ -22,6 +22,7 @@ import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
 import { ConfirmationPrompt } from "../components/ConfirmationPrompt.js";
 import { colors } from "../utils/theme.js";
+import { getAgentUrl } from "../utils/url.js";
 
 interface AgentDetailScreenProps {
   agentId?: string;
@@ -332,6 +333,7 @@ export function AgentDetailScreen({ agentId }: AgentDetailScreenProps) {
       resourceType="Agents"
       getDisplayName={(a) => a.name}
       getId={(a) => a.id}
+      getUrl={(a) => getAgentUrl(a.id)}
       getStatus={() => (agent.is_public ? "public" : "private")}
       detailSections={detailSections}
       operations={operations}

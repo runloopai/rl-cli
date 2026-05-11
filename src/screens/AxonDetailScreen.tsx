@@ -16,6 +16,7 @@ import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
 import { colors } from "../utils/theme.js";
+import { getAxonUrl } from "../utils/url.js";
 
 interface AxonDetailScreenProps {
   axonId?: string;
@@ -143,6 +144,7 @@ export function AxonDetailScreen({ axonId }: AxonDetailScreenProps) {
       resourceType="Axons"
       getDisplayName={(a) => a.name ?? a.id}
       getId={(a) => a.id}
+      getUrl={(a) => getAxonUrl(a.id)}
       getStatus={() => "active"}
       detailSections={detailSections}
       operations={[]}

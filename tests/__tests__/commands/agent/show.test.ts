@@ -41,7 +41,7 @@ describe("showAgentCommand", () => {
     expect(mockListAgents).not.toHaveBeenCalled();
     expect(mockOutput).toHaveBeenCalledWith(sampleAgent, {
       format: undefined,
-      defaultFormat: "text",
+      defaultFormat: "json",
     });
   });
 
@@ -59,7 +59,7 @@ describe("showAgentCommand", () => {
     expect(mockListAgents).toHaveBeenCalledWith({ name: "claude-code" });
     expect(mockOutput).toHaveBeenCalledWith(newer, {
       format: undefined,
-      defaultFormat: "text",
+      defaultFormat: "json",
     });
   });
 
@@ -97,7 +97,7 @@ describe("showAgentCommand", () => {
 
     expect(mockOutput).toHaveBeenCalledWith(sampleAgent, {
       format: "json",
-      defaultFormat: "text",
+      defaultFormat: "json",
     });
   });
 

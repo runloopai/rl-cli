@@ -29,6 +29,8 @@ import {
   listPublicBenchmarks,
 } from "../services/benchmarkService.js";
 import type { Benchmark } from "../store/benchmarkStore.js";
+import { openInBrowser } from "../utils/browser.js";
+import { getBenchmarkUrl } from "../utils/url.js";
 
 export function BenchmarkListScreen() {
   const { exit: inkExit } = useApp();
@@ -45,7 +47,7 @@ export function BenchmarkListScreen() {
   });
 
   // Calculate overhead for viewport height
-  const overhead = 13 + search.getSearchOverhead();
+  const overhead = 14 + search.getSearchOverhead();
   const { viewportHeight, terminalWidth } = useViewportHeight({
     overhead,
     minHeight: 5,
@@ -64,12 +66,17 @@ export function BenchmarkListScreen() {
 
   // Fetch function for pagination hook
   const fetchPage = React.useCallback(
-    async (params: { limit: number; startingAt?: string }) => {
+    async (params: {
+      limit: number;
+      startingAt?: string;
+      includeTotalCount?: boolean;
+    }) => {
       const listFn = showPublic ? listPublicBenchmarks : listBenchmarks;
       const result = await listFn({
         limit: params.limit,
         startingAfter: params.startingAt,
         search: search.submittedSearchQuery || undefined,
+        includeTotalCount: params.includeTotalCount,
       });
 
       return {
@@ -227,7 +234,7 @@ export function BenchmarkListScreen() {
         navigate("benchmark-detail", {
           benchmarkId: selectedBenchmark.id,
         });
-      } else if (input === "c" && selectedBenchmark) {
+      } else if (input === "s" && selectedBenchmark) {
         setShowPopup(false);
         navigate("benchmark-job-create", {
           initialBenchmarkIds: selectedBenchmark.id,
@@ -236,6 +243,13 @@ export function BenchmarkListScreen() {
         setShowPopup(false);
         setSelectedOperation(0);
       }
+      return;
+    }
+
+    // Tab switching
+    if (key.tab) {
+      setShowPublic((prev) => !prev);
+      setSelectedIndex(0);
       return;
     }
 
@@ -269,16 +283,15 @@ export function BenchmarkListScreen() {
     } else if (input === "a" && selectedBenchmark) {
       setShowPopup(true);
       setSelectedOperation(0);
-    } else if (input === "c" && selectedBenchmark) {
+    } else if (input === "o" && selectedBenchmark) {
+      openInBrowser(getBenchmarkUrl(selectedBenchmark.id, showPublic));
+    } else if (input === "s" && selectedBenchmark) {
       // Quick shortcut to create a job
       navigate("benchmark-job-create", {
         initialBenchmarkIds: selectedBenchmark.id,
       });
     } else if (input === "/") {
       search.enterSearchMode();
-    } else if (input === "t") {
-      setShowPublic((prev) => !prev);
-      setSelectedIndex(0);
     } else if (key.escape) {
       if (search.handleEscape()) {
         return;
@@ -330,6 +343,27 @@ export function BenchmarkListScreen() {
         ]}
       />
 
+      {/* Tab bar */}
+      <Box paddingX={2} marginBottom={0}>
+        <Text
+          color={showPublic ? colors.primary : colors.textDim}
+          bold={showPublic}
+        >
+          {showPublic ? figures.pointer : " "} Public
+        </Text>
+        <Text color={colors.textDim}> │ </Text>
+        <Text
+          color={!showPublic ? colors.primary : colors.textDim}
+          bold={!showPublic}
+        >
+          {!showPublic ? figures.pointer : " "} Custom
+        </Text>
+        <Text color={colors.textDim} dimColor>
+          {" "}
+          (Tab to switch)
+        </Text>
+      </Box>
+
       {/* Search bar */}
       <SearchBar
         searchMode={search.searchMode}
@@ -366,13 +400,6 @@ export function BenchmarkListScreen() {
           <Text color={colors.textDim} dimColor>
             {" "}
             total
-          </Text>
-          <Text
-            color={showPublic ? colors.warning : colors.textDim}
-            dimColor={!showPublic}
-          >
-            {" "}
-            • {showPublic ? "Public" : "Custom"}
           </Text>
           {totalPages > 1 && (
             <>
@@ -438,9 +465,10 @@ export function BenchmarkListScreen() {
             condition: hasMore || hasPrev,
           },
           { key: "Enter", label: "Details" },
-          { key: "c", label: "Create Job" },
+          { key: "s", label: "Create Job" },
           { key: "a", label: "Actions" },
-          { key: "t", label: showPublic ? "Custom" : "Public" },
+          { key: "o", label: "Browser" },
+          { key: "Tab", label: "Switch tab" },
           { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },
         ]}

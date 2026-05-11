@@ -44,6 +44,7 @@ export type ScreenName =
   | "axon-detail"
   | "object-list"
   | "object-detail"
+  | "object-create"
   | "ssh-session"
   | "pty-session"
   | "benchmark-list"
