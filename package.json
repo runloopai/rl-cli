@@ -88,8 +88,8 @@
     "ink-link": "5.0.0",
     "ink-spinner": "5.0.0",
     "ink-text-input": "6.0.0",
-    "nanotar": "^0.3.0",
     "react": "19.2.0",
+    "tar-stream": "3.1.7",
     "yaml": "2.8.3",
     "zustand": "5.0.10"
   },
@@ -128,6 +128,7 @@
     "@types/jest": "29.5.14",
     "@types/node": "22.19.7",
     "@types/react": "19.2.10",
+    "@types/tar-stream": "3.1.4",
     "@typescript-eslint/eslint-plugin": "8.54.0",
     "@typescript-eslint/parser": "8.54.0",
     "esbuild": "0.27.2",

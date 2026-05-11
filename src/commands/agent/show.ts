@@ -40,7 +40,7 @@ export async function showAgentCommand(
 ): Promise<void> {
   try {
     const agent = await resolveAgent(idOrName);
-    output(agent, { format: options.output, defaultFormat: "text" });
+    output(agent, { format: options.output, defaultFormat: "json" });
   } catch (error) {
     outputError("Failed to get agent", error);
   }

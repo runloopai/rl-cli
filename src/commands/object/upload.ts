@@ -2,12 +2,15 @@
  * Upload object command
  */
 
-import { lstat, readFile, readdir } from "fs/promises";
+import { lstat, readFile, readdir, readlink, stat } from "fs/promises";
 import { dirname, extname, relative, resolve, sep } from "path";
-import { createTar, createTarGzip } from "nanotar";
-import type { TarFileInput } from "nanotar";
+import { createGzip } from "zlib";
+import { pipeline } from "stream/promises";
+import tar from "tar-stream";
+import type { Headers } from "tar-stream";
 import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
+import { parseMetadata } from "../../utils/metadata.js";
 import { processUtils } from "../../utils/processUtils.js";
 
 interface UploadObjectOptions {
@@ -15,6 +18,7 @@ interface UploadObjectOptions {
   name: string;
   contentType?: string;
   public?: boolean;
+  metadata?: string[];
   output?: string;
 }
 
@@ -35,10 +39,16 @@ const CONTENT_TYPE_MAP: Record<string, ContentType> = {
   ".tar.gz": "tgz",
 };
 
+interface TarEntry {
+  header: Headers;
+  data?: Buffer;
+}
+
 /**
- * Recursively collect all files and directories under the given paths into
- * nanotar entries. Normalizes permissions: uid/gid 1000, directories and
- * executable files get mode 755, everything else gets 644. Preserves mtime.
+ * Recursively collect all files, directories, and symlinks under the given
+ * paths into tar entries. Normalizes permissions: uid/gid 1000, directories
+ * and executable files get mode 0o755, everything else gets 0o644. Preserves
+ * mtime. Symlinks are stored as symlink entries with their target path.
  *
  * Entry names are always relative to `archiveRoot` and never contain leading
  * `../` segments, preventing path traversal in the generated archive.
@@ -47,14 +57,13 @@ async function collectEntries(
   paths: string[],
   archiveRoot: string,
   precomputedStats?: Map<string, Awaited<ReturnType<typeof lstat>>>,
-): Promise<TarFileInput[]> {
-  const entries: TarFileInput[] = [];
+): Promise<TarEntry[]> {
+  const entries: TarEntry[] = [];
 
   for (const p of paths) {
     const absPath = resolve(p);
-    let relPath = relative(archiveRoot, absPath);
+    const relPath = relative(archiveRoot, absPath);
 
-    // Guard against path traversal: entry names must not escape the archive root
     if (relPath.startsWith("..")) {
       throw new Error(
         `Path "${absPath}" is outside the archive root "${archiveRoot}". All paths must share a common ancestor directory.`,
@@ -71,20 +80,27 @@ async function collectEntries(
     }
 
     if (stats.isSymbolicLink()) {
-      throw new Error(
-        `Path is a symlink: ${relPath}. Resolve the symlink or pass the target path directly.`,
-      );
-    }
-
-    if (stats.isDirectory()) {
+      const linkTarget = await readlink(absPath);
       entries.push({
-        name: relPath.endsWith("/") ? relPath : relPath + "/",
-        attrs: {
-          mode: "755",
+        header: {
+          name: relPath,
+          type: "symlink",
+          linkname: linkTarget,
+          mode: 0o777,
           uid: 1000,
           gid: 1000,
-          // nanotar expects mtime in milliseconds and converts to seconds internally
-          mtime: Number(stats.mtimeMs),
+          mtime: stats.mtime,
+        },
+      });
+    } else if (stats.isDirectory()) {
+      entries.push({
+        header: {
+          name: relPath.endsWith("/") ? relPath : relPath + "/",
+          type: "directory",
+          mode: 0o755,
+          uid: 1000,
+          gid: 1000,
+          mtime: stats.mtime,
         },
       });
       const children = (await readdir(absPath)).sort();
@@ -101,15 +117,16 @@ async function collectEntries(
         throw new Error(`Cannot read file: ${relPath}`, { cause: err });
       }
       entries.push({
-        name: relPath,
-        data,
-        attrs: {
-          mode: isExecutable ? "755" : "644",
+        header: {
+          name: relPath,
+          type: "file",
+          mode: isExecutable ? 0o755 : 0o644,
           uid: 1000,
           gid: 1000,
-          // nanotar expects mtime in milliseconds and converts to seconds internally
-          mtime: Number(stats.mtimeMs),
+          size: data.length,
+          mtime: stats.mtime,
         },
+        data,
       });
     }
   }
@@ -150,16 +167,40 @@ export async function createTarBuffer(
   precomputedStats?: Map<string, Awaited<ReturnType<typeof lstat>>>,
 ): Promise<Buffer> {
   const absPaths = paths.map((p) => resolve(p));
+  const unique = new Set(absPaths);
+  if (unique.size < absPaths.length) {
+    const seen = new Set<string>();
+    const dupes = absPaths.filter((p) =>
+      seen.has(p) ? true : (seen.add(p), false),
+    );
+    throw new Error(`Duplicate paths: ${[...new Set(dupes)].join(", ")}`);
+  }
   const archiveRoot = commonAncestor(absPaths);
   const entries = await collectEntries(paths, archiveRoot, precomputedStats);
 
+  const pack = tar.pack();
+  for (const entry of entries) {
+    if (entry.data) {
+      pack.entry(entry.header, entry.data);
+    } else {
+      pack.entry(entry.header);
+    }
+  }
+  pack.finalize();
+
   if (gzip) {
-    const data = await createTarGzip(entries);
-    return Buffer.from(data);
+    const gz = createGzip();
+    const chunks: Buffer[] = [];
+    gz.on("data", (chunk: Buffer) => chunks.push(chunk));
+    await pipeline(pack, gz);
+    return Buffer.concat(chunks);
   }
 
-  const data = createTar(entries);
-  return Buffer.from(data);
+  const chunks: Buffer[] = [];
+  for await (const chunk of pack) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
 }
 
 async function readStdinBuffer(): Promise<Buffer> {
@@ -240,18 +281,10 @@ export async function uploadObject(options: UploadObjectOptions) {
       fileSize = fileBuffer.length;
       detectedContentType = contentType as ContentType;
     } else {
-      // Validate all paths exist (use lstat to match collectEntries and detect symlinks)
-      // Key by resolved absolute path so collectEntries can reuse stats
       const statsMap = new Map<string, Awaited<ReturnType<typeof lstat>>>();
       for (const p of paths) {
         try {
           const s = await lstat(p);
-          if (s.isSymbolicLink()) {
-            outputError(
-              `Path is a symlink: ${p}. Resolve the symlink or pass the target path directly.`,
-            );
-            return;
-          }
           statsMap.set(resolve(p), s);
         } catch {
           outputError(`Path does not exist: ${p}`);
@@ -264,7 +297,11 @@ export async function uploadObject(options: UploadObjectOptions) {
       const firstStats = isSinglePath
         ? statsMap.get(resolve(paths[0]))!
         : undefined;
-      const singleIsDir = isSinglePath && firstStats!.isDirectory();
+      const singleIsDir =
+        isSinglePath &&
+        (firstStats!.isDirectory() ||
+          (firstStats!.isSymbolicLink() &&
+            (await stat(paths[0])).isDirectory()));
 
       // Multi-path requires tar/tgz content type
       if (paths.length > 1 && !isTarType) {
@@ -305,11 +342,18 @@ export async function uploadObject(options: UploadObjectOptions) {
     }
 
     // Step 1: Create the object
-    const createResponse = await client.objects.create({
+    const createParams: {
+      name: string;
+      content_type: ContentType;
+      metadata?: Record<string, string>;
+    } = {
       name,
       content_type: detectedContentType,
-      ...(options.public ? { is_public: true } : {}),
-    } as any);
+    };
+    if (options.metadata) {
+      createParams.metadata = parseMetadata(options.metadata);
+    }
+    const createResponse = await client.objects.create(createParams);
 
     // Step 2: Upload the file
     const uploadResponse = await fetch(createResponse.upload_url!, {

@@ -101,11 +101,12 @@ export interface ListBenchmarkJobsOptions {
   limit?: number;
   startingAfter?: string;
   name?: string;
+  includeTotalCount?: boolean;
 }
 
 export interface ListBenchmarkJobsResult {
   jobs: BenchmarkJob[];
-  totalCount: number;
+  totalCount?: number;
   hasMore: boolean;
 }
 
@@ -132,6 +133,7 @@ export interface CreateBenchmarkJobOptions {
   scenarioIds?: string[];
   agentConfigs: AgentConfig[];
   orchestratorConfig?: OrchestratorConfig;
+  metadata?: Record<string, string>;
 }
 
 /**
@@ -146,8 +148,10 @@ export async function listBenchmarkJobs(
     limit?: number;
     starting_after?: string;
     name?: string;
+    include_total_count?: boolean;
   } = {
     limit: options.limit,
+    include_total_count: options.includeTotalCount === true,
   };
 
   if (options.startingAfter) {
@@ -164,7 +168,7 @@ export async function listBenchmarkJobs(
 
   return {
     jobs,
-    totalCount: jobs.length,
+    totalCount: (page as unknown as { total_count?: number }).total_count,
     hasMore: page.has_more || false,
   };
 }
@@ -301,10 +305,15 @@ export async function createBenchmarkJob(
     };
   }
 
-  const createParams: BenchmarkJobCreateParams = {
+  const createParams: BenchmarkJobCreateParams & {
+    metadata?: Record<string, string>;
+  } = {
     name: options.name,
     spec,
   };
+  if (options.metadata && Object.keys(options.metadata).length > 0) {
+    createParams.metadata = options.metadata;
+  }
 
   return client.benchmarkJobs.create(createParams);
 }

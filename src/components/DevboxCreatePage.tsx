@@ -3127,7 +3127,7 @@ export const DevboxCreatePage = ({
                       paddingX={1}
                     >
                       <Text color={colors.textDim} dimColor>
-                        {`${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedGatewayIndex === 0 ? "Attach" : selectedGatewayIndex === maxGatewayIndex ? "Done" : "Select"} • [d] Remove • [esc] Back`}
+                        {`${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedGatewayIndex === 0 ? "Attach" : selectedGatewayIndex === maxGatewayIndex ? "Done" : "Select"} • [d] Delete • [esc] Back`}
                       </Text>
                     </Box>
                   </>
@@ -3408,7 +3408,7 @@ export const DevboxCreatePage = ({
                       paddingX={1}
                     >
                       <Text color={colors.textDim} dimColor>
-                        {`${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedMcpIndex === 0 ? "Attach" : selectedMcpIndex === maxMcpIndex ? "Done" : "Select"} • [d] Remove • [esc] Back`}
+                        {`${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] ${selectedMcpIndex === 0 ? "Attach" : selectedMcpIndex === maxMcpIndex ? "Done" : "Select"} • [d] Delete • [esc] Back`}
                       </Text>
                     </Box>
                   </>
@@ -3564,7 +3564,7 @@ export const DevboxCreatePage = ({
                       <Text color={colors.textDim} dimColor>
                         {editingAgentMountPath
                           ? "Type to edit path • [Enter/esc] Done"
-                          : `${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] Select • [e] Edit path • [d] Remove • [esc] Back`}
+                          : `${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] Select • [e] Edit path • [d] Delete • [esc] Back`}
                       </Text>
                     </Box>
                   </Box>
@@ -3693,7 +3693,7 @@ export const DevboxCreatePage = ({
                       <Text color={colors.textDim} dimColor>
                         {editingObjectMountPath
                           ? "Type to edit path • [Enter/esc] Done"
-                          : `${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] Select • [e] Edit path • [d] Remove • [esc] Back`}
+                          : `${figures.arrowUp}${figures.arrowDown} Navigate • [Enter] Select • [e] Edit path • [d] Delete • [esc] Back`}
                       </Text>
                     </Box>
                   </Box>

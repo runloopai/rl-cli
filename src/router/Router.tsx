@@ -53,6 +53,7 @@ const KNOWN_SCREENS: Set<ScreenName> = new Set([
   "axon-detail",
   "object-list",
   "object-detail",
+  "object-create",
   "ssh-session",
   "benchmark-menu",
   "benchmark-list",
@@ -135,6 +136,7 @@ import { AxonListScreen } from "../screens/AxonListScreen.js";
 import { AxonDetailScreen } from "../screens/AxonDetailScreen.js";
 import { ObjectListScreen } from "../screens/ObjectListScreen.js";
 import { ObjectDetailScreen } from "../screens/ObjectDetailScreen.js";
+import { ObjectCreateScreen } from "../screens/ObjectCreateScreen.js";
 import { SSHSessionScreen } from "../screens/SSHSessionScreen.js";
 import { BenchmarkMenuScreen } from "../screens/BenchmarkMenuScreen.js";
 import { BenchmarkListScreen } from "../screens/BenchmarkListScreen.js";
@@ -218,6 +220,7 @@ export function Router() {
 
         case "object-list":
         case "object-detail":
+        case "object-create":
           if (!currentScreen.startsWith("object")) {
             useObjectStore.getState().clearAll();
           }
@@ -351,6 +354,9 @@ export function Router() {
       )}
       {currentScreen === "object-detail" && (
         <ObjectDetailScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "object-create" && (
+        <ObjectCreateScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "ssh-session" && (
         <SSHSessionScreen key={currentScreen} {...params} />

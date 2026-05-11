@@ -13,6 +13,8 @@ export interface ListBlueprintsOptions {
   limit: number;
   startingAfter?: string;
   search?: string;
+  publicOnly?: boolean;
+  includeTotalCount?: boolean;
 }
 
 export interface ListBlueprintsResult {
@@ -29,8 +31,9 @@ export async function listBlueprints(
 ): Promise<ListBlueprintsResult> {
   const client = getClient();
 
-  const queryParams: BlueprintListParams = {
+  const queryParams: BlueprintListParams & { include_total_count?: boolean } = {
     limit: options.limit,
+    include_total_count: options.includeTotalCount === true,
   };
 
   if (options.startingAfter) {
@@ -40,9 +43,14 @@ export async function listBlueprints(
     queryParams.name = options.search;
   }
 
-  const pagePromise = client.blueprints.list(queryParams);
+  // Use listPublic or list based on publicOnly option
+  const pagePromise = options.publicOnly
+    ? client.blueprints.listPublic(queryParams)
+    : client.blueprints.list(queryParams);
   const page =
-    (await pagePromise) as unknown as BlueprintsCursorIDPage<BlueprintView>;
+    (await pagePromise) as unknown as BlueprintsCursorIDPage<BlueprintView> & {
+      total_count?: number;
+    };
 
   const blueprints: Blueprint[] = [];
 
@@ -51,7 +59,6 @@ export async function listBlueprints(
       // CRITICAL: Truncate all strings to prevent Yoga crashes
       const MAX_ID_LENGTH = 100;
       const MAX_NAME_LENGTH = 200;
-      const MAX_STATUS_LENGTH = 50;
       const MAX_ARCH_LENGTH = 50;
       const MAX_RESOURCES_LENGTH = 100;
 
@@ -77,13 +84,11 @@ export async function listBlueprints(
     });
   }
 
-  const result = {
+  return {
     blueprints,
-    totalCount: blueprints.length,
+    totalCount: page.total_count ?? blueprints.length,
     hasMore: page.has_more || false,
   };
-
-  return result;
 }
 
 /**

@@ -10,6 +10,7 @@ import {
 } from "../../services/benchmarkService.js";
 import { getClient } from "../../utils/client.js";
 import { output, outputError } from "../../utils/output.js";
+import { parseMetadata } from "../../utils/metadata.js";
 
 // Secret name prefix for benchmark job secrets
 const SECRET_PREFIX = "BMJ_";
@@ -53,6 +54,7 @@ interface RunOptions {
   nAttempts?: string;
   nConcurrentTrials?: string;
   timeoutMultiplier?: string;
+  metadata?: string[];
   output?: string;
 }
 
@@ -336,6 +338,7 @@ export async function runBenchmarkJob(options: RunOptions) {
       scenarioIds: options.scenarios,
       agentConfigs,
       orchestratorConfig,
+      metadata: options.metadata ? parseMetadata(options.metadata) : undefined,
     });
 
     // Output result
