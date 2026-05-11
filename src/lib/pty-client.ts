@@ -241,6 +241,13 @@ export function createPtySessionReleaser(
 const WS_READY_STATE_OPEN = 1;
 
 /**
+ * Application-defined WebSocket close code (range 4000-4999 is reserved for
+ * applications) the PTY server uses to signal a clean session end — e.g. the
+ * user typed `exit` and the shell terminated normally. Treated as exit 0.
+ */
+export const PTY_NORMAL_CLOSE_CODE = 4000;
+
+/**
  * After the attach WebSocket is open: re-send terminal size (refreshes session geometry)
  * and send CR so the shell redraws the prompt (avoids a blank display until the user hits Enter).
  */

@@ -17,17 +17,25 @@ export function PtySessionScreen() {
   const sessionName = params.ptySessionName || params.devboxId;
   const authToken = params.ptyAuthToken;
   const devboxName = params.devboxName || params.devboxId || "devbox";
-  const returnScreen = (params.returnScreen as ScreenName) || "devbox-list";
-  const returnParams = (params.returnParams as RouteParams) || {};
+  const returnScreen: ScreenName =
+    (params.returnScreen as ScreenName) || "devbox-list";
+
+  // Stabilize returnParams across renders — the inline `|| {}` would otherwise
+  // produce a fresh object every render and re-fire any effect depending on it.
+  const returnParamsRaw = params.returnParams as RouteParams | undefined;
+  const returnParams = React.useMemo(
+    () => returnParamsRaw ?? {},
+    [returnParamsRaw],
+  );
+
+  const goBack = React.useCallback(() => {
+    replace(returnScreen, returnParams);
+  }, [replace, returnScreen, returnParams]);
 
   const configOk = !!(baseUrl && sessionName);
   React.useEffect(() => {
-    if (configOk) return;
-    const id = setTimeout(() => {
-      replace(returnScreen, returnParams || {});
-    }, 100);
-    return () => clearTimeout(id);
-  }, [configOk, replace, returnScreen, returnParams]);
+    if (!configOk) goBack();
+  }, [configOk, goBack]);
 
   if (!baseUrl || !sessionName) {
     return (
@@ -57,16 +65,8 @@ export function PtySessionScreen() {
         baseUrl={baseUrl}
         sessionName={sessionName}
         authToken={authToken}
-        onExit={(_code) => {
-          setTimeout(() => {
-            replace(returnScreen, returnParams || {});
-          }, 100);
-        }}
-        onError={(_error) => {
-          setTimeout(() => {
-            replace(returnScreen, returnParams || {});
-          }, 100);
-        }}
+        onExit={goBack}
+        onError={goBack}
       />
     </>
   );

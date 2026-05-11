@@ -6,6 +6,25 @@ const PTY_WS_MAX_ATTEMPTS = Math.max(
   parseInt(process.env.RUNLOOP_PTY_WS_RETRIES || "3", 10) || 3,
 );
 
+/**
+ * Per-attempt connect timeout. Kept short so the worst-case wall-clock spent
+ * stacking ptyConnect (up to 3 × 10s back-off) and WS attach retries stays
+ * bounded; override via env if a slow tunnel ever needs it.
+ */
+const PTY_WS_CONNECT_TIMEOUT_MS = (() => {
+  const raw = parseInt(
+    process.env.RUNLOOP_PTY_WS_CONNECT_TIMEOUT_MS || "15000",
+    10,
+  );
+  return Number.isFinite(raw) && raw > 0 ? raw : 15_000;
+})();
+
+/**
+ * Tunnel-edge HTTP statuses worth retrying on WebSocket upgrade. 502/503 are
+ * emitted by the mux while the upstream Rage REST listener is still warming up.
+ */
+const RETRYABLE_UPGRADE_STATUS = /HTTP\s+(502|503)\b/;
+
 function delay(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -23,7 +42,7 @@ function connectWebSocketOnce(
       settled = true;
       ws.terminate();
       reject(new Error("WebSocket connection timed out"));
-    }, 45_000);
+    }, PTY_WS_CONNECT_TIMEOUT_MS);
 
     function finish(ok: boolean, result: WebSocket | Error) {
       if (settled) return;
@@ -69,11 +88,7 @@ export async function openPtyWebSocket(
       return await connectWebSocketOnce(wsUrl, protocols);
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
-      const msg = lastErr.message;
-      const retryable =
-        /HTTP\s+(502|503)\b/.test(msg) ||
-        msg.includes("502") ||
-        msg.includes("503");
+      const retryable = RETRYABLE_UPGRADE_STATUS.test(lastErr.message);
 
       if (!retryable || attempt === PTY_WS_MAX_ATTEMPTS) {
         throw lastErr;

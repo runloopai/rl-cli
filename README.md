@@ -69,8 +69,7 @@ The URL must be of the form `https://api.<domain>`. The CLI derives other servic
 | API      | `https://api.<domain>` (the value of `RUNLOOP_BASE_URL`) |
 | Platform | `https://platform.<domain>` |
 | SSH      | `ssh.<domain>:443` |
-| PTY      | `https://pty.<domain>` |
-| Tunnels  | `tunnel.<domain>` |
+| Tunnels  | `tunnel.<domain>` (PTY sessions reach the devbox over a tunnel created via the API) |
 
 ## Usage
 

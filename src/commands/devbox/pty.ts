@@ -116,41 +116,21 @@ async function execCommand(
     authToken,
   });
   const ws = await openPtyWebSocket(wsUrl, authToken);
-  await refreshPtySessionAfterAttach(
-    ws,
-    baseUrl,
-    sessionName,
-    80,
-    24,
-    authToken,
-  );
-  ws.send(command + "\n");
 
-  return new Promise<void>((resolve, reject) => {
-    const releaseOnce = createPtySessionReleaser(
-      baseUrl,
-      sessionName,
-      authToken,
-    );
-    const disposeInterruptSignals = registerPtyInterruptHandlers(
-      ws,
-      releaseOnce,
-    );
+  const releaseOnce = createPtySessionReleaser(baseUrl, sessionName, authToken);
+  const disposeInterruptSignals = registerPtyInterruptHandlers(ws, releaseOnce);
 
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    if (PTY_EXEC_TIMEOUT_MS > 0) {
-      timeoutId = setTimeout(() => {
-        releaseOnce();
-        ws.close();
-      }, PTY_EXEC_TIMEOUT_MS);
-    }
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
+  const completion = new Promise<void>((resolve, reject) => {
     const finish = () => {
       if (timeoutId !== undefined) clearTimeout(timeoutId);
       releaseOnce();
       disposeInterruptSignals();
     };
 
+    // Attach listeners synchronously *before* any await — otherwise messages
+    // emitted between ws open and listener registration are dropped.
     ws.on("message", (data: WebSocket.RawData) => {
       writePtyStreamToStdout(data);
     });
@@ -164,7 +144,29 @@ async function execCommand(
       finish();
       reject(err);
     });
+
+    if (PTY_EXEC_TIMEOUT_MS > 0) {
+      timeoutId = setTimeout(() => {
+        releaseOnce();
+        ws.close();
+      }, PTY_EXEC_TIMEOUT_MS);
+    }
   });
+
+  await refreshPtySessionAfterAttach(
+    ws,
+    baseUrl,
+    sessionName,
+    80,
+    24,
+    authToken,
+  );
+  // Send the command followed by `exit` so the shell terminates and the
+  // server closes the WebSocket. Without this, the session would stay open
+  // after the command finished and the CLI would hang.
+  ws.send(command + "\nexit\n");
+
+  return completion;
 }
 
 async function interactiveSession(
@@ -181,15 +183,9 @@ async function interactiveSession(
     authToken,
   });
   const ws = await openPtyWebSocket(wsUrl, authToken);
-  await refreshPtySessionAfterAttach(
-    ws,
-    baseUrl,
-    sessionName,
-    cols,
-    rows,
-    authToken,
-  );
 
+  // Attach IO listeners before the refresh round-trip so server output
+  // emitted during the ptyControl HTTP call is not dropped.
   const releaseOnce = createPtySessionReleaser(baseUrl, sessionName, authToken);
   const { dispose, done } = startPtyIoSession(
     ws,
@@ -198,6 +194,15 @@ async function interactiveSession(
     authToken,
   );
   const disposeSignals = registerPtyInterruptHandlers(ws, releaseOnce);
+
+  await refreshPtySessionAfterAttach(
+    ws,
+    baseUrl,
+    sessionName,
+    cols,
+    rows,
+    authToken,
+  );
 
   try {
     await done;

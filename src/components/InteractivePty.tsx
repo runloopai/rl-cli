@@ -5,6 +5,7 @@ import {
   resolvePtyWebSocketUrl,
   refreshPtySessionAfterAttach,
   startPtyIoSession,
+  PTY_NORMAL_CLOSE_CODE,
 } from "../lib/pty-client.js";
 import { openPtyWebSocket } from "../lib/pty-ws.js";
 import { clearScreen } from "../utils/screen.js";
@@ -92,15 +93,8 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
 
         wsRef.current = ws;
 
-        await refreshPtySessionAfterAttach(
-          ws,
-          baseUrl,
-          sessionName,
-          cols,
-          rows,
-          authToken,
-        );
-
+        // Attach IO listeners before the refresh round-trip so server output
+        // emitted during the ptyControl HTTP call is not dropped.
         const releaseServerSession = createPtySessionReleaser(
           baseUrl,
           sessionName,
@@ -124,13 +118,22 @@ export const InteractivePty: React.FC<InteractivePtyProps> = ({
           return;
         }
 
+        await refreshPtySessionAfterAttach(
+          ws,
+          baseUrl,
+          sessionName,
+          cols,
+          rows,
+          authToken,
+        );
+
         done
           .then((code) => {
             wsRef.current = null;
             ioCleanup();
             restoreTerminal();
             hasStartedRef.current = false;
-            onExitRef.current?.(code === 4000 ? 0 : code);
+            onExitRef.current?.(code === PTY_NORMAL_CLOSE_CODE ? 0 : code);
           })
           .catch((err: Error) => {
             wsRef.current = null;
