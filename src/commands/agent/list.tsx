@@ -31,6 +31,8 @@ import { useExitOnCtrlC } from "../../hooks/useExitOnCtrlC.js";
 import { useCursorPagination } from "../../hooks/useCursorPagination.js";
 import { useListSearch } from "../../hooks/useListSearch.js";
 import { useNavigation } from "../../store/navigationStore.js";
+import { openInBrowser } from "../../utils/browser.js";
+import { getAgentUrl } from "../../utils/url.js";
 
 interface ListOptions {
   full?: boolean;
@@ -532,6 +534,8 @@ export const ListAgentsUI = ({
       setSelectedOperation(0);
     } else if (input === "c" && activeTab === "private") {
       navigate("agent-create");
+    } else if (input === "o" && selectedAgentItem) {
+      openInBrowser(getAgentUrl(selectedAgentItem.id));
     } else if (input === "/") {
       search.enterSearchMode();
     } else if (key.escape) {
@@ -771,6 +775,7 @@ export const ListAgentsUI = ({
           { key: "Tab", label: "Switch tab" },
           { key: "Enter", label: "Details" },
           { key: "a", label: "Actions" },
+          { key: "o", label: "Browser" },
           { key: "c", label: "Create", condition: activeTab === "private" },
           { key: "/", label: "Search" },
           { key: "Esc", label: "Back" },

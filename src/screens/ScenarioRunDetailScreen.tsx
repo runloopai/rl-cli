@@ -22,6 +22,7 @@ import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb, type BreadcrumbItem } from "../components/Breadcrumb.js";
 import { colors } from "../utils/theme.js";
+import { getScenarioRunUrl } from "../utils/url.js";
 
 interface ScenarioRunDetailScreenProps {
   scenarioRunId?: string;
@@ -340,6 +341,7 @@ export function ScenarioRunDetailScreen({
       resourceType="Scenario Runs"
       getDisplayName={(r) => r.name || r.id}
       getId={(r) => r.id}
+      getUrl={(r) => getScenarioRunUrl(r.scenario_id, r.id)}
       getStatus={(r) => r.state}
       detailSections={detailSections}
       operations={operations}

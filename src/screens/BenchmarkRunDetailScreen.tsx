@@ -32,6 +32,7 @@ import {
   createComponentColumn,
 } from "../components/Table.js";
 import { colors } from "../utils/theme.js";
+import { getBenchmarkRunUrl } from "../utils/url.js";
 
 interface BenchmarkRunDetailScreenProps {
   benchmarkRunId?: string;
@@ -621,6 +622,7 @@ export function BenchmarkRunDetailScreen({
       resourceType="Benchmark Runs"
       getDisplayName={(r) => r.name || r.id}
       getId={(r) => r.id}
+      getUrl={(r) => getBenchmarkRunUrl(r.id, r.benchmark_id)}
       getStatus={(r) => r.state}
       detailSections={detailSections}
       operations={operations}

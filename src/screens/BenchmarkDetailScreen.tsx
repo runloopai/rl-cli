@@ -18,6 +18,7 @@ import { SpinnerComponent } from "../components/Spinner.js";
 import { ErrorMessage } from "../components/ErrorMessage.js";
 import { Breadcrumb } from "../components/Breadcrumb.js";
 import { colors } from "../utils/theme.js";
+import { getBenchmarkUrl } from "../utils/url.js";
 
 interface BenchmarkDetailScreenProps {
   benchmarkId?: string;
@@ -275,6 +276,7 @@ export function BenchmarkDetailScreen({
       resourceType="Benchmark Definitions"
       getDisplayName={(b) => b.name || b.id}
       getId={(b) => b.id}
+      getUrl={(b) => getBenchmarkUrl(b.id, !!b.is_public)}
       getStatus={(b) => (b as any).status}
       detailSections={detailSections}
       operations={operations}
