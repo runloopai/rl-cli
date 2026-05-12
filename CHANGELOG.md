@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.17.0](https://github.com/runloopai/rl-cli/compare/v1.16.0...v1.17.0) (2026-05-12)
+
+
+### Features
+
+* add --public flag to agent create, fix object upload --public ([#219](https://github.com/runloopai/rl-cli/issues/219)) ([6e7a8b3](https://github.com/runloopai/rl-cli/commit/6e7a8b32ecc30590ddfef39987df46d310766cde))
+* add clipboard keybinds to detail screens ([#231](https://github.com/runloopai/rl-cli/issues/231)) ([83874ca](https://github.com/runloopai/rl-cli/commit/83874ca865a22e17f2080e649af292889acbb726))
+* add TUI features and fix benchmark pagination total count ([#230](https://github.com/runloopai/rl-cli/issues/230)) ([7565d45](https://github.com/runloopai/rl-cli/commit/7565d45a070d0bddd648891a9e5a051bc4a94376))
+* agent object picker, multi-mount support, and TUI improvements ([#217](https://github.com/runloopai/rl-cli/issues/217)) ([dbe2a5c](https://github.com/runloopai/rl-cli/commit/dbe2a5c753553db454492fc4f2a964c24b7b6818))
+* pty support ([#234](https://github.com/runloopai/rl-cli/issues/234)) ([3cfd720](https://github.com/runloopai/rl-cli/commit/3cfd72032ae4fb0c106a926eb896c14bc09de0f6))
+* smart default download path + stdin/stdout support ([#222](https://github.com/runloopai/rl-cli/issues/222)) ([419a961](https://github.com/runloopai/rl-cli/commit/419a961cbf5f0a8afbbbc6b831f9d8d061567841))
+* support multi-path tar/tgz archive creation in obj upload ([#220](https://github.com/runloopai/rl-cli/issues/220)) ([3528701](https://github.com/runloopai/rl-cli/commit/3528701120b7da27c64c5982bf6b3706d0a19518))
+
+
+### Bug Fixes
+
+* menu header clipping and breadcrumb hyperlink ([#221](https://github.com/runloopai/rl-cli/issues/221)) ([3ef6271](https://github.com/runloopai/rl-cli/commit/3ef62719d6d3e5928b6a679b17ef0f2bee26f30a))
+
 ## [1.16.0](https://github.com/runloopai/rl-cli/compare/v1.15.0...v1.16.0) (2026-04-23)
 
 
