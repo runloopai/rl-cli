@@ -19,9 +19,7 @@ type PtySessionHandle = {
 };
 
 /** SIGINT/SIGTERM → interrupt/close remote PTY; returns disposer. */
-function registerPtyInterruptHandlers(
-  handle: PtyProcessHandle,
-): () => void {
+function registerPtyInterruptHandlers(handle: PtyProcessHandle): () => void {
   function dispose() {
     process.removeListener("SIGINT", onSigint);
     process.removeListener("SIGTERM", onSigterm);
