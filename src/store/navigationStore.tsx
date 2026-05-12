@@ -46,6 +46,7 @@ export type ScreenName =
   | "object-detail"
   | "object-create"
   | "ssh-session"
+  | "pty-session"
   | "benchmark-list"
   | "benchmark-detail"
   | "benchmark-run-list"
@@ -79,6 +80,10 @@ export interface RouteParams {
   devboxName?: string;
   returnScreen?: ScreenName;
   returnParams?: RouteParams;
+  // PTY session params
+  ptyBaseUrl?: string;
+  ptySessionName?: string;
+  ptyAuthToken?: string;
   // Exec session params
   executionId?: string;
   execCommand?: string;

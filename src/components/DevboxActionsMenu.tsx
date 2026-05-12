@@ -27,12 +27,21 @@ import {
 } from "../services/devboxService.js";
 import { StreamingLogsViewer } from "./StreamingLogsViewer.js";
 import { DevboxView } from "@runloop/api-client/resources/devboxes.mjs";
+import {
+  getPtyBaseUrl,
+  isLocalPtyOverride,
+  createPtyTunnel,
+  getPtyTunnelBaseUrl,
+  settleAfterPtyTunnel,
+} from "../lib/pty-client.js";
+import { waitForReady } from "../utils/ssh.js";
 
 type Operation =
   | "exec"
   | "upload"
   | "snapshot"
   | "ssh"
+  | "pty"
   | "logs"
   | "tunnel"
   | "suspend"
@@ -168,6 +177,13 @@ export const DevboxActionsMenu = ({
       shortcut: "s",
     },
     {
+      key: "pty",
+      label: "PTY Shell",
+      color: colors.primary,
+      icon: figures.arrowRight,
+      shortcut: "y",
+    },
+    {
       key: "tunnel",
       label: "Open Tunnel",
       color: colors.secondary,
@@ -244,7 +260,7 @@ export const DevboxActionsMenu = ({
 
   // Auto-execute operations that don't need input (except delete which needs confirmation)
   React.useEffect(() => {
-    const autoExecuteOps = ["ssh", "logs", "suspend", "resume"];
+    const autoExecuteOps = ["ssh", "pty", "logs", "suspend", "resume"];
     if (
       executingOperation &&
       autoExecuteOps.includes(executingOperation) &&
@@ -680,6 +696,33 @@ export const DevboxActionsMenu = ({
             returnParams: params,
           });
           break;
+
+        case "pty": {
+          await waitForReady(devbox.id, 180, 3);
+
+          let ptyBaseUrl: string;
+          let ptyAuthToken: string | undefined;
+
+          if (isLocalPtyOverride()) {
+            ptyBaseUrl = getPtyBaseUrl();
+          } else {
+            const tunnel = await createPtyTunnel(devbox.id);
+            await settleAfterPtyTunnel();
+            ptyBaseUrl = getPtyTunnelBaseUrl(tunnel.tunnel_key);
+            ptyAuthToken = tunnel.auth_token;
+          }
+
+          navigate("pty-session", {
+            ptyBaseUrl,
+            ptySessionName: devbox.id,
+            ptyAuthToken,
+            devboxId: devbox.id,
+            devboxName: devbox.name || devbox.id,
+            returnScreen: currentScreen,
+            returnParams: params,
+          });
+          break;
+        }
 
         case "logs":
           // Set flag to show streaming logs viewer

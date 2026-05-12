@@ -31,7 +31,7 @@ rli devbox delete <devbox-id>
 - 🎯 **CLI mode** — Traditional commands with text, JSON, and YAML output for scripting
 - ⚡ Fast and responsive with pagination
 - 📦 Manage devboxes, snapshots, and blueprints
-- 🚀 Execute commands, SSH, view logs in devboxes
+- 🚀 Execute commands, SSH, PTY shell, view logs in devboxes
 - 🤖 **Model Context Protocol (MCP) server for AI integration**
 
 ## Installation
@@ -69,7 +69,7 @@ The URL must be of the form `https://api.<domain>`. The CLI derives other servic
 | API      | `https://api.<domain>` (the value of `RUNLOOP_BASE_URL`) |
 | Platform | `https://platform.<domain>` |
 | SSH      | `ssh.<domain>:443` |
-| Tunnels  | `tunnel.<domain>` |
+| Tunnels  | `tunnel.<domain>` (PTY sessions reach the devbox over a tunnel created via the API) |
 
 ## Usage
 
@@ -109,6 +109,7 @@ rli devbox suspend <id>                  # Suspend a devbox
 rli devbox resume <id>                   # Resume a suspended devbox
 rli devbox shutdown <id>                 # Shutdown a devbox
 rli devbox ssh <id>                      # SSH into a devbox
+rli devbox pty <id>                      # Connect to a devbox PTY session via W...
 rli devbox scp <src> <dst>               # Copy files to/from a devbox using scp...
 rli devbox rsync <src> <dst>             # Sync files to/from a devbox using rsy...
 rli devbox tunnel <id> <ports>           # Create a port-forwarding tunnel to a ...
