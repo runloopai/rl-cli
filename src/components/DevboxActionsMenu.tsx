@@ -27,12 +27,14 @@ import {
 } from "../services/devboxService.js";
 import { StreamingLogsViewer } from "./StreamingLogsViewer.js";
 import { DevboxView } from "@runloop/api-client/resources/devboxes.mjs";
+import { waitForReady } from "../utils/ssh.js";
 
 type Operation =
   | "exec"
   | "upload"
   | "snapshot"
   | "ssh"
+  | "pty"
   | "logs"
   | "tunnel"
   | "suspend"
@@ -168,6 +170,13 @@ export const DevboxActionsMenu = ({
       shortcut: "s",
     },
     {
+      key: "pty",
+      label: "PTY Terminal",
+      color: colors.primary,
+      icon: figures.play,
+      shortcut: "y",
+    },
+    {
       key: "tunnel",
       label: "Open Tunnel",
       color: colors.secondary,
@@ -244,7 +253,7 @@ export const DevboxActionsMenu = ({
 
   // Auto-execute operations that don't need input (except delete which needs confirmation)
   React.useEffect(() => {
-    const autoExecuteOps = ["ssh", "logs", "suspend", "resume"];
+    const autoExecuteOps = ["ssh", "pty", "logs", "suspend", "resume"];
     if (
       executingOperation &&
       autoExecuteOps.includes(executingOperation) &&
@@ -680,6 +689,19 @@ export const DevboxActionsMenu = ({
             returnParams: params,
           });
           break;
+
+        case "pty": {
+          await waitForReady(devbox.id, 180, 3);
+
+          navigate("pty-session", {
+            ptySessionName: devbox.id,
+            devboxId: devbox.id,
+            devboxName: devbox.name || devbox.id,
+            returnScreen: currentScreen,
+            returnParams: params,
+          });
+          break;
+        }
 
         case "logs":
           // Set flag to show streaming logs viewer
