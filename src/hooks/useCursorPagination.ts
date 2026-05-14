@@ -19,6 +19,8 @@ export interface UsePaginatedListConfig<T> {
     items: T[];
     hasMore: boolean;
     totalCount?: number;
+    runningCount?: number;
+    createdInTimeframeCount?: number;
     /** Opaque cursor for the next page. If omitted, last item ID is used. */
     nextCursor?: string;
   }>;
@@ -67,6 +69,12 @@ export interface UsePaginatedListResult<T> {
   /** Total count of items (if available from API) */
   totalCount: number;
 
+  /** Count of items currently in running state (if available from API) */
+  runningCount?: number;
+
+  /** Count of items created in the queried time range (if available from API) */
+  createdInTimeframeCount?: number;
+
   /** Navigate to next page */
   nextPage: () => void;
 
@@ -111,6 +119,12 @@ export function useCursorPagination<T>(
   const [currentPage, setCurrentPage] = React.useState(0);
   const [hasMore, setHasMore] = React.useState(false);
   const [totalCount, setTotalCount] = React.useState(0);
+  const [runningCount, setRunningCount] = React.useState<number | undefined>(
+    undefined,
+  );
+  const [createdInTimeframeCount, setCreatedInTimeframeCount] = React.useState<
+    number | undefined
+  >(undefined);
   // Track if we have a cached total count from the API (to avoid re-requesting)
   const hasCachedTotalCountRef = React.useRef(false);
 
@@ -216,6 +230,14 @@ export function useCursorPagination<T>(
         // Update pagination state
         setHasMore(result.hasMore);
 
+        // Update running count and created in timeframe count if available
+        if (result.runningCount !== undefined) {
+          setRunningCount(result.runningCount);
+        }
+        if (result.createdInTimeframeCount !== undefined) {
+          setCreatedInTimeframeCount(result.createdInTimeframeCount);
+        }
+
         // If has_more is false on any page, we know the exact total count.
         // Cancel the background count request if still pending.
         if (!result.hasMore && !hasCachedTotalCountRef.current) {
@@ -252,6 +274,8 @@ export function useCursorPagination<T>(
     setCurrentPage(0);
     setItems([]);
     setHasMore(false);
+    setRunningCount(undefined);
+    setCreatedInTimeframeCount(undefined);
     // Don't reset totalCount to 0 — keep old value visible while new count loads
     // Fire both data and count requests immediately in parallel.
     // If the data request returns first with hasMore=false, cancel the count request.
@@ -282,6 +306,12 @@ export function useCursorPagination<T>(
             if (isUnfiltered) {
               baseTotalCountRef.current = result.totalCount;
             }
+          }
+          if (result.runningCount !== undefined) {
+            setRunningCount(result.runningCount);
+          }
+          if (result.createdInTimeframeCount !== undefined) {
+            setCreatedInTimeframeCount(result.createdInTimeframeCount);
           }
         })
         .catch(() => {}); // count failure is non-critical
@@ -338,6 +368,8 @@ export function useCursorPagination<T>(
     hasMore,
     hasPrev: currentPage > 0,
     totalCount,
+    runningCount,
+    createdInTimeframeCount,
     nextPage,
     prevPage,
     refresh,
