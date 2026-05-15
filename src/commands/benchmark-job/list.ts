@@ -6,9 +6,10 @@ import {
   listBenchmarkJobs,
   type BenchmarkJob,
 } from "../../services/benchmarkJobService.js";
-import { output, outputError } from "../../utils/output.js";
+import { output, outputError, parseLimit } from "../../utils/output.js";
 
 interface ListOptions {
+  limit?: string;
   days?: string;
   all?: boolean;
   status?: string;
@@ -30,18 +31,20 @@ const PAGE_SIZE = 100;
 async function fetchJobs(
   cutoffMs: number | null,
   statusFilter: Set<string> | null,
+  maxResults: number,
 ): Promise<BenchmarkJob[]> {
   const allJobs: BenchmarkJob[] = [];
   let cursor: string | undefined;
 
-  while (true) {
+  while (allJobs.length < maxResults) {
+    const remaining = maxResults - allJobs.length;
     const result = await listBenchmarkJobs({
-      limit: PAGE_SIZE,
+      limit: Math.min(PAGE_SIZE, remaining),
       startingAfter: cursor,
     });
 
     for (const job of result.jobs) {
-      // Stop pagination if we've passed the time cutoff (API returns newest-first)
+      if (allJobs.length >= maxResults) break;
       if (cutoffMs !== null && job.create_time_ms < cutoffMs) {
         return applyStatusFilter(allJobs, statusFilter);
       }
@@ -94,8 +97,10 @@ export async function listBenchmarkJobsCommand(
       cutoffMs = Date.now() - days * 86_400_000;
     }
 
+    const maxResults = parseLimit(options.limit);
+
     // Fetch and filter
-    const jobs = await fetchJobs(cutoffMs, statusFilter);
+    const jobs = await fetchJobs(cutoffMs, statusFilter, maxResults);
 
     // Sort ascending by create_time_ms (oldest first, most recent at bottom)
     jobs.sort((a, b) => a.create_time_ms - b.create_time_ms);

@@ -32,6 +32,7 @@ const KNOWN_SCREENS: Set<ScreenName> = new Set([
   "snapshot-detail",
   "blueprint-list",
   "blueprint-detail",
+  "blueprint-create",
   "blueprint-logs",
   "network-policy-list",
   "network-policy-detail",
@@ -51,6 +52,8 @@ const KNOWN_SCREENS: Set<ScreenName> = new Set([
   "agent-create",
   "axon-list",
   "axon-detail",
+  "axon-events",
+  "axon-sql",
   "object-list",
   "object-detail",
   "object-create",
@@ -61,6 +64,7 @@ const KNOWN_SCREENS: Set<ScreenName> = new Set([
   "benchmark-detail",
   "benchmark-run-list",
   "benchmark-run-detail",
+  "scenario-create",
   "scenario-run-list",
   "scenario-run-detail",
   "benchmark-job-list",
@@ -117,6 +121,7 @@ import { SnapshotListScreen } from "../screens/SnapshotListScreen.js";
 import { SnapshotDetailScreen } from "../screens/SnapshotDetailScreen.js";
 import { BlueprintListScreen } from "../screens/BlueprintListScreen.js";
 import { BlueprintDetailScreen } from "../screens/BlueprintDetailScreen.js";
+import { BlueprintCreateScreen } from "../screens/BlueprintCreateScreen.js";
 import { BlueprintLogsScreen } from "../screens/BlueprintLogsScreen.js";
 import { NetworkPolicyListScreen } from "../screens/NetworkPolicyListScreen.js";
 import { NetworkPolicyDetailScreen } from "../screens/NetworkPolicyDetailScreen.js";
@@ -135,6 +140,8 @@ import { AgentDetailScreen } from "../screens/AgentDetailScreen.js";
 import { AgentCreateScreen } from "../screens/AgentCreateScreen.js";
 import { AxonListScreen } from "../screens/AxonListScreen.js";
 import { AxonDetailScreen } from "../screens/AxonDetailScreen.js";
+import { AxonEventsScreen } from "../screens/AxonEventsScreen.js";
+import { AxonSqlScreen } from "../screens/AxonSqlScreen.js";
 import { ObjectListScreen } from "../screens/ObjectListScreen.js";
 import { ObjectDetailScreen } from "../screens/ObjectDetailScreen.js";
 import { ObjectCreateScreen } from "../screens/ObjectCreateScreen.js";
@@ -145,6 +152,7 @@ import { BenchmarkListScreen } from "../screens/BenchmarkListScreen.js";
 import { BenchmarkDetailScreen } from "../screens/BenchmarkDetailScreen.js";
 import { BenchmarkRunListScreen } from "../screens/BenchmarkRunListScreen.js";
 import { BenchmarkRunDetailScreen } from "../screens/BenchmarkRunDetailScreen.js";
+import { ScenarioCreateScreen } from "../screens/ScenarioCreateScreen.js";
 import { ScenarioRunListScreen } from "../screens/ScenarioRunListScreen.js";
 import { ScenarioRunDetailScreen } from "../screens/ScenarioRunDetailScreen.js";
 import { BenchmarkJobListScreen } from "../screens/BenchmarkJobListScreen.js";
@@ -183,6 +191,7 @@ export function Router() {
 
         case "blueprint-list":
         case "blueprint-detail":
+        case "blueprint-create":
         case "blueprint-logs":
           if (!currentScreen.startsWith("blueprint")) {
             useBlueprintStore.getState().clearAll();
@@ -233,6 +242,7 @@ export function Router() {
         case "benchmark-detail":
         case "benchmark-run-list":
         case "benchmark-run-detail":
+        case "scenario-create":
         case "scenario-run-list":
         case "scenario-run-detail":
           if (
@@ -254,6 +264,8 @@ export function Router() {
         case "agent-list":
         case "agent-detail":
         case "agent-create":
+        case "axon-events":
+        case "axon-sql":
           break;
       }
     }
@@ -299,6 +311,12 @@ export function Router() {
       )}
       {currentScreen === "blueprint-detail" && (
         <BlueprintDetailScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "blueprint-create" && (
+        <BlueprintCreateScreen
+          key={`blueprint-create-${params.baseBlueprintId ?? "new"}`}
+          {...params}
+        />
       )}
       {currentScreen === "blueprint-logs" && (
         <BlueprintLogsScreen key={currentScreen} {...params} />
@@ -351,6 +369,12 @@ export function Router() {
       {currentScreen === "axon-detail" && (
         <AxonDetailScreen key={currentScreen} {...params} />
       )}
+      {currentScreen === "axon-events" && (
+        <AxonEventsScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "axon-sql" && (
+        <AxonSqlScreen key={currentScreen} {...params} />
+      )}
       {currentScreen === "object-list" && (
         <ObjectListScreen key={currentScreen} {...params} />
       )}
@@ -380,6 +404,9 @@ export function Router() {
       )}
       {currentScreen === "benchmark-run-detail" && (
         <BenchmarkRunDetailScreen key={currentScreen} {...params} />
+      )}
+      {currentScreen === "scenario-create" && (
+        <ScenarioCreateScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "scenario-run-list" && (
         <ScenarioRunListScreen key={currentScreen} {...params} />
