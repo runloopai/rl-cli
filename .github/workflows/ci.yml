@@ -2,6 +2,8 @@ name: CI
 
 on:
   pull_request:
+    # labeled/unlabeled needed so the dependency-check bypass-age-gate label re-triggers the gate
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   pull_request_target:
     # Run on release-please PRs (created by GITHUB_TOKEN which doesn't trigger regular pull_request)
     types: [opened, synchronize, reopened]
@@ -146,7 +148,8 @@ jobs:
         uses: runloopai/dependency-age-check-action@main
         with:
           ecosystems: npm
-          min-age-days: "14"
+          min-age-days: "7"
+          warn-age-days: "14"
           base-ref: origin/${{ github.event.pull_request.base.ref }}
           bypass-keyword: "bypass-age-gate"
 
