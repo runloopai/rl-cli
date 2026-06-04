@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.18.0](https://github.com/runloopai/rl-cli/compare/v1.17.0...v1.18.0) (2026-06-04)
+
+
+### Features
+
+* allow RUNLOOP_BASE_URL to include a port override ([#240](https://github.com/runloopai/rl-cli/issues/240)) ([eaef9eb](https://github.com/runloopai/rl-cli/commit/eaef9eb2f172b5e3a1291ff17a879f4a89a15a13))
+
 ## [1.17.0](https://github.com/runloopai/rl-cli/compare/v1.16.0...v1.17.0) (2026-05-12)
 
 
