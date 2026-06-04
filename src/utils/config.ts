@@ -70,15 +70,10 @@ export function checkBaseDomain(): void {
     process.exit(1);
   }
 
-  if (
-    parsed.port ||
-    parsed.pathname.replace(/\/+$/, "") ||
-    parsed.search ||
-    parsed.hash
-  ) {
+  if (parsed.pathname.replace(/\/+$/, "") || parsed.search || parsed.hash) {
     console.error(
-      `Error: RUNLOOP_BASE_URL must not contain port, path, query, or fragment: ${raw}\n` +
-        `Expected format: https://api.<domain>`,
+      `Error: RUNLOOP_BASE_URL must not contain path, query, or fragment: ${raw}\n` +
+        `Expected format: https://api.<domain> (an optional :port is allowed)`,
     );
     process.exit(1);
   }

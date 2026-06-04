@@ -62,7 +62,7 @@ By default the CLI and MCP server connect to `https://api.runloop.ai`. To use a 
 export RUNLOOP_BASE_URL=https://api.runloop.pro
 ```
 
-The URL must be of the form `https://api.<domain>`. The CLI derives other service hostnames from the domain portion:
+The URL must be of the form `https://api.<domain>`, optionally with a `:port` (e.g. `https://api.runloop.pro:8443`). The CLI derives other service hostnames from the domain portion:
 
 | Service  | Host |
 |----------|------|
