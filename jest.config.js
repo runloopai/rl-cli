@@ -66,7 +66,7 @@ export default {
   
   // Transform ignore patterns for node_modules
   transformIgnorePatterns: [
-    'node_modules/(?!(conf|@runloop|ink|react|ink-big-text|ink-gradient|ink-spinner|ink-text-input|ink-select-input|ink-box|ink-text|ink-testing-library|figures|is-unicode-supported)/)'
+    'node_modules/(?!(conf|@runloop|ink|react|ink-gradient|ink-spinner|ink-text-input|ink-select-input|ink-box|ink-text|ink-testing-library|figures|is-unicode-supported)/)'
   ],
   
   // Treat these extensions as ESM

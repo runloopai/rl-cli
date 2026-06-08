@@ -1,0 +1,30 @@
+# pnpm 10 moved these settings out of package.json#pnpm into this file.
+minimumReleaseAge: 10080
+minimumReleaseAgeExclude:
+  - '@runloop/api-client'
+onlyBuiltDependencies:
+  - esbuild
+overrides:
+  # Security pins (Dependabot): key = advisory vulnerable range, value = first_patched_version
+  'path-to-regexp@>=8.0.0 <8.4.0': 8.4.0
+  'fast-uri@<3.1.2': 3.1.2
+  'qs@>=6.7.0 <6.15.2': 6.15.2
+  'ws@>=8.0.0 <8.20.1': 8.20.1
+  'tmp@<0.2.6': 0.2.6
+  'handlebars@>=4.0.0 <4.7.9': 4.7.9
+  'flatted@<3.4.2': 3.4.2
+  'node-forge@<1.4.0': 1.4.0
+  'ip-address@<10.1.1': 10.1.1
+  'tar@<7.5.11': 7.5.11
+  'express-rate-limit@>=8.2.0 <8.2.2': 8.2.2
+  '@hono/node-server@<1.19.13': 1.19.13
+  'hono@<4.12.21': 4.12.21
+  'minimatch@<3.1.4': 3.1.4
+  'minimatch@>=9.0.0 <9.0.7': 9.0.7
+  'brace-expansion@<1.1.13': 1.1.13
+  'brace-expansion@>=2.0.0 <2.0.3': 2.0.3
+  'picomatch@<2.3.2': 2.3.2
+  'picomatch@>=4.0.0 <4.0.4': 4.0.4
+  'ajv@<6.14.0': 6.14.0
+  'ajv@>=7.0.0-alpha.0 <8.18.0': 8.18.0
+  'yaml@>=2.0.0 <2.8.3': 2.8.3
