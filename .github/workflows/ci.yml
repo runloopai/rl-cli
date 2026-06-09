@@ -282,7 +282,7 @@ jobs:
               .write();
 
   format:
-    runs-on: ${{ needs.detect-changes.outputs.format != 'false' && 'ubuntu-latest' || 'ubuntu-slim' }}
+    runs-on: ubuntu-slim
     needs: [detect-changes]
     if: failure() || (success() && (github.event_name == 'pull_request' || needs.detect-changes.outputs.format != 'false'))
     env:
@@ -309,7 +309,7 @@ jobs:
         run: pnpm run format:check
 
   lint:
-    runs-on: ${{ needs.detect-changes.outputs.lint != 'false' && 'ubuntu-latest' || 'ubuntu-slim' }}
+    runs-on: ubuntu-slim
     needs: [detect-changes]
     if: failure() || (success() && (github.event_name == 'pull_request' || needs.detect-changes.outputs.lint != 'false'))
     env:
@@ -336,7 +336,7 @@ jobs:
         run: pnpm run lint
 
   build:
-    runs-on: ${{ needs.detect-changes.outputs.build != 'false' && 'ubuntu-latest' || 'ubuntu-slim' }}
+    runs-on: ubuntu-slim
     needs: [detect-changes]
     if: failure() || (success() && (github.event_name == 'pull_request' || needs.detect-changes.outputs.build != 'false'))
     env:
@@ -363,8 +363,8 @@ jobs:
         run: pnpm run build
 
   test:
-    runs-on: ${{ needs.detect-changes.outputs.test != 'false' && 'ubuntu-latest' || 'ubuntu-slim' }}
-    needs: [detect-changes, build]
+    runs-on: ubuntu-slim
+    needs: [detect-changes]
     if: failure() || (success() && (github.event_name == 'pull_request' || needs.detect-changes.outputs.test != 'false'))
     env:
       SHOULD_RUN: ${{ needs.detect-changes.outputs.test != 'false' }}
