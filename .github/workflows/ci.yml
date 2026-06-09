@@ -1,173 +1,398 @@
 name: CI
 
 on:
-  pull_request:
-    # labeled/unlabeled needed so the dependency-check bypass-age-gate label re-triggers the gate
-    types: [opened, synchronize, reopened, labeled, unlabeled]
-  pull_request_target:
-    # Run on release-please PRs (created by GITHUB_TOKEN which doesn't trigger regular pull_request)
-    types: [opened, synchronize, reopened]
   workflow_dispatch:
+    inputs:
+      all:
+        description: Run all jobs regardless of changed files
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'push' && github.run_id || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  FORCE_COLOR: '1'
 
 jobs:
+  detect-changes:
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    outputs:
+      format: ${{ steps.result.outputs.format }}
+      lint: ${{ steps.result.outputs.lint }}
+      build: ${{ steps.result.outputs.build }}
+      test: ${{ steps.result.outputs.test }}
+    steps:
+      - uses: runloopai/checkout@main
+        with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && 1 || 2 }}
+
+      - name: Detect changed files
+        if: ${{ !inputs.all }}
+        id: changed
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
+        with:
+          files_yaml: |
+            ci:
+              - '.github/workflows/ci.yml'
+            format:
+              - 'src/**'
+              - '.prettierrc'
+              - '.prettierignore'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+            lint:
+              - 'src/**'
+              - 'eslint.config.js'
+              - 'tsconfig.json'
+              - 'tsconfig.test.json'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+            build:
+              - 'src/**'
+              - 'tsconfig.json'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+            test:
+              - 'src/**'
+              - 'tests/**'
+              - 'jest.config.js'
+              - 'jest.components.config.js'
+              - 'tsconfig.json'
+              - 'tsconfig.test.json'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+
+      - name: Detect ci.yml self-changes
+        if: ${{ !inputs.all && steps.changed.outputs.ci_any_modified == 'true' }}
+        id: self
+        uses: runloopai/github-script@main
+        with:
+          script: |
+            // Inlined from changed_lines.js: addedLines + parseDiffHunks + detectCiSelfChanges
+            const fs = require('fs');
+            const HUNK_RE = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/;
+
+            function* addedLines(body, includeDeletionMarkers = false) {
+              let newLine = null;
+              for (const line of body.split('\n')) {
+                const m = HUNK_RE.exec(line);
+                if (m) {
+                  const start = parseInt(m[1], 10);
+                  const count = m[2] !== undefined ? parseInt(m[2], 10) : 1;
+                  if (count === 0) {
+                    if (includeDeletionMarkers) yield start;
+                    newLine = null;
+                  } else {
+                    newLine = start;
+                  }
+                  continue;
+                }
+                if (newLine === null) continue;
+                if (line.startsWith('+')) {
+                  yield newLine++;
+                } else if (line.startsWith('-')) {
+                  // removed line: don't advance new-file numbering
+                } else if (!line.startsWith('\\')) {
+                  newLine++;
+                }
+              }
+            }
+
+            function parseDiffHunks(diffText) {
+              const result = {};
+              let currentFile = null;
+              const bodyLines = [];
+              function flush() {
+                if (currentFile && bodyLines.length > 0) {
+                  const arr = result[currentFile] ?? (result[currentFile] = []);
+                  for (const n of addedLines(bodyLines.join('\n'), true)) arr.push(n);
+                }
+                bodyLines.length = 0;
+              }
+              for (const line of diffText.split('\n')) {
+                if (line.startsWith('diff --git ')) {
+                  flush();
+                  currentFile = null;
+                } else if (line.startsWith('+++ b/')) {
+                  flush();
+                  currentFile = line.slice(6);
+                } else if (line.startsWith('+++ /dev/null')) {
+                  flush();
+                  currentFile = null;
+                } else if (currentFile) {
+                  bodyLines.push(line);
+                }
+              }
+              flush();
+              return result;
+            }
+
+            const CI_FILE = '.github/workflows/ci.yml';
+            let base;
+            if (context.eventName === 'push' || context.eventName === 'workflow_dispatch') {
+              base = 'HEAD~1';
+            } else {
+              base = context.payload.pull_request.base.sha;
+              const { exitCode, stderr } = await exec.getExecOutput(
+                'git', ['fetch', 'origin', base, '--depth=1'],
+                { ignoreReturnCode: true, silent: true },
+              );
+              if (exitCode !== 0) {
+                core.warning(`git fetch of base ${base} failed: ${stderr.trim()} — running all jobs`);
+                core.setOutput('give_up', 'true');
+                return;
+              }
+            }
+
+            const { stdout: diffOut } = await exec.getExecOutput(
+              'git', ['diff', base, 'HEAD', '--unified=0', '--', CI_FILE],
+              { silent: true },
+            );
+            const diffLines = new Set(parseDiffHunks(diffOut)[CI_FILE] ?? []);
+
+            if (diffLines.size === 0) {
+              core.notice('ci group triggered but ci.yml unchanged — running all jobs');
+              core.setOutput('give_up', 'true');
+              return;
+            }
+
+            core.startGroup('ci.yml self-change detection');
+            core.info(`Changed lines: ${[...diffLines].sort((a, b) => a - b).join(', ')}`);
+
+            const { stdout: yqOut } = await exec.getExecOutput(
+              'yq', ['-r', '.jobs | keys | .[]', CI_FILE],
+              { silent: true },
+            );
+            const jobKeys = yqOut.trim().split('\n').filter(Boolean);
+            const checkKeys = jobKeys.filter(k => k !== 'detect-changes');
+
+            const fileLines = fs.readFileSync(CI_FILE, 'utf8').split('\n');
+            const totalLines = fileLines.length;
+            const jobsLine = fileLines.findIndex(l => l.trimEnd() === 'jobs:') + 1;
+
+            const jobStarts = {};
+            fileLines.forEach((line, i) => {
+              for (const key of jobKeys) {
+                if (line.trimEnd() === `  ${key}:`) jobStarts[key] = i + 1;
+              }
+            });
+
+            const sortedStarts = Object.entries(jobStarts).sort(([, a], [, b]) => a - b);
+            const jobRanges = {};
+            for (let i = 0; i < sortedStarts.length; i++) {
+              const [k, start] = sortedStarts[i];
+              const end = i + 1 < sortedStarts.length ? sortedStarts[i + 1][1] - 1 : totalLines;
+              jobRanges[k] = [start, end];
+            }
+            for (const [k, [s, e]] of Object.entries(jobRanges).sort(([, [a]], [, [b]]) => a - b)) {
+              core.info(`  ${k}: lines ${s}–${e}`);
+            }
+
+            const [dcStart, dcEnd] = jobRanges['detect-changes'] ?? [0, 0];
+            const topLevel = [...diffLines].some(l => l <= jobsLine || (l >= dcStart && l <= dcEnd));
+
+            let selfKeys;
+            if (topLevel) {
+              core.info('Top-level YAML or detect-changes changed — triggering all jobs');
+              selfKeys = checkKeys;
+            } else {
+              selfKeys = checkKeys.filter(k => {
+                const [s, e] = jobRanges[k] ?? [0, -1];
+                for (const l of diffLines) if (l >= s && l <= e) return true;
+                return false;
+              });
+              for (const k of selfKeys) core.info(`  ${k}: overlapping changes detected`);
+            }
+
+            // No shard jobs in rl-cli — output keys match job keys 1:1
+            const jobToOutputKey = {};
+            const selfOutputKeys = [...new Set(selfKeys.map(k => jobToOutputKey[k] ?? k))];
+            core.setOutput('keys', selfOutputKeys.join(' '));
+            if (selfOutputKeys.length > 0) {
+              core.notice(`ci.yml self-change triggers: ${selfOutputKeys.join(', ')}`);
+            } else {
+              core.info('No job-specific overlap found');
+            }
+            core.endGroup();
+
+      - name: Set outputs
+        if: ${{ !inputs.all }}
+        id: result
+        uses: runloopai/github-script@main
+        with:
+          script: |
+            // Inlined from changed_lines.js: setDetectChangesOutputs
+            const CI_FILE = '.github/workflows/ci.yml';
+
+            const { stdout: yqOut } = await exec.getExecOutput(
+              'yq', ['-r', '.jobs["detect-changes"].outputs | keys | .[]', CI_FILE],
+              { silent: true },
+            );
+            const allOutputKeys = yqOut.trim().split('\n').filter(Boolean);
+
+            const modifiedKeys = `${{ steps.changed.outputs.modified_keys }}`;
+            const selfKeys = `${{ steps.self.outputs.keys }}`;
+            const giveUp = `${{ steps.self.outputs.give_up }}` === 'true';
+            const ciModified = `${{ steps.changed.outputs.ci_any_modified }}` === 'true';
+
+            const modList = modifiedKeys.split(' ').filter(Boolean);
+            const selfList = selfKeys.split(' ').filter(Boolean);
+            const runSet = new Set([...modList, ...selfList]);
+
+            core.startGroup('Setting outputs');
+            const skipped = new Set();
+            if (giveUp) {
+              core.notice('give_up: cannot determine ci.yml self-changes — all jobs will run');
+            } else {
+              for (const k of allOutputKeys) {
+                if (runSet.has(k)) {
+                  core.info(`  ${k} = (run)`);
+                } else {
+                  core.info(`  ${k} = false (skipped)`);
+                  core.setOutput(k, 'false');
+                  skipped.add(k);
+                }
+              }
+            }
+            core.endGroup();
+
+            const modCell = modList.map(k => `\`${k}\``).join(' ') || '_(none)_';
+            const selfCell = !ciModified
+              ? '_(not modified)_'
+              : selfList.length > 0
+                ? selfList.map(k => `\`${k}\``).join(' ')
+                : '_(no job overlap)_';
+            const runList = allOutputKeys.filter(k => !skipped.has(k));
+            const summary = giveUp
+              ? 'All jobs will run (give_up)'
+              : `Running: ${runList.map(k => `\`${k}\``).join(', ') || '_(none)_'}`;
+            core.notice(summary);
+            await core.summary
+              .addHeading('Change Detection', 3)
+              .addRaw(`| | |\n|---|---|\n| **Event** | \`${context.eventName}\` |\n| **Modified groups** | ${modCell} |\n| **ci.yml self-change** | ${selfCell} |\n\n${summary}`)
+              .write();
+
   format:
     runs-on: ubuntu-slim
-    # Run from pull_request for non-release-please branches, or pull_request_target for release-please branches only
-    if: (github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch'
+    needs: [detect-changes]
+    if: failure() || (success() && (github.event_name == 'pull_request' || needs.detect-changes.outputs.format != 'false'))
+    env:
+      SHOULD_RUN: ${{ needs.detect-changes.outputs.format != 'false' }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          # For pull_request_target, explicitly checkout the PR head (for security)
-          # For regular pull_request and workflow_dispatch, checkout action uses defaults
-          ref: ${{ github.event.pull_request.head.sha }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
+      - if: env.SHOULD_RUN == 'true'
+        uses: runloopai/checkout@main
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+      - if: env.SHOULD_RUN == 'true'
+        uses: runloopai/pnpm-action@master
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - if: env.SHOULD_RUN == 'true'
+        uses: runloopai/setup-node@main
         with:
           node-version: "20"
-          cache: "pnpm"
+          cache: pnpm
 
-      - name: Install dependencies
+      - if: env.SHOULD_RUN == 'true'
+        name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run Prettier check
+      - if: env.SHOULD_RUN == 'true'
+        name: Run Prettier check
         run: pnpm run format:check
 
   lint:
     runs-on: ubuntu-slim
-    # Run from pull_request for non-release-please branches, or pull_request_target for release-please branches only
-    if: (github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch'
+    needs: [detect-changes]
+    if: failure() || (success() && (github.event_name == 'pull_request' || needs.detect-changes.outputs.lint != 'false'))
+    env:
+      SHOULD_RUN: ${{ needs.detect-changes.outputs.lint != 'false' }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          # For pull_request_target, explicitly checkout the PR head (for security)
-          # For regular pull_request and workflow_dispatch, checkout action uses defaults
-          ref: ${{ github.event.pull_request.head.sha }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
+      - if: env.SHOULD_RUN == 'true'
+        uses: runloopai/checkout@main
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+      - if: env.SHOULD_RUN == 'true'
+        uses: runloopai/pnpm-action@master
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - if: env.SHOULD_RUN == 'true'
+        uses: runloopai/setup-node@main
         with:
           node-version: "20"
-          cache: "pnpm"
+          cache: pnpm
 
-      - name: Install dependencies
+      - if: env.SHOULD_RUN == 'true'
+        name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run ESLint
+      - if: env.SHOULD_RUN == 'true'
+        name: Run ESLint
         run: pnpm run lint
 
   build:
     runs-on: ubuntu-slim
-    # Run from pull_request for non-release-please branches, or pull_request_target for release-please branches only
-    if: (github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch'
+    needs: [detect-changes]
+    if: failure() || (success() && (github.event_name == 'pull_request' || needs.detect-changes.outputs.build != 'false'))
+    env:
+      SHOULD_RUN: ${{ needs.detect-changes.outputs.build != 'false' }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          # For pull_request_target, explicitly checkout the PR head (for security)
-          # For regular pull_request and workflow_dispatch, checkout action uses defaults
-          ref: ${{ github.event.pull_request.head.sha }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
+      - if: env.SHOULD_RUN == 'true'
+        uses: runloopai/checkout@main
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+      - if: env.SHOULD_RUN == 'true'
+        uses: runloopai/pnpm-action@master
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - if: env.SHOULD_RUN == 'true'
+        uses: runloopai/setup-node@main
         with:
           node-version: "20"
-          cache: "pnpm"
+          cache: pnpm
 
-      - name: Install dependencies
+      - if: env.SHOULD_RUN == 'true'
+        name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build TypeScript
+      - if: env.SHOULD_RUN == 'true'
+        name: Build TypeScript
         run: pnpm run build
 
   test:
     runs-on: ubuntu-slim
-    needs: build
-    # Run from pull_request for non-release-please branches, or pull_request_target for release-please branches only
-    if: (github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch'
+    needs: [detect-changes]
+    if: failure() || (success() && (github.event_name == 'pull_request' || needs.detect-changes.outputs.test != 'false'))
+    env:
+      SHOULD_RUN: ${{ needs.detect-changes.outputs.test != 'false' }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          # For pull_request_target, explicitly checkout the PR head (for security)
-          # For regular pull_request and workflow_dispatch, checkout action uses defaults
-          ref: ${{ github.event.pull_request.head.sha }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
+      - if: env.SHOULD_RUN == 'true'
+        uses: runloopai/checkout@main
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+      - if: env.SHOULD_RUN == 'true'
+        uses: runloopai/pnpm-action@master
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - if: env.SHOULD_RUN == 'true'
+        uses: runloopai/setup-node@main
         with:
           node-version: "20"
-          cache: "pnpm"
+          cache: pnpm
 
-      - name: Install dependencies
+      - if: env.SHOULD_RUN == 'true'
+        name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run component tests with coverage
+      - if: env.SHOULD_RUN == 'true'
+        name: Run component tests with coverage
         run: pnpm run test:components
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v7
-        if: always()
+        uses: runloopai/upload-artifact@main
+        if: always() && env.SHOULD_RUN == 'true'
         with:
           name: component-coverage
           path: coverage/
           retention-days: 7
-
-  dependency-check:
-    runs-on: ubuntu-slim
-    if: github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-
-      - name: Fetch base ref
-        run: git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
-
-      - name: Check dependency age (supply-chain gate)
-        uses: runloopai/dependency-age-check-action@main
-        with:
-          ecosystems: npm
-          min-age-days: "7"
-          warn-age-days: "14"
-          base-ref: origin/${{ github.event.pull_request.base.ref }}
-          bypass-keyword: "bypass-age-gate"
-
-  ready-to-merge:
-    runs-on: ubuntu-slim
-    permissions: {}
-    needs: [format, lint, build, test, dependency-check]
-    # Run from pull_request for non-release-please branches, or pull_request_target for release-please branches only
-    if: always() && ((github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch')
-    steps:
-      - name: Check all jobs passed
-        run: |
-          if [[ "${{ needs.format.result }}" != "success" ]] || \
-             [[ "${{ needs.lint.result }}" != "success" ]] || \
-             [[ "${{ needs.build.result }}" != "success" ]] || \
-             [[ "${{ needs.test.result }}" != "success" ]] || \
-             [[ "${{ needs.dependency-check.result }}" != "success" && "${{ needs.dependency-check.result }}" != "skipped" ]]; then
-            echo "One or more required jobs failed"
-            exit 1
-          fi
-          echo "All required jobs passed!"

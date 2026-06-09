@@ -1,0 +1,33 @@
+name: Dependency Age Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/dependency-age-check.yml
+      - pnpm-workspace.yaml
+      - pnpm-lock.yaml
+  pull_request:
+    branches: [main]
+    # labeled/unlabeled needed so the bypass-age-gate label re-triggers the gate
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'push' && github.run_id || github.ref }}
+
+jobs:
+  dependency-check:
+    name: Check dependency age
+    runs-on: ubuntu-slim
+
+    steps:
+      - name: Check out Git repository
+        uses: runloopai/checkout@main
+
+      - name: Check dependency age (supply-chain gate)
+        uses: runloopai/lisan-al-gaib-action@main
+        with:
+          ecosystems: npm,actions
+          min-age-days: '7'
+          warn-age-days: '14'
+          bypass-keyword: 'bypass-age-gate'
