@@ -1,14 +1,22 @@
 #!/usr/bin/env node
 
-import { exitAlternateScreenBuffer } from "./utils/screen.js";
+import {
+  exitAlternateScreenBuffer,
+  isInAlternateScreenBuffer,
+} from "./utils/screen.js";
 import { processUtils } from "./utils/processUtils.js";
 import { createProgram } from "./utils/commands.js";
 import { getApiKeyErrorMessage, checkBaseDomain } from "./utils/config.js";
 
 // Global Ctrl+C handler to ensure it always exits
 processUtils.on("SIGINT", () => {
-  // Force exit immediately, clearing alternate screen buffer
-  exitAlternateScreenBuffer();
+  // Only restore the alternate screen buffer if we actually entered it.
+  // Unconditionally sending the exit sequence when no TUI is active causes
+  // the terminal to restore a stale saved-cursor position, jumping the
+  // cursor and garbling any plain-text output (e.g. `rli d ssh` wait loop).
+  if (isInAlternateScreenBuffer()) {
+    exitAlternateScreenBuffer();
+  }
   processUtils.stdout.write("\n");
   processUtils.exit(130); // Standard exit code for SIGINT
 });
