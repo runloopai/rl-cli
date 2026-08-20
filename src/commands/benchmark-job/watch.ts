@@ -10,6 +10,13 @@ import {
 } from "../../services/benchmarkJobService.js";
 import { outputError } from "../../utils/output.js";
 import {
+  enterAlternateScreenBuffer,
+  exitAlternateScreenBuffer,
+  hideCursor,
+  showCursor,
+  clearScreen,
+} from "../../utils/screen.js";
+import {
   isJobCompleted,
   fetchAllRunsProgress,
   type RunProgress,
@@ -25,28 +32,23 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Terminal control utilities for full-screen mode
+// Terminal control utilities for in-place rendering
 const ANSI = {
-  hideCursor: "\x1b[?25l",
-  showCursor: "\x1b[?25h",
-  clearScreen: "\x1b[2J",
   moveTo: (row: number, col: number) => `\x1b[${row};${col}H`,
   clearLine: "\x1b[2K",
-  enterAltScreen: "\x1b[?1049h",
-  exitAltScreen: "\x1b[?1049l",
 };
 
 // Enter full-screen mode
 function enterFullScreen(): void {
-  process.stdout.write(ANSI.enterAltScreen);
-  process.stdout.write(ANSI.hideCursor);
-  process.stdout.write(ANSI.clearScreen);
+  enterAlternateScreenBuffer();
+  hideCursor();
+  clearScreen();
 }
 
 // Exit full-screen mode
 function exitFullScreen(): void {
-  process.stdout.write(ANSI.showCursor);
-  process.stdout.write(ANSI.exitAltScreen);
+  showCursor();
+  exitAlternateScreenBuffer();
 }
 
 // Track how many lines the last render wrote so we can clear stale lines

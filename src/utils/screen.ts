@@ -9,12 +9,20 @@
 
 import { processUtils } from "./processUtils.js";
 
+let _inAlternateScreenBuffer = false;
+
+/** Returns true if the alternate screen buffer is currently active. */
+export function isInAlternateScreenBuffer(): boolean {
+  return _inAlternateScreenBuffer;
+}
+
 /**
  * Enter the alternate screen buffer.
  * This provides a fullscreen experience where content won't mix with
  * previous terminal output. Like vim or top.
  */
 export function enterAlternateScreenBuffer(): void {
+  _inAlternateScreenBuffer = true;
   processUtils.stdout.write("\x1b[?1049h");
 }
 
@@ -23,6 +31,7 @@ export function enterAlternateScreenBuffer(): void {
  * This returns the terminal to its original state before enterAlternateScreen() was called.
  */
 export function exitAlternateScreenBuffer(): void {
+  _inAlternateScreenBuffer = false;
   processUtils.stdout.write("\x1b[?1049l");
 }
 
