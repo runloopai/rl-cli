@@ -16,7 +16,7 @@ jobs:
     if: (github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # For pull_request_target, explicitly checkout the PR head (for security)
           # For regular pull_request and workflow_dispatch, checkout action uses defaults
@@ -44,7 +44,7 @@ jobs:
     if: (github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # For pull_request_target, explicitly checkout the PR head (for security)
           # For regular pull_request and workflow_dispatch, checkout action uses defaults
@@ -72,7 +72,7 @@ jobs:
     if: (github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # For pull_request_target, explicitly checkout the PR head (for security)
           # For regular pull_request and workflow_dispatch, checkout action uses defaults
@@ -101,7 +101,7 @@ jobs:
     if: (github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')) || (github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'release-please--')) || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # For pull_request_target, explicitly checkout the PR head (for security)
           # For regular pull_request and workflow_dispatch, checkout action uses defaults
@@ -136,7 +136,7 @@ jobs:
     if: github.event_name == 'pull_request' && !startsWith(github.event.pull_request.head.ref, 'release-please--')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
