@@ -267,6 +267,13 @@ export function BlueprintDetailScreen({
       shortcut: "c",
     },
     {
+      key: "duplicate",
+      label: "Duplicate Blueprint",
+      color: colors.secondary,
+      icon: figures.ellipsis,
+      shortcut: "u",
+    },
+    {
       key: "delete",
       label: "Delete Blueprint",
       color: colors.error,
@@ -283,6 +290,9 @@ export function BlueprintDetailScreen({
         break;
       case "create-devbox":
         navigate("devbox-create", { blueprintId: resource.id });
+        break;
+      case "duplicate":
+        navigate("blueprint-create", { baseBlueprintId: resource.id });
         break;
       case "delete":
         // Show confirmation dialog

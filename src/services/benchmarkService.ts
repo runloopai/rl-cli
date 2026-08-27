@@ -26,6 +26,7 @@ export interface ListBenchmarksResult {
 export interface ListBenchmarkRunsOptions {
   limit: number;
   startingAfter?: string;
+  benchmarkId?: string;
   includeTotalCount?: boolean;
 }
 
@@ -65,6 +66,9 @@ export async function listBenchmarkRuns(
 
   if (options.startingAfter) {
     queryParams.starting_after = options.startingAfter;
+  }
+  if (options.benchmarkId) {
+    queryParams.benchmark_id = options.benchmarkId;
   }
 
   const page = await client.benchmarkRuns.list(queryParams);
@@ -257,4 +261,14 @@ export async function createBenchmarkRun(
   // Use type assertion since the API client types may not be fully defined
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (client.benchmarkRuns as any).create(createParams);
+}
+
+export async function cancelBenchmarkRun(id: string): Promise<BenchmarkRun> {
+  const client = getClient();
+  return client.benchmarkRuns.cancel(id);
+}
+
+export async function completeBenchmarkRun(id: string): Promise<BenchmarkRun> {
+  const client = getClient();
+  return client.benchmarkRuns.complete(id);
 }

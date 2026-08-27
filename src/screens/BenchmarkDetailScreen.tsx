@@ -176,6 +176,13 @@ export function BenchmarkDetailScreen({
   // Operations available for benchmarks
   const operations: ResourceOperation[] = [
     {
+      key: "view-runs",
+      label: "View Benchmark Runs",
+      color: colors.info,
+      icon: figures.arrowRight,
+      shortcut: "r",
+    },
+    {
       key: "create-job",
       label: "Create Benchmark Job",
       color: colors.success,
@@ -187,6 +194,9 @@ export function BenchmarkDetailScreen({
   // Handle operation selection
   const handleOperation = async (operation: string, resource: Benchmark) => {
     switch (operation) {
+      case "view-runs":
+        navigate("benchmark-run-list", { benchmarkId: resource.id });
+        break;
       case "create-job":
         navigate("benchmark-job-create", { initialBenchmarkIds: resource.id });
         break;

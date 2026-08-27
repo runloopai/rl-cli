@@ -4,6 +4,7 @@
 import { getClient } from "../utils/client.js";
 import type { Blueprint } from "../store/blueprintStore.js";
 import type {
+  BlueprintCreateParams,
   BlueprintListParams,
   BlueprintView,
 } from "@runloop/api-client/resources/blueprints";
@@ -74,6 +75,74 @@ export async function listBlueprints(
         create_time_ms: b.create_time_ms,
         parameters: b.parameters,
         // UI-specific convenience fields
+        architecture: architecture
+          ? String(architecture).substring(0, MAX_ARCH_LENGTH)
+          : undefined,
+        resources: resources
+          ? String(resources).substring(0, MAX_RESOURCES_LENGTH)
+          : undefined,
+      });
+    });
+  }
+
+  return {
+    blueprints,
+    totalCount: page.total_count ?? blueprints.length,
+    hasMore: page.has_more || false,
+  };
+}
+
+/**
+ * List public blueprints with pagination
+ */
+export async function listPublicBlueprints(
+  options: ListBlueprintsOptions,
+): Promise<ListBlueprintsResult> {
+  const client = getClient();
+
+  const queryParams: {
+    limit?: number;
+    starting_after?: string;
+    name?: string;
+    include_total_count?: boolean;
+  } = {
+    limit: options.limit,
+    include_total_count: options.includeTotalCount === true,
+  };
+
+  if (options.startingAfter) {
+    queryParams.starting_after = options.startingAfter;
+  }
+
+  if (options.search) {
+    queryParams.name = options.search;
+  }
+
+  const page = (await client.blueprints.listPublic(
+    queryParams,
+  )) as unknown as BlueprintsCursorIDPage<BlueprintView> & {
+    total_count?: number;
+  };
+
+  const blueprints: Blueprint[] = [];
+
+  if (page.blueprints && Array.isArray(page.blueprints)) {
+    page.blueprints.forEach((b: BlueprintView) => {
+      const MAX_ID_LENGTH = 100;
+      const MAX_NAME_LENGTH = 200;
+      const MAX_ARCH_LENGTH = 50;
+      const MAX_RESOURCES_LENGTH = 100;
+
+      const architecture = b.parameters?.launch_parameters?.architecture;
+      const resources = b.parameters?.launch_parameters?.resource_size_request;
+
+      blueprints.push({
+        id: String(b.id || "").substring(0, MAX_ID_LENGTH),
+        name: String(b.name || "").substring(0, MAX_NAME_LENGTH),
+        status: b.status,
+        state: b.state,
+        create_time_ms: b.create_time_ms,
+        parameters: b.parameters,
         architecture: architecture
           ? String(architecture).substring(0, MAX_ARCH_LENGTH)
           : undefined,
@@ -168,4 +237,66 @@ export async function getBlueprintLogs(id: string): Promise<any[]> {
   }
 
   return [];
+}
+
+export interface CreateBlueprintOptions {
+  name: string;
+  dockerfile?: string;
+  baseBlueprintId?: string;
+  systemSetupCommands?: string[];
+  architecture?: string;
+  resourceSizeRequest?: string;
+  availablePorts?: number[];
+  keepAliveTimeSeconds?: number;
+  metadata?: Record<string, string>;
+}
+
+export async function createBlueprint(
+  options: CreateBlueprintOptions,
+): Promise<Blueprint> {
+  const client = getClient();
+
+  const params: BlueprintCreateParams = {
+    name: options.name,
+  };
+
+  if (options.dockerfile) {
+    params.dockerfile = options.dockerfile;
+  }
+  if (options.baseBlueprintId) {
+    params.base_blueprint_id = options.baseBlueprintId;
+  }
+  if (options.systemSetupCommands && options.systemSetupCommands.length > 0) {
+    params.system_setup_commands = options.systemSetupCommands;
+  }
+
+  const launchParameters: Record<string, unknown> = {};
+  if (options.architecture) {
+    launchParameters.architecture = options.architecture;
+  }
+  if (options.resourceSizeRequest) {
+    launchParameters.resource_size_request = options.resourceSizeRequest;
+  }
+  if (options.availablePorts && options.availablePorts.length > 0) {
+    launchParameters.available_ports = options.availablePorts;
+  }
+  if (options.keepAliveTimeSeconds) {
+    launchParameters.keep_alive_time_seconds = options.keepAliveTimeSeconds;
+  }
+  if (Object.keys(launchParameters).length > 0) {
+    params.launch_parameters =
+      launchParameters as BlueprintCreateParams["launch_parameters"];
+  }
+
+  if (options.metadata && Object.keys(options.metadata).length > 0) {
+    params.metadata = options.metadata;
+  }
+
+  const blueprint = await client.blueprints.create(params);
+  const lp = blueprint.parameters?.launch_parameters;
+  return {
+    ...blueprint,
+    architecture: lp?.architecture ?? undefined,
+    resources: lp?.resource_size_request ?? undefined,
+  };
 }
