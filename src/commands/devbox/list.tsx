@@ -105,7 +105,11 @@ const ListDevboxesUI = ({
       // Fetch ONE page only
       const page = (await client.devboxes.list(
         queryParams,
-      )) as unknown as DevboxesCursorIDPage<Devbox> & { total_count?: number };
+      )) as unknown as DevboxesCursorIDPage<Devbox> & {
+        total_count?: number;
+        running_count?: number;
+        created_in_timeframe_count?: number;
+      };
 
       // Extract data and create defensive copies using JSON serialization
       if (page.devboxes && Array.isArray(page.devboxes)) {
@@ -118,6 +122,8 @@ const ListDevboxesUI = ({
         items: pageDevboxes,
         hasMore: page.has_more || false,
         totalCount: page.total_count,
+        runningCount: page.running_count,
+        createdInTimeframeCount: page.created_in_timeframe_count,
       };
 
       return result;
@@ -135,6 +141,8 @@ const ListDevboxesUI = ({
     hasMore,
     hasPrev,
     totalCount,
+    runningCount,
+    createdInTimeframeCount,
     nextPage,
     prevPage,
   } = useCursorPagination({
@@ -747,6 +755,37 @@ const ListDevboxesUI = ({
               </Text>
             </>
           )}
+          {runningCount !== undefined && runningCount > 0 && (
+            <>
+              <Text color={colors.textDim} dimColor>
+                {" "}
+                •{" "}
+              </Text>
+              <Text color={colors.success} bold>
+                {runningCount}
+              </Text>
+              <Text color={colors.textDim} dimColor>
+                {" "}
+                running
+              </Text>
+            </>
+          )}
+          {createdInTimeframeCount !== undefined &&
+            createdInTimeframeCount > 0 && (
+              <>
+                <Text color={colors.textDim} dimColor>
+                  {" "}
+                  •{" "}
+                </Text>
+                <Text color={colors.info} bold>
+                  {createdInTimeframeCount}
+                </Text>
+                <Text color={colors.textDim} dimColor>
+                  {" "}
+                  created in range
+                </Text>
+              </>
+            )}
           {totalCount > 0 && totalPages > 1 && (
             <>
               <Text color={colors.textDim} dimColor>
