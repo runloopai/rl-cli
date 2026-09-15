@@ -13,8 +13,6 @@ import { useNetworkPolicyStore } from "../store/networkPolicyStore.js";
 import { useGatewayConfigStore } from "../store/gatewayConfigStore.js";
 import { useMcpConfigStore } from "../store/mcpConfigStore.js";
 import { useObjectStore } from "../store/objectStore.js";
-import { useBenchmarkStore } from "../store/benchmarkStore.js";
-import { useBenchmarkJobStore } from "../store/benchmarkJobStore.js";
 import { ErrorBoundary } from "../components/ErrorBoundary.js";
 import { colors } from "../utils/theme.js";
 import type { ScreenName } from "../router/types.js";
@@ -56,16 +54,6 @@ const KNOWN_SCREENS: Set<ScreenName> = new Set([
   "object-create",
   "ssh-session",
   "pty-session",
-  "benchmark-menu",
-  "benchmark-list",
-  "benchmark-detail",
-  "benchmark-run-list",
-  "benchmark-run-detail",
-  "scenario-run-list",
-  "scenario-run-detail",
-  "benchmark-job-list",
-  "benchmark-job-detail",
-  "benchmark-job-create",
 ]);
 
 /**
@@ -140,16 +128,6 @@ import { ObjectDetailScreen } from "../screens/ObjectDetailScreen.js";
 import { ObjectCreateScreen } from "../screens/ObjectCreateScreen.js";
 import { SSHSessionScreen } from "../screens/SSHSessionScreen.js";
 import { PtySessionScreen } from "../screens/PtySessionScreen.js";
-import { BenchmarkMenuScreen } from "../screens/BenchmarkMenuScreen.js";
-import { BenchmarkListScreen } from "../screens/BenchmarkListScreen.js";
-import { BenchmarkDetailScreen } from "../screens/BenchmarkDetailScreen.js";
-import { BenchmarkRunListScreen } from "../screens/BenchmarkRunListScreen.js";
-import { BenchmarkRunDetailScreen } from "../screens/BenchmarkRunDetailScreen.js";
-import { ScenarioRunListScreen } from "../screens/ScenarioRunListScreen.js";
-import { ScenarioRunDetailScreen } from "../screens/ScenarioRunDetailScreen.js";
-import { BenchmarkJobListScreen } from "../screens/BenchmarkJobListScreen.js";
-import { BenchmarkJobDetailScreen } from "../screens/BenchmarkJobDetailScreen.js";
-import { BenchmarkJobCreateScreen } from "../screens/BenchmarkJobCreateScreen.js";
 
 /**
  * Router component that renders the current screen
@@ -225,29 +203,6 @@ export function Router() {
         case "object-create":
           if (!currentScreen.startsWith("object")) {
             useObjectStore.getState().clearAll();
-          }
-          break;
-
-        case "benchmark-menu":
-        case "benchmark-list":
-        case "benchmark-detail":
-        case "benchmark-run-list":
-        case "benchmark-run-detail":
-        case "scenario-run-list":
-        case "scenario-run-detail":
-          if (
-            !currentScreen.startsWith("benchmark") &&
-            !currentScreen.startsWith("scenario")
-          ) {
-            useBenchmarkStore.getState().clearAll();
-          }
-          break;
-
-        case "benchmark-job-list":
-        case "benchmark-job-detail":
-        case "benchmark-job-create":
-          if (!currentScreen.startsWith("benchmark-job")) {
-            useBenchmarkJobStore.getState().clearAll();
           }
           break;
 
@@ -365,39 +320,6 @@ export function Router() {
       )}
       {currentScreen === "pty-session" && (
         <PtySessionScreen key={currentScreen} {...params} />
-      )}
-      {currentScreen === "benchmark-menu" && (
-        <BenchmarkMenuScreen key={currentScreen} {...params} />
-      )}
-      {currentScreen === "benchmark-list" && (
-        <BenchmarkListScreen key={currentScreen} {...params} />
-      )}
-      {currentScreen === "benchmark-detail" && (
-        <BenchmarkDetailScreen key={currentScreen} {...params} />
-      )}
-      {currentScreen === "benchmark-run-list" && (
-        <BenchmarkRunListScreen key={currentScreen} {...params} />
-      )}
-      {currentScreen === "benchmark-run-detail" && (
-        <BenchmarkRunDetailScreen key={currentScreen} {...params} />
-      )}
-      {currentScreen === "scenario-run-list" && (
-        <ScenarioRunListScreen key={currentScreen} {...params} />
-      )}
-      {currentScreen === "scenario-run-detail" && (
-        <ScenarioRunDetailScreen key={currentScreen} {...params} />
-      )}
-      {currentScreen === "benchmark-job-list" && (
-        <BenchmarkJobListScreen key={currentScreen} {...params} />
-      )}
-      {currentScreen === "benchmark-job-detail" && (
-        <BenchmarkJobDetailScreen key={currentScreen} {...params} />
-      )}
-      {currentScreen === "benchmark-job-create" && (
-        <BenchmarkJobCreateScreen
-          key={`benchmark-job-create-${params.cloneFromJobId ?? "new"}`}
-          {...params}
-        />
       )}
       {!KNOWN_SCREENS.has(currentScreen) && (
         <UnknownScreen key={currentScreen} screenName={currentScreen} />

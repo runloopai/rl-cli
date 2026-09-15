@@ -31,7 +31,7 @@ import { useListSearch } from "../hooks/useListSearch.js";
  * Configuration for the ResourcePicker
  */
 export interface ResourcePickerConfig<T> {
-  /** Title for the picker (e.g., "Select Benchmarks") */
+  /** Title for the picker (e.g., "Select Agents") */
   title: string;
 
   /** Function to fetch a page of resources */

@@ -2,7 +2,7 @@
  * Shared agent table column builder for interactive views.
  *
  * Wraps the data-layer `getAgentColumns()` with Table Column<Agent> styling
- * so the agent list screen, devbox create picker, and benchmark job create
+ * so the agent list screen and devbox create picker
  * picker all render agents consistently.
  */
 import { createTextColumn, type Column } from "./Table.js";

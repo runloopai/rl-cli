@@ -13,7 +13,6 @@ import type { NavigationState } from "./navigationStateMachine.js";
 export type ScreenName =
   | "menu"
   | "settings-menu"
-  | "benchmark-menu"
   | "devbox-list"
   | "devbox-detail"
   | "devbox-actions"
@@ -46,16 +45,7 @@ export type ScreenName =
   | "object-detail"
   | "object-create"
   | "ssh-session"
-  | "pty-session"
-  | "benchmark-list"
-  | "benchmark-detail"
-  | "benchmark-run-list"
-  | "benchmark-run-detail"
-  | "scenario-run-list"
-  | "scenario-run-detail"
-  | "benchmark-job-list"
-  | "benchmark-job-detail"
-  | "benchmark-job-create";
+  | "pty-session";
 
 export interface RouteParams {
   devboxId?: string;
@@ -87,12 +77,6 @@ export interface RouteParams {
   // Exec session params
   executionId?: string;
   execCommand?: string;
-  // Benchmark params
-  benchmarkId?: string;
-  benchmarkRunId?: string;
-  scenarioRunId?: string;
-  benchmarkJobId?: string;
-  initialBenchmarkIds?: string;
   [key: string]: string | ScreenName | RouteParams | undefined;
 }
 
