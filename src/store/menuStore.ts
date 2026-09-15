@@ -7,8 +7,6 @@ interface MenuState {
   setSettingsSelectedKey: (key: string) => void;
   agentsObjectsSelectedKey: string;
   setAgentsObjectsSelectedKey: (key: string) => void;
-  benchmarkSelectedKey: string;
-  setBenchmarkSelectedKey: (key: string) => void;
 }
 
 export const useMenuStore = create<MenuState>((set) => ({
@@ -18,6 +16,4 @@ export const useMenuStore = create<MenuState>((set) => ({
   setSettingsSelectedKey: (key) => set({ settingsSelectedKey: key }),
   agentsObjectsSelectedKey: "agents",
   setAgentsObjectsSelectedKey: (key) => set({ agentsObjectsSelectedKey: key }),
-  benchmarkSelectedKey: "benchmarks",
-  setBenchmarkSelectedKey: (key) => set({ benchmarkSelectedKey: key }),
 }));

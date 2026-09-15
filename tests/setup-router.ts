@@ -250,24 +250,6 @@ jest.mock("../src/store/objectStore.ts", () => ({
   ),
 }));
 
-jest.mock("../src/store/benchmarkStore.ts", () => ({
-  useBenchmarkStore: Object.assign(
-    jest.fn(() => ({})),
-    {
-      getState: () => ({ clearAll: jest.fn() }),
-    },
-  ),
-}));
-
-jest.mock("../src/store/benchmarkJobStore.ts", () => ({
-  useBenchmarkJobStore: Object.assign(
-    jest.fn(() => ({})),
-    {
-      getState: () => ({ clearAll: jest.fn() }),
-    },
-  ),
-}));
-
 const mockViewportDimensionsRouter = {
   viewportHeight: 20,
   terminalHeight: 24,
