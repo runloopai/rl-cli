@@ -135,7 +135,7 @@ export const getStatusDisplay = (status: string): StatusDisplay => {
         label: "Building: In Progress",
       };
 
-    // === BENCHMARK/SCENARIO STATES ===
+    // === EXECUTION STATES ===
     case "completed":
       return {
         icon: figures.tick,
@@ -149,20 +149,6 @@ export const getStatusDisplay = (status: string): StatusDisplay => {
         color: colors.textDim,
         text: "CANCELED  ",
         label: "Canceled",
-      };
-    case "scoring":
-      return {
-        icon: figures.arrowUp,
-        color: colors.warning,
-        text: "SCORING   ",
-        label: "Scoring",
-      };
-    case "scored":
-      return {
-        icon: figures.tick,
-        color: colors.info,
-        text: "SCORED    ",
-        label: "Scored",
       };
     case "timeout":
       return {

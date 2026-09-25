@@ -25,9 +25,6 @@ export function MenuScreen() {
       case "agents-objects":
         navigate("agents-objects-menu");
         break;
-      case "benchmarks":
-        navigate("benchmark-menu");
-        break;
       default:
         // Fallback for any other screen names
         navigate(key as ScreenName);

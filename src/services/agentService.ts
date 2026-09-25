@@ -151,7 +151,7 @@ export interface ListAgentsResult {
 
 /**
  * List agents with pagination
- * Can filter to only return public agents for benchmark jobs
+ * Can filter to only return public agents
  */
 export async function listAgents(
   options: ListAgentsOptions,

@@ -206,23 +206,6 @@ rli axon list                            # List active axons
 rli axon events <id>                     # List events for an axon
 ```
 
-### Scenario Commands (alias: `scn`)
-
-```bash
-rli scenario info <id>                   # Display scenario definition details
-rli scenario list                        # List scenario runs
-```
-
-### Benchmark-job Commands (alias: `bmj`)
-
-```bash
-rli benchmark-job run                    # Run a benchmark job with one or more ...
-rli benchmark-job summary <id>           # Get benchmark job summary and results
-rli benchmark-job watch <id>             # Watch benchmark job progress in real-...
-rli benchmark-job logs <id>              # Download devbox logs for all scenario...
-rli benchmark-job list                   # List benchmark jobs
-```
-
 ### Agent Commands (alias: `agt`)
 
 ```bash

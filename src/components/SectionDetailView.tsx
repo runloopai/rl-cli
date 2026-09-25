@@ -20,7 +20,7 @@ export interface SectionDetailViewProps {
   viewportHeight: number;
   /** Callback when user exits (q/esc) */
   onBack: () => void;
-  /** Resource type for breadcrumbs (e.g. "Benchmark Runs") */
+  /** Resource type for breadcrumbs (e.g. "Devboxes") */
   resourceType: string;
   /** Resource display name for breadcrumbs */
   displayName: string;

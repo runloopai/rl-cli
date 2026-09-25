@@ -11,11 +11,15 @@ pnpm run build:mcp
 ```
 
 This will:
+
 1. Compile TypeScript files to `dist/mcp/`
 2. Bundle `dist/mcp/server.js` with all dependencies into `src/mcp/index.js`
 3. Create `runloop-mcp-server.mcpb` in the project root
 
+The bundle and archive are generated artifacts, not checked-in source. Run this build before packaging or installing the extension; do not reuse a stale bundle.
+
 The resulting `.mcpb` file is a zip archive containing:
+
 - `index.js` - Bundled server code with all dependencies (~850KB minified)
 - `manifest.json` - MCP extension metadata
 
@@ -31,6 +35,7 @@ The resulting `.mcpb` file is a zip archive containing:
 ## Build Process
 
 The build process is defined in `scripts/build-mcp.js`:
+
 1. Uses esbuild to bundle all dependencies into a single minified file in `src/mcp/`
 2. Copies manifest.json to the bundle
 3. Creates a compressed .mcpb archive with only required files

@@ -33,38 +33,6 @@ export function getAxonUrl(axonId: string): string {
 }
 
 /**
- * Generate a benchmark URL for the given benchmark ID
- */
-export function getBenchmarkUrl(
-  benchmarkId: string,
-  isPublic: boolean,
-): string {
-  const segment = isPublic ? "public" : "custom";
-  return `${platformBaseUrl()}/benchmarks/${segment}/${benchmarkId}`;
-}
-
-/**
- * Generate a benchmark run URL for the given benchmark run ID
- */
-export function getBenchmarkRunUrl(
-  benchmarkRunId: string,
-  benchmarkId?: string | null,
-): string {
-  const bmSegment = benchmarkId ?? "single";
-  return `${platformBaseUrl()}/benchmarks/custom/${bmSegment}/runs/${benchmarkRunId}`;
-}
-
-/**
- * Generate a scenario run URL for the given scenario and run IDs
- */
-export function getScenarioRunUrl(
-  scenarioId: string,
-  scenarioRunId: string,
-): string {
-  return `${platformBaseUrl()}/scenarios/${scenarioId}/runs/${scenarioRunId}`;
-}
-
-/**
  * Generate a settings URL
  */
 export function getSettingsUrl(): string {

@@ -55,13 +55,6 @@ const allMenuItems: MenuItem[] = [
     color: colors.warning,
   },
   {
-    key: "benchmarks",
-    label: "Benchmarks",
-    description: "Performance testing and evaluation",
-    icon: "▷",
-    color: colors.success,
-  },
-  {
     key: "settings",
     label: "Settings",
     description: "Network policies, secrets, and more",
@@ -206,8 +199,6 @@ export const MainMenu = ({ onSelect }: MainMenuProps) => {
       selectByKey("blueprints");
     } else if (input === "a") {
       selectByKey("agents-objects");
-    } else if (input === "e") {
-      selectByKey("benchmarks");
     } else if (input === "n") {
       selectByKey("settings");
     } else if (input >= "1" && input <= "9") {
