@@ -37,7 +37,7 @@ jobs:
             
             // Define allowed scopes (optional)
             const scopes = [
-              'cli', 'mcp', 'devbox', 'benchmark', 'secret',
+              'cli', 'mcp', 'devbox', 'secret',
               'blueprint', 'storage-object', 'network-policy',
               'main', 'snapshot', 'config', 'auth', 'deps'
             ];
