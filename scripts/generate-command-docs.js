@@ -492,8 +492,8 @@ The Runloop CLI is open-source. We welcome contributions!
 /**
  * Updates the external docs rl-cli.mdx file
  */
-function updateDocsMdx(program, docsPath) {
-  if (!existsSync(docsPath)) {
+function updateDocsMdx(program, docsPath, explicitPath) {
+  if (!explicitPath && !existsSync(docsPath)) {
     console.log(`⚠️  Docs file not found at ${docsPath}, skipping docs update`);
     console.log("   Set DOCS_PATH env var or use --docs-path to specify location");
     return false;
@@ -512,6 +512,7 @@ function parseArgs() {
   const args = process.argv.slice(2);
   const options = {
     docsPath: process.env.DOCS_PATH || defaultDocsPath,
+    explicitDocsPath: !!process.env.DOCS_PATH,
     skipReadme: false,
     skipDocs: false,
   };
@@ -519,6 +520,7 @@ function parseArgs() {
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--docs-path" && args[i + 1]) {
       options.docsPath = args[i + 1];
+      options.explicitDocsPath = true;
       i++;
     } else if (args[i] === "--skip-readme") {
       options.skipReadme = true;
@@ -555,7 +557,7 @@ async function main() {
     }
 
     if (!options.skipDocs) {
-      updateDocsMdx(program, options.docsPath);
+      updateDocsMdx(program, options.docsPath, options.explicitDocsPath);
     }
   } catch (error) {
     console.error("Error generating command docs:", error);
