@@ -156,9 +156,6 @@ jest.mock("../src/services/devboxService.ts", () => ({
   uploadFile: jest.fn().mockResolvedValue(undefined),
   createSnapshot: jest.fn().mockResolvedValue({ id: "snap-test" }),
   createTunnel: jest.fn().mockResolvedValue({ url: "https://tunnel.test" }),
-  createSSHKey: jest
-    .fn()
-    .mockResolvedValue({ ssh_private_key: "key", url: "test" }),
   getDevbox: jest.fn().mockResolvedValue(null),
 }));
 

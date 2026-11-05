@@ -1,7 +1,7 @@
 import WebSocket from "ws";
 import { cliStatus } from "../../utils/cliStatus.js";
 import { outputError } from "../../utils/output.js";
-import { waitForReady } from "../../utils/ssh.js";
+import { waitForReady } from "../../utils/devboxReady.js";
 import {
   getPtyBaseUrl,
   createPtySessionReleaser,

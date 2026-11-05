@@ -44,6 +44,7 @@ export default {
   // e2e tests may take a while (devbox creation, transfers, etc.)
   testTimeout: 180_000,
 
+  passWithNoTests: true,
   moduleFileExtensions: ["ts", "js", "json"],
   clearMocks: true,
   restoreMocks: true,

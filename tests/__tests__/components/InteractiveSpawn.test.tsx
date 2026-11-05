@@ -36,7 +36,7 @@ describe('InteractiveSpawn', () => {
     
     render(
       <InteractiveSpawn
-        command="ssh"
+        command="bash"
         args={['-i', 'key.pem', 'user@host']}
         onExit={onExit}
         onError={onError}
