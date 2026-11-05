@@ -87,7 +87,6 @@ export const mockAPIClient = () => ({
     writeFileContents: jest.fn(),
     uploadFile: jest.fn(),
     downloadFile: jest.fn(),
-    createSSHKey: jest.fn(),
     snapshotDiskAsync: jest.fn(),
     diskSnapshots: {
       queryStatus: jest.fn(),
@@ -111,12 +110,6 @@ export const mockAPIClient = () => ({
     delete: jest.fn(),
     complete: jest.fn(),
   },
-});
-
-export const mockSSHKey = () => ({
-  ssh_private_key:
-    "-----BEGIN PRIVATE KEY-----\ntest-key-content\n-----END PRIVATE KEY-----",
-  url: "test-host.example.com",
 });
 
 export const mockLogEntry = (overrides = {}) => ({

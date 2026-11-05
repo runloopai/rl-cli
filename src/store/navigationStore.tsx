@@ -44,7 +44,6 @@ export type ScreenName =
   | "object-list"
   | "object-detail"
   | "object-create"
-  | "ssh-session"
   | "pty-session";
 
 export interface RouteParams {
@@ -62,11 +61,6 @@ export interface RouteParams {
   operation?: string;
   focusDevboxId?: string;
   status?: string;
-  // SSH session params
-  keyPath?: string;
-  proxyCommand?: string;
-  sshUser?: string;
-  url?: string;
   devboxName?: string;
   returnScreen?: ScreenName;
   returnParams?: RouteParams;

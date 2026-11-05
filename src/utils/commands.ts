@@ -201,30 +201,6 @@ export function createProgram(): Command {
     });
 
   devbox
-    .command("ssh <id>")
-    .description("SSH into a devbox")
-    .option("--config-only", "Print SSH config only")
-    .option("--no-wait", "Do not wait for devbox to be ready")
-    .option(
-      "--timeout <seconds>",
-      "Timeout in seconds to wait for readiness",
-      "180",
-    )
-    .option(
-      "--poll-interval <seconds>",
-      "Polling interval in seconds while waiting",
-      "3",
-    )
-    .option(
-      "-o, --output [format]",
-      "Output format: text|json|yaml (default: text)",
-    )
-    .action(async (id, options) => {
-      const { sshDevbox } = await import("../commands/devbox/ssh.js");
-      await sshDevbox(id, options);
-    });
-
-  devbox
     .command("pty <id>")
     .alias("shell")
     .description("Connect to a devbox PTY session via WebSocket")
@@ -244,49 +220,6 @@ export function createProgram(): Command {
     .action(async (id, options) => {
       const { ptyDevbox } = await import("../commands/devbox/pty.js");
       await ptyDevbox(id, options);
-    });
-
-  devbox
-    .command("scp <src> <dst>")
-    .description(
-      "Copy files to/from a devbox using scp (e.g. rli devbox scp dbx_id:/remote ./local)",
-    )
-    .option("--scp-options <options>", "Additional scp options (quoted)")
-    .option(
-      "-o, --output [format]",
-      "Output format: text|json|yaml (default: text)",
-    )
-    .action(async (src, dst, options) => {
-      const { scpFiles } = await import("../commands/devbox/scp.js");
-      await scpFiles(src, dst, options);
-    });
-
-  devbox
-    .command("rsync <src> <dst>")
-    .description(
-      "Sync files to/from a devbox using rsync (e.g. rli devbox rsync dbx_id:/remote ./local)",
-    )
-    .option("--rsync-options <options>", "Additional rsync options (quoted)")
-    .option(
-      "-o, --output [format]",
-      "Output format: text|json|yaml (default: text)",
-    )
-    .action(async (src, dst, options) => {
-      const { rsyncFiles } = await import("../commands/devbox/rsync.js");
-      await rsyncFiles(src, dst, options);
-    });
-
-  devbox
-    .command("tunnel <id> <ports>")
-    .description("Create a port-forwarding tunnel to a devbox")
-    .option("--open", "Open the tunnel URL in browser automatically")
-    .option(
-      "-o, --output [format]",
-      "Output format: text|json|yaml (default: text)",
-    )
-    .action(async (id, ports, options) => {
-      const { createTunnel } = await import("../commands/devbox/tunnel.js");
-      await createTunnel(id, { ports, ...options });
     });
 
   devbox

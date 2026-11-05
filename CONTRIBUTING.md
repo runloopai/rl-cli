@@ -152,7 +152,7 @@ PR titles should follow the conventional commit format as they are used for rele
 src/
 ├── cli.ts              # Main CLI entry point
 ├── commands/           # Command implementations
-│   ├── devbox/        # Devbox commands (ssh, pty, exec, etc.)
+│   ├── devbox/        # Devbox commands (pty, exec, etc.)
 │   ├── snapshot/      # Snapshot commands
 │   ├── blueprint/     # Blueprint commands
 │   └── object/        # Object storage commands

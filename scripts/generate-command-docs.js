@@ -43,10 +43,6 @@ function generateCommandStructure(program) {
     suspend: "Suspend",
     resume: "Resume",
     shutdown: "Shutdown",
-    ssh: "SSH",
-    scp: "Copy files (scp)",
-    rsync: "Sync files (rsync)",
-    tunnel: "Create tunnel",
     logs: "View logs",
     status: "Get status",
     install: "Install",
@@ -239,10 +235,6 @@ function getCommandIcon(cmdName) {
     suspend: "pause",
     resume: "play",
     shutdown: "power-off",
-    ssh: "terminal",
-    scp: "copy",
-    rsync: "rotate",
-    tunnel: "network-wired",
     logs: "scroll",
     status: "info",
     start: "play",
@@ -361,14 +353,6 @@ export RUNLOOP_API_KEY=your_api_key_here
     <Frame>
       <img src="https://raw.githubusercontent.com/runloopai/rl-cli/main/misc/rli-demo-search.gif" alt="Search devboxes in interactive mode" />
     </Frame>
-    
-    ### SSH to Devbox
-    
-    From the interactive menu, select a devbox and choose **SSH** to open a secure shell session directly into your devbox. The CLI handles all the SSH key setup and connection details automatically.
-    
-    <Frame>
-      <img src="https://raw.githubusercontent.com/runloopai/rl-cli/main/misc/rli-ssh-demo.gif" alt="SSH into a Devbox" />
-    </Frame>
   </Tab>
   <Tab title="CLI Mode">
     Use traditional commands for scripting and automation:
@@ -408,8 +392,6 @@ export RUNLOOP_API_KEY=your_api_key_here
     \`\`\`
     
     \`\`\`bash
-    # SSH into a devbox
-    rli devbox ssh dbx_1234567890
     \`\`\`
   </Tab>
 </Tabs>

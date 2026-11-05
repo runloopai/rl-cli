@@ -12,7 +12,6 @@ import { ConfirmationPrompt } from "./ConfirmationPrompt.js";
 import { colors } from "../utils/theme.js";
 import { openInBrowser } from "../utils/browser.js";
 import { copyToClipboard } from "../utils/clipboard.js";
-import { sshGatewayHostname } from "../utils/config.js";
 import { useViewportHeight } from "../hooks/useViewportHeight.js";
 import { useNavigation } from "../store/navigationStore.js";
 import { useExitOnCtrlC } from "../hooks/useExitOnCtrlC.js";
@@ -23,7 +22,6 @@ import {
   uploadFile,
   createSnapshot as createDevboxSnapshot,
   createTunnel,
-  createSSHKey,
 } from "../services/devboxService.js";
 import { StreamingLogsViewer } from "./StreamingLogsViewer.js";
 import { DevboxView } from "@runloop/api-client/resources/devboxes.mjs";
@@ -34,13 +32,12 @@ import {
   getPtyTunnelBaseUrl,
   settleAfterPtyTunnel,
 } from "../lib/pty-client.js";
-import { waitForReady } from "../utils/ssh.js";
+import { waitForReady } from "../utils/devboxReady.js";
 
 type Operation =
   | "exec"
   | "upload"
   | "snapshot"
-  | "ssh"
   | "pty"
   | "logs"
   | "tunnel"
@@ -170,13 +167,6 @@ export const DevboxActionsMenu = ({
       shortcut: "n",
     },
     {
-      key: "ssh",
-      label: "SSH onto the box",
-      color: colors.primary,
-      icon: figures.arrowRight,
-      shortcut: "s",
-    },
-    {
       key: "pty",
       label: "PTY Shell",
       color: colors.primary,
@@ -260,7 +250,7 @@ export const DevboxActionsMenu = ({
 
   // Auto-execute operations that don't need input (except delete which needs confirmation)
   React.useEffect(() => {
-    const autoExecuteOps = ["ssh", "pty", "logs", "suspend", "resume"];
+    const autoExecuteOps = ["pty", "logs", "suspend", "resume"];
     if (
       executingOperation &&
       autoExecuteOps.includes(executingOperation) &&
@@ -654,47 +644,6 @@ export const DevboxActionsMenu = ({
           setSnapshotCommitMessage("");
           setSnapshotMetadata({});
           setSnapshotFormField("name");
-          break;
-
-        case "ssh":
-          // Use service layer
-          const sshKey = await createSSHKey(devbox.id);
-
-          const fsModule = await import("fs");
-          const pathModule = await import("path");
-          const osModule = await import("os");
-
-          const sshDir = pathModule.join(
-            osModule.homedir(),
-            ".runloop",
-            "ssh_keys",
-          );
-          fsModule.mkdirSync(sshDir, { recursive: true });
-          const keyPath = pathModule.join(sshDir, `${devbox.id}.pem`);
-
-          fsModule.writeFileSync(keyPath, sshKey.ssh_private_key, {
-            mode: 0o600,
-          });
-
-          const sshUser =
-            devbox.launch_parameters?.user_parameters?.username || "user";
-          const sshHost = sshGatewayHostname();
-          // macOS openssl doesn't support -verify_quiet, use compatible flags
-          // servername should be %h (target hostname) - SSH will replace %h with the actual hostname from the SSH command
-          // This matches the reference implementation where servername is the target hostname
-          const proxyCommand = `openssl s_client -quiet -servername %h -connect ${sshHost}:443 2>/dev/null`;
-
-          // Navigate to SSH session screen
-          navigate("ssh-session", {
-            keyPath,
-            proxyCommand,
-            sshUser,
-            url: sshKey.url,
-            devboxId: devbox.id,
-            devboxName: devbox.name || devbox.id,
-            returnScreen: currentScreen,
-            returnParams: params,
-          });
           break;
 
         case "pty": {
@@ -1451,7 +1400,6 @@ export const DevboxActionsMenu = ({
 
     if (!needsInput) {
       const messages: Record<string, string> = {
-        ssh: "Creating SSH key...",
         logs: "Fetching logs...",
         suspend: "Suspending devbox...",
         resume: "Resuming devbox...",

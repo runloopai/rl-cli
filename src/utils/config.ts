@@ -124,16 +124,6 @@ export function tunnelBaseHostname(): string {
   return `tunnel.${runloopBaseDomain()}`;
 }
 
-/** SSH gateway hostname (TLS/SNI), without port. */
-export function sshGatewayHostname(): string {
-  return `ssh.${runloopBaseDomain()}`;
-}
-
-/** `host:443` for `openssl s_client -connect` (SSH over HTTPS). */
-export function sshUrl(): string {
-  return `${sshGatewayHostname()}:443`;
-}
-
 export function getCacheDir(): string {
   return join(homedir(), ".runloop", "rl-cli");
 }

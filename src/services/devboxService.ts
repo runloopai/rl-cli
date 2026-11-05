@@ -238,23 +238,6 @@ export async function createSnapshot(
 }
 
 /**
- * Create SSH key for devbox
- */
-export async function createSSHKey(id: string): Promise<{
-  ssh_private_key: string;
-  url: string;
-}> {
-  const client = getClient();
-  const result = await client.devboxes.createSSHKey(id);
-
-  // Truncate keys if they're unexpectedly long (shouldn't happen, but safety)
-  return {
-    ssh_private_key: String(result.ssh_private_key || "").substring(0, 10000),
-    url: String(result.url || "").substring(0, 500),
-  };
-}
-
-/**
  * Enable V2 HTTP tunnel on devbox and return the public URL for the given port.
  */
 export async function createTunnel(

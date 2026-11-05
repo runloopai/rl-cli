@@ -1,7 +1,7 @@
 /**
  * InteractiveSpawn - Custom component for running interactive subprocesses
  * Based on Ink's subprocess-output example pattern
- * Handles proper TTY allocation for interactive commands like SSH
+ * Handles proper TTY allocation for interactive commands
  */
 import React from "react";
 import { spawn, ChildProcess } from "child_process";
@@ -28,7 +28,7 @@ function releaseTerminal(): void {
   process.stdin.pause();
 
   // Disable raw mode so the subprocess can control terminal echo and line buffering
-  // SSH needs to set its own terminal modes
+  // Interactive commands need to set their own terminal modes
   if (processUtils.stdin.isTTY && processUtils.stdin.setRawMode) {
     processUtils.stdin.setRawMode(false);
   }

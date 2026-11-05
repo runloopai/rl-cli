@@ -78,13 +78,6 @@ export const DevboxDetailPage = ({ devbox, onBack }: DevboxDetailPageProps) => {
       shortcut: "n",
     },
     {
-      key: "ssh",
-      label: "SSH onto the box",
-      color: colors.primary,
-      icon: figures.arrowRight,
-      shortcut: "s",
-    },
-    {
       key: "tunnel",
       label: "Open Tunnel",
       color: colors.secondary,

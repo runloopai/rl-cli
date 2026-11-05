@@ -52,7 +52,6 @@ const KNOWN_SCREENS: Set<ScreenName> = new Set([
   "object-list",
   "object-detail",
   "object-create",
-  "ssh-session",
   "pty-session",
 ]);
 
@@ -126,7 +125,6 @@ import { AxonDetailScreen } from "../screens/AxonDetailScreen.js";
 import { ObjectListScreen } from "../screens/ObjectListScreen.js";
 import { ObjectDetailScreen } from "../screens/ObjectDetailScreen.js";
 import { ObjectCreateScreen } from "../screens/ObjectCreateScreen.js";
-import { SSHSessionScreen } from "../screens/SSHSessionScreen.js";
 import { PtySessionScreen } from "../screens/PtySessionScreen.js";
 
 /**
@@ -314,9 +312,6 @@ export function Router() {
       )}
       {currentScreen === "object-create" && (
         <ObjectCreateScreen key={currentScreen} {...params} />
-      )}
-      {currentScreen === "ssh-session" && (
-        <SSHSessionScreen key={currentScreen} {...params} />
       )}
       {currentScreen === "pty-session" && (
         <PtySessionScreen key={currentScreen} {...params} />
