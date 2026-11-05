@@ -31,7 +31,7 @@ rli devbox delete <devbox-id>
 - 🎯 **CLI mode** — Traditional commands with text, JSON, and YAML output for scripting
 - ⚡ Fast and responsive with pagination
 - 📦 Manage devboxes, snapshots, and blueprints
-- 🚀 Execute commands, PTY shell, view logs in devboxes
+- 🚀 Execute commands, PTY shell, view logs in devboxes (SSH access was retired; use `rli devbox pty` for an interactive shell)
 - 🤖 **Model Context Protocol (MCP) server for AI integration**
 
 ## Installation
